@@ -576,14 +576,14 @@ namespace OpenMetaverse
         #region Delegates
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<CurrentGroupsEventArgs> m_CurrentGroups;
+        private EventHandler<CurrentGroupsEventArgs>? m_CurrentGroups;
 
         /// <summary>Raises the CurrentGroups event</summary>
         /// <param name="e">A CurrentGroupsEventArgs object containing the
         /// data sent from the simulator</param>
         protected virtual void OnCurrentGroups(CurrentGroupsEventArgs e)
         {
-            EventHandler<CurrentGroupsEventArgs> handler = m_CurrentGroups;
+            EventHandler<CurrentGroupsEventArgs>? handler = m_CurrentGroups;
             handler?.Invoke(this, e);
         }
 
@@ -599,14 +599,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<GroupNamesEventArgs> m_GroupNames;
+        private EventHandler<GroupNamesEventArgs>? m_GroupNames;
 
         /// <summary>Raises the GroupNamesReply event</summary>
         /// <param name="e">A GroupNamesEventArgs object containing the
         /// data response from the simulator</param>
         protected virtual void OnGroupNamesReply(GroupNamesEventArgs e)
         {
-            EventHandler<GroupNamesEventArgs> handler = m_GroupNames;
+            EventHandler<GroupNamesEventArgs>? handler = m_GroupNames;
             handler?.Invoke(this, e);
         }
 
@@ -622,14 +622,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<GroupProfileEventArgs> m_GroupProfile;
+        private EventHandler<GroupProfileEventArgs>? m_GroupProfile;
 
         /// <summary>Raises the GroupProfile event</summary>
         /// <param name="e">An GroupProfileEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnGroupProfile(GroupProfileEventArgs e)
         {
-            EventHandler<GroupProfileEventArgs> handler = m_GroupProfile;
+            EventHandler<GroupProfileEventArgs>? handler = m_GroupProfile;
             handler?.Invoke(this, e);
         }
 
@@ -644,14 +644,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<GroupMembersReplyEventArgs> m_GroupMembers;
+        private EventHandler<GroupMembersReplyEventArgs>? m_GroupMembers;
 
         /// <summary>Raises the GroupMembers event</summary>
         /// <param name="e">A GroupMembersEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnGroupMembersReply(GroupMembersReplyEventArgs e)
         {
-            EventHandler<GroupMembersReplyEventArgs> handler = m_GroupMembers;
+            EventHandler<GroupMembersReplyEventArgs>? handler = m_GroupMembers;
             handler?.Invoke(this, e);
         }
 
@@ -666,14 +666,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<GroupRolesDataReplyEventArgs> m_GroupRoles;
+        private EventHandler<GroupRolesDataReplyEventArgs>? m_GroupRoles;
 
         /// <summary>Raises the GroupRolesDataReply event</summary>
         /// <param name="e">A GroupRolesDataReplyEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnGroupRoleDataReply(GroupRolesDataReplyEventArgs e)
         {
-            EventHandler<GroupRolesDataReplyEventArgs> handler = m_GroupRoles;
+            EventHandler<GroupRolesDataReplyEventArgs>? handler = m_GroupRoles;
             handler?.Invoke(this, e);
         }
 
@@ -688,14 +688,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<GroupRolesMembersReplyEventArgs> m_GroupRoleMembers;
+        private EventHandler<GroupRolesMembersReplyEventArgs>? m_GroupRoleMembers;
 
         /// <summary>Raises the GroupRoleMembersReply event</summary>
         /// <param name="e">A GroupRolesRoleMembersReplyEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnGroupRoleMembers(GroupRolesMembersReplyEventArgs e)
         {
-            EventHandler<GroupRolesMembersReplyEventArgs> handler = m_GroupRoleMembers;
+            EventHandler<GroupRolesMembersReplyEventArgs>? handler = m_GroupRoleMembers;
             handler?.Invoke(this, e);
         }
 
@@ -710,7 +710,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<GroupTitlesReplyEventArgs> m_GroupTitles;
+        private EventHandler<GroupTitlesReplyEventArgs>? m_GroupTitles;
 
 
         /// <summary>Raises the GroupTitlesReply event</summary>
@@ -718,7 +718,7 @@ namespace OpenMetaverse
         /// data returned from the simulator</param>
         protected virtual void OnGroupTitles(GroupTitlesReplyEventArgs e)
         {
-            EventHandler<GroupTitlesReplyEventArgs> handler = m_GroupTitles;
+            EventHandler<GroupTitlesReplyEventArgs>? handler = m_GroupTitles;
             handler?.Invoke(this, e);
         }
 
@@ -733,14 +733,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<GroupAccountSummaryReplyEventArgs> m_GroupAccountSummary;
+        private EventHandler<GroupAccountSummaryReplyEventArgs>? m_GroupAccountSummary;
 
         /// <summary>Raises the GroupAccountSummary event</summary>
         /// <param name="e">A GroupAccountSummaryReplyEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnGroupAccountSummaryReply(GroupAccountSummaryReplyEventArgs e)
         {
-            EventHandler<GroupAccountSummaryReplyEventArgs> handler = m_GroupAccountSummary;
+            EventHandler<GroupAccountSummaryReplyEventArgs>? handler = m_GroupAccountSummary;
             handler?.Invoke(this, e);
         }
 
@@ -756,14 +756,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<GroupCreatedReplyEventArgs> m_GroupCreated;
+        private EventHandler<GroupCreatedReplyEventArgs>? m_GroupCreated;
 
         /// <summary>Raises the GroupCreated event</summary>
         /// <param name="e">An GroupCreatedEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnGroupCreatedReply(GroupCreatedReplyEventArgs e)
         {
-            EventHandler<GroupCreatedReplyEventArgs> handler = m_GroupCreated;
+            EventHandler<GroupCreatedReplyEventArgs>? handler = m_GroupCreated;
             handler?.Invoke(this, e);
         }
         /// <summary>Thread sync lock object</summary>
@@ -777,14 +777,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<GroupOperationEventArgs> m_GroupJoined;
+        private EventHandler<GroupOperationEventArgs>? m_GroupJoined;
 
         /// <summary>Raises the GroupJoined event</summary>
         /// <param name="e">A GroupOperationEventArgs object containing the
         /// result of the operation returned from the simulator</param>
         protected virtual void OnGroupJoinedReply(GroupOperationEventArgs e)
         {
-            EventHandler<GroupOperationEventArgs> handler = m_GroupJoined;
+            EventHandler<GroupOperationEventArgs>? handler = m_GroupJoined;
             handler?.Invoke(this, e);
         }
         /// <summary>Thread sync lock object</summary>
@@ -799,14 +799,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<GroupOperationEventArgs> m_GroupLeft;
+        private EventHandler<GroupOperationEventArgs>? m_GroupLeft;
 
         /// <summary>Raises the GroupLeft event</summary>
         /// <param name="e">A GroupOperationEventArgs object containing the
         /// result of the operation returned from the simulator</param>
         protected virtual void OnGroupLeaveReply(GroupOperationEventArgs e)
         {
-            EventHandler<GroupOperationEventArgs> handler = m_GroupLeft;
+            EventHandler<GroupOperationEventArgs>? handler = m_GroupLeft;
             handler?.Invoke(this, e);
         }
         /// <summary>Thread sync lock object</summary>
@@ -821,14 +821,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<GroupDroppedEventArgs> m_GroupDropped;
+        private EventHandler<GroupDroppedEventArgs>? m_GroupDropped;
 
         /// <summary>Raises the GroupDropped event</summary>
         /// <param name="e">An GroupDroppedEventArgs object containing the
         /// the group your agent left</param>
         protected virtual void OnGroupDropped(GroupDroppedEventArgs e)
         {
-            EventHandler<GroupDroppedEventArgs> handler = m_GroupDropped;
+            EventHandler<GroupDroppedEventArgs>? handler = m_GroupDropped;
             handler?.Invoke(this, e);
         }
         /// <summary>Thread sync lock object</summary>
@@ -842,14 +842,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<GroupOperationEventArgs> m_GroupMemberEjected;
+        private EventHandler<GroupOperationEventArgs>? m_GroupMemberEjected;
 
         /// <summary>Raises the GroupMemberEjected event</summary>
         /// <param name="e">An GroupMemberEjectedEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnGroupMemberEjected(GroupOperationEventArgs e)
         {
-            EventHandler<GroupOperationEventArgs> handler = m_GroupMemberEjected;
+            EventHandler<GroupOperationEventArgs>? handler = m_GroupMemberEjected;
             handler?.Invoke(this, e);
         }
         /// <summary>Thread sync lock object</summary>
@@ -864,14 +864,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<GroupNoticesListReplyEventArgs> m_GroupNoticesListReply;
+        private EventHandler<GroupNoticesListReplyEventArgs>? m_GroupNoticesListReply;
 
         /// <summary>Raises the GroupNoticesListReply event</summary>
         /// <param name="e">An GroupNoticesListReplyEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnGroupNoticesListReply(GroupNoticesListReplyEventArgs e)
         {
-            EventHandler<GroupNoticesListReplyEventArgs> handler = m_GroupNoticesListReply;
+            EventHandler<GroupNoticesListReplyEventArgs>? handler = m_GroupNoticesListReply;
             handler?.Invoke(this, e);
         }
 
@@ -887,14 +887,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<GroupInvitationEventArgs> m_GroupInvitation;
+        private EventHandler<GroupInvitationEventArgs>? m_GroupInvitation;
 
         /// <summary>Raises the GroupInvitation event</summary>
         /// <param name="e">An GroupInvitationEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnGroupInvitation(GroupInvitationEventArgs e)
         {
-            EventHandler<GroupInvitationEventArgs> handler = m_GroupInvitation;
+            EventHandler<GroupInvitationEventArgs>? handler = m_GroupInvitation;
             handler?.Invoke(this, e);
         }
 
@@ -914,14 +914,14 @@ namespace OpenMetaverse
 
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<BannedAgentsEventArgs> m_BannedAgents;
+        private EventHandler<BannedAgentsEventArgs>? m_BannedAgents;
 
         /// <summary>Raises the BannedAgents event</summary>
         /// <param name="e">An BannedAgentsEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnBannedAgents(BannedAgentsEventArgs e)
         {
-            EventHandler<BannedAgentsEventArgs> handler = m_BannedAgents;
+            EventHandler<BannedAgentsEventArgs>? handler = m_BannedAgents;
             handler?.Invoke(this, e);
         }
 
@@ -1057,22 +1057,32 @@ namespace OpenMetaverse
             Dispose(false);
         }
 
-        private void Self_IM(object sender, InstantMessageEventArgs e)
+        private void Self_IM(object? sender, InstantMessageEventArgs e)
         {
             if (m_GroupInvitation == null || e.IM.Dialog != InstantMessageDialog.GroupInvitation) return;
+            var sim = e.Simulator ?? Client?.Network?.CurrentSim;
+            if (sim == null) return;
 
-            GroupInvitationEventArgs args = new GroupInvitationEventArgs(e.Simulator, e.IM.FromAgentID, e.IM.FromAgentName, e.IM.Message);
+            GroupInvitationEventArgs args = new GroupInvitationEventArgs(sim, e.IM.FromAgentID, e.IM.FromAgentName, e.IM.Message);
             OnGroupInvitation(args);
 
             if (args.Accept)
             {
-                Client.Self.InstantMessage("name", e.IM.FromAgentID, "message", e.IM.IMSessionID, InstantMessageDialog.GroupInvitationAccept,
-                    InstantMessageOnline.Online, Client.Self.SimPosition, UUID.Zero, Utils.EmptyBytes);
+                var self = Client?.Self;
+                if (self != null)
+                {
+                    self.InstantMessage("name", e.IM.FromAgentID, "message", e.IM.IMSessionID, InstantMessageDialog.GroupInvitationAccept,
+                        InstantMessageOnline.Online, self.SimPosition, UUID.Zero, Utils.EmptyBytes);
+                }
             }
             else
             {
-                Client.Self.InstantMessage("name", e.IM.FromAgentID, "message", e.IM.IMSessionID, InstantMessageDialog.GroupInvitationDecline,
-                    InstantMessageOnline.Online, Client.Self.SimPosition, UUID.Zero, new byte[1] { 0 });
+                var self = Client?.Self;
+                if (self != null)
+                {
+                    self.InstantMessage("name", e.IM.FromAgentID, "message", e.IM.IMSessionID, InstantMessageDialog.GroupInvitationDecline,
+                        InstantMessageOnline.Online, self.SimPosition, UUID.Zero, new byte[1] { 0 });
+                }
             }
         }
 
@@ -1189,16 +1199,21 @@ namespace OpenMetaverse
         public UUID RequestGroupMembers(UUID group)
         {
             UUID requestID = UUID.Random();
-            Uri cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("GroupMemberData");
+            Uri? cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("GroupMemberData");
 
             // Request from Capability
             if (cap != null)
             {
                 OSDMap payload = new OSDMap(1) { ["group_id"] = @group };
                 Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, CancellationToken.None,
-                    (response, data, error) =>
+                (response, data, error) =>
                 {
                     if (error != null) { return; }
+                    if (data == null)
+                    {
+                        Logger.Warn("Group members request returned no data", Client);
+                        return;
+                    }
 
                     OSD result = OSDParser.Deserialize(data);
                     GroupMembersHandlerCaps(requestID, result);
@@ -1777,20 +1792,34 @@ namespace OpenMetaverse
         /// <param name="groupID">UUID of the group</param>
         /// <param name="callback">Callback on request completion</param>
         /// <param name="cancellationToken"></param>
-        public async Task RequestBannedAgents(UUID groupID, EventHandler<BannedAgentsEventArgs> callback = null, 
+        public async Task RequestBannedAgents(UUID groupID, EventHandler<BannedAgentsEventArgs>? callback = null, 
             CancellationToken cancellationToken = default)
         {
-            var uri = new UriBuilder(Client.Network.CurrentSim.Caps.CapabilityURI("GroupAPIv1"))
-                {Query = $"group_id={groupID}"}.Uri;
-            await Client.HttpCapsClient.GetRequestAsync(uri, cancellationToken, (response, data, error) =>
+            Uri? capUri = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("GroupAPIv1");
+            if (capUri == null)
+            {
+                Logger.Warn($"GroupAPIv1 capability not available for RequestBannedAgents({groupID})", Client);
+                var retFail = new BannedAgentsEventArgs(groupID, false, null);
+                OnBannedAgents(retFail);
+                if (callback != null)
+                {
+                    try { callback(this, retFail); } catch { }
+                }
+                return;
+            }
+            var uri = new UriBuilder(capUri.ToString()) { Query = $"group_id={groupID}" }.Uri;
+            await Client!.HttpCapsClient.GetRequestAsync(uri, cancellationToken, (response, data, error) =>
             {
                 try
                 {
                     if (error != null) { throw error; }
+                    if (data == null) throw new Exception("No data returned from GroupAPIv1");
 
-                    OSD result = OSDParser.Deserialize(data);
-                    UUID gid = ((OSDMap)result)["group_id"];
-                    var banList = (OSDMap)((OSDMap)result)["ban_list"];
+                    OSD? resultOsd = OSDParser.Deserialize(data);
+                    if (resultOsd == null || resultOsd.Type != OSDType.Map) throw new Exception("Invalid response from GroupAPIv1");
+                    OSDMap result = (OSDMap)resultOsd;
+                    UUID gid = result.ContainsKey("group_id") ? result["group_id"] : UUID.Zero;
+                    var banList = result.ContainsKey("ban_list") ? (OSDMap)result["ban_list"] : new OSDMap();
                     var bannedAgents = new Dictionary<UUID, DateTime>(banList.Count);
 
                     foreach (var id in banList.Keys)
@@ -1828,10 +1857,21 @@ namespace OpenMetaverse
         /// <param name="agents">Array of agents UUIDs to ban</param>
         /// <param name="callback">Callback</param>
         /// <param name="cancellationToken"></param>
-        public async Task RequestBanAction(UUID groupID, GroupBanAction action, UUID[] agents, EventHandler<EventArgs> callback = null, 
+        public async Task RequestBanAction(UUID groupID, GroupBanAction action, UUID[] agents, EventHandler<EventArgs>? callback = null, 
             CancellationToken cancellationToken = default)
         {
-            var uri = new UriBuilder(Client.Network.CurrentSim.Caps.CapabilityURI("GroupAPIv1")) {Query = $"group_id={groupID}"}.Uri;
+            Uri? capUri2 = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("GroupAPIv1");
+            if (capUri2 == null)
+            {
+                Logger.Warn($"GroupAPIv1 capability not available for RequestBanAction({groupID})", Client);
+                if (callback != null)
+                {
+                    try { callback(this, EventArgs.Empty); } catch { }
+                }
+                return;
+            }
+
+            var uri = new UriBuilder(capUri2.ToString()) { Query = $"group_id={groupID}" }.Uri;
 
             OSDMap payload = new OSDMap { ["ban_action"] = (int)action };
             OSDArray banIDs = new OSDArray(agents.Length);
@@ -1841,7 +1881,7 @@ namespace OpenMetaverse
             }
             payload["ban_ids"] = banIDs;
 
-            await Client.HttpCapsClient.PostRequestAsync(uri, OSDFormat.Xml, payload, cancellationToken,
+            await Client!.HttpCapsClient.PostRequestAsync(uri, OSDFormat.Xml, payload, cancellationToken,
                 (response, data, error) =>
             {
                 if (error != null)
@@ -1897,7 +1937,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void AgentDropGroupHandler(object sender, PacketReceivedEventArgs e)
+        protected void AgentDropGroupHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_GroupDropped != null)
             {
@@ -1921,7 +1961,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
  /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void GroupProfileReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void GroupProfileReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_GroupProfile != null)
             {
@@ -1954,7 +1994,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void GroupNoticesListReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void GroupNoticesListReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_GroupNoticesListReply != null)
             {
@@ -1979,7 +2019,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void GroupTitlesReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void GroupTitlesReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_GroupTitles != null)
             {
@@ -2006,11 +2046,11 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void GroupMembersHandler(object sender, PacketReceivedEventArgs e)
+        protected void GroupMembersHandler(object? sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
             GroupMembersReplyPacket members = (GroupMembersReplyPacket)packet;
-            Dictionary<UUID, GroupMember> groupMemberCache = null;
+            Dictionary<UUID, GroupMember>? groupMemberCache = null;
 
             // If nothing is registered to receive this RequestID drop the data
             if (GroupMembersRequests.ContainsKey(members.GroupData.RequestID))
@@ -2036,7 +2076,7 @@ namespace OpenMetaverse
                 {
                     byte ignored;
                     GroupMembersRequests.TryRemove(members.GroupData.RequestID, out ignored);
-                    Dictionary<UUID, GroupMember> removed;
+                    Dictionary<UUID, GroupMember>? removed;
                     TempGroupMembers.TryRemove(members.GroupData.RequestID, out removed);
                 }
             }
@@ -2095,11 +2135,11 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void GroupRoleDataReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void GroupRoleDataReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
             GroupRoleDataReplyPacket roles = (GroupRoleDataReplyPacket)packet;
-            Dictionary<UUID, GroupRole> groupRoleCache = null;
+            Dictionary<UUID, GroupRole>? groupRoleCache = null;
 
             // If nothing is registered to receive this RequestID drop the data
             if (GroupRolesRequests.ContainsKey(roles.GroupData.RequestID))
@@ -2125,7 +2165,7 @@ namespace OpenMetaverse
                 {
                     byte ignored;
                     GroupRolesRequests.TryRemove(roles.GroupData.RequestID, out ignored);
-                    Dictionary<UUID, GroupRole> removed;
+                    Dictionary<UUID, GroupRole>? removed;
                     TempGroupRoles.TryRemove(roles.GroupData.RequestID, out removed);
                 }
             }
@@ -2139,11 +2179,11 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void GroupRoleMembersReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void GroupRoleMembersReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
             GroupRoleMembersReplyPacket members = (GroupRoleMembersReplyPacket)packet;
-            List<KeyValuePair<UUID, UUID>> groupRoleMemberCache = null;
+            List<KeyValuePair<UUID, UUID>>? groupRoleMemberCache = null;
 
             // If nothing is registered to receive this RequestID drop the data
             if (GroupRolesMembersRequests.ContainsKey(members.AgentData.RequestID))
@@ -2156,7 +2196,7 @@ namespace OpenMetaverse
                 {
                     byte ignored;
                     GroupRolesMembersRequests.TryRemove(members.AgentData.RequestID, out ignored);
-                    List<KeyValuePair<UUID, UUID>> removed;
+                    List<KeyValuePair<UUID, UUID>>? removed;
                     TempGroupRolesMembers.TryRemove(members.AgentData.RequestID, out removed);
                 }
             }
@@ -2170,7 +2210,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void GroupActiveProposalItemHandler(object sender, PacketReceivedEventArgs e)
+        protected void GroupActiveProposalItemHandler(object? sender, PacketReceivedEventArgs e)
         {
             GroupActiveProposalItemReplyPacket proposal = (GroupActiveProposalItemReplyPacket)e.Packet;
 
@@ -2181,7 +2221,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void GroupVoteHistoryItemHandler(object sender, PacketReceivedEventArgs e)
+        protected void GroupVoteHistoryItemHandler(object? sender, PacketReceivedEventArgs e)
         {
             GroupVoteHistoryItemReplyPacket history = (GroupVoteHistoryItemReplyPacket)e.Packet;
 
@@ -2192,7 +2232,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void GroupAccountSummaryReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void GroupAccountSummaryReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_GroupAccountSummary != null)
             {
@@ -2228,7 +2268,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void CreateGroupReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void CreateGroupReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_GroupCreated != null)
             {
@@ -2244,7 +2284,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void JoinGroupReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void JoinGroupReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_GroupJoined != null)
             {
@@ -2258,7 +2298,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void LeaveGroupReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void LeaveGroupReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_GroupLeft != null)
             {
@@ -2272,7 +2312,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        private void UUIDGroupNameReplyHandler(object sender, PacketReceivedEventArgs e)
+        private void UUIDGroupNameReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
             UUIDGroupNameReplyPacket reply = (UUIDGroupNameReplyPacket)packet;
@@ -2296,7 +2336,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void EjectGroupMemberReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void EjectGroupMemberReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
             EjectGroupMemberReplyPacket reply = (EjectGroupMemberReplyPacket)packet;
@@ -2600,9 +2640,9 @@ namespace OpenMetaverse
         public bool Success { get; }
 
         /// <summary> Array containing a list of UUIDs of the agents banned from joining a group </summary>
-        public Dictionary<UUID, DateTime> BannedAgents { get; }
+        public Dictionary<UUID, DateTime>? BannedAgents { get; }
 
-        public BannedAgentsEventArgs(UUID groupID, bool success, Dictionary<UUID, DateTime> bannedAgents)
+        public BannedAgentsEventArgs(UUID groupID, bool success, Dictionary<UUID, DateTime>? bannedAgents)
         {
             GroupID = groupID;
             Success = success;

@@ -205,16 +205,16 @@ namespace OpenMetaverse
             if (disposing)
             {
                 // Dispose subsystems that implement IDisposable
-                DisposalHelper.SafeDispose(Sound as IDisposable);
-                DisposalHelper.SafeDispose(Terrain as IDisposable);
-                DisposalHelper.SafeDispose(Appearance as IDisposable);
-                DisposalHelper.SafeDispose(Inventory as IDisposable);
-                DisposalHelper.SafeDispose(Assets as IDisposable);
-                DisposalHelper.SafeDispose(Parcels as IDisposable);
-                DisposalHelper.SafeDispose(Objects as IDisposable);
+                if (Sound is IDisposable soundDisposable) DisposalHelper.SafeDispose(soundDisposable);
+                if (Terrain is IDisposable terrainDisposable) DisposalHelper.SafeDispose(terrainDisposable);
+                if (Appearance is IDisposable appearanceDisposable) DisposalHelper.SafeDispose(appearanceDisposable);
+                if (Inventory is IDisposable inventoryDisposable) DisposalHelper.SafeDispose(inventoryDisposable);
+                if (Assets is IDisposable assetsDisposable) DisposalHelper.SafeDispose(assetsDisposable);
+                if (Parcels is IDisposable parcelsDisposable) DisposalHelper.SafeDispose(parcelsDisposable);
+                if (Objects is IDisposable objectsDisposable) DisposalHelper.SafeDispose(objectsDisposable);
 
                 // Dispose HttpCapsClient which is a HttpClient
-                DisposalHelper.SafeDispose(HttpCapsClient);
+                if (HttpCapsClient is IDisposable httpDisposable) DisposalHelper.SafeDispose(httpDisposable);
 
                 // If Network has shutdown needs, attempt a graceful shutdown
                 try

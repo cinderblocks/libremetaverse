@@ -71,14 +71,14 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="lang">language to return categories in</param>
         /// <returns>Returns Dictionary of Abuse Report categories from the server</returns>
-        public async Task<Dictionary<string, string>> FetchAbuseReportCategoriesAsync(string lang)
+        public async Task<Dictionary<string, string>> FetchAbuseReportCategoriesAsync(string? lang)
         {
-            Dictionary<string, string> reportCategories = null;
-            Uri abuseCategoriesCap = Client.Network.CurrentSim.Caps.CapabilityURI("AbuseCategories");
+            var reportCategories = new Dictionary<string, string>();
+            var abuseCategoriesCap = Client.Network?.CurrentSim?.Caps?.CapabilityURI("AbuseCategories");
             if (abuseCategoriesCap == null)
             {
                 Logger.Info("AbuseCategories capability does not exist. Could not fetch categories list.");
-                return null;
+                return reportCategories;
             }
 
             if (lang != null)
@@ -100,14 +100,18 @@ namespace LibreMetaverse
                         return;
                     }
 
+                    if (data == null) return;
                     OSD result = OSDParser.Deserialize(data);
                     if (result is OSDMap respMap && respMap.TryGetValue("categories", out var value))
                     {
                         if (value is OSDArray categories)
                         {
-                            reportCategories = categories.Cast<OSDMap>().ToDictionary(
-                                row => row["description_localized"].AsString(),
-                                row => row["category"].AsString());
+                            foreach (var row in categories.Cast<OSDMap>())
+                            {
+                                var desc = row.ContainsKey("description_localized") ? row["description_localized"].AsString() : string.Empty;
+                                var cat = row.ContainsKey("category") ? row["category"].AsString() : string.Empty;
+                                reportCategories[desc] = cat;
+                            }
                         }
                     }
                 });
@@ -149,18 +153,18 @@ namespace LibreMetaverse
                 ["details"] = details
             };
 
-            Uri userReportCap = (screenshotId != UUID.Zero)
-                ? Client.Network.CurrentSim.Caps.CapabilityURI("SendUserReportWithScreenshot")
-                : Client.Network.CurrentSim.Caps.CapabilityURI("SendUserReport");
+            var userReportCap = (screenshotId != UUID.Zero)
+                ? Client.Network?.CurrentSim?.Caps?.CapabilityURI("SendUserReportWithScreenshot")
+                : Client.Network?.CurrentSim?.Caps?.CapabilityURI("SendUserReport");
+
             if (userReportCap != null)
             {
-                _ = Client.HttpCapsClient.PostRequestAsync(userReportCap, OSDFormat.Xml, report, CancellationToken.None, 
+                _ = Client.HttpCapsClient.PostRequestAsync(userReportCap, OSDFormat.Xml, report, CancellationToken.None,
                     (response, data, error) =>
                     {
                         if (error != null)
                         {
-                            Logger.Warn($"Failed to send abuse report via {userReportCap}. " +
-                                       $"({error.Message}) Falling back to legacy protocol.");
+                            Logger.Warn($"Failed to send abuse report via {userReportCap}. ({error.Message}) Falling back to legacy protocol.");
                             SendUserReportLegacy(reportType, category, screenshotId, objectId, abuserId,
                                 abuseRegionName, abuseRegionId, pos, summary, details);
                         }

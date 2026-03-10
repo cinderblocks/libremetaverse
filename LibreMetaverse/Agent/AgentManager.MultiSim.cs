@@ -52,13 +52,13 @@ namespace OpenMetaverse
             = new System.Collections.Concurrent.ConcurrentDictionary<Simulator, SimulatorAgentState>();
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<RegionCrossingPredictionEventArgs> m_RegionCrossingPredicted;
+        private EventHandler<RegionCrossingPredictionEventArgs>? m_RegionCrossingPredicted;
 
         /// <summary>Raises the RegionCrossingPredicted event</summary>
         /// <param name="e">A RegionCrossingPredictionEventArgs object containing prediction data</param>
         protected virtual void OnRegionCrossingPredicted(RegionCrossingPredictionEventArgs e)
         {
-            EventHandler<RegionCrossingPredictionEventArgs> handler = m_RegionCrossingPredicted;
+            EventHandler<RegionCrossingPredictionEventArgs>? handler = m_RegionCrossingPredicted;
             handler?.Invoke(this, e);
         }
 

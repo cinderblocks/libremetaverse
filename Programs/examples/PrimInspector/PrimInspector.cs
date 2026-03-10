@@ -83,7 +83,14 @@ namespace PrimInspector
                     return 1;
                 }
 
-                Console.WriteLine($"Logged in to {client.Network.CurrentSim.Name}");
+                var sim = client.Network.CurrentSim;
+                if (sim == null)
+                {
+                    Console.WriteLine("Logged in but no current simulator available");
+                    return 1;
+                }
+
+                Console.WriteLine($"Logged in to {sim.Name}");
                 Console.WriteLine($"Position: {client.Self.SimPosition}");
                 Console.WriteLine();
 
@@ -149,12 +156,16 @@ namespace PrimInspector
         private static void InspectPrimitive(Primitive prim, float distance)
         {
             // Request properties if we don't have them
-            if (prim.Properties == null && client != null)
-            {
-                primPropertiesEvent.Reset();
-                client.Objects.SelectObject(client.Network.CurrentSim, prim.LocalID);
-                primPropertiesEvent.WaitOne(3000);
-            }
+                if (prim.Properties == null && client != null)
+                {
+                    primPropertiesEvent.Reset();
+                    var sim = client.Network.CurrentSim;
+                    if (sim != null)
+                    {
+                        client.Objects.SelectObject(sim, prim.LocalID);
+                        primPropertiesEvent.WaitOne(3000);
+                    }
+                }
 
             Console.WriteLine($"Object: {prim.Properties?.Name ?? "Unknown"} (ID: {prim.ID})");
             Console.WriteLine($"  Local ID: {prim.LocalID}");

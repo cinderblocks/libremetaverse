@@ -58,7 +58,7 @@ namespace OpenMetaverse.Assets
                         TarArchiveReader archive = new TarArchiveReader(loadStream);
 
                         string filePath;
-                        byte[] data;
+                        byte[]? data;
                         TarArchiveReader.TarEntryType entryType;
 
                         while ((data = archive.ReadEntry(out filePath, out entryType)) != null)
@@ -67,13 +67,13 @@ namespace OpenMetaverse.Assets
                             {
                                 // Deserialize the XML bytes
                                 if (objectCallback != null)
-                                    LoadObjects(data, objectCallback, fileStream.Position, fileStream.Length);
+                                    LoadObjects(data!, objectCallback, fileStream.Position, fileStream.Length);
                             }
                             else if (filePath.StartsWith(ArchiveConstants.ASSETS_PATH))
                             {
                                 if (assetCallback != null)
                                 {
-                                    if (LoadAsset(filePath, data, assetCallback, fileStream.Position, fileStream.Length))
+                                    if (LoadAsset(filePath, data!, assetCallback, fileStream.Position, fileStream.Length))
                                         successfulAssetRestores++;
                                     else
                                         failedAssetRestores++;
@@ -82,12 +82,12 @@ namespace OpenMetaverse.Assets
                             else if (filePath.StartsWith(ArchiveConstants.TERRAINS_PATH))
                             {
                                 if (terrainCallback != null)
-                                    LoadTerrain(filePath, data, terrainCallback, fileStream.Position, fileStream.Length);
+                                    LoadTerrain(filePath, data!, terrainCallback, fileStream.Position, fileStream.Length);
                             }
                             else if (filePath.StartsWith(ArchiveConstants.SETTINGS_PATH))
                             {
                                 if (settingsCallback != null)
-                                    LoadRegionSettings(filePath, data, settingsCallback);
+                                    LoadRegionSettings(filePath, data!, settingsCallback);
                             }
                         }
 
@@ -124,7 +124,7 @@ namespace OpenMetaverse.Assets
 
             if (ArchiveConstants.EXTENSION_TO_ASSET_TYPE.TryGetValue(extension, out var assetType))
             {
-                Asset asset = null;
+                Asset? asset = null;
 
                 switch (assetType)
                 {
@@ -179,7 +179,7 @@ namespace OpenMetaverse.Assets
 
         private static bool LoadRegionSettings(string filePath, byte[] data, SettingsLoadedCallback settingsCallback)
         {
-            RegionSettings settings = null;
+            RegionSettings? settings = null;
             bool loaded = false;
 
             try
@@ -196,7 +196,7 @@ namespace OpenMetaverse.Assets
             // Parse the region name out of the filename
             string regionName = Path.GetFileNameWithoutExtension(filePath);
 
-            if (loaded)
+            if (loaded && settings != null)
                 settingsCallback(regionName, settings);
 
             return loaded;
@@ -272,7 +272,8 @@ namespace OpenMetaverse.Assets
                 doc.Load(reader);
             }
 
-            XmlNode rootNode = doc.FirstChild;
+            XmlNode? rootNode = doc.FirstChild;
+            if (rootNode == null) return;
 
             if (rootNode.LocalName.Equals("scene"))
             {
@@ -506,6 +507,8 @@ namespace OpenMetaverse.Assets
             {
                 foreach (AssetPrim assetPrim in prims)
                 {
+                    if (assetPrim.Parent == null) continue;
+
                     SavePrim(assetPrim, Path.Combine(primsPath, "Primitive_" + assetPrim.Parent.ID + ".xml"));
 
                     CollectTextures(assetPrim.Parent, textureList);
@@ -670,17 +673,23 @@ namespace OpenMetaverse.Assets
         public static void SOGToXml2(XmlTextWriter writer, AssetPrim prim)
         {
             writer.WriteStartElement(string.Empty, "SceneObjectGroup", string.Empty);
-            SOPToXml(writer, prim.Parent, null);
+            if (prim.Parent != null)
+            {
+                SOPToXml(writer, prim.Parent, null);
+            }
             writer.WriteStartElement(string.Empty, "OtherParts", string.Empty);
 
-            foreach (PrimObject child in prim.Children)
-                SOPToXml(writer, child, prim.Parent);
+            if (prim.Children != null)
+            {
+                foreach (PrimObject child in prim.Children)
+                    SOPToXml(writer, child, prim.Parent);
+            }
 
             writer.WriteEndElement();
             writer.WriteEndElement();
         }
 
-        static void SOPToXml(XmlTextWriter writer, PrimObject prim, PrimObject parent)
+        static void SOPToXml(XmlTextWriter writer, PrimObject prim, PrimObject? parent)
         {
             writer.WriteStartElement("SceneObjectPart");
             writer.WriteAttributeString("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");

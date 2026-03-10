@@ -40,14 +40,14 @@ namespace OpenMetaverse
 
         #region Event Handling
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<AttachedSoundEventArgs> _mAttachedSound;
+        private EventHandler<AttachedSoundEventArgs>? _mAttachedSound;
 
         ///<summary>Raises the AttachedSound Event</summary>
         /// <param name="e">A AttachedSoundEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnAttachedSound(AttachedSoundEventArgs e)
         {
-            EventHandler<AttachedSoundEventArgs> handler = _mAttachedSound;
+            EventHandler<AttachedSoundEventArgs>? handler = _mAttachedSound;
             handler?.Invoke(this, e);
         }
 
@@ -63,14 +63,14 @@ namespace OpenMetaverse
         }
                 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<AttachedSoundGainChangeEventArgs> m_AttachedSoundGainChange;
+        private EventHandler<AttachedSoundGainChangeEventArgs>? m_AttachedSoundGainChange;
 
         ///<summary>Raises the AttachedSoundGainChange Event</summary>
         /// <param name="e">A AttachedSoundGainChangeEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnAttachedSoundGainChange(AttachedSoundGainChangeEventArgs e)
         {
-            EventHandler<AttachedSoundGainChangeEventArgs> handler = m_AttachedSoundGainChange;
+            EventHandler<AttachedSoundGainChangeEventArgs>? handler = m_AttachedSoundGainChange;
             handler?.Invoke(this, e);
         }
 
@@ -86,14 +86,14 @@ namespace OpenMetaverse
         }
         
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<SoundTriggerEventArgs> m_SoundTrigger;
+        private EventHandler<SoundTriggerEventArgs>? m_SoundTrigger;
 
         ///<summary>Raises the SoundTrigger Event</summary>
         /// <param name="e">A SoundTriggerEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnSoundTrigger(SoundTriggerEventArgs e)
         {
-            EventHandler<SoundTriggerEventArgs> handler = m_SoundTrigger;
+            EventHandler<SoundTriggerEventArgs>? handler = m_SoundTrigger;
             handler?.Invoke(this, e);
         }
 
@@ -109,14 +109,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<PreloadSoundEventArgs> m_PreloadSound;
+        private EventHandler<PreloadSoundEventArgs>? m_PreloadSound;
 
         ///<summary>Raises the PreloadSound Event</summary>
         /// <param name="e">A PreloadSoundEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnPreloadSound(PreloadSoundEventArgs e)
         {
-            EventHandler<PreloadSoundEventArgs> handler = m_PreloadSound;
+            EventHandler<PreloadSoundEventArgs>? handler = m_PreloadSound;
             handler?.Invoke(this, e);
         }
 
@@ -178,7 +178,7 @@ namespace OpenMetaverse
         public void SendSoundTrigger(UUID soundID, Vector3 position, float gain)
         {
             var sim = _client?.Network?.CurrentSim;
-            if (sim == null)
+            if (sim is null)
             {
                 Logger.Warn("Cannot send sound trigger: no current simulator.", _client);
                 return;
@@ -256,7 +256,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void AttachedSoundHandler(object sender, PacketReceivedEventArgs e)
+        protected void AttachedSoundHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (_mAttachedSound == null) return;
 
@@ -268,7 +268,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void AttachedSoundGainChangeHandler(object sender, PacketReceivedEventArgs e)
+        protected void AttachedSoundGainChangeHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_AttachedSoundGainChange == null) return;
 
@@ -280,7 +280,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void PreloadSoundHandler(object sender, PacketReceivedEventArgs e)
+        protected void PreloadSoundHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_PreloadSound == null) return;
 
@@ -294,7 +294,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void SoundTriggerHandler(object sender, PacketReceivedEventArgs e)
+        protected void SoundTriggerHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_SoundTrigger == null) return;
 

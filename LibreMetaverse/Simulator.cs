@@ -321,7 +321,7 @@ namespace OpenMetaverse
         /// <summary>A Unique Cache identifier for this simulator</summary>
         public UUID ID = UUID.Zero;
         /// <summary>The capabilities for this simulator</summary>
-        public Caps Caps;
+        public Caps? Caps;
         /// <summary>Simulator Features available for this simulator</summary>
         public SimulatorFeatures Features;
         /// <summary>Unique identified for this region generated via it's coordinates on the world map</summary>
@@ -397,7 +397,7 @@ namespace OpenMetaverse
         /// <item>SF</item>
         /// </list>
         /// </remarks>
-        public string ColoLocation;
+        public string ColoLocation = string.Empty;
         /// <summary>The CPU Class of the simulator</summary>
         /// <remarks>Most full mainland/estate sims appear to be 5,
         /// Homesteads and Openspace appear to be 501</remarks>
@@ -416,7 +416,7 @@ namespace OpenMetaverse
         /// <item>Mainland / Linden Homes (Sku: 131)</item>
         /// </list>
         /// </remarks>
-        public string ProductName;
+        public string ProductName = string.Empty;
         /// <summary>The billing product SKU</summary>
         /// <remarks>Known values are:
         /// <list type="table">
@@ -428,7 +428,7 @@ namespace OpenMetaverse
         /// <item>131 Linden Homes / Full Region</item>
         /// </list>
         /// </remarks>
-        public string ProductSku;
+        public string ProductSku = string.Empty;
 
         /// <summary>
         /// Flags indicating which protocols this region supports
@@ -456,9 +456,9 @@ namespace OpenMetaverse
         /// </summary>
         public ConcurrentDictionary<UUID, uint> GlobalToLocalID = new ConcurrentDictionary<UUID, uint>();
 
-        public readonly TerrainPatch[] Terrain;
+        public readonly TerrainPatch[] Terrain = Array.Empty<TerrainPatch>();
 
-        public readonly Vector2[] WindSpeeds;
+        public readonly Vector2[]? WindSpeeds;
 
         // Number of terrain patches in X and Y directions (patch size = 16m)
         private readonly int _patchesX;
@@ -472,14 +472,15 @@ namespace OpenMetaverse
         {
             get
             {
-                if (Client.Settings.POOL_PARCEL_DATA)
+                if (Client?.Settings.POOL_PARCEL_DATA == true)
                 {
-                    return DataPool.Parcels;
+                    var poolParcels = DataPool?.Parcels;
+                    if (poolParcels != null) return poolParcels;
                 }
                 return _Parcels ?? (_Parcels = new LockingDictionary<int, Parcel>());
             }
         }
-        private LockingDictionary<int, Parcel> _Parcels;
+        private LockingDictionary<int, Parcel>? _Parcels;
 
         /// <summary>
         /// Provides access to an internal thread-safe multidimensional array containing a x,y grid mapped
@@ -491,9 +492,10 @@ namespace OpenMetaverse
             {
                 lock (this)
                 {
-                    if (Client.Settings.POOL_PARCEL_DATA)
+                    if (Client?.Settings.POOL_PARCEL_DATA == true)
                     {
-                        return DataPool.ParcelMap;
+                        var pm = DataPool?.ParcelMap;
+                        if (pm != null) return pm;
                     }
                     return _parcelMap ?? (_parcelMap = new int[64, 64]);
                 }
@@ -528,7 +530,7 @@ namespace OpenMetaverse
         #region Properties
 
         /// <summary>The IP address and port of the server</summary>
-        public IPEndPoint IPEndPoint => remoteEndPoint;
+        public IPEndPoint IPEndPoint => remoteEndPoint!;
 
         /// <summary>Whether there is a working connection to the simulator or 
         /// not</summary>
@@ -575,21 +577,27 @@ namespace OpenMetaverse
         // ACKs that are queued up to be sent to the simulator
         private readonly ConcurrentQueue<uint> PendingAcks = new ConcurrentQueue<uint>();
         
-        private CancellationTokenSource _timerCts;
-        private Task _ackLoopTask;
-        private Task _statsLoopTask;
-        private Task _pingLoopTask;
+        private CancellationTokenSource? _timerCts;
+        private Task? _ackLoopTask;
+        private Task? _statsLoopTask;
+        private Task? _pingLoopTask;
 
          // simulator <> parcel LocalID Map
-         private int[,] _parcelMap;
-         public readonly SimulatorDataPool DataPool;
+         private int[,]? _parcelMap;
+         public readonly SimulatorDataPool? DataPool;
         internal bool DownloadingParcelMap
         {
-            get => Client.Settings.POOL_PARCEL_DATA ? DataPool.DownloadingParcelMap : _DownloadingParcelMap;
+            get => Client.Settings.POOL_PARCEL_DATA ? (DataPool?.DownloadingParcelMap ?? _DownloadingParcelMap) : _DownloadingParcelMap;
             set
             {
-                if (Client.Settings.POOL_PARCEL_DATA) DataPool.DownloadingParcelMap = value;
-                _DownloadingParcelMap = value;
+                if (Client.Settings.POOL_PARCEL_DATA)
+                {
+                    if (DataPool != null) DataPool.DownloadingParcelMap = value; else _DownloadingParcelMap = value;
+                }
+                else
+                {
+                    _DownloadingParcelMap = value;
+                }
             }
         }
 
@@ -602,7 +610,7 @@ namespace OpenMetaverse
             {
                 AutoResetEvent queueEvent = new AutoResetEvent(false);
                 EventHandler<EventQueueRunningEventArgs> queueCallback =
-                    delegate(object sender, EventQueueRunningEventArgs e)
+                    delegate(object? sender, EventQueueRunningEventArgs e)
                     {
                         // Accept notifications for this simulator or the client's current sim
                         if (e?.Simulator == this || e?.Simulator == Client?.Network?.CurrentSim)
@@ -630,10 +638,11 @@ namespace OpenMetaverse
                         // Try to start the event queue on the client's current sim if available
                         try
                         {
-                            if (Client?.Network?.CurrentSim?.Caps != null)
+                            var curCaps = Client?.Network?.CurrentSim?.Caps;
+                            if (curCaps != null)
                             {
                                 Logger.Info($"Event queue start requested (attempt {attempt + 1}/{maxAttempts}).", Client);
-                                Client.Network.CurrentSim.Caps.EventQueue.Start();
+                                curCaps.EventQueue?.Start();
                             }
                         }
                         catch (Exception ex)
@@ -881,6 +890,8 @@ namespace OpenMetaverse
                 _patchesX = Math.Max(1, (int)(sizeX / 16));
                 _patchesY = Math.Max(1, (int)(sizeY / 16));
             }
+            // Initialize simulator features helper
+            try { Features = new SimulatorFeatures(this); } catch { Features = new SimulatorFeatures(this); }
         }
 
         /// <summary>
@@ -1038,7 +1049,7 @@ namespace OpenMetaverse
             }
         }
 
-        public void SetSeedCaps(Uri seedcaps, bool changedSim = false)
+        public void SetSeedCaps(Uri? seedcaps, bool changedSim = false)
         {
             if (Caps != null)
             {
@@ -1083,13 +1094,20 @@ namespace OpenMetaverse
             if (sendCloseCircuit)
             {
                 // Try to send the CloseCircuit notice
-                CloseCircuitPacket close = new CloseCircuitPacket();
-                UDPPacketBuffer buf = new UDPPacketBuffer(remoteEndPoint);
-                byte[] data = close.ToBytes();
-                buf.CopyFrom(data);
-                buf.DataLength = data.Length;
+                if (remoteEndPoint != null)
+                {
+                    CloseCircuitPacket close = new CloseCircuitPacket();
+                    UDPPacketBuffer buf = new UDPPacketBuffer(remoteEndPoint);
+                    byte[] data = close.ToBytes();
+                    buf.CopyFrom(data);
+                    buf.DataLength = data.Length;
 
-                AsyncBeginSend(buf);
+                    AsyncBeginSend(buf);
+                }
+                else
+                {
+                    Logger.Warn("Cannot send CloseCircuit: remote endpoint is not set", Client);
+                }
             }
 
             if (Client.Settings.POOL_PARCEL_DATA || Client.Settings.CACHE_PRIMITIVES)
@@ -1208,6 +1226,12 @@ namespace OpenMetaverse
 
         public void SendPacketData(byte[] data, int dataLength, PacketType type, bool doZerocode)
         {
+            if (remoteEndPoint == null)
+            {
+                Logger.Error("Cannot send packet: remote endpoint is not set", Client);
+                return;
+            }
+
             UDPPacketBuffer buffer = new UDPPacketBuffer(remoteEndPoint, Packet.MTU);
 
             // Zerocode if needed
@@ -1382,11 +1406,13 @@ namespace OpenMetaverse
         /// <returns></returns>
         public override bool Equals(object obj)
         {
-            Simulator sim = obj as Simulator;
-            return sim != null && (remoteEndPoint.Equals(sim.remoteEndPoint));
+            Simulator? sim = obj as Simulator;
+            if (sim is null) return false;
+            if (remoteEndPoint == null || sim.remoteEndPoint == null) return false;
+            return remoteEndPoint.Equals(sim.remoteEndPoint);
         }
 
-        public static bool operator ==(Simulator lhs, Simulator rhs)
+        public static bool operator ==(Simulator? lhs, Simulator? rhs)
         {
             // If both are null, or both are same instance, return true
             if (ReferenceEquals(lhs, rhs))
@@ -1395,15 +1421,16 @@ namespace OpenMetaverse
             }
 
             // If one is null, but not both, return false.
-            if (((object)lhs == null) || ((object)rhs == null))
+            if (lhs is null || rhs is null)
             {
                 return false;
             }
 
+            if (lhs.remoteEndPoint == null || rhs.remoteEndPoint == null) return false;
             return lhs.remoteEndPoint.Equals(rhs.remoteEndPoint);
         }
 
-        public static bool operator !=(Simulator lhs, Simulator rhs)
+        public static bool operator !=(Simulator? lhs, Simulator? rhs)
         {
             return !(lhs == rhs);
         }
@@ -1413,10 +1440,10 @@ namespace OpenMetaverse
             using (Logger.BeginClientScope(Client))
             using (Logger.BeginRegionScope(this))
             {
-                Packet packet = null;
+                Packet? packet = null;
 
                 // Check if this packet came from the server we expected it to come from
-                if (!remoteEndPoint.Address.Equals(((IPEndPoint)buffer.RemoteEndPoint).Address))
+                if (remoteEndPoint == null || !remoteEndPoint.Address.Equals(((IPEndPoint)buffer.RemoteEndPoint).Address))
                 {
                     Logger.Warn($"Received {buffer.DataLength} bytes of data from unrecognized source {(IPEndPoint)buffer.RemoteEndPoint}", Client);
                     return;
@@ -1651,7 +1678,7 @@ namespace OpenMetaverse
             ResendUnacked();
         }
 
-        private void StatsTimer_Elapsed(object obj)
+        private void StatsTimer_Elapsed(object? obj)
         {
             long old_in = 0, old_out = 0;
             var recv = Stats.GetRecvBytes();
@@ -1675,7 +1702,7 @@ namespace OpenMetaverse
             }
         }
 
-        private void PingTimer_Elapsed(object obj)
+        private void PingTimer_Elapsed(object? obj)
         {
             SendPing();
             Stats.IncrementSentPings();
@@ -1721,8 +1748,8 @@ namespace OpenMetaverse
 
     public class SimulatorDataPool
     {
-        private static CancellationTokenSource InactiveSimReaperCts;
-        private static Task InactiveSimReaperTask;
+        private static CancellationTokenSource? InactiveSimReaperCts;
+        private static Task? InactiveSimReaperTask;
 
         private static async Task InactiveSimReaperLoop(CancellationToken token)
         {
@@ -1840,7 +1867,7 @@ namespace OpenMetaverse
 
         public static SimulatorDataPool GetSimulatorData(ulong hndl)
         {
-            SimulatorDataPool dict;
+            SimulatorDataPool? dict;
             lock (SimulatorDataPools)
             {
                 if (!SimulatorDataPools.TryGetValue(hndl, out dict))

@@ -46,13 +46,13 @@ namespace LibreMetaverse.Appearance
     {
         private readonly GridClient client;
         private readonly CurrentOutfitFolder cof;
-        private readonly Inventory Store;
+        private readonly Inventory? Store;
 
         public InitialOutfit(GridClient client, CurrentOutfitFolder cof)
         {
             this.client = client ?? throw new ArgumentNullException(nameof(client));
             this.cof = cof ?? throw new ArgumentNullException(nameof(cof));
-            Store = client.Inventory.Store;
+            Store = client.Inventory?.Store;
         }
 
         /// <summary>
@@ -63,8 +63,8 @@ namespace LibreMetaverse.Appearance
             public InitialOutfitPhase Phase { get; set; }
             public int TotalItems { get; set; }
             public int ItemsCopied { get; set; }
-            public string CurrentItemName { get; set; }
-            public string Message { get; set; }
+            public string CurrentItemName { get; set; } = string.Empty;
+            public string Message { get; set; } = string.Empty;
         }
 
         public enum InitialOutfitPhase
@@ -75,7 +75,7 @@ namespace LibreMetaverse.Appearance
             Complete
         }
 
-        public static InventoryNode FindNodeByName(InventoryNode root, string name)
+        public static InventoryNode? FindNodeByName(InventoryNode root, string name)
         {
             if (root == null) return null;
             if (root.Data != null && root.Data.Name == name)
@@ -141,14 +141,14 @@ namespace LibreMetaverse.Appearance
         {
             // Check if we have clothing folder
             var clothingID = client.Inventory.FindFolderForType(FolderType.Clothing);
-            if (clothingID == Store.RootFolder.UUID)
+            if (Store?.RootFolder != null && clothingID == Store.RootFolder.UUID)
             {
                 await CreateFolderAsync(Store.RootFolder.UUID, "Clothing", FolderType.Clothing, cancellationToken).ConfigureAwait(false);
             }
 
             // Check if we have trash folder
             var trashID = client.Inventory.FindFolderForType(FolderType.Trash);
-            if (trashID == Store.RootFolder.UUID)
+            if (Store?.RootFolder != null && trashID == Store.RootFolder.UUID)
             {
                 await CreateFolderAsync(Store.RootFolder.UUID, "Trash", FolderType.Trash, cancellationToken).ConfigureAwait(false);
             }
@@ -160,7 +160,7 @@ namespace LibreMetaverse.Appearance
             throw new NotSupportedException("Synchronous CopyFolder is removed. Use CopyFolderAsync instead.");
         }
 
-        public async Task<UUID> CopyFolderAsync(InventoryFolder folder, UUID destination, CancellationToken cancellationToken = default, IProgress<InitialOutfitProgress> progress = null)
+        public async Task<UUID> CopyFolderAsync(InventoryFolder folder, UUID destination, CancellationToken cancellationToken = default, IProgress<InitialOutfitProgress>? progress = null)
         {
             var newFolderID = await CreateFolderAsync(destination, folder.Name, folder.PreferredType, cancellationToken).ConfigureAwait(false);
 
@@ -216,7 +216,7 @@ namespace LibreMetaverse.Appearance
         {
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            void Callback(InventoryBase newItem)
+            void Callback(InventoryBase? newItem)
             {
                 try { tcs.TrySetResult(newItem != null); } catch { }
             }
@@ -249,15 +249,22 @@ namespace LibreMetaverse.Appearance
             throw new NotSupportedException("Synchronous SetInitialOutfit is removed. Use SetInitialOutfitAsync instead.");
         }
 
-        public Task SetInitialOutfitAsync(string outfit, CancellationToken cancellationToken = default, IProgress<InitialOutfitProgress> progress = null)
+        public Task SetInitialOutfitAsync(string outfit, CancellationToken cancellationToken = default, IProgress<InitialOutfitProgress>? progress = null)
         {
             return PerformInitAsync(outfit, cancellationToken, progress);
         }
 
-        private async Task PerformInitAsync(string initialOutfitName, CancellationToken cancellationToken, IProgress<InitialOutfitProgress> progress = null)
+        private async Task PerformInitAsync(string initialOutfitName, CancellationToken cancellationToken, IProgress<InitialOutfitProgress>? progress = null)
         {
             Logger.Debug("Starting initial outfit async (first login)", client);
-            var outfitFolder = FindNodeByName(Store.LibraryRootNode, initialOutfitName);
+            var store = Store;
+            if (store == null)
+            {
+                Logger.Warn("InitialOutfit: Inventory store is not available", client);
+                return;
+            }
+
+            var outfitFolder = FindNodeByName(store.LibraryRootNode, initialOutfitName);
 
             if (outfitFolder == null)
             {
@@ -268,7 +275,14 @@ namespace LibreMetaverse.Appearance
             await CheckSystemFoldersAsync(cancellationToken).ConfigureAwait(false);
 
             var clothingFolderId = client.Inventory.FindFolderForType(FolderType.Clothing);
-            UUID newClothingFolder = await CopyFolderAsync((InventoryFolder)outfitFolder.Data, clothingFolderId, cancellationToken, progress).ConfigureAwait(false);
+            var outfitFolderData = outfitFolder.Data as InventoryFolder;
+            if (outfitFolderData == null)
+            {
+                Logger.Warn($"Initial outfit '{initialOutfitName}' has no folder data to copy", client);
+                return;
+            }
+
+            UUID newClothingFolder = await CopyFolderAsync(outfitFolderData, clothingFolderId, cancellationToken, progress).ConfigureAwait(false);
 
             if (newClothingFolder == UUID.Zero)
             {

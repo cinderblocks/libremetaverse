@@ -66,10 +66,10 @@ namespace OpenMetaverse.Rendering
         /// </remarks>
         /// <param name="fileName">The path to the skeleton definition file</param>
         /// <returns>A valid recursive skeleton</returns>
-        public static LindenSkeleton Load(string fileName)
+        public static LindenSkeleton Load(string? fileName)
         {
             if (fileName == null)
-                fileName = System.IO.Path.Combine(Settings.RESOURCE_DIR, "character", "avatar_skeleton.xml");
+                fileName = System.IO.Path.Combine(Settings.RESOURCE_DIR ?? string.Empty, "character", "avatar_skeleton.xml");
 
             LindenSkeleton result;
 
@@ -85,7 +85,7 @@ namespace OpenMetaverse.Rendering
             using (XmlReader reader = XmlReader.Create(skeletonData, readerSettings))
             {
                 XmlSerializer ser = new XmlSerializer(typeof(LindenSkeleton));
-                result = (LindenSkeleton)ser.Deserialize(reader);
+                result = (LindenSkeleton?)ser.Deserialize(reader) ?? new LindenSkeleton();
             }
             return result;
         }

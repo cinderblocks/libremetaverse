@@ -32,20 +32,20 @@ namespace OpenMetaverse
 {
     public partial class InventoryNodeDictionary: IComparer<UUID>
     {
-        protected readonly SortedDictionary<UUID, InventoryNode> SDictionary;
+        protected readonly SortedDictionary<UUID, InventoryNode>? SDictionary;
         protected readonly Dictionary<UUID, InventoryNode> Dictionary = new Dictionary<UUID, InventoryNode>();
         protected InventoryNode parent;
 
         protected readonly object syncRoot = new object();
         public int Compare(UUID x, UUID y)
         {
-            InventoryNode n1 = Get(x);
-            InventoryNode n2 = Get(y);
+            InventoryNode? n1 = Get(x);
+            InventoryNode? n2 = Get(y);
             int diff = NullCompare(n1, n2);
             if (diff != 0) return diff;
             if (n1 == null) return x.CompareTo(y);
             DateTime t1 = n1.ModifyTime;
-            DateTime t2 = n2.ModifyTime;
+            DateTime t2 = n2!.ModifyTime;
             diff = t1.CompareTo(t2);
             if (diff != 0) return diff;
             var d1 = n1.Data;
@@ -54,25 +54,25 @@ namespace OpenMetaverse
             if (diff != 0) return diff;
             if (d1 != null)
             {
-                diff = NullCompare(d1.Name, d2.Name);
+                diff = NullCompare(d1.Name, d2?.Name);
                 if (diff != 0) return diff;
                 if (d1.Name != null)
                 {
                     // both are not null.. due to NullCompare code
-                    diff = string.Compare(d1.Name, d2.Name, StringComparison.Ordinal);
+                    diff = string.Compare(d1.Name, d2!.Name, StringComparison.Ordinal);
                     if (diff != 0) return diff;
                 }
             }
             return x.CompareTo(y);
         }
 
-        private InventoryNode Get(UUID uuid)
+        private InventoryNode? Get(UUID uuid)
         {
-            InventoryNode val;
+            InventoryNode? val;
             return Dictionary.TryGetValue(uuid, out val) ? val : null;
         }
 
-        static int NullCompare(object o1, object o2)
+        static int NullCompare(object? o1, object? o2)
         {
             return ReferenceEquals(o1, null).CompareTo(ReferenceEquals(o2, null));
         }
@@ -102,7 +102,7 @@ namespace OpenMetaverse
                 lock (syncRoot)
                 {
                     Dictionary[key] = value;
-                    if (Settings.SORT_INVENTORY) SDictionary[key] = value;
+                    if (Settings.SORT_INVENTORY && SDictionary != null) SDictionary[key] = value;
                 }
             }
         }
@@ -111,7 +111,7 @@ namespace OpenMetaverse
         {
             get
             {
-                if (Settings.SORT_INVENTORY) return SDictionary.Keys;
+                if (Settings.SORT_INVENTORY && SDictionary != null) return SDictionary.Keys;
                 return Dictionary.Keys;
             }
         }
@@ -119,7 +119,7 @@ namespace OpenMetaverse
         {
             get
             {
-                if (Settings.SORT_INVENTORY) return SDictionary.Values;
+                if (Settings.SORT_INVENTORY && SDictionary != null) return SDictionary.Values;
                 return Dictionary.Values;
             }
         }
@@ -130,7 +130,7 @@ namespace OpenMetaverse
             lock (syncRoot)
             {
                 Dictionary[key] = value;
-                if (Settings.SORT_INVENTORY) SDictionary.Add(key, value);
+                if (Settings.SORT_INVENTORY && SDictionary != null) SDictionary.Add(key, value);
             } 
         }
 
@@ -139,7 +139,7 @@ namespace OpenMetaverse
             lock (syncRoot)
             {
                 Dictionary.Remove(key);
-                if (Settings.SORT_INVENTORY) SDictionary.Remove(key);
+                if (Settings.SORT_INVENTORY && SDictionary != null) SDictionary.Remove(key);
             }
         }
 

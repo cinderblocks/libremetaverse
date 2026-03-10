@@ -31,7 +31,7 @@ using System.Linq;
 
 namespace OpenMetaverse
 {
-    public class DoubleDictionary<TKey1, TKey2, TValue>
+    public class DoubleDictionary<TKey1, TKey2, TValue> : IDisposable
         where TKey1 : notnull
         where TKey2 : notnull
     {
@@ -291,6 +291,11 @@ namespace OpenMetaverse
             finally { _rwLock.ExitUpgradeableReadLock(); }
 
             return list.Count;
+        }
+
+        public void Dispose()
+        {
+            _rwLock.Dispose();
         }
     }
 }

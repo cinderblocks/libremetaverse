@@ -372,7 +372,7 @@ namespace OpenMetaverse
     {
         public MuteType Type;
         public UUID ID;
-        public string Name;
+        public string Name = string.Empty;
         public MuteFlags Flags;
     }
 
@@ -384,6 +384,6 @@ namespace OpenMetaverse
         public UUID DestID;
         public bool IsDestGroup;
         public int Amount;
-        public string ItemDescription;
+        public string ItemDescription = string.Empty;
     }
 }

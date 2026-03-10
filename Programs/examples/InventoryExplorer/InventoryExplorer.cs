@@ -32,6 +32,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenMetaverse;
+#nullable enable
 
 namespace InventoryExplorer
 {
@@ -96,7 +97,7 @@ namespace InventoryExplorer
                 while (!inventoryComplete && DateTime.UtcNow < timeout)
                 {
                     await Task.Delay(100, cts.Token);
-                    if (client.Inventory.Store.Count > 0)
+                    if ((client!.Inventory?.Store?.Count ?? 0) > 0)
                     {
                         inventoryComplete = true;
                     }
@@ -107,7 +108,7 @@ namespace InventoryExplorer
                     Console.WriteLine("Warning: Inventory download may be incomplete");
                 }
 
-                Console.WriteLine($"Inventory loaded: {client.Inventory.Store.Count} items");
+                Console.WriteLine($"Inventory loaded: {client!.Inventory?.Store?.Count ?? 0} items");
                 Console.WriteLine();
 
                 // Process based on options
@@ -142,7 +143,10 @@ namespace InventoryExplorer
 
             // Collect all inventory items by traversing folders
             var allItems = CollectAllInventoryBases().OfType<InventoryItem>().ToList();
-            var rootContents = client.Inventory.Store.GetContents(client.Inventory.Store.RootFolder).OfType<InventoryFolder>();
+            var store = client!.Inventory?.Store;
+            if (store == null) return;
+            var root = store.RootFolder;
+            var rootContents = root == null ? Enumerable.Empty<InventoryFolder>() : store.GetContents(root).OfType<InventoryFolder>();
 
             Console.WriteLine("=== Inventory Statistics ===");
             Console.WriteLine($"Total Items: {allItems.Count}");
@@ -180,7 +184,7 @@ namespace InventoryExplorer
             foreach (var item in results.Take(50))
             {
                 string folderName = "Unknown";
-                if (client.Inventory.Store.TryGetValue(item.ParentUUID, out var parent))
+                if (client.Inventory?.Store != null && client.Inventory.Store.TryGetValue(item.ParentUUID, out InventoryBase? parent) && parent != null)
                 {
                     folderName = (parent as InventoryFolder)?.Name ?? "Unknown";
                 }
@@ -206,13 +210,19 @@ namespace InventoryExplorer
             Console.WriteLine("=== Inventory Tree (Top Level) ===");
             Console.WriteLine();
 
-            var rootContents = client.Inventory.Store.GetContents(client.Inventory.Store.RootFolder);
-            
+            var store = client!.Inventory?.Store;
+            if (store == null) return;
+
+            var rootFolder = store.RootFolder;
+            if (rootFolder == null) return;
+
+            var rootContents = store.GetContents(rootFolder);
+
             foreach (var item in rootContents.OrderBy(i => i.Name))
             {
                 if (item is InventoryFolder folder)
                 {
-                    var contents = client.Inventory.Store.GetContents(folder);
+                    var contents = store.GetContents(folder);
                     Console.WriteLine($"?? {folder.Name} ({contents.Count} items)");
                 }
                 else
@@ -237,18 +247,25 @@ namespace InventoryExplorer
             sb.AppendLine($"Items: {CollectAllInventoryBases().Count}");
             sb.AppendLine();
 
-            ExportFolder(sb, client.Inventory.Store.RootFolder, 0);
+            var store = client.Inventory?.Store;
+            var rootFolder = store?.RootFolder;
+            if (rootFolder != null)
+            {
+                ExportFolder(sb, rootFolder, 0);
+            }
 
             File.WriteAllText(filename, sb.ToString());
             Console.WriteLine($"Exported {CollectAllInventoryBases().Count} items to {filename}");
         }
 
-        private static void ExportFolder(StringBuilder sb, InventoryFolder folder, int depth)
+        private static void ExportFolder(StringBuilder sb, InventoryFolder? folder, int depth)
         {
-            if (client == null) return;
+            if (client == null || folder == null) return;
 
             var indent = new string(' ', depth * 2);
-            var contents = client.Inventory.Store.GetContents(folder);
+            var store = client!.Inventory?.Store;
+            if (store == null) return;
+            var contents = store.GetContents(folder);
 
             foreach (var item in contents.OrderBy(i => i is InventoryFolder ? 0 : 1).ThenBy(i => i.Name))
             {
@@ -273,7 +290,8 @@ namespace InventoryExplorer
             var list = new List<InventoryBase>();
             if (client == null) return list;
 
-            var store = client.Inventory.Store;
+            var store = client.Inventory?.Store;
+            if (store == null) return list;
             var root = store.RootFolder;
             if (root == null) return list;
 

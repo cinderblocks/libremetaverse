@@ -30,6 +30,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
+#nullable enable
 
 namespace PacketDump
 {
@@ -111,7 +112,7 @@ namespace PacketDump
             }
 		}
 
-        private static void LoginHandler(object sender, LoginProgressEventArgs e)
+        private static void LoginHandler(object? sender, LoginProgressEventArgs e)
         {
             Logger.Info($"Login: {e.Status} ({e.Message})");
 
@@ -124,7 +125,7 @@ namespace PacketDump
             }
         }
 
-        public static void DisconnectHandler(object sender, DisconnectedEventArgs e)
+        public static void DisconnectHandler(object? sender, DisconnectedEventArgs e)
         {
             if (e.Reason == NetworkManager.DisconnectType.NetworkTimeout)
             {
@@ -136,9 +137,9 @@ namespace PacketDump
             }
         }
 
-        public static void DefaultHandler(object sender, PacketReceivedEventArgs e)
+        public static void DefaultHandler(object? sender, PacketReceivedEventArgs e)
         {
-            Logger.Info(e.Packet.ToString());
+            Logger.Info(e.Packet?.ToString() ?? string.Empty);
         }
 	}
 }

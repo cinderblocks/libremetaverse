@@ -352,7 +352,7 @@ namespace OpenMetaverse
             return m_keys;
         }
 
-        public bool Equals(BinBVHAnimationReader other)
+        public bool Equals(BinBVHAnimationReader? other)
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
@@ -368,7 +368,7 @@ namespace OpenMetaverse
         /// <param name="obj">The <see cref="T:System.Object"/> to compare with the current <see cref="T:System.Object"/>.  
         ///                 </param><exception cref="T:System.NullReferenceException">The <paramref name="obj"/> parameter is null. 
         ///                 </exception><filterpriority>2</filterpriority> 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;

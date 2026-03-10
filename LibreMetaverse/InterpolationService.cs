@@ -35,11 +35,11 @@ namespace OpenMetaverse
     {
         private readonly GridClient _client;
 #if NET6_0_OR_GREATER
-        private System.Threading.PeriodicTimer _periodicTimer;
-        private CancellationTokenSource _cts;
-        private Task _loopTask;
+        private System.Threading.PeriodicTimer? _periodicTimer;
+        private CancellationTokenSource? _cts;
+        private Task? _loopTask;
 #else
-        private Timer _timer;
+        private Timer? _timer;
 #endif
         private bool _started;
 
@@ -86,7 +86,8 @@ namespace OpenMetaverse
         {
             try
             {
-                while (await _periodicTimer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
+                var timer = _periodicTimer!;
+                while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
                 {
                     PerformInterpolationPass();
                 }

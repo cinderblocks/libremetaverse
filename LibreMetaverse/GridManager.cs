@@ -177,7 +177,7 @@ namespace OpenMetaverse
     public class MapAgentLocation : MapItem
     {       
         public int AvatarCount;
-        public string Identifier;
+        public string Identifier = string.Empty;
     }
 
     /// <summary>
@@ -194,7 +194,7 @@ namespace OpenMetaverse
     {        
         public int Size;
         public int Price;
-        public string Name;
+        public string Name = string.Empty;
         public UUID ID;        
     }
 
@@ -205,7 +205,7 @@ namespace OpenMetaverse
     {     
         public int Size;
         public int Price;
-        public string Name;
+        public string Name = string.Empty;
         public UUID ID;
     }
 
@@ -216,7 +216,7 @@ namespace OpenMetaverse
     {
         public DirectoryManager.EventFlags Flags; // Extra
         public DirectoryManager.EventCategories Category; // Extra2
-        public string Description;
+        public string Description = string.Empty;
     }
 
     /// <summary>
@@ -226,7 +226,7 @@ namespace OpenMetaverse
     {
         public DirectoryManager.EventFlags Flags; // Extra
         public DirectoryManager.EventCategories Category; // Extra2
-        public string Description;
+        public string Description = string.Empty;
     }
 
     /// <summary>
@@ -236,7 +236,7 @@ namespace OpenMetaverse
     {
         public DirectoryManager.EventFlags Flags; // Extra
         public DirectoryManager.EventCategories Category; // Extra2
-        public string Description;
+        public string Description = string.Empty;
     }
     #endregion Grid Item Classes
 
@@ -248,14 +248,14 @@ namespace OpenMetaverse
         #region Delegates
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<CoarseLocationUpdateEventArgs> m_CoarseLocationUpdate;
+        private EventHandler<CoarseLocationUpdateEventArgs>? m_CoarseLocationUpdate;
 
         /// <summary>Raises the CoarseLocationUpdate event</summary>
         /// <param name="e">A CoarseLocationUpdateEventArgs object containing the
         /// data sent by simulator</param>
         protected virtual void OnCoarseLocationUpdate(CoarseLocationUpdateEventArgs e)
         {
-            EventHandler<CoarseLocationUpdateEventArgs> handler = m_CoarseLocationUpdate;
+            EventHandler<CoarseLocationUpdateEventArgs>? handler = m_CoarseLocationUpdate;
             handler?.Invoke(this, e);
         }
 
@@ -271,14 +271,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<GridRegionEventArgs> m_GridRegion;
+        private EventHandler<GridRegionEventArgs>? m_GridRegion;
 
         /// <summary>Raises the GridRegion event</summary>
         /// <param name="e">A GridRegionEventArgs object containing the
         /// data sent by simulator</param>
         protected virtual void OnGridRegion(GridRegionEventArgs e)
         {
-            EventHandler<GridRegionEventArgs> handler = m_GridRegion;
+            EventHandler<GridRegionEventArgs>? handler = m_GridRegion;
             handler?.Invoke(this, e);
         }
 
@@ -294,14 +294,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<GridLayerEventArgs> m_GridLayer;
+        private EventHandler<GridLayerEventArgs>? m_GridLayer;
 
         /// <summary>Raises the GridLayer event</summary>
         /// <param name="e">A GridLayerEventArgs object containing the
         /// data sent by simulator</param>
         protected virtual void OnGridLayer(GridLayerEventArgs e)
         {
-            EventHandler<GridLayerEventArgs> handler = m_GridLayer;
+            EventHandler<GridLayerEventArgs>? handler = m_GridLayer;
             handler?.Invoke(this, e);
         }
 
@@ -317,14 +317,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<GridItemsEventArgs> m_GridItems;
+        private EventHandler<GridItemsEventArgs>? m_GridItems;
 
         /// <summary>Raises the GridItems event</summary>
         /// <param name="e">A GridItemEventArgs object containing the
         /// data sent by simulator</param>
         protected virtual void OnGridItems(GridItemsEventArgs e)
         {
-            EventHandler<GridItemsEventArgs> handler = m_GridItems;
+            EventHandler<GridItemsEventArgs>? handler = m_GridItems;
             handler?.Invoke(this, e);
         }
 
@@ -340,14 +340,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<RegionHandleReplyEventArgs> m_RegionHandleReply;
+        private EventHandler<RegionHandleReplyEventArgs>? m_RegionHandleReply;
 
         /// <summary>Raises the RegionHandleReply event</summary>
         /// <param name="e">A RegionHandleReplyEventArgs object containing the
         /// data sent by simulator</param>
         protected virtual void OnRegionHandleReply(RegionHandleReplyEventArgs e)
         {
-            EventHandler<RegionHandleReplyEventArgs> handler = m_RegionHandleReply;
+            EventHandler<RegionHandleReplyEventArgs>? handler = m_RegionHandleReply;
             handler?.Invoke(this, e);
         }
 
@@ -426,8 +426,9 @@ namespace OpenMetaverse
         /// <param name="layer">Requested <see cref="GridLayerType"/></param>
         public void RequestMapLayer(GridLayerType layer)
         {
-            Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("MapLayer");
-            if (cap == null) 
+            var client = Client;
+            Uri? cap = client?.Network?.CurrentSim?.Caps?.CapabilityURI("MapLayer");
+            if (cap == null)
                 return;
             
             OSDMap payload = new OSDMap {["Flags"] = OSD.FromInteger((int) layer)};
@@ -505,10 +506,10 @@ namespace OpenMetaverse
         /// <returns>List of Map items</returns>
         public List<MapItem> MapItems(ulong regionHandle, GridItemType item, GridLayerType layer, TimeSpan timeout)
         {
-            List<MapItem> itemList = null;
+            List<MapItem>? itemList = null;
             AutoResetEvent itemsEvent = new AutoResetEvent(false);
 
-            void Callback(object sender, GridItemsEventArgs e)
+            void Callback(object? sender, GridItemsEventArgs e)
             {
                 if (e.Type != GridItemType.AgentLocations) 
                     return;
@@ -524,7 +525,7 @@ namespace OpenMetaverse
 
             GridItems -= Callback;
 
-            return itemList;
+            return itemList ?? new List<MapItem>();
         }
 
         /// <summary>
@@ -622,7 +623,7 @@ namespace OpenMetaverse
             GridRegion foundRegion = default(GridRegion);
             bool found = false;
 
-            void RegionCallback(object sender, GridRegionEventArgs e)
+            void RegionCallback(object? sender, GridRegionEventArgs e)
             {
                 // See note in HandleCallback, above.
                 if (e.Region.RegionHandle != handle) 
@@ -674,7 +675,7 @@ namespace OpenMetaverse
 
             AutoResetEvent regionEvent = new AutoResetEvent(false);
 
-            void Callback(object sender, GridRegionEventArgs e)
+            void Callback(object? sender, GridRegionEventArgs e)
             {
                 if (string.Equals(e.Region.Name, name, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -698,11 +699,17 @@ namespace OpenMetaverse
             
         }
         
-        protected void MapLayerResponseHandler(HttpResponseMessage response, byte[] responseData, Exception error)
+        protected void MapLayerResponseHandler(HttpResponseMessage? response, byte[]? responseData, Exception? error)
         {
             if (error != null)
             {
                 Logger.Error($"MapLayerResponseHandler error: {error.Message}", error, Client);
+                return;
+            }
+
+            if (responseData == null)
+            {
+                Logger.Warn("MapLayerResponseHandler called with null responseData", Client);
                 return;
             }
 
@@ -737,7 +744,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void MapBlockReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void MapBlockReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             MapBlockReplyPacket map = (MapBlockReplyPacket)e.Packet;
 
@@ -774,7 +781,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void MapItemReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void MapItemReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_GridItems == null) 
                 return;
@@ -881,7 +888,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void SimulatorViewerTimeMessageHandler(object sender, PacketReceivedEventArgs e)
+        protected void SimulatorViewerTimeMessageHandler(object? sender, PacketReceivedEventArgs e)
         {
             SimulatorViewerTimeMessagePacket time = (SimulatorViewerTimeMessagePacket)e.Packet;
             
@@ -895,7 +902,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void CoarseLocationHandler(object sender, PacketReceivedEventArgs e)
+        protected void CoarseLocationHandler(object? sender, PacketReceivedEventArgs e)
         {
             CoarseLocationUpdatePacket coarse = (CoarseLocationUpdatePacket)e.Packet;
 
@@ -946,7 +953,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void RegionHandleReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void RegionHandleReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             RegionIDAndHandleReplyPacket reply = (RegionIDAndHandleReplyPacket)e.Packet;
 

@@ -11,6 +11,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <Nullable>enable</Nullable>
     <NoWarn>$(NoWarn);CS0419;CS8981;CS1591;CS1574</NoWarn>
     <TargetFrameworks>netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -34,7 +35,6 @@
     <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.11" />
     <PackageReference Include="OggVorbisEncoder" Version="1.2.2" />
     <PackageReference Include="Pfim" Version="0.11.4" />
-    <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
     <PackageReference Include="System.Threading.Channels" Version="9.0.11" />
     <PackageReference Include="zlib.net-mutliplatform" Version="1.1.0" />

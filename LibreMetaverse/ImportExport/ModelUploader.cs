@@ -55,7 +55,7 @@ namespace OpenMetaverse.ImportExport
         /// Callback for mesh upload operations
         /// </summary>
         /// <param name="result">null on failure, result from server on success</param>
-        public delegate void ModelUploadCallback(OSD result);
+        public delegate void ModelUploadCallback(OSD? result);
 
 
         string InvName, InvDescription;
@@ -75,8 +75,8 @@ namespace OpenMetaverse.ImportExport
             this.InvDescription = newInvDesc;
         }
 
-        List<byte[]> Images;
-        Dictionary<string, int> ImgIndex;
+        List<byte[]> Images = new List<byte[]>();
+        Dictionary<string, int> ImgIndex = new Dictionary<string, int>();
 
         OSD AssetResources(bool upload)
         {
@@ -167,7 +167,7 @@ namespace OpenMetaverse.ImportExport
         /// </summary>
         /// <param name="callback">Callback that will be invoked upon completion of the upload. Null is sent on request failure</param>
         /// <param name="cancellationToken">Cancellation token for upload operation</param>
-        public async Task Upload(ModelUploadCallback callback, CancellationToken cancellationToken)
+        public async Task Upload(ModelUploadCallback? callback, CancellationToken cancellationToken)
         {
             await PrepareUpload(async result =>
             {
@@ -205,9 +205,9 @@ namespace OpenMetaverse.ImportExport
         /// </summary>
         /// <param name="callback">Callback that will be invoked upon completion of the upload. Null is sent on request failure</param>
         /// <param name="cancellationToken">Cancellation token for network operation</param>
-        public async Task PrepareUpload(ModelUploadCallback callback, CancellationToken cancellationToken)
+        public async Task PrepareUpload(ModelUploadCallback? callback, CancellationToken cancellationToken)
         {
-            Uri cap = null;
+            Uri? cap = null;
             if (Client.Network.CurrentSim == null ||
                 Client.Network.CurrentSim.Caps == null ||
                 (cap = Client.Network.CurrentSim.Caps.CapabilityURI("NewFileAgentInventory")) == null)
@@ -246,6 +246,13 @@ namespace OpenMetaverse.ImportExport
 
                 try
                 {
+                    if (data == null)
+                    {
+                        Logger.Error("Mesh upload request failure: response data is null", Client);
+                        callback?.Invoke(null);
+                        return;
+                    }
+
                     OSD result = OSDParser.Deserialize(data);
                     OSDMap res = (OSDMap)result;
 
@@ -273,9 +280,15 @@ namespace OpenMetaverse.ImportExport
         /// <param name="uploader">Uri received in the upload prepare stage</param>
         /// <param name="callback">Callback that will be invoke upon completion of the upload. Null is sent on request failure</param>
         /// <param name="cancellationToken">Cancellation token for network operation</param>
-        public async Task PerformUpload(Uri uploader, ModelUploadCallback callback, CancellationToken cancellationToken)
+        public async Task PerformUpload(Uri uploader, ModelUploadCallback? callback, CancellationToken cancellationToken)
         {
-            Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("MeshUploader");
+            Uri? cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("MeshUploader");
+            if (cap == null)
+            {
+                Logger.Warn("Cannot upload mesh, MeshUploader capability not available");
+                callback?.Invoke(null);
+                return;
+            }
 
             await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, AssetResources(true),
                 cancellationToken, (response, data, error) =>
@@ -289,6 +302,13 @@ namespace OpenMetaverse.ImportExport
 
                     try
                     {
+                        if (data == null)
+                        {
+                            Logger.Error("Mesh upload request failure: response data is null", Client);
+                            callback?.Invoke(null);
+                            return;
+                        }
+
                         OSD result = OSDParser.Deserialize(data);
                         OSDMap res = (OSDMap)result;
 

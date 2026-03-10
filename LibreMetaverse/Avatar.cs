@@ -350,7 +350,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Contains the visual parameters describing the deformation of the avatar
         /// </summary>
-        public byte[] VisualParameters = null;
+        public byte[] VisualParameters = Array.Empty<byte>();
 
         /// <summary>
         /// The avatars hover height (as indicated by the simulator)
@@ -375,17 +375,17 @@ namespace OpenMetaverse
         /// <summary>
         /// List of current avatar animations
         /// </summary>
-        public List<Animation> Animations;
+        public List<Animation> Animations = new List<Animation>();
 
         /// <summary>
         /// List of (known) attachments, hinted by the simulator. See: https://jira.secondlife.com/browse/SL-20635
         /// </summary>
-        public List<Attachment> Attachments;
+        public List<Attachment> Attachments = new List<Attachment>();
 
         #endregion Public Members
 
-        internal string _cachedName;
-        internal string _cachedGroupName;
+        internal string? _cachedName;
+        internal string? _cachedGroupName;
 
         #region Properties
 
@@ -397,7 +397,7 @@ namespace OpenMetaverse
                 for (int i = 0; i < NameValues.Length; i++)
                 {
                     if (NameValues[i].Name == "FirstName" && NameValues[i].Type == NameValue.ValueType.String)
-                        return (string)NameValues[i].Value;
+                        return NameValues[i].Value as string ?? string.Empty;
                 }
 
                 return string.Empty;
@@ -412,7 +412,7 @@ namespace OpenMetaverse
                 for (int i = 0; i < NameValues.Length; i++)
                 {
                     if (NameValues[i].Name == "LastName" && NameValues[i].Type == NameValue.ValueType.String)
-                        return (string)NameValues[i].Value;
+                        return NameValues[i].Value as string ?? string.Empty;
                 }
 
                 return string.Empty;
@@ -426,7 +426,7 @@ namespace OpenMetaverse
             {
                 if (!string.IsNullOrEmpty(_cachedName))
                 {
-                    return _cachedName;
+                    return _cachedName ?? string.Empty;
                 }
                 if (NameValues != null && NameValues.Length > 0)
                 {
@@ -438,15 +438,15 @@ namespace OpenMetaverse
                         for (int i = 0; i < NameValues.Length; i++)
                         {
                             if (NameValues[i].Name == "FirstName" && NameValues[i].Type == NameValue.ValueType.String)
-                                firstName = (string)NameValues[i].Value;
+                                firstName = NameValues[i].Value as string ?? string.Empty;
                             else if (NameValues[i].Name == "LastName" && NameValues[i].Type == NameValue.ValueType.String)
-                                lastName = (string)NameValues[i].Value;
+                                lastName = NameValues[i].Value as string ?? string.Empty;
                         }
 
                         if (firstName != string.Empty && lastName != string.Empty)
                         {
                             _cachedName = $"{firstName} {lastName}";
-                            return _cachedName;
+                            return _cachedName ?? string.Empty;
                         }
                         else
                         {
@@ -468,7 +468,7 @@ namespace OpenMetaverse
             {
                 if (_cachedGroupName != null)
                 {
-                    return _cachedGroupName;
+                    return _cachedGroupName ?? string.Empty;
                 }
                 if (NameValues == null || NameValues.Length == 0)
                 {
@@ -482,8 +482,8 @@ namespace OpenMetaverse
                         {
                             if (NameValues[i].Name == "Title" && NameValues[i].Type == NameValue.ValueType.String)
                             {
-                                _cachedGroupName = (string)NameValues[i].Value;
-                                return _cachedGroupName;
+                                _cachedGroupName = NameValues[i].Value as string ?? string.Empty;
+                                return _cachedGroupName ?? string.Empty;
                             }
                         }
                     }

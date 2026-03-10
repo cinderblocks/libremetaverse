@@ -66,7 +66,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Try parse two names from a string (like "First Last")
         /// </summary>
-        public static bool TryParseTwoNames(string input, out string first, out string last)
+        public static bool TryParseTwoNames(string input, out string? first, out string? last)
         {
             first = null;
             last = null;

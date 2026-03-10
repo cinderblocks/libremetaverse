@@ -36,7 +36,7 @@ namespace OpenMetaverse
 {
     public partial class ObjectManager
     {
-        private void ObjectAnimationHandler(object sender, PacketReceivedEventArgs e)
+        private void ObjectAnimationHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (!(e.Packet is ObjectAnimationPacket data)) { return; }
 
@@ -63,7 +63,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void ObjectUpdateHandler(object sender, PacketReceivedEventArgs e)
+        protected void ObjectUpdateHandler(object? sender, PacketReceivedEventArgs e)
         {
             var packet = e.Packet;
             var simulator = e.Simulator;
@@ -375,7 +375,7 @@ namespace OpenMetaverse
                         if (handler != null)
                         {
                             // Ensure event handlers get the computed world position when necessary
-                            ThreadPool.QueueUserWorkItem(delegate (object o)
+                            ThreadPool.QueueUserWorkItem(delegate (object? o)
                             { handler(this, new PrimEventArgs(simulator, prim, update.RegionData.TimeDilation, isNewObject, attachment)); });
                         }
                         //OnParticleUpdate handler replacing decode particles, PCode.Particle system appears to be deprecated this is a fix
@@ -516,7 +516,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void ImprovedTerseObjectUpdateHandler(object sender, PacketReceivedEventArgs e)
+        protected void ImprovedTerseObjectUpdateHandler(object? sender, PacketReceivedEventArgs e)
         {
             var packet = e.Packet;
             var simulator = e.Simulator;
@@ -593,7 +593,7 @@ namespace OpenMetaverse
 
                     #endregion Decode update data
 
-                    var obj = !Client.Settings.OBJECT_TRACKING ? null : (update.Avatar) ?
+                    Primitive? obj = !Client.Settings.OBJECT_TRACKING ? (Primitive?)null : (update.Avatar) ?
                         GetAvatar(simulator, update.LocalID, UUID.Zero) :
                         GetPrimitive(simulator, update.LocalID, UUID.Zero);
 
@@ -601,8 +601,8 @@ namespace OpenMetaverse
                     var handler = m_TerseObjectUpdate;
                     if (handler != null)
                     {
-                        ThreadPool.QueueUserWorkItem(delegate (object o)
-                        { handler(this, new TerseObjectUpdateEventArgs(simulator, obj, update, terse.RegionData.TimeDilation)); });
+                        ThreadPool.QueueUserWorkItem(delegate (object? o)
+                        { handler(this, new TerseObjectUpdateEventArgs(simulator, obj!, update, terse.RegionData.TimeDilation)); });
                     }
 
                     #region Update Client.Self
@@ -616,7 +616,7 @@ namespace OpenMetaverse
                         Client.Self.angularVelocity = update.AngularVelocity;
                     }
                     #endregion Update Client.Self
-                    if (Client.Settings.OBJECT_TRACKING && obj != null)
+                    if (Client.Settings.OBJECT_TRACKING && obj is not null)
                     {
                         obj.Position = update.Position;
                         obj.Rotation = update.Rotation;
@@ -625,7 +625,7 @@ namespace OpenMetaverse
                         obj.Acceleration = update.Acceleration;
                         obj.AngularVelocity = update.AngularVelocity;
                         obj.PrimData.State = update.State;
-                        if (update.Textures != null)
+                        if (update.Textures is not null)
                             obj.Textures = update.Textures;
                     }
 
@@ -640,7 +640,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void ObjectUpdateCompressedHandler(object sender, PacketReceivedEventArgs e)
+        protected void ObjectUpdateCompressedHandler(object? sender, PacketReceivedEventArgs e)
         {
             var packet = e.Packet;
             var simulator = e.Simulator;
@@ -897,7 +897,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void ObjectUpdateCachedHandler(object sender, PacketReceivedEventArgs e)
+        protected void ObjectUpdateCachedHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (Client.Settings.ALWAYS_REQUEST_OBJECTS)
             {
@@ -916,7 +916,8 @@ namespace OpenMetaverse
 
                     if (cachedPrimitives)
                     {
-                        if (!simulator.DataPool.NeedsRequest(localID, crc))
+                        // DataPool may be null in some configurations; treat missing DataPool as needing request
+                        if (!(simulator.DataPool?.NeedsRequest(localID, crc) ?? true))
                         {
                             continue;
                         }
@@ -930,7 +931,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void KillObjectHandler(object sender, PacketReceivedEventArgs e)
+        protected void KillObjectHandler(object? sender, PacketReceivedEventArgs e)
         {
             var packet = e.Packet;
             var simulator = e.Simulator;
@@ -1016,7 +1017,7 @@ namespace OpenMetaverse
 
             if (Client.Settings.CACHE_PRIMITIVES)
             {
-                simulator.DataPool.ReleasePrims(removePrims);
+                simulator.DataPool?.ReleasePrims(removePrims);
             }
             foreach (var removeID in removePrims)
             {
@@ -1027,7 +1028,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void ObjectPropertiesHandler(object sender, PacketReceivedEventArgs e)
+        protected void ObjectPropertiesHandler(object? sender, PacketReceivedEventArgs e)
         {
             var packet = e.Packet;
             var simulator = e.Simulator;
@@ -1075,7 +1076,7 @@ namespace OpenMetaverse
                     {
                         if (simulator.ObjectsPrimitives.TryGetValue(localID, out var findPrim))
                         {
-                            if (findPrim != null)
+                        if (findPrim is not null)
                             {
                                 OnObjectPropertiesUpdated(new ObjectPropertiesUpdatedEventArgs(simulator, findPrim, props));
 
@@ -1095,7 +1096,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void ObjectPropertiesFamilyHandler(object sender, PacketReceivedEventArgs e)
+        protected void ObjectPropertiesFamilyHandler(object? sender, PacketReceivedEventArgs e)
         {
             var packet = e.Packet;
             var simulator = e.Simulator;
@@ -1127,7 +1128,7 @@ namespace OpenMetaverse
                 {
                     if (simulator.ObjectsPrimitives.TryGetValue(localID, out var findPrim))
                     {
-                        if (findPrim != null)
+                        if (findPrim is not null)
                         {
                             if (simulator.ObjectsPrimitives.TryGetValue(findPrim.LocalID, out var prim))
                             {
@@ -1149,7 +1150,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void PayPriceReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void PayPriceReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_PayPriceReply != null)
             {

@@ -129,7 +129,7 @@ namespace OpenMetaverse
                     await semaphore.WaitAsync().ConfigureAwait(false);
                     try
                     {
-                        var tcs = new TaskCompletionSource<Asset>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        var tcs = new TaskCompletionSource<Asset?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
                         Client.Assets.RequestAsset(wearable.AssetID, wearable.AssetType, true,
                             (transfer, asset) => { tcs.TrySetResult(asset); }
@@ -247,7 +247,7 @@ namespace OpenMetaverse
                     await semaphore.WaitAsync().ConfigureAwait(false);
                     try
                     {
-                        var tcs = new TaskCompletionSource<AssetTexture>(TaskCreationOptions
+                        var tcs = new TaskCompletionSource<AssetTexture?>(TaskCreationOptions
                             .RunContinuationsAsynchronously);
 
                         Client.Assets.RequestImage(textureId,
@@ -265,22 +265,25 @@ namespace OpenMetaverse
                         );
 
                         var completed = await Task.WhenAny(tcs.Task, Task.Delay(TEXTURE_TIMEOUT)).ConfigureAwait(false);
-                        if (completed == tcs.Task && tcs.Task.Result != null)
+                        if (completed == tcs.Task)
                         {
                             var assetTexture = await tcs.Task.ConfigureAwait(false);
-                            try
+                            if (assetTexture != null)
                             {
-                                assetTexture.Decode();
-                            }
-                            catch (Exception decodeEx)
-                            {
-                                Logger.Debug($"Failed to decode texture {textureId}: {decodeEx}", Client);
-                            }
+                                try
+                                {
+                                    assetTexture.Decode();
+                                }
+                                catch (Exception decodeEx)
+                                {
+                                    Logger.Debug($"Failed to decode texture {textureId}: {decodeEx}", Client);
+                                }
 
-                            foreach (var tex in Textures)
-                            {
-                                if (tex.TextureID == textureId)
-                                    tex.Texture = assetTexture;
+                                foreach (var tex in Textures)
+                                {
+                                    if (tex.TextureID == textureId)
+                                        tex.Texture = assetTexture;
+                                }
                             }
                         }
                         else
@@ -399,6 +402,12 @@ namespace OpenMetaverse
 
             while (newAssetID == UUID.Zero && retries > 0)
             {
+                if (oven.BakedTexture == null || oven.BakedTexture.AssetData == null)
+                {
+                    Logger.Warn($"Baker produced no texture data for {bakeType}", Client);
+                    break;
+                }
+
                 newAssetID = await UploadBakeAsync(oven.BakedTexture.AssetData).ConfigureAwait(false);
                 --retries;
             }

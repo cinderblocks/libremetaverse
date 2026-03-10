@@ -83,8 +83,9 @@ namespace SimpleBot
                     return 1;
                 }
 
-                Console.WriteLine($"Logged in to {client.Network.CurrentSim.Name}");
-                Console.WriteLine($"Position: {client.Self.SimPosition}");
+                var cl = client!;
+                Console.WriteLine($"Logged in to {cl.Network.CurrentSim?.Name ?? "unknown"}");
+                Console.WriteLine($"Position: {cl.Self.SimPosition}");
                 Console.WriteLine();
                 Console.WriteLine("Bot is ready! Send me an IM with 'help' to see commands.");
                 Console.WriteLine("Press Enter to logout...");
@@ -106,6 +107,8 @@ namespace SimpleBot
             if (client == null || e.IM.FromAgentID == client.Self.AgentID)
                 return;
 
+            var cl = client!; // local non-null copy for analyzer
+
             var message = e.IM.Message.Trim().ToLowerInvariant();
             var fromName = e.IM.FromAgentName;
 
@@ -117,7 +120,7 @@ namespace SimpleBot
                     "Commands: help, where, sit, stand, dance, fly, walk, jump",
                 
                 "where" or "location" => 
-                    $"I'm in {client.Network.CurrentSim.Name} at {client.Self.SimPosition}",
+                    $"I'm in {cl.Network.CurrentSim?.Name ?? "unknown"} at {cl.Self.SimPosition}",
                 
                 "sit" => ExecuteCommand(() => {
                     client.Self.SitOnGround();

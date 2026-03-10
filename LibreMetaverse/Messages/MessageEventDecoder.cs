@@ -41,9 +41,9 @@ namespace OpenMetaverse.Messages
         /// <param name="map">An <see cref="OSDMap"/> to decode</param>
         /// <returns>A strongly typed object containing the decoded information from the capabilities message, or null
         /// if no existing Message object exists for the specified event</returns>
-        public static IMessage DecodeEvent(string eventName, OSDMap map)
+        public static IMessage? DecodeEvent(string eventName, OSDMap map)
         {
-            IMessage message = null;
+            IMessage? message = null;
 
             switch (eventName)
             {

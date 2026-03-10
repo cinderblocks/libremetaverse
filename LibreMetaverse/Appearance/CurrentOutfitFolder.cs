@@ -50,11 +50,11 @@ namespace LibreMetaverse.Appearance
         // Protects access to client, COF and event registration
         private readonly object stateLock = new object();
 
-        private InventoryFolder _cof;
+        private InventoryFolder? _cof;
         /// <summary>
         /// The Current Outfit Folder inventory folder
         /// </summary>
-        public InventoryFolder COF
+        public InventoryFolder? COF
         {
             get { lock (stateLock) { return _cof; } }
             private set { lock (stateLock) { _cof = value; } }
@@ -66,7 +66,7 @@ namespace LibreMetaverse.Appearance
         public int MaxClothingLayers => 60;
 
         private readonly SemaphoreSlim cofInitLock = new SemaphoreSlim(1, 1);
-        private Task<bool> cofInitTask;
+        private Task<bool>? cofInitTask;
 
         #endregion Fields
 
@@ -179,7 +179,7 @@ namespace LibreMetaverse.Appearance
                 initializedCOF = false;
             }
         }
-        private async void Inventory_FolderUpdated(object sender, FolderUpdatedEventArgs e)
+        private async void Inventory_FolderUpdated(object? sender, FolderUpdatedEventArgs e)
         {
             try
             {
@@ -190,7 +190,8 @@ namespace LibreMetaverse.Appearance
 
                 if (e.FolderID == COF.UUID && e.Success)
                 {
-                    if (client.Inventory.Store.TryGetValue<InventoryFolder>(COF.UUID, out var newCOF))
+                    var store = client.Inventory?.Store;
+                    if (store != null && store.TryGetValue<InventoryFolder>(COF.UUID, out InventoryFolder? newCOF) && newCOF != null)
                     {
                         COF = newCOF;
                     }
@@ -205,7 +206,11 @@ namespace LibreMetaverse.Appearance
 
                     if (items.Count > 0)
                     {
-                        await client.Inventory.RequestFetchInventoryAsync(items, CancellationToken.None).ConfigureAwait(false);
+                        var inv = client.Inventory;
+                        if (inv != null)
+                        {
+                            await inv.RequestFetchInventoryAsync(items, CancellationToken.None).ConfigureAwait(false);
+                        }
                     }
                 }
             }
@@ -215,16 +220,17 @@ namespace LibreMetaverse.Appearance
             }
         }
 
-        private async void Objects_KillObject(object sender, KillObjectEventArgs e)
+        private async void Objects_KillObject(object? sender, KillObjectEventArgs e)
         {
             try
             {
-                if (client.Network.CurrentSim != e.Simulator)
+                var sim = client.Network.CurrentSim;
+                if (sim == null || sim != e.Simulator)
                 {
                     return;
                 }
 
-                if (client.Network.CurrentSim.ObjectsPrimitives.TryGetValue(e.ObjectLocalID, out var prim))
+                if (sim.ObjectsPrimitives.TryGetValue(e.ObjectLocalID, out var prim))
                 {
                     var invItemId = CurrentOutfitFolder.GetAttachmentItemID(prim);
                     if (invItemId != UUID.Zero)
@@ -239,18 +245,23 @@ namespace LibreMetaverse.Appearance
             }
         }
 
-        private void Network_OnSimChanged(object sender, SimChangedEventArgs e)
+        private void Network_OnSimChanged(object? sender, SimChangedEventArgs e)
         {
-            client.Network.CurrentSim.Caps.CapabilitiesReceived += Simulator_OnCapabilitiesReceived;
+            var sim = client.Network.CurrentSim;
+            if (sim?.Caps != null)
+            {
+                sim.Caps.CapabilitiesReceived += Simulator_OnCapabilitiesReceived;
+            }
         }
 
-        private async void Simulator_OnCapabilitiesReceived(object sender, CapabilitiesReceivedEventArgs e)
+        private async void Simulator_OnCapabilitiesReceived(object? sender, CapabilitiesReceivedEventArgs e)
         {
             try
             {
-                e.Simulator.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived;
+                e.Simulator.Caps?.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived;
 
-                if (e.Simulator == client.Network.CurrentSim && !initializedCOF)
+                var currentSim = client.Network.CurrentSim;
+                if (e.Simulator == currentSim && !initializedCOF)
                 {
                     await InitializeCurrentOutfitFolder().ConfigureAwait(false);
                 }
@@ -401,6 +412,12 @@ namespace LibreMetaverse.Appearance
                 return new List<InventoryItem>();
             }
 
+            if (client.Inventory?.Store == null)
+            {
+                Logger.Warn("Inventory store not initialized, cannot get COF links.", client);
+                return new List<InventoryItem>();
+            }
+
             if (!client.Inventory.Store.TryGetNodeFor(COF.UUID, out var cofNode))
             {
                 Logger.Warn("Failed to find COF node in inventory store", client);
@@ -454,7 +471,7 @@ namespace LibreMetaverse.Appearance
                     newDescription, item.InventoryType, UUID.Random(),
                     (success, newItem) =>
                     {
-                        if (success)
+                        if (success && newItem != null)
                         {
                             // Fire-and-forget fetch of the created item
                             _ = client.Inventory.RequestFetchInventoryAsync(newItem.UUID, newItem.OwnerID, cancellationToken);
@@ -696,6 +713,12 @@ namespace LibreMetaverse.Appearance
         {
             const string generalErrorMessage = "Try refreshing your inventory or clearing your cache.";
 
+            if (client.Inventory?.Store?.RootFolder == null)
+            {
+                Logger.Warn("Inventory store not initialized, cannot modify outfit.", client);
+                return false;
+            }
+
             var trashFolderId = client.Inventory.FindFolderForType(FolderType.Trash);
             var rootFolderId = client.Inventory.Store.RootFolder.UUID;
 
@@ -713,7 +736,7 @@ namespace LibreMetaverse.Appearance
                 return false;
             }
 
-            if (!client.Inventory.Store.TryGetNodeFor(newOutfitFolderId, out var newOutfitFolderNode))
+            if (client.Inventory?.Store == null || !client.Inventory.Store.TryGetNodeFor(newOutfitFolderId, out var newOutfitFolderNode) || newOutfitFolderNode?.Data == null)
             {
                 Logger.Warn($"Failed to get node for replacement outfit folder. {generalErrorMessage}", client);
                 return false;
@@ -948,17 +971,17 @@ namespace LibreMetaverse.Appearance
                 UUID.Random(),
                 (success, newItem) =>
                 {
-                    if (success)
-                    {
-                        _ = client.Inventory.RequestFetchInventoryAsync(newItem.UUID, newItem.OwnerID);
-                    }
+                        if (success && newItem != null)
+                        {
+                            _ = client.Inventory.RequestFetchInventoryAsync(newItem.UUID, newItem.OwnerID);
+                        }
                 },
                 cancellationToken
             ).ConfigureAwait(false);
 
             // Wear new outfit
             var tcs = new TaskCompletionSource<bool>();
-            void handleAppearanceSet(object sender, AppearanceSetEventArgs e)
+            void handleAppearanceSet(object? sender, AppearanceSetEventArgs e)
             {
                 tcs.TrySetResult(true);
             }
@@ -1011,8 +1034,15 @@ namespace LibreMetaverse.Appearance
                 return;
             }
 
-            var trashFolderId = client.Inventory.FindFolderForType(FolderType.Trash);
-            var rootFolderId = client.Inventory.Store.RootFolder.UUID;
+            var inv = client.Inventory;
+            if (inv?.Store?.RootFolder == null)
+            {
+                Logger.Warn("Inventory store not initialized, cannot modify outfit.", client);
+                return;
+            }
+
+            var trashFolderId = inv.FindFolderForType(FolderType.Trash);
+            var rootFolderId = inv.Store.RootFolder.UUID;
 
             var cofLinks = await GetCurrentOutfitLinks(cancellationToken);
             var cofRealItems = new Dictionary<UUID, InventoryBase>();
@@ -1208,7 +1238,8 @@ namespace LibreMetaverse.Appearance
 
             var itemsToRemove = requestedItemsToRemove
                 .Select(n => ResolveInventoryLink(n))
-                .Where(n => n != null && !IsBodyPart(n) && policy.CanDetach(n))
+                .Where(n => n is InventoryItem it && !IsBodyPart(it) && policy.CanDetach(it))
+                .Select(n => (InventoryItem)n!)
                 .Distinct()
                 .ToList();
             foreach (var item in itemsToRemove)
@@ -1251,12 +1282,12 @@ namespace LibreMetaverse.Appearance
                 return UUID.Zero;
             }
 
-            var attachmentId = prim.NameValues
+            var attachmentValue = prim.NameValues
                 .Where(n => n.Name == "AttachItemID")
-                .Select(n => new UUID(n.Value.ToString()))
-                .FirstOrDefault();
+                .Select(n => n.Value?.ToString())
+                .FirstOrDefault(s => !string.IsNullOrEmpty(s));
 
-            return attachmentId;
+            return !string.IsNullOrEmpty(attachmentValue) ? new UUID(attachmentValue!) : UUID.Zero;
         }
 
         /// <summary>
@@ -1264,19 +1295,27 @@ namespace LibreMetaverse.Appearance
         /// </summary>
         /// <param name="itemLink">The link to an inventory item</param>
         /// <returns>The original inventory item, or null if the link could not be resolved</returns>
-        public InventoryItem ResolveInventoryLink(InventoryItem itemLink)
+        public InventoryItem? ResolveInventoryLink(InventoryItem itemLink)
         {
             if (itemLink.AssetType != AssetType.Link)
             {
                 return itemLink;
             }
 
-            if (!client.Inventory.Store.TryGetValue<InventoryItem>(itemLink.AssetUUID, out var inventoryItem))
+            var store = client.Inventory?.Store;
+            if (store == null)
+            {
+                _ = client.Inventory?.RequestFetchInventoryAsync(itemLink.AssetUUID, itemLink.OwnerID);
+                return null;
+            }
+
+            if (!store.TryGetValue<InventoryItem>(itemLink.AssetUUID, out var inventoryItem))
             {
                 // Fire-and-forget request for the linked item; do not block here
-                _ = client.Inventory.RequestFetchInventoryAsync(itemLink.AssetUUID, itemLink.OwnerID);
+                if (client.Inventory != null)
+                    _ = client.Inventory.RequestFetchInventoryAsync(itemLink.AssetUUID, itemLink.OwnerID);
 
-                if (!client.Inventory.Store.TryGetValue<InventoryItem>(itemLink.AssetUUID, out inventoryItem))
+                if (!store.TryGetValue<InventoryItem>(itemLink.AssetUUID, out inventoryItem))
                 {
                     return null;
                 }
@@ -1291,11 +1330,19 @@ namespace LibreMetaverse.Appearance
         /// <param name="item">Item to retrieve the parent of</param>
         /// <param name="cancellationToken"></param>
         /// <returns>The parent of <paramref name="item"/>, or null if item has no parent or parent does not exist</returns>
-        public async Task<InventoryBase> FetchParent(InventoryBase item, CancellationToken cancellationToken = default)
+        public async Task<InventoryBase?> FetchParent(InventoryBase item, CancellationToken cancellationToken = default)
         {
             if (item.ParentUUID == UUID.Zero)
             {
                 return null;
+            }
+
+            if (client.Inventory?.Store == null)
+            {
+                if (client.Inventory == null) return null;
+
+                var fetchedParent = await client.Inventory.FetchItemHttpAsync(item.ParentUUID, item.OwnerID, cancellationToken);
+                return fetchedParent;
             }
 
             if (!client.Inventory.Store.TryGetNodeFor(item.ParentUUID, out var parent))

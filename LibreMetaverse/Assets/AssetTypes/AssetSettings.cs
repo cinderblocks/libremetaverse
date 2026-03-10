@@ -32,7 +32,7 @@ namespace OpenMetaverse.Assets
     {
         public override AssetType AssetType => AssetType.Settings;
 
-        public OSD Settings;
+        public OSD? Settings;
         
         /// <summary>Initializes a new instance of an AssetSettings object</summary>
         public AssetSettings() { }
@@ -50,7 +50,7 @@ namespace OpenMetaverse.Assets
 
         public override void Encode()
         {
-            AssetData = Utils.StringToBytes(Settings.AsString());
+            AssetData = Utils.StringToBytes(Settings?.AsString() ?? string.Empty);
         }
 
         public sealed override bool Decode()

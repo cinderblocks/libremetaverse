@@ -45,8 +45,8 @@ namespace OpenMetaverse.Http
         #endregion http methods
 
         public delegate void OpenWriteEventHandler(HttpWebRequest request);
-        public delegate void DownloadProgressEventHandler(HttpWebRequest request, HttpWebResponse response, int bytesReceived, int totalBytesToReceive);
-        public delegate void RequestCompletedEventHandler(HttpWebRequest request, HttpWebResponse response, byte[] responseData, Exception error);
+        public delegate void DownloadProgressEventHandler(HttpWebRequest request, HttpWebResponse? response, int bytesReceived, int totalBytesToReceive);
+        public delegate void RequestCompletedEventHandler(HttpWebRequest request, HttpWebResponse? response, byte[]? responseData, Exception? error);
 
         static CapsBase()
         {
@@ -58,15 +58,15 @@ namespace OpenMetaverse.Http
             public readonly HttpWebRequest Request;
             public readonly byte[] UploadData;
             public readonly int MillisecondsTimeout;
-            public readonly OpenWriteEventHandler OpenWriteCallback;
-            public readonly DownloadProgressEventHandler DownloadProgressCallback;
-            public readonly RequestCompletedEventHandler CompletedCallback;
+            public readonly OpenWriteEventHandler? OpenWriteCallback;
+            public readonly DownloadProgressEventHandler? DownloadProgressCallback;
+            public readonly RequestCompletedEventHandler? CompletedCallback;
 
-            public RequestState(HttpWebRequest request, byte[] uploadData, int millisecondsTimeout, OpenWriteEventHandler openWriteCallback,
-                DownloadProgressEventHandler downloadProgressCallback, RequestCompletedEventHandler completedCallback)
+            public RequestState(HttpWebRequest request, byte[]? uploadData, int millisecondsTimeout, OpenWriteEventHandler? openWriteCallback,
+                DownloadProgressEventHandler? downloadProgressCallback, RequestCompletedEventHandler? completedCallback)
             {
                 Request = request;
-                UploadData = uploadData;
+                UploadData = uploadData ?? Utils.EmptyBytes;
                 MillisecondsTimeout = millisecondsTimeout;
                 OpenWriteCallback = openWriteCallback;
                 DownloadProgressCallback = downloadProgressCallback;
@@ -74,7 +74,7 @@ namespace OpenMetaverse.Http
             }
         }
 
-        public static HttpWebRequest GetStringAsync(Uri address, X509Certificate2 clientCert, int millisecondsTimeout,
+        public static HttpWebRequest GetStringAsync(Uri address, X509Certificate2? clientCert, int millisecondsTimeout,
             DownloadProgressEventHandler downloadProgressCallback, RequestCompletedEventHandler completedCallback)
         {
             // Create the request
@@ -84,8 +84,8 @@ namespace OpenMetaverse.Http
             return request;
         }
 
-        public static HttpWebRequest PostDataAsync(Uri address, X509Certificate2 clientCert, string contentType, byte[] data,
-            int millisecondsTimeout, OpenWriteEventHandler openWriteCallback, DownloadProgressEventHandler downloadProgressCallback,
+        public static HttpWebRequest PostDataAsync(Uri address, X509Certificate2? clientCert, string contentType, byte[] data,
+            int millisecondsTimeout, OpenWriteEventHandler? openWriteCallback, DownloadProgressEventHandler downloadProgressCallback,
             RequestCompletedEventHandler completedCallback)
         {
             // Create the request
@@ -106,8 +106,8 @@ namespace OpenMetaverse.Http
 
             return request;
         }
-        public static HttpWebRequest PutDataAsync(Uri address, X509Certificate2 clientCert, string contentType, byte[] data,
-            int millisecondsTimeout, OpenWriteEventHandler openWriteCallback, DownloadProgressEventHandler downloadProgressCallback,
+        public static HttpWebRequest PutDataAsync(Uri address, X509Certificate2? clientCert, string contentType, byte[] data,
+            int millisecondsTimeout, OpenWriteEventHandler? openWriteCallback, DownloadProgressEventHandler downloadProgressCallback,
             RequestCompletedEventHandler completedCallback)
         {
             // Create the request
@@ -129,8 +129,8 @@ namespace OpenMetaverse.Http
             return request;
         }
 
-        public static HttpWebRequest DeleteDataAsync(Uri address, X509Certificate2 clientCert, string contentType, byte[] data,
-            int millisecondsTimeout, OpenWriteEventHandler openWriteCallback, DownloadProgressEventHandler downloadProgressCallback,
+        public static HttpWebRequest DeleteDataAsync(Uri address, X509Certificate2? clientCert, string contentType, byte[] data,
+            int millisecondsTimeout, OpenWriteEventHandler? openWriteCallback, DownloadProgressEventHandler downloadProgressCallback,
             RequestCompletedEventHandler completedCallback)
         {
             // Create the request
@@ -152,8 +152,8 @@ namespace OpenMetaverse.Http
             return request;
         }
 
-        public static HttpWebRequest PatchDataAsync(Uri address, X509Certificate2 clientCert, string contentType, byte[] data,
-            int millisecondsTimeout, OpenWriteEventHandler openWriteCallback, DownloadProgressEventHandler downloadProgressCallback,
+        public static HttpWebRequest PatchDataAsync(Uri address, X509Certificate2? clientCert, string contentType, byte[] data,
+            int millisecondsTimeout, OpenWriteEventHandler? openWriteCallback, DownloadProgressEventHandler downloadProgressCallback,
             RequestCompletedEventHandler completedCallback)
         {
             // Create the request
@@ -188,7 +188,7 @@ namespace OpenMetaverse.Http
             ThreadPool.RegisterWaitForSingleObject(result.AsyncWaitHandle, TimeoutCallback, state, millisecondsTimeout, true);
         }
 
-        private static HttpWebRequest SetupRequest(Uri address, X509Certificate2 clientCert)
+        private static HttpWebRequest SetupRequest(Uri address, X509Certificate2? clientCert)
         {
             if (address == null)
                 throw new ArgumentNullException(nameof(address));
@@ -222,7 +222,11 @@ namespace OpenMetaverse.Http
 
         private static void OpenWrite(IAsyncResult ar)
         {
-            RequestState state = (RequestState)ar.AsyncState;
+            RequestState? state = ar.AsyncState as RequestState;
+            if (state == null || state.Request == null)
+            {
+                return;
+            }
 
             try
             {
@@ -251,10 +255,15 @@ namespace OpenMetaverse.Http
 
         private static void GetResponse(IAsyncResult ar)
         {
-            var state = (RequestState)ar.AsyncState;
-            HttpWebResponse response = null;
-            byte[] responseData = null;
-            Exception error = null;
+            var state = ar.AsyncState as RequestState;
+            if (state == null || state.Request == null)
+            {
+                return;
+            }
+
+            HttpWebResponse? response = null;
+            byte[]? responseData = null;
+            Exception? error = null;
 
             try
             {
@@ -269,22 +278,25 @@ namespace OpenMetaverse.Http
                         // a MemoryStream is used to receive the response
                         bool nolength = (response.ContentLength <= 0) || (Type.GetType("Mono.Runtime") != null);
                         int size = (nolength) ? 8192 : (int)response.ContentLength;
-                        MemoryStream ms = (nolength) ? new MemoryStream() : null;
+                        MemoryStream? ms = (nolength) ? new MemoryStream() : null;
                         byte[] buffer = new byte[size];
 
                         int bytesRead = 0;
                         int offset = 0;
                         int totalBytesRead = 0;
                         int totalSize = nolength ? 0 : size;
+                        var rs = responseStream;
 
-                        while (responseStream != null && (bytesRead = responseStream.Read(buffer, offset, size)) != 0)
+                        if (rs != null)
+                        {
+                            while ((bytesRead = rs.Read(buffer, offset, size)) != 0)
                         {
                             totalBytesRead += bytesRead;
 
                             if (nolength)
                             {
                                 totalSize += (size - bytesRead);
-                                ms.Write(buffer, 0, bytesRead);
+                            if (ms != null) ms.Write(buffer, 0, bytesRead);
                             }
                             else
                             {
@@ -292,11 +304,12 @@ namespace OpenMetaverse.Http
                                 size -= bytesRead;
                             }
 
-                            // Fire the download progress callback for each chunk of received data
-                            state.DownloadProgressCallback?.Invoke(state.Request, response, totalBytesRead, totalSize);
+                                // Fire the download progress callback for each chunk of received data
+                                state.DownloadProgressCallback?.Invoke(state.Request!, response, totalBytesRead, totalSize);
+                            }
                         }
 
-                        if (nolength)
+                        if (nolength && ms != null)
                         {
                             responseData = ms.ToArray();
                             ms.Close();
@@ -317,14 +330,13 @@ namespace OpenMetaverse.Http
                 error = ex;
             }
 
-            state.CompletedCallback?.Invoke(state.Request, response, responseData, error);
+            state.CompletedCallback?.Invoke(state.Request!, response, responseData, error);
         }
 
-        private static void TimeoutCallback(object state, bool timedOut)
+        private static void TimeoutCallback(object? state, bool timedOut)
         {
             if (!timedOut) return;
-
-            RequestState requestState = state as RequestState;
+            RequestState? requestState = state as RequestState;
             //Logger.Log.Debug("CapsBase.TimeoutCallback(): Request to " + requestState.Request.RequestUri +
             //    " timed out after " + requestState.MillisecondsTimeout + " milliseconds");
             requestState?.Request?.Abort();

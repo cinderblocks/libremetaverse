@@ -46,19 +46,19 @@ namespace OpenMetaverse.ImportExport
     /// </summary>
     public class ColladaLoader
     {
-        private COLLADA Model;
-        private static XmlSerializer Serializer = null;
-        private List<Node> Nodes;
-        private List<ModelMaterial> Materials;
-        private Dictionary<string, string> MatSymTarget;
-        private string FileName;
+        private COLLADA? Model;
+        private static XmlSerializer? Serializer = null;
+        private List<Node> Nodes = new List<Node>();
+        private List<ModelMaterial> Materials = new List<ModelMaterial>();
+        private Dictionary<string, string> MatSymTarget = new Dictionary<string, string>();
+        private string FileName = string.Empty;
 
         private class Node
         {
             public Matrix4 Transform = Matrix4.Identity;
-            public string Name;
-            public string ID;
-            public string MeshID;
+            public string Name = string.Empty;
+            public string ID = string.Empty;
+            public string MeshID = string.Empty;
         }
 
         /// <summary>
@@ -82,7 +82,13 @@ namespace OpenMetaverse.ImportExport
                 // A FileStream is needed to read the XML document.
                 FileStream fs = new FileStream(filename, FileMode.Open);
                 XmlReader reader = XmlReader.Create(fs);
-                Model = (COLLADA)Serializer.Deserialize(reader);
+                var des = Serializer.Deserialize(reader);
+                Model = des as COLLADA;
+                if (Model == null)
+                {
+                    fs.Close();
+                    throw new InvalidOperationException("Failed to deserialize COLLADA document");
+                }
                 fs.Close();
                 var prims = Parse();
                 if (loadImages)
@@ -114,7 +120,7 @@ namespace OpenMetaverse.ImportExport
 
         private void LoadImage(ModelMaterial material)
         {
-            var fname = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(FileName), material.Texture);
+            var fname = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(FileName) ?? string.Empty, material.Texture);
 
             try
             {
@@ -248,9 +254,10 @@ namespace OpenMetaverse.ImportExport
                         foreach (var material in materials.material)
                         {
                             var ID = material.id;
-                            if (!string.IsNullOrEmpty(material.instance_effect?.url))
+                            var effectUrl = material.instance_effect?.url;
+                            if (!string.IsNullOrEmpty(effectUrl))
                             {
-                                matEffect[material.instance_effect.url.Substring(1)] = ID;
+                                matEffect[effectUrl!.Substring(1)] = ID;
                             }
                         }
                     }
@@ -440,7 +447,7 @@ namespace OpenMetaverse.ImportExport
                             continue;
 
                         var nodes = Nodes.FindAll(n => n.MeshID == geo.id);     // Find all instances of this geometry
-                        ModelPrim firstPrim = null;         // The first prim is actually calculated, the others are just copied from it.
+                        ModelPrim? firstPrim = null;         // The first prim is actually calculated, the others are just copied from it.
 
                         Vector3 asset_scale = new Vector3(1,1,1);
                         Vector3 asset_offset = new Vector3(0, 0, 0);            // Scale and offset between Collada and OS asset (Which is always in a unit cube)
@@ -469,11 +476,11 @@ namespace OpenMetaverse.ImportExport
                             }
                             else {
                                 // Copy the values set by Addpositions and AddFacesFromPolyList as these are the same as long as the mesh is the same
-                                prim.Asset = firstPrim.Asset;
-                                prim.BoundMin = firstPrim.BoundMin;
-                                prim.BoundMax = firstPrim.BoundMax;
-                                prim.Positions = firstPrim.Positions;
-                                prim.Faces = firstPrim.Faces;
+                                prim.Asset = firstPrim!.Asset;
+                                prim.BoundMin = firstPrim!.BoundMin;
+                                prim.BoundMax = firstPrim!.BoundMax;
+                                prim.Positions = firstPrim!.Positions;
+                                prim.Faces = firstPrim!.Faces;
                             }
 
                             // Note: This ignores any shear or similar non-linear effects. This can cause some problems but it
@@ -496,7 +503,7 @@ namespace OpenMetaverse.ImportExport
             return Prims;
         }
 
-        private source FindSource(IEnumerable<source> sources, string id)
+        private source? FindSource(IEnumerable<source> sources, string id)
         {
             id = id.Substring(1);
 
@@ -506,7 +513,8 @@ namespace OpenMetaverse.ImportExport
         private void AddPositions(out Vector3 scale, out Vector3 offset, mesh mesh, ModelPrim prim, Matrix4 transform)
         {
             prim.Positions = new List<Vector3>();
-            source posSrc = FindSource(mesh.source, mesh.vertices.input[0].source);
+            source? posSrc = FindSource(mesh.source, mesh.vertices.input[0].source);
+            if (posSrc == null) throw new InvalidDataException("Missing position source in Collada mesh");
             double[] posVals = ((float_array)posSrc.Item).Values;
 
             for (int i = 0; i < posVals.Length / 3; i++)
@@ -561,9 +569,9 @@ namespace OpenMetaverse.ImportExport
 
         private void AddFacesFromPolyList(polylist list, mesh mesh, ModelPrim prim, Matrix4 transform)
         {
-            source posSrc = null;
-            source normalSrc = null;
-            source uvSrc = null;
+            source? posSrc = null;
+            source? normalSrc = null;
+            source? uvSrc = null;
 
             ulong stride = 0;
             int posOffset = -1;
@@ -598,7 +606,7 @@ namespace OpenMetaverse.ImportExport
             var vcount = StrToArray(list.vcount);
             var idx = StrToArray(list.p);
 
-            Vector3[] normals = null;
+            Vector3[]? normals = null;
             if (normalSrc != null)
             {
                 var norVal = ((float_array)normalSrc.Item).Values;
@@ -612,7 +620,7 @@ namespace OpenMetaverse.ImportExport
                 }
             }
 
-            Vector2[] uvs = null;
+            Vector2[]? uvs = null;
             if (uvSrc != null)
             {
                 var uvVal = ((float_array)uvSrc.Item).Values;
@@ -630,7 +638,7 @@ namespace OpenMetaverse.ImportExport
             {
                 if (MatSymTarget.TryGetValue(list.material, out var value))
                 {
-                    ModelMaterial mat = Materials.Find(m => m.ID == value);
+                    ModelMaterial? mat = Materials.Find(m => m.ID == value);
                     if (mat != null)
                     {
                         face.Material = mat;

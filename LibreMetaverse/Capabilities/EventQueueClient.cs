@@ -46,20 +46,20 @@ namespace OpenMetaverse.Http
         public delegate void ConnectedCallback();
         public delegate void EventCallback(string eventName, OSDMap body);
 
-        public ConnectedCallback OnConnected;
-        public EventCallback OnEvent;
+        public ConnectedCallback? OnConnected;
+        public EventCallback? OnEvent;
 
         public bool Running => _queueCts != null && !_queueCts.IsCancellationRequested
                                && _eqTask != null && !_eqTask.IsCompleted;
 
         protected readonly Uri Address;
         protected readonly Simulator Simulator;
-        private CancellationTokenSource _queueCts;
-        private Task _eqTask;
+        private CancellationTokenSource? _queueCts;
+        private Task? _eqTask;
 
         private readonly object _payloadLock = new object();
-        private OSDMap _reqPayloadMap;
-        private byte[] _reqPayloadBytes;
+        private OSDMap? _reqPayloadMap;
+        private byte[]? _reqPayloadBytes;
 
         public EventQueueClient(Uri eventQueueLocation, Simulator sim)
         {
@@ -199,9 +199,9 @@ namespace OpenMetaverse.Http
             }
         }
 
-        private void ConnectedResponseHandler(HttpResponseMessage response)
+        private void ConnectedResponseHandler(HttpResponseMessage? response)
         {
-            if (!response.IsSuccessStatusCode) { return; }
+            if (response?.IsSuccessStatusCode != true) { return; }
 
             // The event queue is starting up for the first time
             if (OnConnected == null) { return; }
@@ -224,16 +224,16 @@ namespace OpenMetaverse.Http
         /// <param name="response">The HTTP response message (might be null).</param>
         /// <param name="data">The response body bytes.</param>
         /// <returns>True if the payload should be treated as LLSD/XML and can be parsed; false otherwise.</returns>
-        private static bool IsLikelyLLSD(HttpResponseMessage response, byte[] data)
+        private static bool IsLikelyLLSD(HttpResponseMessage? response, byte[]? data)
         {
             if (data == null || data.Length == 0) return false;
 
             // Prefer a canonical content-type check when available
-            string mediaType = null;
+            string? mediaType = null;
             try { mediaType = response?.Content?.Headers?.ContentType?.MediaType; } catch { mediaType = null; }
             if (!string.IsNullOrEmpty(mediaType))
             {
-                var mt = mediaType.ToLowerInvariant();
+                var mt = mediaType!.ToLowerInvariant();
                 if (mt.Contains("xml") || mt.Contains("llsd"))
                     return true;
                 // Content type explicitly present and not XML-like -> avoid parsing as LLSD
@@ -263,14 +263,14 @@ namespace OpenMetaverse.Http
             return false;
         }
 
-        private void RequestCompletedHandler(HttpResponseMessage response, byte[] responseData, Exception error)
+        private void RequestCompletedHandler(HttpResponseMessage? response, byte[]? responseData, Exception? error)
         {
             // Ignore anything if we're no longer connected to the sim.
             if (!Simulator.Connected) { return; }
 
             try
             {
-                OSDArray events = null;
+                OSDArray? events = null;
                 OSD ack = new OSD();
 
                 #region Error handling

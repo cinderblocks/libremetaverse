@@ -517,7 +517,7 @@ namespace OpenMetaverse
         /// <param name="resourceName">The filename of the resource to load</param>
         /// <returns>A Stream for the requested file, or null if the resource
         /// was not successfully loaded</returns>
-        public static Stream GetResourceStream(string resourceName)
+        public static Stream? GetResourceStream(string resourceName)
         {
             return GetResourceStream(resourceName, "openmetaverse_data");
         }
@@ -531,16 +531,16 @@ namespace OpenMetaverse
         /// the asset is not found embedded in the assembly</param>
         /// <returns>A Stream for the requested file, or null if the resource
         /// was not successfully loaded</returns>
-        public static Stream GetResourceStream(string resourceName, string searchPath)
+        public static Stream? GetResourceStream(string resourceName, string searchPath)
         {
             if (searchPath != null)
             {
-                Assembly gea = Assembly.GetEntryAssembly();
-                if (gea == null) gea = typeof(Helpers).Assembly;
+                Assembly gea = Assembly.GetEntryAssembly() ?? typeof(Helpers).Assembly;
                 string dirname = ".";
                 if (gea.Location != null)
                 {
-                    dirname = Path.Combine(Path.GetDirectoryName(gea.Location), searchPath);
+                    var baseDir = Path.GetDirectoryName(gea.Location) ?? ".";
+                    dirname = Path.Combine(baseDir, searchPath);
                 }
 
                 string filename = Path.Combine(dirname, resourceName);
@@ -560,7 +560,7 @@ namespace OpenMetaverse
                 try
                 {
                     Assembly a = Assembly.GetExecutingAssembly();
-                    Stream s = a.GetManifestResourceStream("OpenMetaverse.Resources." + resourceName);
+                    Stream? s = a.GetManifestResourceStream("OpenMetaverse.Resources." + resourceName);
                     if (s != null) return s;
                 }
                 catch (Exception ex)
@@ -655,7 +655,7 @@ namespace OpenMetaverse
 
         public static byte[] ZCompressOSD(OSD data)
         {
-            byte[] ret = null;
+            byte[] ret = Array.Empty<byte>();
 
             using (MemoryStream outMemoryStream = new MemoryStream())
             using (ZOutputStream outZStream = new ZOutputStream(outMemoryStream, zlibConst.Z_BEST_COMPRESSION))
@@ -692,7 +692,7 @@ namespace OpenMetaverse
         /// <param name="meshBytes"></param>
         /// <returns>the OSD object</returns>
         public static OSD DecompressOSD(byte[] meshBytes) {
-            OSD decodedOsd = null;
+            OSD? decodedOsd = null;
 
             using (MemoryStream inMs = new MemoryStream(meshBytes))
             using (MemoryStream outMs = new MemoryStream())
@@ -713,13 +713,13 @@ namespace OpenMetaverse
 
                 decodedOsd = OSDParser.DeserializeLLSDBinary(decompressedBuf);
             }
-            return decodedOsd;
+            return decodedOsd!;
         }
 
         /// <summary>
         /// Execute an action safely catching any exceptions and reporting via logger.
         /// </summary>
-        public static void SafeAction(Action action, string actionName = null, Action<string, Exception> logger = null)
+        public static void SafeAction(Action action, string? actionName = null, Action<string, Exception?>? logger = null)
         {
             if (action == null) return;
 

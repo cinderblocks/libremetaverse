@@ -184,7 +184,7 @@ namespace OpenMetaverse
         /// <param name="objectLocalID">The simulator Local ID of the object</param>
         /// <param name="simulator">A reference to the simulator object that contains the object</param>
         /// <see cref="TaskInventoryReply"/>
-        public void RequestTaskInventory(uint objectLocalID, Simulator simulator)
+        public void RequestTaskInventory(uint objectLocalID, Simulator? simulator)
         {
             var request = new RequestTaskInventoryPacket
             {
@@ -416,16 +416,16 @@ namespace OpenMetaverse
                                     switch (key)
                                     {
                                         case "obj_id":
-                                            UUID.TryParse(value, out itemID);
+                                            UUID.TryParse(value ?? string.Empty, out itemID);
                                             break;
                                         case "parent_id":
-                                            UUID.TryParse(value, out parentID);
+                                            UUID.TryParse(value ?? string.Empty, out parentID);
                                             break;
                                         case "type":
-                                            assetType = Utils.StringToAssetType(value);
+                                            assetType = Utils.StringToAssetType(value ?? string.Empty);
                                             break;
                                         case "name":
-                                            name = value.Substring(0, value.IndexOf('|'));
+                                            name = value != null && value.Contains("|") ? value.Substring(0, value.IndexOf('|')) : (value ?? string.Empty);
                                             break;
                                     }
                                 }
@@ -495,10 +495,10 @@ namespace OpenMetaverse
                                 switch (key)
                                 {
                                     case "item_id":
-                                        UUID.TryParse(value, out itemID);
+                                        UUID.TryParse(value ?? string.Empty, out itemID);
                                         break;
                                     case "parent_id":
-                                        UUID.TryParse(value, out parentID);
+                                        UUID.TryParse(value ?? string.Empty, out parentID);
                                         break;
                                     case "permissions":
                                         {
@@ -523,51 +523,51 @@ namespace OpenMetaverse
                                                         case "creator_mask":
                                                             {
                                                                 // Deprecated
-                                                                if (Utils.TryParseHex(value, out var val))
+                                                                if (Utils.TryParseHex(value ?? string.Empty, out var val))
                                                                     perms.BaseMask = (PermissionMask)val;
                                                                 break;
                                                             }
                                                         case "base_mask":
                                                             {
-                                                                if (Utils.TryParseHex(value, out var val))
+                                                                if (Utils.TryParseHex(value ?? string.Empty, out var val))
                                                                     perms.BaseMask = (PermissionMask)val;
                                                                 break;
                                                             }
                                                         case "owner_mask":
                                                             {
-                                                                if (Utils.TryParseHex(value, out var val))
+                                                                if (Utils.TryParseHex(value ?? string.Empty, out var val))
                                                                     perms.OwnerMask = (PermissionMask)val;
                                                                 break;
                                                             }
                                                         case "group_mask":
                                                             {
-                                                                if (Utils.TryParseHex(value, out var val))
+                                                                if (Utils.TryParseHex(value ?? string.Empty, out var val))
                                                                     perms.GroupMask = (PermissionMask)val;
                                                                 break;
                                                             }
                                                         case "everyone_mask":
                                                             {
-                                                                if (Utils.TryParseHex(value, out var val))
+                                                                if (Utils.TryParseHex(value ?? string.Empty, out var val))
                                                                     perms.EveryoneMask = (PermissionMask)val;
                                                                 break;
                                                             }
                                                         case "next_owner_mask":
                                                             {
-                                                                if (Utils.TryParseHex(value, out var val))
+                                                                if (Utils.TryParseHex(value ?? string.Empty, out var val))
                                                                     perms.NextOwnerMask = (PermissionMask)val;
                                                                 break;
                                                             }
                                                         case "creator_id":
-                                                            UUID.TryParse(value, out creatorID);
+                                                            UUID.TryParse(value ?? string.Empty, out creatorID);
                                                             break;
                                                         case "owner_id":
-                                                            UUID.TryParse(value, out ownerID);
+                                                            UUID.TryParse(value ?? string.Empty, out ownerID);
                                                             break;
                                                         case "last_owner_id":
-                                                            UUID.TryParse(value, out lastOwnerID);
+                                                            UUID.TryParse(value ?? string.Empty, out lastOwnerID);
                                                             break;
                                                         case "group_id":
-                                                            UUID.TryParse(value, out groupID);
+                                                            UUID.TryParse(value ?? string.Empty, out groupID);
                                                             break;
                                                         case "group_owned":
                                                             {
@@ -604,7 +604,7 @@ namespace OpenMetaverse
                                                     switch (key)
                                                     {
                                                         case "sale_type":
-                                                            saleType = Utils.StringToSaleType(value);
+                                                            saleType = Utils.StringToSaleType(value ?? string.Empty);
                                                             break;
                                                         case "sale_price":
                                                             int.TryParse(value, out salePrice);
@@ -619,27 +619,27 @@ namespace OpenMetaverse
                                         }
                                     case "shadow_id":
                                         {
-                                            if (UUID.TryParse(value, out var shadowID))
+                                        if (UUID.TryParse(value ?? string.Empty, out var shadowID))
                                                 assetID = DecryptShadowID(shadowID);
                                             break;
                                         }
                                     case "asset_id":
-                                        UUID.TryParse(value, out assetID);
+                                        UUID.TryParse(value ?? string.Empty, out assetID);
                                         break;
                                     case "type":
-                                        assetType = Utils.StringToAssetType(value);
+                                        assetType = Utils.StringToAssetType(value ?? string.Empty);
                                         break;
                                     case "inv_type":
-                                        inventoryType = Utils.StringToInventoryType(value);
+                                        inventoryType = Utils.StringToInventoryType(value ?? string.Empty);
                                         break;
                                     case "flags":
                                         uint.TryParse(value, out flags);
                                         break;
                                     case "name":
-                                        name = value.Substring(0, value.IndexOf('|'));
+                                        name = value != null && value.Contains("|") ? value.Substring(0, value.IndexOf('|')) : (value ?? string.Empty);
                                         break;
                                     case "desc":
-                                        desc = value.Substring(0, value.IndexOf('|'));
+                                        desc = value != null && value.Contains("|") ? value.Substring(0, value.IndexOf('|')) : (value ?? string.Empty);
                                         break;
                                     case "creation_date":
                                         {

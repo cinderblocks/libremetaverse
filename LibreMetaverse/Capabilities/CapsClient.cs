@@ -38,20 +38,20 @@ namespace OpenMetaverse.Http
     public class CapsClient
     {
         public delegate void DownloadProgressCallback(CapsClient client, int bytesReceived, int totalBytesToReceive);
-        public delegate void CompleteCallback(CapsClient client, OSD result, Exception error);
+        public delegate void CompleteCallback(CapsClient client, OSD? result, Exception? error);
 
-        public event DownloadProgressCallback OnDownloadProgress;
-        public event CompleteCallback OnComplete;
+        public event DownloadProgressCallback? OnDownloadProgress;
+        public event CompleteCallback? OnComplete;
 
-        public object UserData;
+        public object? UserData;
 
         protected Uri _Address;
-        protected string _CapName;
-        protected byte[] _PostData;
-        protected X509Certificate2 _ClientCert;
-        protected string _ContentType;
-        protected HttpWebRequest _Request;
-        protected OSD _Response;
+        protected string? _CapName;
+        protected byte[]? _PostData;
+        protected X509Certificate2? _ClientCert;
+        protected string? _ContentType;
+        protected HttpWebRequest? _Request;
+        protected OSD? _Response;
         protected AutoResetEvent _ResponseEvent = new AutoResetEvent(false);
 
         #region Constructors
@@ -70,7 +70,7 @@ namespace OpenMetaverse.Http
         /// </summary>
         /// <param name="capability"><see cref="Uri"/> for simulator capability</param>
         /// <param name="cap_name">Simulator capability name</param>
-        public CapsClient(Uri capability, string cap_name)
+        public CapsClient(Uri capability, string? cap_name)
             : this(capability, cap_name, null)
         {
         }
@@ -81,7 +81,7 @@ namespace OpenMetaverse.Http
         /// <param name="capability"><see cref="Uri"/> for simulator capability</param>
         /// <param name="cap_name">Simulator capability name</param>
         /// <param name="clientCert"><see cref="X509Certificate2"/> client certificate</param>
-        public CapsClient(Uri capability, string cap_name, X509Certificate2 clientCert)
+        public CapsClient(Uri capability, string? cap_name, X509Certificate2? clientCert)
         {
             _Address = capability;
             _CapName = cap_name;
@@ -104,7 +104,7 @@ namespace OpenMetaverse.Http
                     RequestCompletedHandler);
         }
 
-        public OSD GetRequest(int msTimeout)
+        public OSD? GetRequest(int msTimeout)
         {
             GetRequestAsync(msTimeout);
             _ResponseEvent.WaitOne(msTimeout, false);
@@ -121,7 +121,7 @@ namespace OpenMetaverse.Http
             PostRequestAsync(serializedData, contentType, msTimeout);
         }
 
-        public OSD PostRequest(OSD data, OSDFormat format, int msTimeout)
+        public OSD? PostRequest(OSD data, OSDFormat format, int msTimeout)
         {
             PostRequestAsync(data, format, msTimeout);
             _ResponseEvent.WaitOne(msTimeout, false);
@@ -143,7 +143,7 @@ namespace OpenMetaverse.Http
                 null, DownloadProgressHandler, RequestCompletedHandler);
         }
 
-        public OSD PostRequest(byte[] postData, string contentType, int msTimeout)
+        public OSD? PostRequest(byte[] postData, string contentType, int msTimeout)
         {
             PostRequestAsync(postData, contentType, msTimeout);
             _ResponseEvent.WaitOne(msTimeout, false);
@@ -160,7 +160,7 @@ namespace OpenMetaverse.Http
             PutRequestAsync(serializedData, contentType, msTimeout);
         }
 
-        public OSD PutRequest(OSD data, OSDFormat format, int msTimeout)
+        public OSD? PutRequest(OSD data, OSDFormat format, int msTimeout)
         {
             PutRequestAsync(data, format, msTimeout);
             _ResponseEvent.WaitOne(msTimeout, false);
@@ -182,7 +182,7 @@ namespace OpenMetaverse.Http
                 null, DownloadProgressHandler, RequestCompletedHandler);
         }
 
-        public OSD PutRequest(byte[] postData, string contentType, int msTimeout)
+        public OSD? PutRequest(byte[] postData, string contentType, int msTimeout)
         {
             PutRequestAsync(postData, contentType, msTimeout);
             _ResponseEvent.WaitOne(msTimeout, false);
@@ -199,7 +199,7 @@ namespace OpenMetaverse.Http
             PatchRequestAsync(serializedData, contentType, msTimeout);
         }
 
-        public OSD PatchRequest(OSD data, OSDFormat format, int msTimeout)
+        public OSD? PatchRequest(OSD data, OSDFormat format, int msTimeout)
         {
             PatchRequestAsync(data, format, msTimeout);
             _ResponseEvent.WaitOne(msTimeout, false);
@@ -221,7 +221,7 @@ namespace OpenMetaverse.Http
                 null, DownloadProgressHandler, RequestCompletedHandler);
         }
 
-        public OSD PatchRequest(byte[] postData, string contentType, int msTimeout)
+        public OSD? PatchRequest(byte[] postData, string contentType, int msTimeout)
         {
             PatchRequestAsync(postData, contentType, msTimeout);
             _ResponseEvent.WaitOne(msTimeout, false);
@@ -238,7 +238,7 @@ namespace OpenMetaverse.Http
             DeleteRequestAsync(serializedData, contentType, msTimeout);
         }
 
-        public OSD DeleteRequest(OSD data, OSDFormat format, int msTimeout)
+        public OSD? DeleteRequest(OSD data, OSDFormat format, int msTimeout)
         {
             DeleteRequestAsync(data, format, msTimeout);
             _ResponseEvent.WaitOne(msTimeout, false);
@@ -260,7 +260,7 @@ namespace OpenMetaverse.Http
                 null, DownloadProgressHandler, RequestCompletedHandler);
         }
 
-        public OSD DeleteRequest(byte[] postData, string contentType, int msTimeout)
+        public OSD? DeleteRequest(byte[] postData, string contentType, int msTimeout)
         {
             DeleteRequestAsync(postData, contentType, msTimeout);
             _ResponseEvent.WaitOne(msTimeout, false);
@@ -274,7 +274,7 @@ namespace OpenMetaverse.Http
             _Request?.Abort();
         }
 
-        void DownloadProgressHandler(HttpWebRequest request, HttpWebResponse response, int bytesReceived, int totalBytesToReceive)
+        void DownloadProgressHandler(HttpWebRequest request, HttpWebResponse? response, int bytesReceived, int totalBytesToReceive)
         {
             _Request = request;
 
@@ -285,11 +285,11 @@ namespace OpenMetaverse.Http
             }
         }
 
-        void RequestCompletedHandler(HttpWebRequest request, HttpWebResponse response, byte[] responseData, Exception error)
+        void RequestCompletedHandler(HttpWebRequest request, HttpWebResponse? response, byte[]? responseData, Exception? error)
         {
             _Request = request;
 
-            OSD result = null;
+            OSD? result = null;
 
             if (responseData != null)
             {
@@ -327,9 +327,9 @@ namespace OpenMetaverse.Http
             }
         }
 
-        private void FireCompleteCallback(OSD result, Exception error)
+        private void FireCompleteCallback(OSD? result, Exception? error)
         {
-            CompleteCallback callback = OnComplete;
+            CompleteCallback? callback = OnComplete;
             if (callback != null)
             {
                 try

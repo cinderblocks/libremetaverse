@@ -46,7 +46,7 @@ namespace OpenMetaverse
     {
         /// <summary>Used for converting shadow_id to asset_id</summary>
         public static readonly UUID MAGIC_ID = new UUID("3c115e51-04f4-523c-9fa6-98aff1034730");
-        public static Task<List<InventoryBase>> NoResults = Task.FromResult<List<InventoryBase>>(null);
+        public static Task<List<InventoryBase>> NoResults = Task.FromResult(new List<InventoryBase>());
         /// <summary>Maximum items allowed to give</summary>
         public const int MAX_GIVE_ITEMS = 66; // viewer code says 66, but 42 in the notification
         protected struct InventorySearch
@@ -60,7 +60,7 @@ namespace OpenMetaverse
         [NonSerialized]
         private readonly GridClient Client;
         [NonSerialized]
-        private Inventory _Store;
+        private Inventory? _Store;
         [NonSerialized]
         private bool _disposed;
         [NonSerialized]
@@ -82,7 +82,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Get this agents Inventory data
         /// </summary>
-        public Inventory Store => _Store;
+        public Inventory? Store => _Store;
 
         #endregion Properties
 
@@ -193,7 +193,7 @@ namespace OpenMetaverse
         /// <returns>An <see cref="InventoryItem"/> object on success, or null if no item was found</returns>
         /// <remarks>Items will also be sent to the <see cref="InventoryManager.OnItemReceived"/> event</remarks>
         [Obsolete("Use FetchItemAsync or FetchItemHttpAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
-        public InventoryItem FetchItem(UUID itemID, UUID ownerID, TimeSpan timeout)
+        public InventoryItem? FetchItem(UUID itemID, UUID ownerID, TimeSpan timeout)
         {
             using (var cts = new CancellationTokenSource())
             {
@@ -209,9 +209,9 @@ namespace OpenMetaverse
             }
         }
 
-        public async Task<InventoryItem> FetchItemHttpAsync(UUID itemId, UUID ownerId, CancellationToken token = default)
+        public async Task<InventoryItem?> FetchItemHttpAsync(UUID itemId, UUID ownerId, CancellationToken token = default)
         {
-            InventoryItem item = null;
+            InventoryItem? item = null;
             await RequestFetchInventoryHttpAsync(itemId, ownerId, token, list =>
             {
                 item = list.FirstOrDefault();
@@ -287,7 +287,7 @@ namespace OpenMetaverse
         /// <param name="cancellationToken">Cancellation token for operation</param>
         /// <param name="callback">Action</param>
         private async Task RequestFetchInventoryHttpAsync(UUID itemID, UUID ownerID,
-            CancellationToken cancellationToken, Action<List<InventoryItem>> callback = null)
+            CancellationToken cancellationToken, Action<List<InventoryItem>>? callback = null)
         {
             await RequestFetchInventoryHttpAsync(new Dictionary<UUID, UUID>(1) { { itemID, ownerID } },
                 cancellationToken, callback);
@@ -300,7 +300,7 @@ namespace OpenMetaverse
         /// <param name="cancellationToken">Cancellation token to cancel the request</param>
         /// <param name="callback">Action</param>
         public async Task RequestFetchInventoryHttpAsync(Dictionary<UUID, UUID> items,
-            CancellationToken cancellationToken, Action<List<InventoryItem> > callback = null)
+            CancellationToken cancellationToken, Action<List<InventoryItem> >? callback = null)
         {
 
             var cap = GetCapabilityURI("FetchInventory2");
@@ -386,18 +386,18 @@ namespace OpenMetaverse
             using (var cts = new CancellationTokenSource())
             {
                 cts.CancelAfter(timeout);
-                List<InventoryBase> inventory = null;
+                List<InventoryBase> inventory = new List<InventoryBase>();
                 try
                 {
                     inventory = FolderContentsAsync(folder, owner, fetchFolders, fetchItems, order, cts.Token, followLinks).GetAwaiter().GetResult();
                 }
                 catch (OperationCanceledException)
                 {
-                    inventory = null;
+                    inventory = new List<InventoryBase>();
                 }
                 catch
                 {
-                    inventory = null;
+                    inventory = new List<InventoryBase>();
                 }
 
                 if (inventory == null)
@@ -430,7 +430,7 @@ namespace OpenMetaverse
             bool fetchFolders, bool fetchItems, InventorySortOrder order, CancellationToken cancellationToken = default)
         {
             var cap = (ownerID == Client.Self.AgentID) ? "FetchInventoryDescendents2" : "FetchLibDescendents2";
-            Uri url = GetCapabilityURI(cap);
+            Uri? url = GetCapabilityURI(cap);
             if (url == null)
             {
                 OnFolderUpdated(new FolderUpdatedEventArgs(folderID, false));
@@ -458,7 +458,7 @@ namespace OpenMetaverse
         public async Task<List<InventoryBase>> RequestFolderContents(List<InventoryFolder> batch, Uri capabilityUri, 
             bool fetchFolders, bool fetchItems, InventorySortOrder order, CancellationToken cancellationToken = default)
         {
-            List <InventoryBase> ret = null;
+            List <InventoryBase> ret = new List<InventoryBase>();
             try
             {
                 var requestedFolders = new OSDArray(1);
@@ -484,7 +484,8 @@ namespace OpenMetaverse
                         var res = (OSDMap)fetchedFolderNr;
                         InventoryFolder fetchedFolder;
 
-                        if (_Store.TryGetValue(res["folder_id"], out var invFolder) && invFolder is InventoryFolder folderCast)
+                        var store = _Store;
+                        if (store != null && store.TryGetValue(res["folder_id"], out var invFolder) && invFolder is InventoryFolder folderCast)
                         {
                             fetchedFolder = folderCast;
                         }
@@ -652,8 +653,14 @@ namespace OpenMetaverse
                 return UUID.Zero;
             }
 
+            if (_Store.RootFolder == null)
+            {
+                Logger.Error("Inventory RootFolder not initialized, FindFolderForType() lookup cannot continue", Client);
+                return UUID.Zero;
+            }
+
             var contents = _Store.GetContents(_Store.RootFolder.UUID);
-            foreach (var folder in contents.Select(inv => inv as InventoryFolder).Where(folder => folder?.PreferredType == type))
+            foreach (var folder in contents.OfType<InventoryFolder>().Where(f => f.PreferredType == type))
             {
                 return folder.UUID;
             }
@@ -752,6 +759,8 @@ namespace OpenMetaverse
                 return objects;
             }
 
+            if (_Store == null) return objects;
+
             var contents = _Store.GetContents(baseFolder);
 
             foreach (var inv in contents.Where(inv => string.Compare(inv.Name, path[level], StringComparison.Ordinal) == 0))
@@ -823,7 +832,7 @@ namespace OpenMetaverse
         /// <param name="type">Folder type</param>
         public void UpdateFolderProperties(UUID folderID, UUID parentID, string name, FolderType type)
         {
-            InventoryFolder inv = null;
+            InventoryFolder? inv = null;
 
             using (var upg = _storeLock.UpgradeableLock())
             {
@@ -839,7 +848,8 @@ namespace OpenMetaverse
                     inv.Name = name;
                     inv.ParentUUID = parentID;
                     inv.PreferredType = type;
-                    _Store.UpdateNodeFor(inv);
+                    if (_Store != null)
+                        _Store.UpdateNodeFor(inv);
                 }
             }
 
@@ -849,14 +859,17 @@ namespace OpenMetaverse
                 {
                     _ = Client.AisClient.UpdateCategory(folderID, inv.GetOSD(), success =>
                     {
-                        if (success)
+                    if (success)
+                    {
+                        // Ensure local store is updated (already updated above) but keep parity
+                        if (_Store != null)
                         {
-                            // Ensure local store is updated (already updated above) but keep parity
                             using (var writeLock = _storeLock.WriteLock())
                             {
                                 _Store.UpdateNodeFor(inv);
                             }
                         }
+                    }
                     }).ConfigureAwait(false);
                 }
             }
@@ -1045,12 +1058,12 @@ namespace OpenMetaverse
             // Fallback to LLUDP packet
             var move = new MoveInventoryItemPacket
             {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID,
-                    Stamp = false
-                },
+                    AgentData =
+                    {
+                        AgentID = Client!.Self!.AgentID,
+                        SessionID = Client!.Self!.SessionID,
+                        Stamp = false
+                    },
                 InventoryData = new MoveInventoryItemPacket.InventoryDataBlock[1]
             };
 
@@ -1197,7 +1210,7 @@ namespace OpenMetaverse
                 }
 
                 // Finally add the root node itself to the removal list
-                toRemove.Add(rootNode.Data);
+                toRemove.Add(rootNode.Data!);
             }
 
             // Perform removals under write lock
@@ -1384,7 +1397,7 @@ namespace OpenMetaverse
         /// <param name="items">A List containing the <see cref="UUID"/>s of items to remove</param>
         /// <param name="folders">A List containing the <see cref="UUID"/>s of the folders to remove</param>
         [Obsolete]
-        public void Remove(List<UUID> items, List<UUID> folders)
+        public void Remove(List<UUID>? items, List<UUID>? folders)
         {
             if ((items == null || items.Count == 0) && (folders == null || folders.Count == 0))
                 return;
@@ -1415,7 +1428,7 @@ namespace OpenMetaverse
 
                         // Update local copy
                         if (_Store != null && _Store.TryGetValue(items[i], out var storeItem))
-                            _Store.RemoveNodeFor(storeItem);
+                            _Store.RemoveNodeFor(storeItem!);
                     }
                 }
             }
@@ -1437,7 +1450,7 @@ namespace OpenMetaverse
 
                         // Update local copy
                         if (_Store != null && _Store.TryGetValue(folders[i], out var storeItem))
-                            _Store.RemoveNodeFor(storeItem);
+                            _Store.RemoveNodeFor(storeItem!);
                     }
                 }
             }
@@ -1570,7 +1583,7 @@ namespace OpenMetaverse
 
             var folderKey = UUID.Zero;
 
-            var items = _Store.GetContents(_Store.RootFolder);
+            var items = _Store.RootFolder != null ? _Store.GetContents(_Store.RootFolder) : new List<InventoryBase>();
             foreach (var item in items)
             {
                 var folder = item as InventoryFolder;
@@ -2301,12 +2314,13 @@ namespace OpenMetaverse
         /// <seealso cref="CreateInventoryItem"/>
         public InventoryItem CreateOrRetrieveInventoryItem(InventoryType InvType, UUID ItemID)
         {
-            InventoryItem ret = null;
+            InventoryItem? ret = null;
 
             if (_Store == null)
             {
                 Logger.Warn("Inventory store not initialized, cannot create or retrieve inventory item", Client);
-                return null;
+                // Create a new item instance to return so callers do not get null
+                return CreateInventoryItem(InvType, ItemID);
             }
 
             if (_Store.TryGetValue(ItemID, out var storeItem) && storeItem is InventoryItem inventoryItem)
@@ -2465,7 +2479,7 @@ namespace OpenMetaverse
             return id;
         }
 
-        private static bool ParseLine(string line, out string key, out string value)
+        private static bool ParseLine(string line, out string? key, out string? value)
         {
             // Clean up and convert tabs to spaces
             line = line.Trim();
@@ -2499,10 +2513,10 @@ namespace OpenMetaverse
         }
 
         // Centralized capability lookup helper to reduce duplicated null checks
-        private Uri GetCapabilityURI(string capName, bool logOnMissing = true)
+        private Uri? GetCapabilityURI(string capName, bool logOnMissing = true)
         {
             var sim = Client?.Network?.CurrentSim;
-            Uri uri = sim?.Caps?.CapabilityURI(capName);
+            Uri? uri = sim?.Caps?.CapabilityURI(capName);
             if (uri == null && logOnMissing)
             {
                 var simName = sim?.Name ?? "unknown";

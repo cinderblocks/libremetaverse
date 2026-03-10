@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
+#nullable enable
 
 namespace TestClient.Commands.Movement
 {
@@ -48,14 +49,15 @@ namespace TestClient.Commands.Movement
         {
             lock (Client.Network.Simulators)
             {
-                foreach (var target in Client.Network.Simulators
-                             .Select(sim => sim.ObjectsAvatars
-                                 .FirstOrDefault(avatar => avatar.Value.Name == name))
-                             .Where(target => target.Value != null))
+                foreach (var sim in Client.Network.Simulators)
                 {
-                    targetLocalID = target.Value.LocalID;
-                    Active = true;
-                    return true;
+                    var match = sim.ObjectsAvatars.FirstOrDefault(avatar => avatar.Value != null && avatar.Value.Name == name);
+                    if (match.Value != null)
+                    {
+                        targetLocalID = match.Value.LocalID;
+                        Active = true;
+                        return true;
+                    }
                 }
             }
 
@@ -77,9 +79,9 @@ namespace TestClient.Commands.Movement
                 {
                     foreach (var t in Client.Network.Simulators)
                     {
-                        Avatar targetAv;
+                        Avatar? targetAv;
 
-                        if (t.ObjectsAvatars.TryGetValue(targetLocalID, out targetAv))
+                        if (t.ObjectsAvatars.TryGetValue(targetLocalID, out targetAv) && targetAv != null)
                         {
                             float distance = 0.0f;
 
@@ -119,7 +121,7 @@ namespace TestClient.Commands.Movement
             base.Think();
         }
 
-        private void AlertMessageHandler(object sender, PacketReceivedEventArgs e)
+        private void AlertMessageHandler(object? sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
 

@@ -42,9 +42,9 @@ namespace LibreMetaverse.Appearance
         private readonly GridClient client;
         private readonly CurrentOutfitFolder cof;
         private readonly CancellationTokenSource applyCts = new CancellationTokenSource();
-        private readonly IProgress<InitialOutfit.InitialOutfitProgress> progress;
+        private readonly IProgress<InitialOutfit.InitialOutfitProgress>? progress;
 
-        public InitialOutfitHandler(GridClient client, CurrentOutfitFolder cof, IProgress<InitialOutfit.InitialOutfitProgress> progress = null)
+        public InitialOutfitHandler(GridClient client, CurrentOutfitFolder cof, IProgress<InitialOutfit.InitialOutfitProgress>? progress = null)
         {
             this.client = client ?? throw new ArgumentNullException(nameof(client));
             this.cof = cof ?? throw new ArgumentNullException(nameof(cof));
@@ -57,7 +57,7 @@ namespace LibreMetaverse.Appearance
             catch { }
         }
 
-        private void Network_LoginProgress(object sender, LoginProgressEventArgs e)
+        private void Network_LoginProgress(object? sender, LoginProgressEventArgs e)
         {
             if (e.Status != LoginStatus.Success) { return; }
 
@@ -66,7 +66,8 @@ namespace LibreMetaverse.Appearance
             {
                 try
                 {
-                    var loginData = client?.Network?.LoginResponseData;
+                    var c = client;
+                    var loginData = c.Network?.LoginResponseData;
 
                     if (loginData?.FirstLogin == true && !string.IsNullOrEmpty(loginData.InitialOutfit))
                     {
@@ -74,9 +75,9 @@ namespace LibreMetaverse.Appearance
 
                         try
                         {
-                            try { await client.Self.SetAgentAccessAsync("A", null, token).ConfigureAwait(false); } catch { }
+                            try { await c.Self.SetAgentAccessAsync("A", null, token).ConfigureAwait(false); } catch { }
 
-                            var initial = new InitialOutfit(client, cof);
+                            var initial = new InitialOutfit(c, cof);
                             await initial.SetInitialOutfitAsync(loginData.InitialOutfit, token, progress).ConfigureAwait(false);
                         }
                         catch (Exception ex)

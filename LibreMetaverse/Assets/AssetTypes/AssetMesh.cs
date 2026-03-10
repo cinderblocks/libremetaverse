@@ -41,7 +41,7 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// Decoded mesh data
         /// </summary>
-        public OSDMap MeshData;
+        public OSDMap MeshData = new OSDMap();
 
         /// <summary>Initializes a new instance of an AssetMesh object</summary>
         public AssetMesh() { }

@@ -539,7 +539,7 @@ namespace OpenMetaverse
                        && BlendFuncDest == other.BlendFuncDest;
             }
 
-            public override bool Equals(object obj)
+            public override bool Equals(object? obj)
             {
                 return obj is ParticleSystem other && Equals(other);
             }

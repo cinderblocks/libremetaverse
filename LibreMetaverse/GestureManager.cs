@@ -36,8 +36,8 @@ namespace LibreMetaverse
     {
         private class GestureTrigger
         {
-            public string TriggerLower { get; set; }
-            public string Replacement { get; set; }
+            public string TriggerLower { get; set; } = string.Empty;
+            public string Replacement { get; set; } = string.Empty;
             public UUID AssetID { get; set; }
         }
 
@@ -49,7 +49,7 @@ namespace LibreMetaverse
         private readonly TimeSpan AssetLoadTimeout = TimeSpan.FromSeconds(15);
 
         /// <summary>Called when a gesture is triggered. Provides the asset id and trigger word.</summary>
-        public event Action<UUID, string> GestureTriggered;
+        public event Action<UUID, string>? GestureTriggered;
 
         /// <summary>Create a GestureManager for the given client.</summary>
         public GestureManager(GridClient client)
@@ -208,7 +208,7 @@ namespace LibreMetaverse
             return true;
         }
 
-        private void Store_InventoryObjectUpdated(object sender, InventoryObjectUpdatedEventArgs e)
+        private void Store_InventoryObjectUpdated(object? sender, InventoryObjectUpdatedEventArgs e)
         {
             if (e.NewObject is InventoryItem item && item.InventoryType == InventoryType.Gesture)
             {
@@ -216,7 +216,7 @@ namespace LibreMetaverse
             }
         }
 
-        private void Store_InventoryObjectAdded(object sender, InventoryObjectAddedEventArgs e)
+        private void Store_InventoryObjectAdded(object? sender, InventoryObjectAddedEventArgs e)
         {
             if (e.Obj is InventoryItem item && item.InventoryType == InventoryType.Gesture)
             {
@@ -230,7 +230,7 @@ namespace LibreMetaverse
             {
                 UUID assetID = gestureItem.AssetUUID;
 
-                var tcs = new TaskCompletionSource<AssetGesture>(TaskCreationOptions.RunContinuationsAsynchronously);
+                var tcs = new TaskCompletionSource<AssetGesture?>(TaskCreationOptions.RunContinuationsAsynchronously);
                 try
                 {
                     Client.Assets.RequestAsset(assetID, AssetType.Gesture, false, (transfer, asset) =>
@@ -263,7 +263,7 @@ namespace LibreMetaverse
                     return;
                 }
 
-                AssetGesture assetGesture = null;
+                AssetGesture? assetGesture = null;
                 try
                 {
                     assetGesture = await tcs.Task.ConfigureAwait(false);

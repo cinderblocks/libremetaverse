@@ -40,7 +40,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Safely dispose an object, catching and logging any exceptions
         /// </summary>
-        public static void SafeDispose(IDisposable resource, string resourceName = null, Action<string, Exception> logger = null)
+        public static void SafeDispose(IDisposable resource, string? resourceName = null, Action<string, Exception?>? logger = null)
         {
             if (resource == null) return;
 
@@ -61,7 +61,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Safely dispose multiple resources
         /// </summary>
-        public static void SafeDisposeAll(IEnumerable<IDisposable> resources, Action<string, Exception> logger = null)
+        public static void SafeDisposeAll(IEnumerable<IDisposable> resources, Action<string, Exception?>? logger = null)
         {
             if (resources == null) return;
 
@@ -74,7 +74,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Safely dispose all items in a collection and clear it
         /// </summary>
-        public static void SafeDisposeClear<T>(ICollection<T> collection, Action<string, Exception> logger = null)
+        public static void SafeDisposeClear<T>(ICollection<T> collection, Action<string, Exception?>? logger = null)
             where T : IDisposable
         {
             if (collection == null) return;
@@ -93,7 +93,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Safely wait for and dispose a thread
         /// </summary>
-        public static bool SafeJoinThread(Thread thread, TimeSpan timeout, Action<string, Exception> logger = null)
+        public static bool SafeJoinThread(Thread thread, TimeSpan timeout, Action<string, Exception?>? logger = null)
         {
             if (thread == null || !thread.IsAlive) return true;
 
@@ -116,7 +116,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Safely cancel and wait for a cancellation token source
         /// </summary>
-        public static void SafeCancelAndDispose(CancellationTokenSource cts, Action<string, Exception> logger = null)
+        public static void SafeCancelAndDispose(CancellationTokenSource? cts, Action<string, Exception?>? logger = null)
         {
             if (cts == null) return;
 
@@ -136,7 +136,7 @@ namespace LibreMetaverse
         /// Safely wait for a <see cref="Task"/> to complete with a timeout and observe exceptions.
         /// Returns true if the task completed within the timeout, false otherwise.
         /// </summary>
-        public static bool SafeWaitTask(Task task, TimeSpan timeout, Action<string, Exception> logger = null)
+        public static bool SafeWaitTask(Task task, TimeSpan timeout, Action<string, Exception?>? logger = null)
         {
             if (task == null) return true;
 
@@ -172,7 +172,7 @@ namespace LibreMetaverse
         /// Async-friendly variant that awaits a <see cref="Task"/> with a timeout and observes exceptions.
         /// Returns true if the task completed within the timeout, false otherwise.
         /// </summary>
-        public static async Task<bool> SafeWaitTaskAsync(Task task, TimeSpan timeout, Action<string, Exception> logger = null)
+        public static async Task<bool> SafeWaitTaskAsync(Task task, TimeSpan timeout, Action<string, Exception?>? logger = null)
         {
             if (task == null) return true;
 
@@ -251,7 +251,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Execute an action safely catching any exceptions and reporting via logger.
         /// </summary>
-        public static void SafeAction(Action action, string actionName = null, Action<string, Exception> logger = null)
+        public static void SafeAction(Action action, string? actionName = null, Action<string, Exception?>? logger = null)
         {
             if (action == null) return;
 

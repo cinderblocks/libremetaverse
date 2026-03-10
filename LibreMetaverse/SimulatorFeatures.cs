@@ -59,7 +59,7 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="feature"></param>
         /// <returns>Returns value of the specified Simulator Feature, null of not found.</returns>
-        public OSD Get(string feature)
+        public OSD? Get(string feature)
         {
             return _featureMap.TryGetValue(feature, out var value) ? value : null;
         }
@@ -71,19 +71,19 @@ namespace LibreMetaverse
         /// <param name="responseData"></param>
         /// <param name="error"></param>
         /// <exception cref="ArgumentException">OSD type is not a map</exception>
-        public void SetFeatures(HttpResponseMessage response, byte[] responseData, Exception error)
+        public void SetFeatures(HttpResponseMessage? response, byte[]? responseData, Exception? error)
         {
             if (error != null)
             {
                 Logger.Warn($"Failed to retrieve simulator features. Error: {error.Message}", _simulator.Client);
                 return;
             }
-
-            if (!response.IsSuccessStatusCode)
+            if (response == null || !response.IsSuccessStatusCode)
             {
-                Logger.Warn($"Failed to retrieve simulator features. Status: {response.StatusCode} {response.ReasonPhrase}", _simulator.Client);
+                Logger.Warn($"Failed to retrieve simulator features. Status: {(response == null ? "no response" : response.StatusCode.ToString())}", _simulator.Client);
                 return;
             }
+            if (responseData == null) return;
             OSD features = OSDParser.Deserialize(responseData);
             
             if (features.Type != OSDType.Map)

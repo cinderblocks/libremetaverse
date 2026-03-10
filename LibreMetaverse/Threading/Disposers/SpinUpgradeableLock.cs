@@ -34,7 +34,7 @@ namespace LibreMetaverse.Threading.Disposers
 	public struct SpinUpgradeableLock:
 		IUpgradeableLock
 	{
-		private SpinReaderWriterLock _lock;
+		private SpinReaderWriterLock? _lock;
 		private bool _upgraded;
 
 		internal SpinUpgradeableLock(SpinReaderWriterLock yieldLock)

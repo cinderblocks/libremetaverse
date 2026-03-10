@@ -156,10 +156,11 @@ namespace OpenMetaverse
 
         public async Task RetrieveInstantMessages(CancellationToken cancellationToken = default)
         {
-            Uri offlineMsgsCap = Client.Network.CurrentSim.Caps?.CapabilityURI("ReadOfflineMsgs");
+            var sim = Client.Network.CurrentSim;
+            Uri? offlineMsgsCap = sim?.Caps?.CapabilityURI("ReadOfflineMsgs");
             if (offlineMsgsCap == null 
-                || Client.Network.CurrentSim.Caps.CapabilityURI("AcceptFriendship") == null
-                || Client.Network.CurrentSim.Caps.CapabilityURI("AcceptGroupInvite") == null)
+                || sim?.Caps?.CapabilityURI("AcceptFriendship") == null
+                || sim?.Caps?.CapabilityURI("AcceptGroupInvite") == null)
             {
                 RetrieveInstantMessagesLegacy();
                 return;
@@ -389,7 +390,7 @@ namespace OpenMetaverse
                 throw new Exception("ChatSessionRequest capability is not currently available");
             }
 
-            Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("ChatSessionRequest");
+                Uri? cap = Client.Network.CurrentSim.Caps.CapabilityURI("ChatSessionRequest");
             if (cap != null)
             {
                 ChatSessionAcceptInvitation acceptInvite = new ChatSessionAcceptInvitation {SessionID = session_id};
@@ -408,7 +409,7 @@ namespace OpenMetaverse
                 throw new Exception("ChatSessionRequest capability is not currently available");
             }
 
-            Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("ChatSessionRequest");
+                Uri? cap = Client.Network.CurrentSim.Caps.CapabilityURI("ChatSessionRequest");
             if (cap != null)
             {
                 ChatSessionRequestStartConference startConference = new ChatSessionRequestStartConference

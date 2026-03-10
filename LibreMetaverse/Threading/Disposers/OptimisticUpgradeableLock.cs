@@ -34,7 +34,7 @@ namespace LibreMetaverse.Threading.Disposers
 	public struct OptimisticUpgradeableLock:
 		IUpgradeableLock
 	{
-		private OptimisticReaderWriterLock _lock;
+		private OptimisticReaderWriterLock? _lock;
 		private bool _upgraded;
 
 		internal OptimisticUpgradeableLock(OptimisticReaderWriterLock yieldLock)

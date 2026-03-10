@@ -114,7 +114,7 @@ namespace OpenMetaverse.Rendering
             return !(value1 == value2);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return (obj is Vertex vertex) && this == vertex;
         }
@@ -213,14 +213,16 @@ namespace OpenMetaverse.Rendering
 
     public class Mesh
     {
-        public Primitive Prim;
+        // Initialize reference-type members to non-null defaults to satisfy nullable analysis
+        public Primitive Prim = new Primitive();
         public Path Path;
         public Profile Profile;
 
         public override string ToString()
         {
-            return !string.IsNullOrEmpty(Prim.Properties?.Name) 
-                ? Prim.Properties.Name 
+            var name = Prim.Properties?.Name;
+            return !string.IsNullOrEmpty(name)
+                ? name!
                 : $"{Prim.LocalID} ({Prim.PrimData})";
         }
     }
@@ -231,7 +233,7 @@ namespace OpenMetaverse.Rendering
     public class FacetedMesh : Mesh
     {
         /// <summary>List of primitive faces</summary>
-        public List<Face> Faces;
+        public List<Face> Faces = new List<Face>();
 
         /// <summary>
         /// Decodes mesh asset into FacetedMesh
@@ -241,7 +243,7 @@ namespace OpenMetaverse.Rendering
         /// <param name="LOD">Level of detail</param>
         /// <param name="mesh">Resulting decoded FacetedMesh</param>
         /// <returns>True if mesh asset decoding was successful</returns>
-        public static bool TryDecodeFromAsset(Primitive prim, AssetMesh meshAsset, DetailLevel LOD, out FacetedMesh mesh)
+        public static bool TryDecodeFromAsset(Primitive prim, AssetMesh meshAsset, DetailLevel LOD, out FacetedMesh? mesh)
         {
             mesh = null;
 
@@ -258,15 +260,11 @@ namespace OpenMetaverse.Rendering
                 {
                     Faces = new List<Face>(),
                     Prim = prim,
-                    Profile =
-                    {
-                        Faces = new List<ProfileFace>(),
-                        Positions = new List<Vector3>()
-                    },
-                    Path = {Points = new List<PathPoint>()}
+                    Profile = new Profile { Faces = new List<ProfileFace>(), Positions = new List<Vector3>() },
+                    Path = new Path { Points = new List<PathPoint>() }
                 };
                 
-                OSD facesOSD = null;
+                OSD? facesOSD = null;
 
                 switch (LOD)
                 {
@@ -311,17 +309,17 @@ namespace OpenMetaverse.Rendering
                             ID = faceNr,
                             Vertices = new List<Vertex>(),
                             Indices = new List<ushort>(),
-                            TextureFace = prim.Textures.GetFace((uint) faceNr)
+                            TextureFace = prim.Textures != null ? prim.Textures.GetFace((uint)faceNr) : new Primitive.TextureEntryFace(null)
                         };
 
                         Vector3 posMax;
                         Vector3 posMin;
 
                         // If PositionDomain is not specified, the default is from -0.5 to 0.5
-                        if (subMeshMap.ContainsKey("PositionDomain"))
+                        if (subMeshMap.TryGetValue("PositionDomain", out var positionDomainObj) && positionDomainObj is OSDMap positionDomain)
                         {
-                            posMax = ((OSDMap)subMeshMap["PositionDomain"])["Max"];
-                            posMin = ((OSDMap)subMeshMap["PositionDomain"])["Min"];
+                            posMax = (Vector3)positionDomain["Max"];
+                            posMin = (Vector3)positionDomain["Min"];
                         }
                         else
                         {
@@ -333,7 +331,7 @@ namespace OpenMetaverse.Rendering
                         byte[] posBytes = subMeshMap["Position"];
 
                         // Normals
-                        byte[] norBytes = null;
+                        byte[]? norBytes = null;
                         if (subMeshMap.TryGetValue("Normal", out var normal))
                         {
                             norBytes = normal;
@@ -342,7 +340,7 @@ namespace OpenMetaverse.Rendering
                         // UV texture map
                         Vector2 texPosMax = Vector2.Zero;
                         Vector2 texPosMin = Vector2.Zero;
-                        byte[] texBytes = null;
+                        byte[]? texBytes = null;
                         if (subMeshMap.TryGetValue("TexCoord0", out var texCoord0))
                         {
                             texBytes = texCoord0;
@@ -421,8 +419,8 @@ namespace OpenMetaverse.Rendering
 
     public class SimpleMesh : Mesh
     {
-        public List<Vertex> Vertices;
-        public List<ushort> Indices;
+        public List<Vertex> Vertices = new List<Vertex>();
+        public List<ushort> Indices = new List<ushort>();
 
         public SimpleMesh()
         {
@@ -498,9 +496,11 @@ namespace OpenMetaverse.Rendering
                 {
                     if (type.GetInterface("IRendering") != null)
                     {
-                        if (type.GetCustomAttributes(typeof(RendererNameAttribute), false).Length == 1)
+                            if (type.GetCustomAttributes(typeof(RendererNameAttribute), false).Length == 1)
                         {
-                            return (IRendering)Activator.CreateInstance(type);
+                            var inst = Activator.CreateInstance(type) as IRendering;
+                            if (inst != null) return inst;
+                            throw new RenderingException("Failed to instantiate rendering plugin");
                         }
                         else
                         {

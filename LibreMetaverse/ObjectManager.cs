@@ -172,14 +172,14 @@ namespace OpenMetaverse
 
         #region ObjectAnimation event
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<ObjectAnimationEventArgs> m_ObjectAnimation;
+        private EventHandler<ObjectAnimationEventArgs>? m_ObjectAnimation;
 
         ///<summary>Raises the ObjectAnimation Event</summary>
         /// <param name="e">An ObjectAnimationEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnObjectAnimation(ObjectAnimationEventArgs e)
         {
-            EventHandler<ObjectAnimationEventArgs> handler = m_ObjectAnimation;
+            EventHandler<ObjectAnimationEventArgs>? handler = m_ObjectAnimation;
             handler?.Invoke(this, e);
         }
 
@@ -197,7 +197,7 @@ namespace OpenMetaverse
 
         #region ObjectUpdate event
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<PrimEventArgs> m_ObjectUpdate;
+        private EventHandler<PrimEventArgs>? m_ObjectUpdate;
 
         /// <summary>Thread sync lock object</summary>
         private readonly object m_ObjectUpdateLock = new object();
@@ -215,14 +215,14 @@ namespace OpenMetaverse
 
         #region ObjectProperties event
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<ObjectPropertiesEventArgs> m_ObjectProperties;
+        private EventHandler<ObjectPropertiesEventArgs>? m_ObjectProperties;
 
         ///<summary>Raises the ObjectProperties Event</summary>
         /// <param name="e">A ObjectPropertiesEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnObjectProperties(ObjectPropertiesEventArgs e)
         {
-            EventHandler<ObjectPropertiesEventArgs> handler = m_ObjectProperties;
+            EventHandler<ObjectPropertiesEventArgs>? handler = m_ObjectProperties;
             handler?.Invoke(this, e);
         }
 
@@ -240,14 +240,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<ObjectPropertiesUpdatedEventArgs> m_ObjectPropertiesUpdated;
+        private EventHandler<ObjectPropertiesUpdatedEventArgs>? m_ObjectPropertiesUpdated;
 
         ///<summary>Raises the ObjectPropertiesUpdated Event</summary>
         /// <param name="e">A ObjectPropertiesUpdatedEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnObjectPropertiesUpdated(ObjectPropertiesUpdatedEventArgs e)
         {
-            EventHandler<ObjectPropertiesUpdatedEventArgs> handler = m_ObjectPropertiesUpdated;
+            EventHandler<ObjectPropertiesUpdatedEventArgs>? handler = m_ObjectPropertiesUpdated;
             handler?.Invoke(this, e);
         }
 
@@ -265,14 +265,14 @@ namespace OpenMetaverse
 
         #region ObjectPropertiesFamily event
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<ObjectPropertiesFamilyEventArgs> m_ObjectPropertiesFamily;
+        private EventHandler<ObjectPropertiesFamilyEventArgs>? m_ObjectPropertiesFamily;
 
         ///<summary>Raises the ObjectPropertiesFamily Event</summary>
         /// <param name="e">A ObjectPropertiesFamilyEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnObjectPropertiesFamily(ObjectPropertiesFamilyEventArgs e)
         {
-            EventHandler<ObjectPropertiesFamilyEventArgs> handler = m_ObjectPropertiesFamily;
+            EventHandler<ObjectPropertiesFamilyEventArgs>? handler = m_ObjectPropertiesFamily;
             handler?.Invoke(this, e);
         }
 
@@ -291,15 +291,15 @@ namespace OpenMetaverse
 
         #region AvatarUpdate event
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<AvatarUpdateEventArgs> m_AvatarUpdate;
-        private EventHandler<ParticleUpdateEventArgs> m_ParticleUpdate;
+        private EventHandler<AvatarUpdateEventArgs>? m_AvatarUpdate;
+        private EventHandler<ParticleUpdateEventArgs>? m_ParticleUpdate;
 
         ///<summary>Raises the AvatarUpdate Event</summary>
         /// <param name="e">A AvatarUpdateEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnAvatarUpdate(AvatarUpdateEventArgs e)
         {
-            EventHandler<AvatarUpdateEventArgs> handler = m_AvatarUpdate;
+            EventHandler<AvatarUpdateEventArgs>? handler = m_AvatarUpdate;
             handler?.Invoke(this, e);
         }
         /// <summary>
@@ -308,7 +308,7 @@ namespace OpenMetaverse
         /// <param name="e">A ParticleUpdateEventArgs object containing 
         /// the data sent from the simulator</param>
         protected virtual void OnParticleUpdate(ParticleUpdateEventArgs e) {
-            EventHandler<ParticleUpdateEventArgs> handler = m_ParticleUpdate;
+            EventHandler<ParticleUpdateEventArgs>? handler = m_ParticleUpdate;
             handler?.Invoke(this, e);
         }
 
@@ -333,7 +333,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<TerseObjectUpdateEventArgs> m_TerseObjectUpdate;
+        private EventHandler<TerseObjectUpdateEventArgs>? m_TerseObjectUpdate;
 
         /// <summary>Thread sync lock object</summary>
         private readonly object m_TerseObjectUpdateLock = new object();
@@ -349,14 +349,14 @@ namespace OpenMetaverse
 
         #region ObjectDataBlockUpdate event
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<ObjectDataBlockUpdateEventArgs> m_ObjectDataBlockUpdate;
+        private EventHandler<ObjectDataBlockUpdateEventArgs>? m_ObjectDataBlockUpdate;
 
         ///<summary>Raises the ObjectDataBlockUpdate Event</summary>
         /// <param name="e">A ObjectDataBlockUpdateEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnObjectDataBlockUpdate(ObjectDataBlockUpdateEventArgs e)
         {
-            EventHandler<ObjectDataBlockUpdateEventArgs> handler = m_ObjectDataBlockUpdate;
+            EventHandler<ObjectDataBlockUpdateEventArgs>? handler = m_ObjectDataBlockUpdate;
             handler?.Invoke(this, e);
         }
 
@@ -374,14 +374,14 @@ namespace OpenMetaverse
 
         #region KillObject event
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<KillObjectEventArgs> m_KillObject;
+        private EventHandler<KillObjectEventArgs>? m_KillObject;
 
         ///<summary>Raises the KillObject Event</summary>
         /// <param name="e">A KillObjectEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnKillObject(KillObjectEventArgs e)
         {
-            EventHandler<KillObjectEventArgs> handler = m_KillObject;
+            EventHandler<KillObjectEventArgs>? handler = m_KillObject;
             handler?.Invoke(this, e);
         }
 
@@ -399,14 +399,14 @@ namespace OpenMetaverse
 
         #region KillObjects event
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<KillObjectsEventArgs> m_KillObjects;
+        private EventHandler<KillObjectsEventArgs>? m_KillObjects;
 
         ///<summary>Raises the KillObjects Event</summary>
         /// <param name="e">A KillObjectsEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnKillObjects(KillObjectsEventArgs e)
         {
-            EventHandler<KillObjectsEventArgs> handler = m_KillObjects;
+            EventHandler<KillObjectsEventArgs>? handler = m_KillObjects;
             handler?.Invoke(this, e);
         }
 
@@ -424,14 +424,14 @@ namespace OpenMetaverse
 
         #region AvatarSitChanged event
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<AvatarSitChangedEventArgs> m_AvatarSitChanged;
+        private EventHandler<AvatarSitChangedEventArgs>? m_AvatarSitChanged;
 
         ///<summary>Raises the AvatarSitChanged Event</summary>
         /// <param name="e">A AvatarSitChangedEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnAvatarSitChanged(AvatarSitChangedEventArgs e)
         {
-            EventHandler<AvatarSitChangedEventArgs> handler = m_AvatarSitChanged;
+            EventHandler<AvatarSitChangedEventArgs>? handler = m_AvatarSitChanged;
             handler?.Invoke(this, e);
         }
 
@@ -449,14 +449,14 @@ namespace OpenMetaverse
 
         #region PayPriceReply event
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<PayPriceReplyEventArgs> m_PayPriceReply;
+        private EventHandler<PayPriceReplyEventArgs>? m_PayPriceReply;
 
         ///<summary>Raises the PayPriceReply Event</summary>
         /// <param name="e">A PayPriceReplyEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnPayPriceReply(PayPriceReplyEventArgs e)
         {
-            EventHandler<PayPriceReplyEventArgs> handler = m_PayPriceReply;
+            EventHandler<PayPriceReplyEventArgs>? handler = m_PayPriceReply;
             handler?.Invoke(this, e);
         }
 
@@ -478,18 +478,18 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="success">Indicates if the operation was successful</param>
         /// <param name="version">Object media version string</param>
-        /// <param name="faceMedia">Array indexed on prim face of media entry data</param>
-        public delegate void ObjectMediaCallback(bool success, string version, MediaEntry[] faceMedia);
+        /// <param name="faceMedia">Array indexed on prim face of media entry data (nullable on failure)</param>
+        public delegate void ObjectMediaCallback(bool success, string version, MediaEntry[]? faceMedia);
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<PhysicsPropertiesEventArgs> m_PhysicsProperties;
+        private EventHandler<PhysicsPropertiesEventArgs>? m_PhysicsProperties;
 
         ///<summary>Raises the PhysicsProperties Event</summary>
         /// <param name="e">A PhysicsPropertiesEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnPhysicsProperties(PhysicsPropertiesEventArgs e)
         {
-            EventHandler<PhysicsPropertiesEventArgs> handler = m_PhysicsProperties;
+            EventHandler<PhysicsPropertiesEventArgs>? handler = m_PhysicsProperties;
             handler?.Invoke(this, e);
         }
 
@@ -512,7 +512,7 @@ namespace OpenMetaverse
         /// <summary>Reference to the GridClient object</summary>
         protected GridClient Client;
 
-        private InterpolationService _interpolationService;
+        private InterpolationService? _interpolationService;
 
         #region Multi-Simulator Object Tracking
 
@@ -2139,8 +2139,8 @@ namespace OpenMetaverse
         /// <param name="sim">Simulator in which prim is located</param>
         public void NavigateObjectMedia(UUID primID, int face, string newURL, Simulator sim, CancellationToken cancellationToken = default)
         {
-            Uri cap;
-            if ((cap = Client.Network.CurrentSim.Caps?.CapabilityURI("ObjectMediaNavigate")) == null)
+            Uri? cap = sim?.Caps?.CapabilityURI("ObjectMediaNavigate");
+            if (cap == null)
             {
                 Logger.Error("ObjectMediaNavigate capability not available", Client);
                 return;
@@ -2174,8 +2174,8 @@ namespace OpenMetaverse
         /// <param name="sim">Simulator in which prim is located</param>
         public void UpdateObjectMedia(UUID primID, MediaEntry[] faceMedia, Simulator sim, CancellationToken cancellationToken = default)
         {
-            Uri cap;
-            if (sim.Caps == null || (cap = Client.Network.CurrentSim.Caps.CapabilityURI("ObjectMedia")) == null)
+            Uri? cap = sim?.Caps?.CapabilityURI("ObjectMedia");
+            if (cap == null)
             {
                 Logger.Error("ObjectMedia capability not available", Client);
                 return;
@@ -2203,10 +2203,10 @@ namespace OpenMetaverse
         /// <param name="primID">UUID of the primitive</param>
         /// <param name="sim">Simulator where prim is located</param>
         /// <param name="callback">Call this callback when done</param>
-        public void RequestObjectMedia(UUID primID, Simulator sim, ObjectMediaCallback callback, CancellationToken cancellationToken = default)
+        public void RequestObjectMedia(UUID primID, Simulator sim, ObjectMediaCallback? callback, CancellationToken cancellationToken = default)
         {
-            Uri cap;
-            if (sim.Caps != null && (cap = Client.Network.CurrentSim.Caps.CapabilityURI("ObjectMedia")) != null)
+            Uri? cap = sim?.Caps?.CapabilityURI("ObjectMedia");
+            if (cap != null)
             {
                 ObjectMediaRequest payload = new ObjectMediaRequest {PrimID = primID, Verb = "GET"};
 
@@ -2216,61 +2216,107 @@ namespace OpenMetaverse
                         // If cancelled, invoke callback with failure and ignore response
                         if (cancellationToken.IsCancellationRequested)
                         {
-                            try { callback(false, string.Empty, null); } catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                            if (callback != null)
+                            {
+                                try { callback(false, string.Empty, null); } catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                            }
                             return;
                         }
-                         if (error != null)
-                         {
-                             Logger.Error("Failed retrieving ObjectMedia data", error, Client);
-                             try { callback(false, string.Empty, null); }
-                             catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                             return;
-                         }
+                        if (error != null)
+                        {
+                            Logger.Error("Failed retrieving ObjectMedia data", error, Client);
+                            if (callback != null)
+                            {
+                                try { callback(false, string.Empty, new MediaEntry[0]); }
+                                catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                            }
+                            return;
+                        }
 
                          ObjectMediaMessage msg = new ObjectMediaMessage();
-                         OSD result = OSDParser.Deserialize(data);
-                         msg.Deserialize((OSDMap)result);
+                          if (data == null || data.Length == 0)
+                          {
+                              Logger.Error("Failed retrieving ObjectMedia; response empty.", Client);
+                              if (callback != null)
+                              {
+                                  try { callback(false, string.Empty, null); } catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                              }
+                              return;
+                          }
 
-                         if (msg.Request is ObjectMediaResponse response)
-                         {
-                             if (Client.Settings.OBJECT_TRACKING)
-                             {
-                                 var kvp = sim.ObjectsPrimitives.FirstOrDefault(
+                         OSD result = OSDParser.Deserialize(data);
+                         var map = result as OSDMap;
+                          if (map == null)
+                          {
+                              Logger.Error("Failed retrieving ObjectMedia; unexpected payload.", Client);
+                              if (callback != null)
+                              {
+                                  try { callback(false, string.Empty, null); } catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                              }
+                              return;
+                          }
+
+                         msg.Deserialize(map);
+
+                        if (msg.Request is ObjectMediaResponse response)
+                        {
+                            // Capture sim into a local to satisfy the nullable analyzer
+                            var simulator = sim;
+                            if (simulator == null)
+                            {
+                                if (callback != null)
+                                {
+                                    try { callback(false, string.Empty, null); } catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                                }
+                                return;
+                            }
+
+                            if (Client.Settings.OBJECT_TRACKING)
+                            {
+                                 var kvp = simulator.ObjectsPrimitives.FirstOrDefault(
                                      p => p.Value.ID == primID);
-                                 if (kvp.Value != null)
+                                 if (kvp.Key != 0)
                                  {
-                                     Primitive prim = kvp.Value;
-                                     if (prim != null)
-                                     {
+                                      Primitive? prim = kvp.Value;
+                                      if (prim is not null)
+                                      {
                                          prim.MediaVersion = response.Version;
                                          prim.FaceMedia = response.FaceMedia;
+                                         simulator.ObjectsPrimitives.TryUpdate(kvp.Key, prim, kvp.Value);
                                      }
-
-                                     sim.ObjectsPrimitives.TryUpdate(kvp.Key, prim, kvp.Value);
                                  }
-                             }
+                            }
 
-                             try { callback(true, response.Version, response.FaceMedia); }
-                             catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                         }
-                         else
-                         {
-                             try { callback(false, string.Empty, null); }
-                             catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                         }
+                            if (callback != null)
+                            {
+                                try { callback(true, response.Version, response.FaceMedia); }
+                                catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                            }
+                        }
+                        else
+                        {
+                            if (callback != null)
+                            {
+                                try { callback(false, string.Empty, null); }
+                                catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                            }
+                        }
                      });
             }
             else
             {
                 Logger.Error("ObjectMedia capability not available", Client);
-                try { callback(false, string.Empty, null); }
-                catch (Exception ex) { Logger.Error("RequestObjectMedia callback failed", ex, Client); }
+                if (callback != null)
+                {
+                    try { callback(false, string.Empty, null); }
+                    catch (Exception ex) { Logger.Error("RequestObjectMedia callback failed", ex, Client); }
+                }
             }
         }
 
         public async Task<IEnumerable<LegacyMaterial>> RequestMaterials(Simulator sim, CancellationToken cancellationToken = default)
         {
-            if (sim == null) { return null; }
+            if (sim == null) { return new List<LegacyMaterial>(); }
 
             if (sim.Caps == null)
             {
@@ -2280,17 +2326,23 @@ namespace OpenMetaverse
                 }
                 catch (OperationCanceledException)
                 {
-                    return null;
+                    return new List<LegacyMaterial>();
                 }
             }
 
             if (sim.Caps == null)
             {
                 Logger.Info("Caps are down, unable to retrieve materials.", Client);
-                return null;
+                return new List<LegacyMaterial>();
             }
 
             var uri = sim.Caps.CapabilityURI("RenderMaterials");
+
+            if (uri == null)
+            {
+                Logger.Info("RenderMaterials capability unavailable.", Client);
+                return new List<LegacyMaterial>();
+            }
 
             List<LegacyMaterial> matsToReturn = new List<LegacyMaterial>();
 
@@ -2315,23 +2367,29 @@ namespace OpenMetaverse
                        try
                        {
                            OSD result = OSDParser.Deserialize(data);
-                           RenderMaterialsMessage info = new RenderMaterialsMessage();
-                           info.Deserialize(result as OSDMap);
+                            RenderMaterialsMessage info = new RenderMaterialsMessage();
+                            var map = result as OSDMap;
+                            if (map == null)
+                            {
+                                Logger.Info("RenderMaterials returned unexpected payload", Client);
+                                return;
+                            }
+                            info.Deserialize(map);
 
-                           if (info.MaterialData is OSDArray mats)
-                           {
-                               foreach (var entry in mats)
-                               {
-                                   if (entry is OSDMap map)
-                                   {
-                                       matsToReturn.Add(new LegacyMaterial(map));
-                                   }
-                                   else
-                                   {
-                                       Logger.Info("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(entry, true), Client);
-                                   }
-                               }
-                           }
+                            if (info.MaterialData is OSDArray mats)
+                            {
+                                foreach (var entry in mats)
+                                {
+                                    if (entry is OSDMap entryMap)
+                                    {
+                                        matsToReturn.Add(new LegacyMaterial(entryMap));
+                                    }
+                                    else
+                                    {
+                                        Logger.Info("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(entry, true), Client);
+                                    }
+                                }
+                            }
                            else
                            {
                                Logger.Info("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(result, true), Client);
@@ -2355,7 +2413,7 @@ namespace OpenMetaverse
 
         public async Task<IEnumerable<LegacyMaterial>> RequestMaterials(Simulator sim, IEnumerable<UUID> materials, CancellationToken cancellationToken = default)
         {
-            if (sim == null) { return null; }
+            if (sim == null) { return new List<LegacyMaterial>(); }
 
             if (sim.Caps == null)
             {
@@ -2365,14 +2423,14 @@ namespace OpenMetaverse
                 }
                 catch (OperationCanceledException)
                 {
-                    return null;
+                    return new List<LegacyMaterial>();
                 }
             }
 
             if (sim.Caps == null)
             {
                 Logger.Info("Caps are down, unable to retrieve materials.", Client);
-                return null;
+                return new List<LegacyMaterial>();
             }
 
             var array = new OSDArray();
@@ -2388,6 +2446,12 @@ namespace OpenMetaverse
             });
 
             var uri = sim.Caps.CapabilityURI("RenderMaterials");
+
+            if (uri == null)
+            {
+                Logger.Info("RenderMaterials capability unavailable.", Client);
+                return new List<LegacyMaterial>();
+            }
 
             List<LegacyMaterial> matsToReturn = new List<LegacyMaterial>();
 
@@ -2415,22 +2479,28 @@ namespace OpenMetaverse
                            try
                            {
                                OSD result = OSDParser.Deserialize(data);
-                               RenderMaterialsMessage info = new RenderMaterialsMessage();
-                               info.Deserialize(result as OSDMap);
+                                RenderMaterialsMessage info = new RenderMaterialsMessage();
+                                var map = result as OSDMap;
+                                if (map == null)
+                                {
+                                    Logger.Info("RenderMaterials returned unexpected payload", Client);
+                                    return;
+                                }
+                                info.Deserialize(map);
 
                                if (info.MaterialData is OSDArray mats)
                                {
-                                   foreach (var entry in mats)
-                                   {
-                                       if (entry is OSDMap map)
-                                       {
-                                           matsToReturn.Add(new LegacyMaterial(map));
-                                       }
-                                       else
-                                       {
-                                           Logger.Info("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(entry, true), Client);
-                                       }
-                                   }
+                                foreach (var entry in mats)
+                                    {
+                                        if (entry is OSDMap entryMap)
+                                        {
+                                            matsToReturn.Add(new LegacyMaterial(entryMap));
+                                        }
+                                        else
+                                        {
+                                            Logger.Info("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(entry, true), Client);
+                                        }
+                                    }
                                }
                                else
                                {
@@ -2689,16 +2759,22 @@ namespace OpenMetaverse
         {
             if (Client.Settings.OBJECT_TRACKING)
             {
-                if (simulator.ObjectsPrimitives.TryGetValue(localID, out var prim))
+                if (simulator.ObjectsPrimitives.TryGetValue(localID, out Primitive? prim))
                 {
                     return prim;
                 }
 
-                if (!createIfMissing) {return null;}
+                if (!createIfMissing) { return null!; }
                 
                 if (Client.Settings.CACHE_PRIMITIVES)
                 {
-                    prim = simulator.DataPool.MakePrimitive(localID);
+                    prim = simulator.DataPool != null
+                        ? simulator.DataPool.MakePrimitive(localID)
+                        : new Primitive
+                        {
+                            LocalID = localID,
+                            RegionHandle = simulator.Handle
+                        };
                 }
                 else
                 {

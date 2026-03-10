@@ -41,11 +41,11 @@ namespace OpenMetaverse
     {
         private sealed class PacketCallback
         {
-            public readonly EventHandler<PacketReceivedEventArgs> Callback;
+            public readonly EventHandler<PacketReceivedEventArgs>? Callback;
             public readonly bool IsAsync;
             public readonly EventHandler<PacketReceivedEventArgs>[] InvocationList;
 
-            public PacketCallback(EventHandler<PacketReceivedEventArgs> callback, bool isAsync)
+            public PacketCallback(EventHandler<PacketReceivedEventArgs>? callback, bool isAsync)
             {
                 Callback = callback;
                 IsAsync = isAsync;
@@ -144,8 +144,8 @@ namespace OpenMetaverse
             var eventArgs = new PacketReceivedEventArgs(packet, simulator);
 
             // Use cached invocation arrays to avoid temporary list allocations
-            EventHandler<PacketReceivedEventArgs>[] defaultAsync = null;
-            EventHandler<PacketReceivedEventArgs>[] specificAsync = null;
+            EventHandler<PacketReceivedEventArgs>[]? defaultAsync = null;
+            EventHandler<PacketReceivedEventArgs>[]? specificAsync = null;
 
             // Default handler first, if one exists
             if (_EventTable.TryGetValue(PacketType.Default, out var callback) && callback.Callback != null)
@@ -201,13 +201,13 @@ namespace OpenMetaverse
         private sealed class AsyncInvokeState
         {
             public readonly PacketEventDictionary Owner;
-            public readonly EventHandler<PacketReceivedEventArgs>[] DefaultHandlers;
-            public readonly EventHandler<PacketReceivedEventArgs>[] SpecificHandlers;
+            public readonly EventHandler<PacketReceivedEventArgs>[]? DefaultHandlers;
+            public readonly EventHandler<PacketReceivedEventArgs>[]? SpecificHandlers;
             public readonly PacketReceivedEventArgs EventArgs;
 
             public AsyncInvokeState(PacketEventDictionary owner,
-                                    EventHandler<PacketReceivedEventArgs>[] defaultHandlers,
-                                    EventHandler<PacketReceivedEventArgs>[] specificHandlers,
+                                    EventHandler<PacketReceivedEventArgs>[]? defaultHandlers,
+                                    EventHandler<PacketReceivedEventArgs>[]? specificHandlers,
                                     PacketReceivedEventArgs eventArgs)
             {
                 Owner = owner;
@@ -220,7 +220,9 @@ namespace OpenMetaverse
         // Cached WaitCallback to avoid per-call delegate allocations
         private static readonly WaitCallback s_asyncInvoker = stateObj =>
         {
-            var s = (AsyncInvokeState)stateObj;
+            var s = stateObj as AsyncInvokeState;
+            if (s == null) return;
+
             var owner = s.Owner;
             var da = s.DefaultHandlers;
             var sa = s.SpecificHandlers;

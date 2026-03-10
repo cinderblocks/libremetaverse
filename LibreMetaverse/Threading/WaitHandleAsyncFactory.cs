@@ -100,25 +100,25 @@ namespace LibreMetaverse.Threading
 
         private static async Task<bool> DoFromWaitHandle(WaitHandle handle, TimeSpan timeout, CancellationToken token)
         {
-            var tcs = new TaskCompletionSource<bool>();
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             using (new ThreadPoolRegistration(handle, timeout, tcs))
-            using (token.Register(state => ((TaskCompletionSource<bool>)state).TrySetCanceled(),
+            using (token.Register(state => ((TaskCompletionSource<bool>)state!).TrySetCanceled(),
                        tcs, useSynchronizationContext: false))
                 return await tcs.Task.ConfigureAwait(false);
         }
 
         private sealed class ThreadPoolRegistration : IDisposable
         {
-            private readonly RegisteredWaitHandle _registeredWaitHandle;
+            private readonly RegisteredWaitHandle? _registeredWaitHandle;
 
             public ThreadPoolRegistration(WaitHandle handle, TimeSpan timeout, TaskCompletionSource<bool> tcs)
             {
                 _registeredWaitHandle = ThreadPool.RegisterWaitForSingleObject(handle,
-                    (state, timedOut) => ((TaskCompletionSource<bool>)state).TrySetResult(!timedOut), tcs,
+                    (state, timedOut) => ((TaskCompletionSource<bool>)state!).TrySetResult(!timedOut), tcs,
                     timeout, executeOnlyOnce: true);
             }
 
-            void IDisposable.Dispose() => _registeredWaitHandle.Unregister(null);
+            void IDisposable.Dispose() => _registeredWaitHandle?.Unregister(null!);
         }
     }
 }

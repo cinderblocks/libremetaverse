@@ -26,6 +26,7 @@
  */
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,6 +42,7 @@ namespace OpenMetaverse
     /// <typeparam name="TKey">Key <see langword="Tkey"/></typeparam>
     /// <typeparam name="TValue">Value <see langword="TValue"/></typeparam>
     public class LockingDictionary<TKey, TValue> : IDictionary<TKey, TValue>
+        where TKey : notnull
     {
         /// <summary>
         /// Internal dictionary that this class wraps around. Do not
@@ -69,9 +71,14 @@ namespace OpenMetaverse
 
         public bool Contains(KeyValuePair<TKey, TValue> item)
         {
-            TValue v;
             lock (Dictionary)
-                return (Dictionary.TryGetValue(item.Key, out v) && v.Equals(item.Key));
+            {
+                if (Dictionary.TryGetValue(item.Key, out var v))
+                {
+                    return EqualityComparer<TValue>.Default.Equals(v, item.Value);
+                }
+                return false;
+            }
         }
 
         public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
@@ -170,7 +177,7 @@ namespace OpenMetaverse
         /// <param name="key">Key to use for lookup</param>
         /// <param name="value">Value returned</param>
         /// <returns><see langword="true"/> if specified key exists,  <see langword="false"/> if not found</returns>
-        public bool TryGetValue(TKey key, out TValue value)
+        public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
         {
             lock (Dictionary)
             {
@@ -201,7 +208,7 @@ namespace OpenMetaverse
                     return value;
                 }
             }
-            return default(TValue);
+            return default!;
         }
         
         /// <summary>Find All items in <see cref="LockingDictionary{TKey,TValue}"/></summary>
@@ -380,7 +387,7 @@ namespace OpenMetaverse
             {
                 lock (Dictionary)
                 {
-                    return Dictionary[(TKey) key];
+                    return Dictionary[(TKey) key]!;
                 }
             }
             set

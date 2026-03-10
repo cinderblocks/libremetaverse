@@ -26,10 +26,13 @@
  */
 
 using System;
+#nullable enable
 using System.Collections.Generic;
 using System.Net;
 using OpenMetaverse.StructuredData;
 using OpenMetaverse.Interfaces;
+
+#pragma warning disable CS8618 // Non-nullable field is uninitialized. Generated message classes initialize during deserialization.
 
 namespace OpenMetaverse.Messages.Linden
 {
@@ -47,13 +50,13 @@ namespace OpenMetaverse.Messages.Linden
         /// <summary>The simulators handle the agent teleported to</summary>
         public ulong RegionHandle;
         /// <summary>A Uri which contains a list of Capabilities the simulator supports</summary>
-        public Uri SeedCapability;
+        public Uri SeedCapability = new Uri("about:blank");
         /// <summary>Indicates the level of access required
         /// to access the simulator, or the content rating, or the simulators 
         /// map status</summary>
         public SimAccess SimAccess;
         /// <summary>The IP Address of the simulator</summary>
-        public IPAddress IP;
+        public IPAddress IP = IPAddress.None;
         /// <summary>The UDP Port the simulator will listen for UDP traffic on</summary>
         public int Port;
         /// <summary>Status flags indicating the state of the Agent upon arrival, Flying, etc.</summary>
@@ -107,9 +110,9 @@ namespace OpenMetaverse.Messages.Linden
             AgentID = blockMap["AgentID"].AsUUID();
             LocationID = blockMap["LocationID"].AsInteger();
             RegionHandle = blockMap["RegionHandle"].AsULong();
-            SeedCapability = blockMap["SeedCapability"].AsUri();
+            SeedCapability = blockMap["SeedCapability"].AsUri() ?? new Uri("about:blank");
             SimAccess = (SimAccess)blockMap["SimAccess"].AsInteger();
-            IP = MessageUtils.ToIP(blockMap["SimIP"]);
+            IP = MessageUtils.ToIP(blockMap["SimIP"]) ?? IPAddress.None;
             Port = blockMap["SimPort"].AsInteger();
             Flags = (TeleportFlags)blockMap["TeleportFlags"].AsUInteger();
             RegionSizeX = blockMap.ContainsKey("RegionSizeX") ? blockMap["RegionSizeX"].AsUInteger() : Simulator.DefaultRegionSizeX;
@@ -123,9 +126,9 @@ namespace OpenMetaverse.Messages.Linden
     public class EstablishAgentCommunicationMessage : IMessage
     {
         public UUID AgentID;
-        public IPAddress Address;
+        public IPAddress Address = IPAddress.None;
         public int Port;
-        public Uri SeedCapability;
+        public Uri SeedCapability = new Uri("about:blank");
 
         /// <summary>
         /// Serialize the object
@@ -154,7 +157,7 @@ namespace OpenMetaverse.Messages.Linden
             AgentID = map["agent-id"].AsUUID();
             Address = IPAddress.Parse(ipAndPort.Substring(0, i));
             Port = int.Parse(ipAndPort.Substring(i + 1));
-            SeedCapability = map["seed-capability"].AsUri();
+            SeedCapability = map["seed-capability"].AsUri() ?? new Uri("about:blank");
         }
     }
 
@@ -229,8 +232,8 @@ namespace OpenMetaverse.Messages.Linden
 
             OSDMap regionDataMap = (OSDMap)((OSDArray)map["RegionData"])[0];
             RegionHandle = regionDataMap["RegionHandle"].AsULong();
-            SeedCapability = regionDataMap["SeedCapability"].AsUri();
-            IP = MessageUtils.ToIP(regionDataMap["SimIP"]);
+            SeedCapability = regionDataMap["SeedCapability"].AsUri() ?? new Uri("about:blank");
+            IP = MessageUtils.ToIP(regionDataMap["SimIP"]) ?? IPAddress.None;
             Port = regionDataMap["SimPort"].AsInteger();
             RegionSizeX = regionDataMap.ContainsKey("RegionSizeX") ? regionDataMap["RegionSizeX"].AsUInteger() : Simulator.DefaultRegionSizeX;
             RegionSizeY = regionDataMap.ContainsKey("RegionSizeY") ? regionDataMap["RegionSizeY"].AsUInteger() : Simulator.DefaultRegionSizeY;
@@ -627,7 +630,7 @@ namespace OpenMetaverse.Messages.Linden
         /// <summary>Appears to always be zero</summary>
         public int ClaimPrice;
         /// <summary>Parcel Description</summary>
-        public string Desc;
+        public string Desc = string.Empty;
         /// <summary></summary>
         public ParcelFlags ParcelFlags;
         /// <summary></summary>
@@ -645,13 +648,13 @@ namespace OpenMetaverse.Messages.Linden
         /// primitive will display the media</summary>
         public UUID MediaID;
         /// <summary>A URL which points to any Quicktime supported media type</summary>
-        public string MediaURL;
+        public string MediaURL = string.Empty;
         /// <summary>A byte, if 0x1 viewer should auto scale media to fit object</summary>
         public bool MediaAutoScale;
         /// <summary>URL For Music Stream</summary>
-        public string MusicURL;
+        public string MusicURL = string.Empty;
         /// <summary>Parcel Name</summary>
-        public string Name;
+        public string Name = string.Empty;
         /// <summary>Autoreturn value in minutes for others' objects</summary>
         public int OtherCleanTime;
         /// <summary></summary>
@@ -722,7 +725,7 @@ namespace OpenMetaverse.Messages.Linden
         /// <summary></summary>
         public Vector3 UserLookAt;
         /// <summary>A description of the media</summary>
-        public string MediaDesc;
+        public string MediaDesc = string.Empty;
         /// <summary>An Integer which represents the height of the media</summary>
         public int MediaHeight;
         /// <summary>An integer which represents the width of the media</summary>
@@ -730,7 +733,7 @@ namespace OpenMetaverse.Messages.Linden
         /// <summary>A boolean, if true the viewer should loop the media</summary>
         public bool MediaLoop;
         /// <summary>A string which contains the mime type of the media</summary>
-        public string MediaType;
+        public string MediaType = string.Empty;
         /// <summary>true to obscure (hide) media url</summary>
         public bool ObscureMedia;
         /// <summary>true to obscure (hide) music url</summary>
@@ -1251,7 +1254,7 @@ namespace OpenMetaverse.Messages.Linden
     public class NewFileAgentInventoryReplyMessage : IMessage
     {
         public string State;
-        public Uri Uploader;
+        public Uri Uploader = new Uri("about:blank");
 
         public NewFileAgentInventoryReplyMessage()
         {
@@ -1272,7 +1275,7 @@ namespace OpenMetaverse.Messages.Linden
         public void Deserialize(OSDMap map)
         {
             State = map["state"].AsString();
-            Uploader = map["uploader"].AsUri();
+            Uploader = map["uploader"].AsUri() ?? new Uri("about:blank");
         }
     }
 
@@ -1331,7 +1334,7 @@ namespace OpenMetaverse.Messages.Linden
         public int ResourceCost;
         public string State;
         public int UploadPrice;
-        public Uri Rsvp;
+        public Uri Rsvp = new Uri("about:blank");
 
         public NewFileAgentInventoryVariablePriceReplyMessage()
         {
@@ -1356,7 +1359,7 @@ namespace OpenMetaverse.Messages.Linden
             ResourceCost = map["resource_cost"].AsInteger();
             State = map["state"].AsString();
             UploadPrice = map["upload_price"].AsInteger();
-            Rsvp = map["rsvp"].AsUri();
+            Rsvp = map["rsvp"].AsUri() ?? new Uri("about:blank");
         }
     }
 
@@ -1904,7 +1907,7 @@ namespace OpenMetaverse.Messages.Linden
     public class UploaderRequestUpload : AssetUploaderBlock
     {
         /// <summary>The Capability URL sent by the simulator to upload the baked texture to</summary>
-        public Uri Url;
+        public Uri Url = new Uri("about:blank");
 
         public UploaderRequestUpload()
         {
@@ -1924,7 +1927,7 @@ namespace OpenMetaverse.Messages.Linden
 
         public override void Deserialize(OSDMap map)
         {
-            Url = map["uploader"].AsUri();
+            Url = map["uploader"].AsUri() ?? new Uri("about:blank");
             State = map["state"].AsString();
         }
     }
@@ -2082,7 +2085,7 @@ namespace OpenMetaverse.Messages.Linden
             RegionName = map["region_name"].AsString();
 
             OSDMap vcMap = (OSDMap)map["voice_credentials"];
-            SipChannelUri = vcMap["channel_uri"].AsUri();
+            SipChannelUri = vcMap["channel_uri"].AsUri() ?? new Uri("about:blank");
         }
     }
 
@@ -3632,7 +3635,7 @@ namespace OpenMetaverse.Messages.Linden
     {
         public class QueueEvent
         {
-            public IMessage EventMessage;
+            public IMessage? EventMessage;
             public string MessageKey;
         }
 
@@ -3653,7 +3656,7 @@ namespace OpenMetaverse.Messages.Linden
             {
                 OSDMap eventMap = new OSDMap(2)
                 {
-                    ["body"] = t.EventMessage.Serialize(),
+                    ["body"] = t.EventMessage != null ? t.EventMessage.Serialize() : new OSDMap(),
                     ["message"] = OSD.FromString(t.MessageKey)
                 };
                 eventsArray.Add(eventMap);
@@ -4379,7 +4382,10 @@ namespace OpenMetaverse.Messages.Linden
                     for (int i = 0; i < extraParams.Count; i++)
                     {
                         ExtraParam extraParam = new ExtraParam();
-                        extraParam.Deserialize(extraParams[i] as OSDMap);
+                        if (extraParams[i] is OSDMap extraMap)
+                        {
+                            extraParam.Deserialize(extraMap);
+                        }
                         ExtraParams[i] = extraParam;
                     }
                 }
@@ -4395,7 +4401,10 @@ namespace OpenMetaverse.Messages.Linden
                     for (int i = 0; i < faces.Count; i++)
                     {
                         Face face = new Face();
-                        face.Deserialize(faces[i] as OSDMap);
+                        if (faces[i] is OSDMap faceMap)
+                        {
+                            face.Deserialize(faceMap);
+                        }
                         Faces[i] = face;
                     }
                 }
@@ -4405,39 +4414,46 @@ namespace OpenMetaverse.Messages.Linden
                 }
 
                 // Shape
-                OSDMap shape = map["shape"] as OSDMap;
-                OSDMap path = shape["path"] as OSDMap;
-                PathBegin = (float)path["begin"].AsReal();
-                PathCurve = path["curve"].AsInteger();
-                PathEnd = (float)path["end"].AsReal();
-                RadiusOffset = (float)path["radius_offset"].AsReal();
-                Revolutions = (float)path["revolutions"].AsReal();
-                ScaleX = (float)path["scale_x"].AsReal();
-                ScaleY = (float)path["scale_y"].AsReal();
-                ShearX = (float)path["shear_x"].AsReal();
-                ShearY = (float)path["shear_y"].AsReal();
-                Skew = (float)path["skew"].AsReal();
-                TaperX = (float)path["taper_x"].AsReal();
-                TaperY = (float)path["taper_y"].AsReal();
-                Twist = (float)path["twist"].AsReal();
-                TwistBegin = (float)path["twist_begin"].AsReal();
-
-                OSDMap profile = shape["profile"] as OSDMap;
-                ProfileBegin = (float)profile["begin"].AsReal();
-                ProfileCurve = profile["curve"].AsInteger();
-                ProfileEnd = (float)profile["end"].AsReal();
-                ProfileHollow = (float)profile["hollow"].AsReal();
-
-                if (shape["sculpt"] is OSDMap sculpt)
+                if (map["shape"] is OSDMap shape)
                 {
-                    SculptID = sculpt["id"].AsUUID();
-                    SculptType = (SculptType)sculpt["type"].AsInteger();
+                    if (shape["path"] is OSDMap path)
+                    {
+                        PathBegin = (float)path["begin"].AsReal();
+                        PathCurve = path["curve"].AsInteger();
+                        PathEnd = (float)path["end"].AsReal();
+                        RadiusOffset = (float)path["radius_offset"].AsReal();
+                        Revolutions = (float)path["revolutions"].AsReal();
+                        ScaleX = (float)path["scale_x"].AsReal();
+                        ScaleY = (float)path["scale_y"].AsReal();
+                        ShearX = (float)path["shear_x"].AsReal();
+                        ShearY = (float)path["shear_y"].AsReal();
+                        Skew = (float)path["skew"].AsReal();
+                        TaperX = (float)path["taper_x"].AsReal();
+                        TaperY = (float)path["taper_y"].AsReal();
+                        Twist = (float)path["twist"].AsReal();
+                        TwistBegin = (float)path["twist_begin"].AsReal();
+                    }
+
+                    if (shape["profile"] is OSDMap profile)
+                    {
+                        ProfileBegin = (float)profile["begin"].AsReal();
+                        ProfileCurve = profile["curve"].AsInteger();
+                        ProfileEnd = (float)profile["end"].AsReal();
+                        ProfileHollow = (float)profile["hollow"].AsReal();
+                    }
+
+                    if (shape["sculpt"] is OSDMap sculpt)
+                    {
+                        SculptID = sculpt["id"].AsUUID();
+                        SculptType = (SculptType)sculpt["type"].AsInteger();
+                    }
+                    else
+                    {
+                        SculptID = UUID.Zero;
+                        SculptType = 0;
+                    }
                 }
-                else
-                {
-                    SculptID = UUID.Zero;
-                    SculptType = 0;
-                }
+                
             }
         }
 
@@ -4661,7 +4677,7 @@ namespace OpenMetaverse.Messages.Linden
         /// </summary>
         /// <param name="map">An <see cref="OSDMap"/> containing the data</param>
         /// <returns>Object capable of decoding this message</returns>
-        public static IMessage GetMessageHandler(OSDMap map)
+        public static IMessage? GetMessageHandler(OSDMap map)
         {
             if (map == null)
             {
@@ -5170,7 +5186,7 @@ namespace OpenMetaverse.Messages.Linden
         /// </summary>
         /// <param name="map">An <see cref="OSDMap"/> containing the data</param>
         /// <returns>Object capable of decoding this message</returns>
-        public static IMessage GetMessageHandler(OSDMap map)
+        public static IMessage? GetMessageHandler(OSDMap map)
         {
             return map == null ? null : new AttachmentResourcesMessage();
         }
@@ -5250,7 +5266,7 @@ namespace OpenMetaverse.Messages.Linden
         /// </summary>
         /// <param name="map">An <see cref="OSDMap"/> containing the data</param>
         /// <returns>Object capable of decoding this message</returns>
-        public static IMessage GetMessageHandler(OSDMap map)
+        public static IMessage? GetMessageHandler(OSDMap map)
         {
             if (map.ContainsKey("parcel_id"))
             {
@@ -5535,7 +5551,7 @@ namespace OpenMetaverse.Messages.Linden
         public string HomePage;
         public int? CaptionIndex;
         /// <summary>May be null</summary>
-        public string CaptionText;
+        public string? CaptionText;
         public List<GroupData> Groups;
         public List<PickData> Picks;
         public ProfileFlags Flags;
@@ -5711,73 +5727,79 @@ namespace OpenMetaverse.Messages.Linden
             }
 
             Groups = new List<GroupData>();
-            var groupsMap = map["groups"] as OSDArray;
-            foreach (var group in groupsMap)
+            if (map["groups"] is OSDArray groupsMap)
             {
-                var groupData = group as OSDMap;
-
-                var groupDescription = groupData["description"].AsString();
-                var groupEnabled = groupData["enabled"].AsBoolean();
-                var groupFounderId = groupData["founder_id"].AsUUID();
-                var groupId = groupData["id"].AsUUID();
-                var groupImageId = groupData["image_id"].AsUUID();
-                var groupIsMaturePublish = groupData["mature_publish"].AsBoolean();
-                var groupName = groupData["name"].AsString();
-                var groupIsOpenEnrollment = groupData["open_enrollment"].AsBoolean();
-                var groupIsShownInSearch = groupData["show_in_search"].AsBoolean();
-
-                Groups.Add(new GroupData()
+                foreach (var group in groupsMap)
                 {
-                    Description = groupDescription,
-                    Enabled = groupEnabled,
-                    FounderID = groupFounderId,
-                    ID = groupId,
-                    ImageID = groupImageId,
-                    IsMaturePublish = groupIsMaturePublish,
-                    Name = groupName,
-                    IsOpenEnrollment = groupIsOpenEnrollment,
-                    IsShownInSearch = groupIsShownInSearch,
-                });
+                    if (group is OSDMap groupData)
+                    {
+                        var groupDescription = groupData["description"].AsString();
+                        var groupEnabled = groupData["enabled"].AsBoolean();
+                        var groupFounderId = groupData["founder_id"].AsUUID();
+                        var groupId = groupData["id"].AsUUID();
+                        var groupImageId = groupData["image_id"].AsUUID();
+                        var groupIsMaturePublish = groupData["mature_publish"].AsBoolean();
+                        var groupName = groupData["name"].AsString();
+                        var groupIsOpenEnrollment = groupData["open_enrollment"].AsBoolean();
+                        var groupIsShownInSearch = groupData["show_in_search"].AsBoolean();
+
+                        Groups.Add(new GroupData()
+                        {
+                            Description = groupDescription,
+                            Enabled = groupEnabled,
+                            FounderID = groupFounderId,
+                            ID = groupId,
+                            ImageID = groupImageId,
+                            IsMaturePublish = groupIsMaturePublish,
+                            Name = groupName,
+                            IsOpenEnrollment = groupIsOpenEnrollment,
+                            IsShownInSearch = groupIsShownInSearch,
+                        });
+                    }
+                }
             }
 
             Picks = new List<PickData>();
-            var picksMap = map["picks"] as OSDArray;
-            foreach (var pick in picksMap)
+            if (map["picks"] is OSDArray picksMap)
             {
-                var pickData = pick as OSDMap;
-
-                var pickDescription = pickData["description"].AsString();
-                var pickEnabled = pickData["enabled"].AsBoolean();
-                var pickGridX = pickData["grid_x"].AsReal();
-                var pickGridY = pickData["grid_y"].AsReal();
-                var pickId = pickData["id"].AsUUID();
-                var pickName = pickData["name"].AsString();
-                var pickParcelId = pickData["parcel_id"].AsUUID();
-                var pickParcelName = pickData["parcel_name"].AsString();
-                var pickRegionName = pickData["region_name"].AsString();
-                var pickRegionX = pickData["region_x"].AsReal();
-                var pickRegionY = pickData["region_y"].AsReal();
-                var pickRegionZ = pickData["region_z"].AsReal();
-                var pickSlurl = pickData["slurl"].AsUri();
-                var pickSnapshotId = pickData["snapshot_id"].AsUUID();
-
-                Picks.Add(new PickData()
+                foreach (var pick in picksMap)
                 {
-                    ID = pickId,
-                    Description = pickDescription,
-                    Enabled = pickEnabled,
-                    GridX = pickGridX,
-                    GridY = pickGridY,
-                    Name = pickName,
-                    ParcelID = pickParcelId,
-                    ParcelName = pickParcelName,
-                    RegionName = pickRegionName,
-                    RegionX = pickRegionX,
-                    RegionY = pickRegionY,
-                    RegionZ = pickRegionZ,
-                    Slurl = pickSlurl,
-                    SnapshotID = pickSnapshotId,
-                });
+                    if (pick is OSDMap pickData)
+                    {
+                        var pickDescription = pickData["description"].AsString();
+                        var pickEnabled = pickData["enabled"].AsBoolean();
+                        var pickGridX = pickData["grid_x"].AsReal();
+                        var pickGridY = pickData["grid_y"].AsReal();
+                        var pickId = pickData["id"].AsUUID();
+                        var pickName = pickData["name"].AsString();
+                        var pickParcelId = pickData["parcel_id"].AsUUID();
+                        var pickParcelName = pickData["parcel_name"].AsString();
+                        var pickRegionName = pickData["region_name"].AsString();
+                        var pickRegionX = pickData["region_x"].AsReal();
+                        var pickRegionY = pickData["region_y"].AsReal();
+                        var pickRegionZ = pickData["region_z"].AsReal();
+                        var pickSlurl = pickData["slurl"].AsUri() ?? new Uri("about:blank");
+                        var pickSnapshotId = pickData["snapshot_id"].AsUUID();
+
+                        Picks.Add(new PickData()
+                        {
+                            ID = pickId,
+                            Description = pickDescription,
+                            Enabled = pickEnabled,
+                            GridX = pickGridX,
+                            GridY = pickGridY,
+                            Name = pickName,
+                            ParcelID = pickParcelId,
+                            ParcelName = pickParcelName,
+                            RegionName = pickRegionName,
+                            RegionX = pickRegionX,
+                            RegionY = pickRegionY,
+                            RegionZ = pickRegionZ,
+                            Slurl = pickSlurl,
+                            SnapshotID = pickSnapshotId,
+                        });
+                    }
+                }
             }
         }
     }

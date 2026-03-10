@@ -30,6 +30,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+#nullable enable
 using LibreMetaverse.Voice.Vivox;
 using Microsoft.Extensions.Logging;
 using OpenMetaverse;
@@ -42,7 +43,7 @@ namespace TestClient
     public class TestClient : GridClient
     {
         public UUID GroupID = UUID.Zero;
-        public Dictionary<UUID, GroupMember> GroupMembers;
+        public Dictionary<UUID, GroupMember> GroupMembers = new Dictionary<UUID, GroupMember>();
         public Dictionary<string, Command> Commands = new Dictionary<string, Command>();
         public bool Running = true;
         public bool GroupCommands = false;
@@ -52,11 +53,11 @@ namespace TestClient
         public ClientManager ClientManager;
         public VoiceManager VoiceManager;
         // Shell-like inventory commands need to be aware of the 'current' inventory folder.
-        public InventoryFolder CurrentDirectory = null;
+        public InventoryFolder? CurrentDirectory = null;
 
         private readonly System.Timers.Timer updateTimer;
         private UUID GroupMembersRequestID;
-        public Dictionary<UUID, Group> GroupsCache = null;
+        public Dictionary<UUID, Group> GroupsCache = new Dictionary<UUID, Group>();
         private readonly ManualResetEvent GroupsEvent = new ManualResetEvent(false);
         private CloneCommand CloneManager;
 
@@ -111,7 +112,7 @@ namespace TestClient
             updateTimer.Start();
         }
 
-        void Objects_TerseObjectUpdate(object sender, TerseObjectUpdateEventArgs e)
+        void Objects_TerseObjectUpdate(object? sender, TerseObjectUpdateEventArgs e)
         {
             if (e.Prim.LocalID == Self.LocalID)
             {
@@ -119,7 +120,7 @@ namespace TestClient
             }
         }
 
-        void Objects_AvatarUpdate(object sender, AvatarUpdateEventArgs e)
+        void Objects_AvatarUpdate(object? sender, AvatarUpdateEventArgs e)
         {
             if (e.Avatar.LocalID == Self.LocalID)
             {
@@ -127,7 +128,7 @@ namespace TestClient
             }
         }
 
-        void Network_SimChanged(object sender, SimChangedEventArgs e)
+        void Network_SimChanged(object? sender, SimChangedEventArgs e)
         {
             Self.Movement.SetFOVVerticalAngle(Utils.TWO_PI - 0.05f);
         }
@@ -142,7 +143,7 @@ namespace TestClient
         }
 
 
-        void Self_IM(object sender, InstantMessageEventArgs e)
+        void Self_IM(object? sender, InstantMessageEventArgs e)
         {
             bool groupIM = e.IM.GroupIM && GroupMembers != null && GroupMembers.ContainsKey(e.IM.FromAgentID);
 
@@ -177,12 +178,12 @@ namespace TestClient
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        public void LoginHandler(object sender, LoginProgressEventArgs e)
+        public void LoginHandler(object? sender, LoginProgressEventArgs e)
         {
             if (e.Status == LoginStatus.Success)
             {
-                // Start in the inventory root folder.
-                CurrentDirectory = Inventory.Store.RootFolder;
+                    // Start in the inventory root folder.
+                CurrentDirectory = Inventory?.Store?.RootFolder;
             }
         }
 
@@ -194,7 +195,8 @@ namespace TestClient
                 {
                     if (t.IsSubclassOf(typeof(Command)))
                     {
-                        ConstructorInfo info = t.GetConstructor(new[] { typeof(TestClient) });
+                        ConstructorInfo? info = t.GetConstructor(new[] { typeof(TestClient) });
+                        if (info == null) continue;
                         Command command = (Command)info.Invoke(new object[] { this });
                         RegisterCommand(command);
                     }
@@ -229,7 +231,7 @@ namespace TestClient
         {
             var tcs = new TaskCompletionSource<Dictionary<UUID, Group>>();
 
-            EventHandler<CurrentGroupsEventArgs> handler = null;
+            EventHandler<CurrentGroupsEventArgs>? handler = null;
             handler = (sender, e) =>
             {
                 // TrySetResult in case of multiple firings
@@ -311,14 +313,14 @@ namespace TestClient
             return UUID.Zero;
         }
 
-        private void updateTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        private void updateTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
             foreach (Command c in Commands.Values)
                 if (c.Active)
                     c.Think();
         }
 
-        private void AgentDataUpdateHandler(object sender, PacketReceivedEventArgs e)
+        private void AgentDataUpdateHandler(object? sender, PacketReceivedEventArgs e)
         {
             AgentDataUpdatePacket p = (AgentDataUpdatePacket)e.Packet;
             if (p.AgentData.AgentID == e.Simulator.Client.Self.AgentID && p.AgentData.ActiveGroupID != UUID.Zero)
@@ -329,14 +331,14 @@ namespace TestClient
             }
         }
 
-        private void GroupMembersHandler(object sender, GroupMembersReplyEventArgs e)
+        private void GroupMembersHandler(object? sender, GroupMembersReplyEventArgs e)
         {
             if (e.RequestID != GroupMembersRequestID) return;
 
             GroupMembers = e.Members;
         }
 
-        private void AlertMessageHandler(object sender, PacketReceivedEventArgs e)
+        private void AlertMessageHandler(object? sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
             
@@ -345,7 +347,7 @@ namespace TestClient
             Logger.Info("[AlertMessage] " + Utils.BytesToString(message.AlertData.Message), this);
         }
        
-        private void Inventory_OnInventoryObjectReceived(object sender, InventoryObjectOfferedEventArgs e)
+        private void Inventory_OnInventoryObjectReceived(object? sender, InventoryObjectOfferedEventArgs e)
         {
             if (MasterKey != UUID.Zero)
             {

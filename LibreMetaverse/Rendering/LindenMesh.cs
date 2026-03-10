@@ -42,7 +42,7 @@ namespace OpenMetaverse.Rendering
     {
         const string MeshHeader = "Linden Binary Mesh 1.0";
         const string MorphFooter = "End Morphs";
-        public LindenSkeleton Skeleton { get; }    //!< The skeleton used to animate this mesh
+        public LindenSkeleton? Skeleton { get; set; }    //!< The skeleton used to animate this mesh
 
         #region Mesh Structs
 
@@ -167,7 +167,7 @@ namespace OpenMetaverse.Rendering
         {
             public float MinPixelWidth;                 //!< Pixel width on screen before switching to coarser lod
 
-            public string Header;                       //!< Header - marking the file as a Linden Lab Mesh (llm)
+            public string Header = string.Empty;                       //!< Header - marking the file as a Linden Lab Mesh (llm)
             public bool HasWeights;                     //!< Do the vertices carry any defintions about skin weights
             public bool HasDetailTexCoords;             //!< Do the vertices carry any defintions about detailed UV mappings
             public Vector3 Position;                    //!< Origin of this mesh
@@ -175,7 +175,7 @@ namespace OpenMetaverse.Rendering
             public byte RotationOrder;                  //!< Not used
             public Vector3 Scale;                       //!< Scaling information
             public ushort NumFaces;                     //!< # of polygons in the mesh
-            public Face[] Faces;                        //!< Polygons making up the mesh, the indices are into the full mesh
+            public Face[] Faces = Array.Empty<Face>();                        //!< Polygons making up the mesh, the indices are into the full mesh
 
 
             /// <summary>
@@ -216,7 +216,7 @@ namespace OpenMetaverse.Rendering
         {
             public float MinPixelWidth;
 
-            protected string _header;
+            protected string _header = string.Empty;
             protected bool _hasWeights;
             protected bool _hasDetailTexCoords;
             protected Vector3 _position;
@@ -224,7 +224,7 @@ namespace OpenMetaverse.Rendering
             protected byte _rotationOrder;
             protected Vector3 _scale;
             protected ushort _numFaces;
-            protected Face[] _faces;
+            protected Face[] _faces = Array.Empty<Face>();
 
             public virtual void LoadMesh(string filename)
             {
@@ -254,28 +254,28 @@ namespace OpenMetaverse.Rendering
 
         public float MinPixelWidth;                                             //!< Width of redered avatar, before moving to a coarser LOD
 
-        public string Name { get; protected set; }                              //!< The name of this mesh
-        public string Header { get; protected set; }                            //!< The header marker contained in the .llm file
+        public string Name { get; protected set; } = string.Empty;                              //!< The name of this mesh
+        public string Header { get; protected set; } = string.Empty;                            //!< The header marker contained in the .llm file
         public bool HasWeights { get; protected set; }                          //!< Does the file contain skin weights?
         public bool HasDetailTexCoords { get; protected set; }                  //!< Does the file contain detailed UV mapings
-        public Vector3 Position { get; protected set; }                         //!< Origin of this mesh
-        public Vector3 RotationAngles { get; protected set; }                   //!< Rotation - This is a compressed quaternion
+        public Vector3 Position { get; protected set; } = default;                         //!< Origin of this mesh
+        public Vector3 RotationAngles { get; protected set; } = default;                   //!< Rotation - This is a compressed quaternion
         //public byte RotationOrder
-        public Vector3 Scale { get; protected set; }                            //!< Scale of this mesh
+        public Vector3 Scale { get; protected set; } = default;                            //!< Scale of this mesh
         public ushort NumVertices { get; protected set; }                       //!< # of vertices in the file
-        public Vertex[] Vertices { get; protected set; }                        //!< The actual vertices defining the 3d shape
+        public Vertex[] Vertices { get; protected set; } = Array.Empty<Vertex>();                        //!< The actual vertices defining the 3d shape
         public ushort NumFaces { get; protected set; }                          //!< # of polygons in the file
-        public Face[] Faces { get; protected set; }                             //!< The polgon defintion
+        public Face[] Faces { get; protected set; } = Array.Empty<Face>();                             //!< The polgon defintion
         public ushort NumSkinJoints { get; protected set; }                     //!< # of joints influencing the mesh
-        public string[] SkinJoints { get; protected set; }                      //!< Named list of joints
+        public string[] SkinJoints { get; protected set; } = Array.Empty<string>();                      //!< Named list of joints
         public int NumRemaps { get; protected set; }                            //!< # of vertex remaps
-        public VertexRemap[] VertexRemaps { get; protected set; }               //!< The actual vertex remapping list
+        public VertexRemap[] VertexRemaps { get; protected set; } = Array.Empty<VertexRemap>();               //!< The actual vertex remapping list
 
         // lods can either be Reference meshes or full LindenMeshes
         // so we cannot use a collection of specialized classes
-        public SortedList<int, object> LodMeshes { get; protected set; }        //!< The LOD meshes, available for this mesh
+        public SortedList<int, object> LodMeshes { get; protected set; } = new SortedList<int, object>();        //!< The LOD meshes, available for this mesh
 
-        public Morph[] Morphs;                                                  //!< The morphs this file contains
+        public Morph[] Morphs = Array.Empty<Morph>();                                                  //!< The morphs this file contains
 
         /// <summary>
         /// Construct a linden mesh with the given name
@@ -289,7 +289,7 @@ namespace OpenMetaverse.Rendering
         /// </summary>
         /// <param name="name">the name of the mesh</param>
         /// <param name="skeleton">The skeleton governing mesh deformation</param>
-        public LindenMesh(string name, LindenSkeleton skeleton)
+        public LindenMesh(string name, LindenSkeleton? skeleton)
         {
             Name = name;
             Skeleton = skeleton;

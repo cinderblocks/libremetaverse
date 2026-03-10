@@ -26,6 +26,7 @@
  */
 
 using System;
+#nullable enable
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
@@ -51,8 +52,8 @@ namespace OpenMetaverse.Assets
             HalfCircle = 5
         }
 
-        public PrimObject Parent;
-        public List<PrimObject> Children;
+        public PrimObject? Parent;
+        public List<PrimObject> Children = new List<PrimObject>();
 
         /// <summary>Override the base classes AssetType</summary>
         public override AssetType AssetType => AssetType.Object;
@@ -677,7 +678,7 @@ namespace OpenMetaverse.Assets
             public class ItemBlock
             {
                 public UUID ID;
-                public string Name;
+                public string Name = string.Empty;
                 public UUID OwnerID;
                 public UUID CreatorID;
                 public UUID GroupID;
@@ -686,7 +687,7 @@ namespace OpenMetaverse.Assets
                 public UUID AssetID;
                 public AssetType Type;
                 public InventoryType InvType;
-                public string Description;
+                public string Description = string.Empty;
                 public uint PermsBase;
                 public uint PermsOwner;
                 public uint PermsGroup;
@@ -771,7 +772,7 @@ namespace OpenMetaverse.Assets
             }
 
             public int Serial;
-            public ItemBlock[] Items;
+            public ItemBlock[] Items = Array.Empty<ItemBlock>();
 
             public OSDMap Serialize()
             {
@@ -820,8 +821,8 @@ namespace OpenMetaverse.Assets
         public Vector3 AttachmentPosition;
         public Quaternion AttachmentRotation;
         public Quaternion BeforeAttachmentRotation;
-        public string Name;
-        public string Description;
+        public string Name = string.Empty;
+        public string Description = string.Empty;
         public uint PermsBase;
         public uint PermsOwner;
         public uint PermsGroup;
@@ -857,9 +858,9 @@ namespace OpenMetaverse.Assets
         public float SoundRadius;
         public int SoundFlags;
         public Color4 TextColor;
-        public string Text;
-        public string SitName;
-        public string TouchName;
+        public string Text = string.Empty;
+        public string SitName = string.Empty;
+        public string TouchName = string.Empty;
         public bool Selected;
         public UUID SelectorID;
         public bool UsePhysics;
@@ -874,16 +875,16 @@ namespace OpenMetaverse.Assets
         public DateTime RezDate;
         public int SalePrice;
         public int SaleType;
-        public byte[] ScriptState;
+        public byte[] ScriptState = Array.Empty<byte>();
         public UUID CollisionSound;
         public float CollisionSoundVolume;
-        public FlexibleBlock Flexible;
-        public LightBlock Light;
-        public SculptBlock Sculpt;
-        public ParticlesBlock Particles;
-        public ShapeBlock Shape;
-        public Primitive.TextureEntry Textures;
-        public InventoryBlock Inventory;
+        public FlexibleBlock Flexible = new FlexibleBlock();
+        public LightBlock Light = new LightBlock();
+        public SculptBlock Sculpt = new SculptBlock();
+        public ParticlesBlock Particles = new ParticlesBlock();
+        public ShapeBlock Shape = new ShapeBlock();
+        public Primitive.TextureEntry? Textures = null;
+        public InventoryBlock Inventory = new InventoryBlock();
 
         public OSDMap Serialize()
         {
@@ -1044,9 +1045,9 @@ namespace OpenMetaverse.Assets
                 ClickAction = (int)obj.ClickAction,
                 //prim.CollisionSound
                 //prim.CollisionSoundVolume;
-                CreationDate = obj.Properties.CreationDate,
-                CreatorID = obj.Properties.CreatorID,
-                Description = obj.Properties.Description,
+                CreationDate = obj.Properties?.CreationDate ?? DateTime.MinValue,
+                CreatorID = obj.Properties?.CreatorID ?? UUID.Zero,
+                Description = obj.Properties?.Description ?? string.Empty,
                 DieAtEdge = (obj.Flags & PrimFlags.DieAtEdge) == PrimFlags.DieAtEdge
             };
             if (obj.Flexible != null)
@@ -1061,12 +1062,13 @@ namespace OpenMetaverse.Assets
                     Wind = obj.Flexible.Wind
                 };
             }
-            prim.FolderID = obj.Properties.FolderID;
-            prim.GroupID = obj.Properties.GroupID;
-            prim.ID = obj.Properties.ObjectID;
-            //prim.Inventory;
-            //prim.LastAttachmentPoint;
-            prim.LastOwnerID = obj.Properties.LastOwnerID;
+            if (obj.Properties != null)
+            {
+                prim.FolderID = obj.Properties.FolderID;
+                prim.GroupID = obj.Properties.GroupID;
+                prim.ID = obj.Properties.ObjectID;
+                prim.LastOwnerID = obj.Properties.LastOwnerID;
+            }
             if (obj.Light != null)
             {
                 prim.Light = new LightBlock
@@ -1082,8 +1084,8 @@ namespace OpenMetaverse.Assets
             //prim.LinkNumber;
             prim.LocalID = obj.LocalID;
             prim.Material = (int)obj.PrimData.Material;
-            prim.Name = obj.Properties.Name;
-            prim.OwnerID = obj.Properties.OwnerID;
+            prim.Name = obj.Properties?.Name ?? string.Empty;
+            prim.OwnerID = obj.Properties?.OwnerID ?? UUID.Zero;
             prim.ParentID = obj.ParentID;
             
             prim.Particles = new ParticlesBlock
@@ -1113,11 +1115,22 @@ namespace OpenMetaverse.Assets
 
             //prim.PassTouches;
             prim.PCode = (int)obj.PrimData.PCode;
-            prim.PermsBase = (uint)obj.Properties.Permissions.BaseMask;
-            prim.PermsEveryone = (uint)obj.Properties.Permissions.EveryoneMask;
-            prim.PermsGroup = (uint)obj.Properties.Permissions.GroupMask;
-            prim.PermsNextOwner = (uint)obj.Properties.Permissions.NextOwnerMask;
-            prim.PermsOwner = (uint)obj.Properties.Permissions.OwnerMask;
+            if (obj.Properties != null)
+            {
+                prim.PermsBase = (uint)obj.Properties.Permissions.BaseMask;
+                prim.PermsEveryone = (uint)obj.Properties.Permissions.EveryoneMask;
+                prim.PermsGroup = (uint)obj.Properties.Permissions.GroupMask;
+                prim.PermsNextOwner = (uint)obj.Properties.Permissions.NextOwnerMask;
+                prim.PermsOwner = (uint)obj.Properties.Permissions.OwnerMask;
+            }
+            else
+            {
+                prim.PermsBase = 0;
+                prim.PermsEveryone = 0;
+                prim.PermsGroup = 0;
+                prim.PermsNextOwner = 0;
+                prim.PermsOwner = 0;
+            }
             prim.Phantom = (obj.Flags & PrimFlags.Phantom) == PrimFlags.Phantom;
             prim.Position = obj.Position;
             prim.RegionHandle = obj.RegionHandle;
@@ -1125,8 +1138,8 @@ namespace OpenMetaverse.Assets
             prim.ReturnAtEdge = (obj.Flags & PrimFlags.ReturnAtEdge) == PrimFlags.ReturnAtEdge;
             //prim.RezDate;
             prim.Rotation = obj.Rotation;
-            prim.SalePrice = obj.Properties.SalePrice;
-            prim.SaleType = (int)obj.Properties.SaleType;
+            prim.SalePrice = obj.Properties?.SalePrice ?? 0;
+            prim.SaleType = (int)(obj.Properties?.SaleType ?? 0);
             prim.Sandbox = (obj.Flags & PrimFlags.Sandbox) == PrimFlags.Sandbox;
             prim.Scale = obj.Scale;
             //prim.ScriptState;
@@ -1161,7 +1174,7 @@ namespace OpenMetaverse.Assets
                 ProfileHollow = obj.PrimData.ProfileHollow
             };
 
-            prim.SitName = obj.Properties.SitName;
+            prim.SitName = obj.Properties?.SitName ?? string.Empty;
             //prim.SitOffset;
             //prim.SitRotation;
             prim.SoundFlags = (int)obj.SoundFlags;

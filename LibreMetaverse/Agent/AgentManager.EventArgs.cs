@@ -141,8 +141,8 @@ namespace OpenMetaverse
     public class InstantMessageEventArgs : EventArgs
     {
         public InstantMessage IM { get; }
-        public Simulator Simulator { get; }
-        public InstantMessageEventArgs(InstantMessage im, Simulator simulator)
+        public Simulator? Simulator { get; }
+        public InstantMessageEventArgs(InstantMessage im, Simulator? simulator)
         {
             IM = im;
             Simulator = simulator;
@@ -234,9 +234,9 @@ namespace OpenMetaverse
 
     public class RegionCrossedEventArgs : EventArgs
     {
-        public Simulator OldSimulator { get; }
-        public Simulator NewSimulator { get; }
-        public RegionCrossedEventArgs(Simulator oldSim, Simulator newSim) { OldSimulator = oldSim; NewSimulator = newSim; }
+        public Simulator? OldSimulator { get; }
+        public Simulator? NewSimulator { get; }
+        public RegionCrossedEventArgs(Simulator? oldSim, Simulator? newSim) { OldSimulator = oldSim; NewSimulator = newSim; }
     }
 
     public class GroupChatJoinedEventArgs : EventArgs
@@ -254,9 +254,9 @@ namespace OpenMetaverse
     public class AlertMessageEventArgs : EventArgs
     {
         public string Message { get; }
-        public string NotificationId { get; }
-        public OSDMap ExtraParams { get; }
-        public AlertMessageEventArgs(string message, string notificationid, OSDMap extraparams)
+        public string? NotificationId { get; }
+        public OSDMap? ExtraParams { get; }
+        public AlertMessageEventArgs(string message, string? notificationid, OSDMap? extraparams)
         {
             Message = message; NotificationId = notificationid; ExtraParams = extraparams;
         }

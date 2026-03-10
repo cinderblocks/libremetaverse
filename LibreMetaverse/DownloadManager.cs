@@ -45,11 +45,11 @@ namespace OpenMetaverse.Http
         /// <summary>URI of the item to fetch</summary>
         public Uri Address;
         /// <summary>Download progress reporter</summary>
-        public IProgress<HttpCapsClient.ProgressReport> DownloadProgressCallback;
+        public IProgress<HttpCapsClient.ProgressReport>? DownloadProgressCallback;
         /// <summary>Download completed callback</summary>
-        public HttpCapsClient.DownloadCompleteHandler CompletedCallback;
+        public HttpCapsClient.DownloadCompleteHandler? CompletedCallback;
         /// <summary>Accept the following content type</summary>
-        public string ContentType;
+        public string? ContentType;
         /// <summary>How many times will this request be retried</summary>
         public int Retries = 5;
         /// <summary>Current fetch attempt</summary>
@@ -58,12 +58,12 @@ namespace OpenMetaverse.Http
         public CancellationToken CancellationToken = CancellationToken.None;
 
         /// <summary>Optional TaskCompletionSource for task-based completion</summary>
-        public TaskCompletionSource<(HttpResponseMessage, byte[])> CompletionTcs;
+        public TaskCompletionSource<(HttpResponseMessage, byte[])>? CompletionTcs;
 
         /// <summary>Constructor</summary>
-        public DownloadRequest(Uri address, string contentType,
-            IProgress<HttpCapsClient.ProgressReport> downloadProgressCallback,
-            HttpCapsClient.DownloadCompleteHandler completedCallback)
+        public DownloadRequest(Uri address, string? contentType,
+            IProgress<HttpCapsClient.ProgressReport>? downloadProgressCallback,
+            HttpCapsClient.DownloadCompleteHandler? completedCallback)
         {
             Address = address;
             DownloadProgressCallback = downloadProgressCallback;
@@ -221,9 +221,9 @@ namespace OpenMetaverse.Http
             {
                 while (true)
                 {
-                    HttpResponseMessage response = null;
-                    byte[] responseData = null;
-                    Exception finalError = null;
+                        HttpResponseMessage? response = null;
+                        byte[]? responseData = null;
+                        Exception? finalError = null;
 
                     try
                     {
@@ -234,7 +234,7 @@ namespace OpenMetaverse.Http
                             // Send request and get headers
                             response = await Client.HttpCapsClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, activeDownload.CancellationToken.Token).ConfigureAwait(false);
 
-                            Exception statusError = null;
+                            Exception? statusError = null;
                             if (!response.IsSuccessStatusCode)
                             {
                                 statusError = new HttpRequestException(response.StatusCode + ": " + response.ReasonPhrase);
@@ -268,7 +268,7 @@ namespace OpenMetaverse.Http
                                     }
                                     else
                                     {
-                                        ms.Write(buffer, 0, bytesRead);
+                                        ms!.Write(buffer, 0, bytesRead);
                                     }
 
                                     double? progressPercent = null;
@@ -290,9 +290,9 @@ namespace OpenMetaverse.Http
                                 }
                                 else
                                 {
-                                    responseData = ms.ToArray();
-                                    try { ms.Close(); } catch { }
-                                    try { ms.Dispose(); } catch { }
+                                    responseData = ms!.ToArray();
+                                    try { ms!.Close(); } catch { }
+                                    try { ms!.Dispose(); } catch { }
                                 }
                             }
                             catch (Exception ex)
@@ -322,10 +322,10 @@ namespace OpenMetaverse.Http
                                         {
                                             handler.TrySetException(finalError);
                                         }
-                                        else
-                                        {
-                                            handler.TrySetResult((response, responseData));
-                                        }
+                                            else
+                                            {
+                                                handler.TrySetResult((response!, responseData!));
+                                            }
                                     }
                                     catch { }
                                 }
@@ -498,8 +498,8 @@ namespace OpenMetaverse.Http
         /// <param name="cancellationToken">Cancellation token</param>
         /// <param name="retries">Number of retries for transient failures</param>
         /// <returns>Task that completes with (HttpResponseMessage, byte[] data)</returns>
-        public Task<(HttpResponseMessage response, byte[] data)> QueueDownloadAsync(Uri address, string contentType = null,
-            IProgress<HttpCapsClient.ProgressReport> progressCallback = null, CancellationToken cancellationToken = default, int retries = 5)
+        public Task<(HttpResponseMessage response, byte[] data)> QueueDownloadAsync(Uri address, string? contentType = null,
+            IProgress<HttpCapsClient.ProgressReport>? progressCallback = null, CancellationToken cancellationToken = default, int retries = 5)
         {
             var tcs = new TaskCompletionSource<(HttpResponseMessage, byte[])>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -512,7 +512,7 @@ namespace OpenMetaverse.Http
                 }
                 else
                 {
-                    try { tcs.TrySetResult((response, data)); } catch { }
+                    try { tcs.TrySetResult((response!, data!)); } catch { }
                 }
             };
 
@@ -555,7 +555,8 @@ namespace OpenMetaverse.Http
         public Task<(HttpResponseMessage response, byte[] data)> DownloadAsync(Uri address,
             IProgress<HttpCapsClient.ProgressReport> progress, CancellationToken cancellationToken)
         {
-            return QueueDownloadAsync(address, null, progress, cancellationToken);
+            // Pass empty content type when not specified to avoid null literal assignment
+            return QueueDownloadAsync(address, string.Empty, progress, cancellationToken);
         }
     }
 }

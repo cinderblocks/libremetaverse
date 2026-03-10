@@ -131,7 +131,7 @@ namespace OpenMetaverse
             }
         }
 
-        private readonly GridClient Client;
+        private readonly GridClient? Client;
         private float resend;
         private float land;
         private float wind;
@@ -177,15 +177,19 @@ namespace OpenMetaverse
         /// </summary>
         public void Set()
         {
-            Set(Client.Network.CurrentSim);
+            var sim = Client?.Network?.CurrentSim;
+            if (sim == null) return;
+            Set(sim);
         }
 
         /// <summary>
         /// Send an AgentThrottle packet to the specified server using the 
         /// current values
         /// </summary>
-        public void Set(Simulator simulator)
+        public void Set(Simulator? simulator)
         {
+            if (Client == null || simulator == null) return;
+
             AgentThrottlePacket throttle = new AgentThrottlePacket
             {
                 AgentData =

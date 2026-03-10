@@ -63,13 +63,13 @@ namespace OpenMetaverse
     /// </summary>
     /// <typeparam name="TKey">Key <see langword="Tkey"/></typeparam>
     /// <typeparam name="TValue">Value <see langword="TValue"/></typeparam>
-    public class ObservableDictionary<TKey, TValue>
+    public class ObservableDictionary<TKey, TValue> where TKey : notnull
     {
         #region Observable implementation
         /// <summary>
         /// A dictionary of callbacks to fire when specified action occurs
         /// </summary>
-        private Dictionary<DictionaryEventAction, List<DictionaryChangeCallback>> Delegates;
+        private Dictionary<DictionaryEventAction, List<DictionaryChangeCallback>> Delegates = new Dictionary<DictionaryEventAction, List<DictionaryChangeCallback>>();
 
         /// <summary>
         /// Register a callback to be fired when an action occurs
@@ -114,7 +114,7 @@ namespace OpenMetaverse
 
             if(Delegates.TryGetValue(action, out var value))
             {
-                foreach(DictionaryChangeCallback handler in Delegates[action])
+                foreach(DictionaryChangeCallback handler in value)
                 {
                     handler(action, entry);
                 }
@@ -172,7 +172,7 @@ namespace OpenMetaverse
         /// <param name="key">Key to use for lookup</param>
         /// <param name="value">Value returned</param>
         /// <returns><see langword="true"/> if specified key exists,  <see langword="false"/> if not found</returns>
-        public bool TryGetValue(TKey key, out TValue value)
+        public bool TryGetValue(TKey key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out TValue value)
         {
                 return Dictionary.TryGetValue(key, out value);
         }
@@ -198,7 +198,8 @@ namespace OpenMetaverse
                     if (match(value))
                         return value;
                 }
-                return default(TValue);
+
+                return default!;
         }
 
         /// <summary>Find All items in an <see cref="T:ObservableDictionary"/></summary>
@@ -278,8 +279,8 @@ namespace OpenMetaverse
         /// <param name="value">The value</param>
         public void Add(TKey key, TValue value)
         {
-			Dictionary[key] = value;
-            FireChangeEvent(DictionaryEventAction.Add, new DictionaryEntry(key, value));
+            Dictionary[key] = value;
+            FireChangeEvent(DictionaryEventAction.Add, new DictionaryEntry((object)key!, (object?)value));
         }
 
         /// <summary>
@@ -289,7 +290,7 @@ namespace OpenMetaverse
         /// <returns><see langword="true"/> if successful, <see langword="false"/> otherwise</returns>
         public bool Remove(TKey key)
         {
-            FireChangeEvent(DictionaryEventAction.Remove, new DictionaryEntry(key, Dictionary[key]));
+            FireChangeEvent(DictionaryEventAction.Remove, new DictionaryEntry((object)key!, (object?)Dictionary[key]));
             return Dictionary.Remove(key);
         }
 
@@ -301,7 +302,7 @@ namespace OpenMetaverse
         public TValue this[TKey key]
         {
             get { return Dictionary[key]; }
-            set { FireChangeEvent(DictionaryEventAction.Add, new DictionaryEntry(key, value));
+            set { FireChangeEvent(DictionaryEventAction.Add, new DictionaryEntry((object)key!, (object?)value));
                 Dictionary[key] = value; }
         }
 
@@ -310,8 +311,8 @@ namespace OpenMetaverse
         /// </summary>
         public void Clear()
         {
-            foreach (KeyValuePair<TKey, TValue> kvp in Dictionary)
-                FireChangeEvent(DictionaryEventAction.Remove, new DictionaryEntry(kvp.Key, kvp.Value));
+                foreach (KeyValuePair<TKey, TValue> kvp in Dictionary)
+                    FireChangeEvent(DictionaryEventAction.Remove, new DictionaryEntry((object)kvp.Key!, (object?)kvp.Value));
 
             Dictionary.Clear();
         }

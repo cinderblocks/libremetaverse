@@ -87,7 +87,7 @@ namespace OpenMetaverse
         /// <summary></summary>
 		public int KeywordPosition;
         /// <summary></summary>
-		public string Name;
+		public string Name = string.Empty;
         /// <summary></summary>
 		public FieldType Type;
         /// <summary></summary>
@@ -98,21 +98,22 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-		public int CompareTo(object obj)
-		{
-			MapField temp = (MapField)obj;
+        public int CompareTo(object? obj)
+        {
+            if (obj == null) return 1;
+            if (obj is not MapField temp) throw new ArgumentException("Object is not a MapField", nameof(obj));
 
-			if (KeywordPosition > temp.KeywordPosition)
-			{
-				return 1;
-			}
+            if (KeywordPosition > temp.KeywordPosition)
+            {
+                return 1;
+            }
 
-		    if(temp.KeywordPosition == KeywordPosition)
-		    {
-		        return 0;
-		    }
-		    return -1;
-		}
+            if (temp.KeywordPosition == KeywordPosition)
+            {
+                return 0;
+            }
+            return -1;
+        }
 	}
 
     /// <summary>
@@ -123,31 +124,32 @@ namespace OpenMetaverse
         /// <summary></summary>
 		public int KeywordPosition;
         /// <summary></summary>
-		public string Name;
+		public string Name = string.Empty;
         /// <summary></summary>
 		public int Count;
         /// <summary></summary>
-		public List<MapField> Fields;
+		public List<MapField> Fields = new List<MapField>();
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-		public int CompareTo(object obj)
-		{
-			MapBlock temp = (MapBlock)obj;
+        public int CompareTo(object? obj)
+        {
+            if (obj == null) return 1;
+            if (obj is not MapBlock temp) throw new ArgumentException("Object is not a MapBlock", nameof(obj));
 
-			if (KeywordPosition > temp.KeywordPosition)
-			{
-				return 1;
-			}
-		    if(temp.KeywordPosition == KeywordPosition)
-		    {
-		        return 0;
-		    }
-		    return -1;
-		}
+            if (KeywordPosition > temp.KeywordPosition)
+            {
+                return 1;
+            }
+            if (temp.KeywordPosition == KeywordPosition)
+            {
+                return 0;
+            }
+            return -1;
+        }
 	}
 
     /// <summary>
@@ -158,7 +160,7 @@ namespace OpenMetaverse
         /// <summary></summary>
 		public ushort ID;
         /// <summary></summary>
-		public string Name;
+		public string Name = string.Empty;
         /// <summary></summary>
 		public PacketFrequency Frequency;
         /// <summary></summary>
@@ -166,7 +168,7 @@ namespace OpenMetaverse
         /// <summary></summary>
 		public bool Encoded;
         /// <summary></summary>
-		public List<MapBlock> Blocks;
+		public List<MapBlock> Blocks = new List<MapBlock>();
 	}
 
     /// <summary>
@@ -274,13 +276,13 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="data"></param>
         /// <returns></returns>
-		public MapPacket Command(byte[] data)
+        public MapPacket? Command(byte[] data)
 		{
 			ushort command;
 
 			if (data.Length < 5)
 			{
-				return null;
+                return null;
 			}
 
 			if (data[4] == 0xFF)
@@ -430,8 +432,8 @@ namespace OpenMetaverse
                         r.BaseStream.Seek(0, SeekOrigin.Begin);
                         bool inPacket = false;
                         bool inBlock = false;
-                        MapPacket currentPacket = null;
-                        MapBlock currentBlock = null;
+                        MapPacket? currentPacket = null;
+                        MapBlock? currentBlock = null;
                         char[] trimArray = new char[] { ' ', '\t' };
 
                         // While not at the end of the file
@@ -439,7 +441,7 @@ namespace OpenMetaverse
                         {
                             #region ParseMap
 
-                            var newline = r.ReadLine();
+                            var newline = r.ReadLine() ?? string.Empty;
                             var trimmedline = System.Text.RegularExpressions.Regex.Replace(newline, @"\s+", " ");
                             trimmedline = trimmedline.Trim(trimArray);
 
@@ -467,7 +469,7 @@ namespace OpenMetaverse
                                     else if (trimmedline == "}")
                                     {
                                         // Reached the end of the packet
-                                        currentPacket.Blocks.Sort();
+                                        currentPacket?.Blocks.Sort();
                                         inPacket = false;
                                     }
                                     else
@@ -588,13 +590,13 @@ namespace OpenMetaverse
                                         }
 
                                         // Save this field to the current block
-                                        currentBlock.Fields.Add(field);
+                                        if (currentBlock != null) currentBlock.Fields.Add(field);
 
                                         #endregion
                                     }
                                     else if (trimmedline == "}")
                                     {
-                                        currentBlock.Fields.Sort();
+                                        currentBlock?.Fields.Sort();
                                         inBlock = false;
                                     }
                                     else if (trimmedline.Length != 0 && trimmedline.Substring(0, 2) != "//")
@@ -610,7 +612,7 @@ namespace OpenMetaverse
                                         currentBlock.Name = tokens[0];
                                         currentBlock.KeywordPosition = KeywordPosition(currentBlock.Name);
                                         currentBlock.Fields = new List<MapField>();
-                                        currentPacket.Blocks.Add(currentBlock);
+                                        if (currentPacket != null) currentPacket.Blocks.Add(currentBlock);
 
                                         if (tokens[1] == "Single")
                                         {

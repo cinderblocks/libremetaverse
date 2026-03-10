@@ -77,7 +77,7 @@ namespace OpenMetaverse.Packets
         public uint Sequence;
         public ushort ID;
         public PacketFrequency Frequency;
-        public uint[] AckList;
+        public uint[]? AckList;
 
         public void ToBytes(byte[] bytes, ref int i)
         {
@@ -132,12 +132,16 @@ namespace OpenMetaverse.Packets
         /// array, will be updated with the ending position of the ACK list</param>
         public void AcksToBytes(byte[] bytes, ref int i)
         {
-            foreach (uint ack in AckList)
+            if (AckList != null)
             {
-                Utils.UIntToBytesBig(ack, bytes, i);
-                i += 4;
+                foreach (uint ack in AckList)
+                {
+                    Utils.UIntToBytesBig(ack, bytes, i);
+                    i += 4;
+                }
+
+                if (AckList.Length > 0) { bytes[i++] = (byte)AckList.Length; }
             }
-            if (AckList.Length > 0) { bytes[i++] = (byte)AckList.Length; }
         }
 
         /// <summary>

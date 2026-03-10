@@ -71,7 +71,12 @@ namespace OpenMetaverse.Messages
                 OSDMap map = (OSDMap)osd;
                 Dictionary<Uri, Uri> dict = new Dictionary<Uri, Uri>(map.Count);
                 foreach (KeyValuePair<string, OSD> entry in map)
-                    dict.Add(new Uri(entry.Key), entry.Value.AsUri());
+                {
+                    var keyUri = new Uri(entry.Key);
+                    var valUri = entry.Value.AsUri();
+                    if (valUri != null)
+                        dict.Add(keyUri, valUri);
+                }
                 return dict;
             }
 

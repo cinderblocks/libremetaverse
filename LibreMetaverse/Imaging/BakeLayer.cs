@@ -41,7 +41,7 @@ namespace OpenMetaverse.Imaging
     {
         #region Properties
         /// <summary>Final baked texture</summary>
-        public AssetTexture BakedTexture => bakedTexture;
+        public AssetTexture? BakedTexture => bakedTexture;
 
         /// <summary>Component layers</summary>
         public List<AppearanceManager.TextureData> Textures => textures;
@@ -62,7 +62,7 @@ namespace OpenMetaverse.Imaging
 
         #region Private fields
         /// <summary>Final baked texture</summary>
-        private AssetTexture bakedTexture;
+        private AssetTexture? bakedTexture;
         /// <summary>Component layers</summary>
         private List<AppearanceManager.TextureData> textures = new List<AppearanceManager.TextureData>();
         /// <summary>Width of the final baked image and scratchpad</summary>
@@ -113,6 +113,11 @@ namespace OpenMetaverse.Imaging
             bakedTexture = new AssetTexture(new ManagedImage(bakeWidth, bakeHeight,
                 ManagedImage.ImageChannels.Color | ManagedImage.ImageChannels.Alpha | ManagedImage.ImageChannels.Bump));
 
+            // local non-null reference for nullable bakedTexture
+            var baked = bakedTexture!;
+            // baked.Image is nullable; capture a non-null reference for analysis
+            var bakedImage = baked.Image!;
+
             // These are for head baking, they get special treatment
             AppearanceManager.TextureData skinTexture = new AppearanceManager.TextureData();
             List<AppearanceManager.TextureData> tattooTextures = new List<AppearanceManager.TextureData>();
@@ -148,7 +153,7 @@ namespace OpenMetaverse.Imaging
                 if (tex.TextureIndex >= AvatarTextureIndex.LowerAlpha &&
                     tex.TextureIndex <= AvatarTextureIndex.HairAlpha)
                 {
-                    if (tex.Texture.Image.Alpha != null)
+                    if (tex.Texture?.Image?.Alpha != null)
                     {
                         alphaWearableTextures.Add(tex.Texture.Image.Clone());
                     }
@@ -159,8 +164,9 @@ namespace OpenMetaverse.Imaging
             {
                 if (DrawLayer(LoadResourceLayer("head_color.tga"), false))
                 {
-                    AddAlpha(bakedTexture.Image, LoadResourceLayer("head_alpha.tga"));
-                    MultiplyLayerFromAlpha(bakedTexture.Image, LoadResourceLayer("head_skingrain.tga"));
+                    // bakedImage is a non-null local captured below; use it for image operations
+                    AddAlpha(bakedImage, LoadResourceLayer("head_alpha.tga"));
+                    MultiplyLayerFromAlpha(bakedImage, LoadResourceLayer("head_skingrain.tga"));
                     Logger.Debug("[Bake]: created head master bake");
                 }
                 else
@@ -204,7 +210,9 @@ namespace OpenMetaverse.Imaging
                     continue;
                 }
 
-                ManagedImage texture = textures[i].Texture.Image.Clone();
+                var texAsset = textures[i].Texture!;
+                if (texAsset.Image == null) continue;
+                ManagedImage texture = texAsset.Image.Clone();
                 //File.WriteAllBytes(bakeType + "-texture-layer-" + textures[i].TextureIndex + "-" + i + ".tga", texture.ExportTGA());
 
                 // Resize texture to the size of baked layer
@@ -240,14 +248,15 @@ namespace OpenMetaverse.Imaging
                     // alpha and morph layers
                     if (bakeType == BakeType.Hair)
                     {
-                        if (texture.Alpha != null)
-                        {
-                            bakedTexture.Image.Bump = texture.Alpha;
-                        }
-                        else
-                        {
-                            for (int j = 0; j < bakedTexture.Image.Bump.Length; j++) bakedTexture.Image.Bump[j] = byte.MaxValue;
-                        }
+                    if (texture.Alpha != null)
+                    {
+                        bakedImage.Bump = texture.Alpha;
+                    }
+                    else
+                    {
+                        var bump = bakedImage.Bump!;
+                        for (int j = 0; j < bump.Length; j++) bump[j] = byte.MaxValue;
+                    }
                     }
                     // Apply parametrized alpha masks
                     else if (textures[i].AlphaMasks != null && textures[i].AlphaMasks.Count > 0)
@@ -292,7 +301,8 @@ namespace OpenMetaverse.Imaging
                         // alpha as the morth for the whole bake
                         if (Textures[i].TextureIndex == AppearanceManager.MorphLayerForBakeType(bakeType))
                         {
-                            bakedTexture.Image.Bump = texture.Alpha;
+                            if (texture.Alpha != null)
+                        bakedImage.Bump = texture.Alpha;
                         }
 
                         //File.WriteAllBytes(bakeType + "-masked-texture-" + i + ".tga", texture.ExportTGA());
@@ -307,7 +317,7 @@ namespace OpenMetaverse.Imaging
             // For head and tattoo, we add skin last
             if (bakeType == BakeType.Head)
             {
-                if (skinTexture.Texture != null)
+                if (skinTexture.Texture?.Image != null)
                 {
                     ManagedImage texture = skinTexture.Texture.Image.Clone();
                     if (texture.Width != bakeWidth || texture.Height != bakeHeight)
@@ -318,8 +328,10 @@ namespace OpenMetaverse.Imaging
                     DrawLayer(texture, false);
                 }
 
-                foreach (var texture in from tex in tattooTextures where tex.Texture != null select tex.Texture.Image.Clone())
+                foreach (var tex in tattooTextures)
                 {
+                    if (tex.Texture?.Image == null) continue;
+                    var texture = tex.Texture.Image.Clone();
                     if (texture.Width != bakeWidth || texture.Height != bakeHeight)
                     {
                         try { texture.ResizeNearestNeighbor(bakeWidth, bakeHeight); }
@@ -332,7 +344,7 @@ namespace OpenMetaverse.Imaging
             // Apply any alpha wearable textures to make parts of the avatar disappear
             Logger.Debug("[XBakes]: Number of alpha wearable textures: " + alphaWearableTextures.Count);
             foreach (ManagedImage img in alphaWearableTextures)
-                AddAlpha(bakedTexture.Image, img);
+                AddAlpha(bakedImage, img);
 
             // We are done, encode asset for finalized bake
             bakedTexture.Encode();
@@ -340,28 +352,26 @@ namespace OpenMetaverse.Imaging
 
         private static readonly object ResourceSync = new object();
 
-        public static ManagedImage LoadResourceLayer(string fileName)
+        public static ManagedImage? LoadResourceLayer(string fileName)
         {
             try
             {
                 lock (ResourceSync)
                 {
-                    using (Stream stream = Helpers.GetResourceStream(fileName, Path.Combine(Settings.RESOURCE_DIR, "static_assets")))
+                    Stream? stream = Helpers.GetResourceStream(fileName, Path.Combine(Settings.RESOURCE_DIR, "static_assets"));
+                    if (stream != null)
                     {
-                        if (stream != null)
+                        using (stream)
+                        using (var bitmap = Targa.Decode(stream))
                         {
-                            using (var bitmap = Targa.Decode(stream))
+                            if (bitmap != null)
                             {
-                                if (bitmap != null)
-                                {
-                                    return new ManagedImage(bitmap);
-                                }
-                                else
-                                {
-                                    Logger.Error($"Failed loading resource file: {fileName}");
-                                    return null;
-                                }
-
+                                return new ManagedImage(bitmap);
+                            }
+                            else
+                            {
+                                Logger.Error($"Failed loading resource file: {fileName}");
+                                return null;
                             }
                         }
                     }
@@ -428,33 +438,39 @@ namespace OpenMetaverse.Imaging
                    && (bakeType != BakeType.UpperBody || !mask.Contains("lower"));
         }
 
-        private bool DrawLayer(ManagedImage source, bool addSourceAlpha)
+        private bool DrawLayer(ManagedImage? source, bool addSourceAlpha)
         {
             if (source == null) return false;
+            if (bakedTexture == null) return false;
 
             int i = 0;
 
-            var sourceHasColor = ((source.Channels & ManagedImage.ImageChannels.Color) != 0 &&
-                                  source.Red != null && source.Green != null && source.Blue != null);
-            var sourceHasAlpha = ((source.Channels & ManagedImage.ImageChannels.Alpha) != 0 && source.Alpha != null);
-            var sourceHasBump = ((source.Channels & ManagedImage.ImageChannels.Bump) != 0 && source.Bump != null);
+            // source was null-checked above, capture non-null local for analysis
+            var s = source!;
+
+            var sourceHasColor = ((s.Channels & ManagedImage.ImageChannels.Color) != 0);
+            var sourceHasAlpha = ((s.Channels & ManagedImage.ImageChannels.Alpha) != 0);
+            var sourceHasBump = ((s.Channels & ManagedImage.ImageChannels.Bump) != 0);
 
             addSourceAlpha = (addSourceAlpha && sourceHasAlpha);
 
             byte alpha = byte.MaxValue;
             byte alphaInv = (byte)(byte.MaxValue - alpha);
 
-            byte[] bakedRed = bakedTexture.Image.Red;
-            byte[] bakedGreen = bakedTexture.Image.Green;
-            byte[] bakedBlue = bakedTexture.Image.Blue;
-            byte[] bakedAlpha = bakedTexture.Image.Alpha;
-            byte[] bakedBump = bakedTexture.Image.Bump;
+            // bakedTexture has been checked non-null earlier, capture non-null local for analysis
+            var baked = bakedTexture!;
+            var bakedImage = baked.Image!;
+            byte[] bakedRed = bakedImage.Red;
+            byte[] bakedGreen = bakedImage.Green;
+            byte[] bakedBlue = bakedImage.Blue;
+            byte[] bakedAlpha = bakedImage.Alpha;
+            byte[] bakedBump = bakedImage.Bump;
 
-            byte[] sourceRed = source.Red;
-            byte[] sourceGreen = source.Green;
-            byte[] sourceBlue = source.Blue;
-            byte[] sourceAlpha = sourceHasAlpha ? source.Alpha : null;
-            byte[] sourceBump = sourceHasBump ? source.Bump : null;
+            byte[]? sourceRed = sourceHasColor ? s.Red : null;
+            byte[]? sourceGreen = sourceHasColor ? s.Green : null;
+            byte[]? sourceBlue = sourceHasColor ? s.Blue : null;
+            byte[]? sourceAlpha = sourceHasAlpha ? s.Alpha : null;
+            byte[]? sourceBump = sourceHasBump ? s.Bump : null;
 
             bool loadedAlpha = false;
             for (int y = 0; y < bakeHeight; y++)
@@ -467,10 +483,10 @@ namespace OpenMetaverse.Imaging
 
                     if (sourceHasAlpha)
                     {
-                        if (sourceAlpha.Length > i)
+                        if (sourceAlpha!.Length > i)
                         {
                             loadedAlpha = true;
-                            alpha = sourceAlpha[i];
+                            alpha = sourceAlpha![i];
                             alphaInv = (byte)(byte.MaxValue - alpha);
                         }
                     }
@@ -479,19 +495,19 @@ namespace OpenMetaverse.Imaging
                     {
                         if ((bakedRed.Length > i) && (bakedGreen.Length > i) && (bakedBlue.Length > i))
                         {
-                            if ((sourceRed.Length > i) && (sourceGreen.Length > i) && (sourceBlue.Length > i))
+                            if ((sourceRed!.Length > i) && (sourceGreen!.Length > i) && (sourceBlue!.Length > i))
                             {
                                 if (loadedAlpha)
                                 {
-                                    bakedRed[i] = (byte)((bakedRed[i] * alphaInv + sourceRed[i] * alpha) >> 8);
-                                    bakedGreen[i] = (byte)((bakedGreen[i] * alphaInv + sourceGreen[i] * alpha) >> 8);
-                                    bakedBlue[i] = (byte)((bakedBlue[i] * alphaInv + sourceBlue[i] * alpha) >> 8);
+                                    bakedRed[i] = (byte)((bakedRed[i] * alphaInv + sourceRed![i] * alpha) >> 8);
+                                    bakedGreen[i] = (byte)((bakedGreen[i] * alphaInv + sourceGreen![i] * alpha) >> 8);
+                                    bakedBlue[i] = (byte)((bakedBlue[i] * alphaInv + sourceBlue![i] * alpha) >> 8);
                                 }
                                 else
                                 {
-                                    bakedRed[i] = sourceRed[i];
-                                    bakedGreen[i] = sourceGreen[i];
-                                    bakedBlue[i] = sourceBlue[i];
+                                    bakedRed[i] = sourceRed![i];
+                                    bakedGreen[i] = sourceGreen![i];
+                                    bakedBlue[i] = sourceBlue![i];
                                 }
                             }
                         }
@@ -499,20 +515,20 @@ namespace OpenMetaverse.Imaging
 
                     if (addSourceAlpha)
                     {
-                        if ((sourceAlpha.Length > i) && (bakedAlpha.Length > i))
+                        if ((sourceAlpha!.Length > i) && (bakedAlpha.Length > i))
                         {
-                            if (sourceAlpha[i] < bakedAlpha[i])
+                            if (sourceAlpha![i] < bakedAlpha[i])
                             {
-                                bakedAlpha[i] = sourceAlpha[i];
+                                bakedAlpha[i] = sourceAlpha![i];
                             }
                         }
                     }
 
                     if (sourceHasBump)
                     {
-                        if (sourceBump.Length > i)
+                        if (sourceBump!.Length > i)
                         {
-                            bakedBump[i] = sourceBump[i];
+                            bakedBump[i] = sourceBump![i];
                         }
                     }
 
@@ -529,7 +545,13 @@ namespace OpenMetaverse.Imaging
         /// <param name="dest">Destination image</param>
         /// <param name="src">Source image</param>
         /// <returns>Sanitization was successful</returns>
-        private bool SanitizeLayers(ManagedImage dest, ManagedImage src)
+        /// <summary>
+        /// Make sure images exist, resize source if needed to match the destination
+        /// </summary>
+        /// <param name="dest">Destination image</param>
+        /// <param name="src">Source image</param>
+        /// <returns>Sanitization was successful</returns>
+        private bool SanitizeLayers(ManagedImage? dest, ManagedImage? src)
         {
             if (dest == null || src == null) return false;
 
@@ -550,7 +572,7 @@ namespace OpenMetaverse.Imaging
 
         private void ApplyAlpha(ManagedImage dest, VisualAlphaParam param, float val)
         {
-            ManagedImage src = LoadResourceLayer(param.TGAFile);
+            ManagedImage? src = LoadResourceLayer(param.TGAFile);
 
             if (dest == null || src?.Alpha == null) return;
 
@@ -561,13 +583,14 @@ namespace OpenMetaverse.Imaging
 
             if (dest.Width != src.Width || dest.Height != src.Height)
             {
-                try { src.ResizeNearestNeighbor(dest.Width, dest.Height); }
+                try { src!.ResizeNearestNeighbor(dest.Width, dest.Height); }
                 catch (Exception) { return; }
             }
 
             for (int i = 0; i < dest.Alpha.Length; i++)
             {
-                byte alpha = src.Alpha[i] <= ((1 - val) * 255) ? (byte)0 : (byte)255;
+                // src and src.Alpha are non-null after the guard above
+                byte alpha = src!.Alpha[i] <= ((1 - val) * 255) ? (byte)0 : (byte)255;
 
                 if (param.MultiplyBlend)
                 {
@@ -583,28 +606,31 @@ namespace OpenMetaverse.Imaging
             }
         }
 
-        private void AddAlpha(ManagedImage dest, ManagedImage src)
+        private void AddAlpha(ManagedImage dest, ManagedImage? src)
         {
             if (!SanitizeLayers(dest, src)) return;
 
+            // src is non-null after SanitizeLayers
+            var s = src!;
             for (int i = 0; i < dest.Alpha.Length; i++)
             {
-                if (src.Alpha[i] < dest.Alpha[i])
+                if (s.Alpha[i] < dest.Alpha[i])
                 {
-                    dest.Alpha[i] = src.Alpha[i];
+                    dest.Alpha[i] = s.Alpha[i];
                 }
             }
         }
 
-        private void MultiplyLayerFromAlpha(ManagedImage dest, ManagedImage src)
+        private void MultiplyLayerFromAlpha(ManagedImage dest, ManagedImage? src)
         {
             if (!SanitizeLayers(dest, src)) return;
 
             for (int i = 0; i < dest.Red.Length; i++)
             {
-                dest.Red[i] = (byte)((dest.Red[i] * src.Alpha[i]) >> 8);
-                dest.Green[i] = (byte)((dest.Green[i] * src.Alpha[i]) >> 8);
-                dest.Blue[i] = (byte)((dest.Blue[i] * src.Alpha[i]) >> 8);
+                // src is non-null after SanitizeLayers, null-forgive for static analysis
+                dest.Red[i] = (byte)((dest.Red[i] * src!.Alpha[i]) >> 8);
+                dest.Green[i] = (byte)((dest.Green[i] * src!.Alpha[i]) >> 8);
+                dest.Blue[i] = (byte)((dest.Blue[i] * src!.Alpha[i]) >> 8);
             }
         }
 
@@ -665,11 +691,15 @@ namespace OpenMetaverse.Imaging
 
             int i = 0;
 
-            byte[] red = bakedTexture.Image.Red;
-            byte[] green = bakedTexture.Image.Green;
-            byte[] blue = bakedTexture.Image.Blue;
-            byte[] alpha = bakedTexture.Image.Alpha;
-            byte[] bump = bakedTexture.Image.Bump;
+            if (bakedTexture == null) return;
+
+            // bakedTexture is set during Bake() with a ManagedImage; assert non-null here for static analysis
+            var img = bakedTexture.Image!;
+            byte[] red = img.Red!;
+            byte[] green = img.Green!;
+            byte[] blue = img.Blue!;
+            byte[] alpha = img.Alpha!;
+            byte[] bump = img.Bump!;
 
             for (int y = 0; y < bakeHeight; y++)
             {

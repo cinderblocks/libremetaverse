@@ -204,7 +204,7 @@ namespace OpenMetaverse
             /// <summary>AssetType of the wearable</summary>
             public AssetType AssetType;
             /// <summary>Asset data for the wearable</summary>
-            public AssetWearable Asset;
+            public AssetWearable? Asset;
 
             public override string ToString()
             {
@@ -235,7 +235,7 @@ namespace OpenMetaverse
             /// <summary>A texture AssetID</summary>
             public UUID TextureID = UUID.Zero;
             /// <summary>Asset data for the texture</summary>
-            public AssetTexture Texture = null;
+            public AssetTexture? Texture = null;
             /// <summary>Collection of alpha masks that needs applying</summary>
             public Dictionary<VisualAlphaParam, float> AlphaMasks = new Dictionary<VisualAlphaParam, float>();
             /// <summary>Tint that should be applied to the texture</summary>
@@ -255,7 +255,7 @@ namespace OpenMetaverse
         #region Event delegates, Raise Events
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<AgentWearablesReplyEventArgs> m_AgentWearablesReply;
+        private EventHandler<AgentWearablesReplyEventArgs>? m_AgentWearablesReply;
 
         /// <summary>Raises the AgentWearablesReply event</summary>
         /// <param name="e">An AgentWearablesReplyEventArgs object containing the
@@ -281,7 +281,7 @@ namespace OpenMetaverse
 
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<AgentCachedBakesReplyEventArgs> m_AgentCachedBakesReply;
+        private EventHandler<AgentCachedBakesReplyEventArgs>? m_AgentCachedBakesReply;
 
         /// <summary>Raises the CachedBakesReply event</summary>
         /// <param name="e">An AgentCachedBakesReplyEventArgs object containing the
@@ -306,7 +306,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<AppearanceSetEventArgs> m_AppearanceSet;
+        private EventHandler<AppearanceSetEventArgs>? m_AppearanceSet;
 
         /// <summary>Raises the AppearanceSet event</summary>
         /// <param name="e">An AppearanceSetEventArgs object indicating if the operation was successful</param>
@@ -331,7 +331,7 @@ namespace OpenMetaverse
 
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<RebakeAvatarTexturesEventArgs> m_RebakeAvatarReply;
+        private EventHandler<RebakeAvatarTexturesEventArgs>? m_RebakeAvatarReply;
 
         /// <summary>Raises the RebakeAvatarRequested event</summary>
         /// <param name="e">An RebakeAvatarTexturesEventArgs object containing the
@@ -373,10 +373,10 @@ namespace OpenMetaverse
         }
 
         /// <summary>Visual parameters last sent to the sim</summary>
-        public byte[] MyVisualParameters;
-
+        public byte[] MyVisualParameters = Array.Empty<byte>();
+        
         /// <summary>Textures about this client sent to the sim</summary>
-        public Primitive.TextureEntry MyTextures;
+        public Primitive.TextureEntry MyTextures = new Primitive.TextureEntry(Primitive.TextureEntry.WHITE_TEXTURE);
 
         #endregion Properties
 
@@ -397,16 +397,16 @@ namespace OpenMetaverse
         /// <summary>
         /// Timer used for delaying rebake on changing outfit
         /// </summary>
-        private CancellationTokenSource RebakeScheduleCts;
-        private Task RebakeScheduleTask;
+        private CancellationTokenSource? RebakeScheduleCts;
+        private Task? RebakeScheduleTask;
         /// <summary>
         /// Task tracking the async appearance workflow started by RequestSetAppearance
         /// </summary>
-        private Task AppearanceTask;
+        private Task? AppearanceTask;
         /// <summary>
         /// Main appearance cancellation token source
         /// </summary>
-        private CancellationTokenSource AppearanceCts;
+        private CancellationTokenSource? AppearanceCts;
         /// <summary>
         /// Is server baking complete. It needs doing only once
         /// </summary>
@@ -424,7 +424,7 @@ namespace OpenMetaverse
 
         // Centralized helper to cancel a CancellationTokenSource, wait for a Task to complete
         // (best-effort) and dispose the CTS. Keeps cancellation handling consistent.
-        private void CancelAndAwaitTask(ref CancellationTokenSource cts, ref Task task, int timeoutMs = 5000)
+        private void CancelAndAwaitTask(ref CancellationTokenSource? cts, ref Task? task, int timeoutMs = 5000)
         {
             if (cts == null && task == null) return;
 
@@ -477,15 +477,15 @@ namespace OpenMetaverse
             if (!disposing) { return; }
 
             // Unregister packet callbacks safely
-            DisposalHelper.SafeAction(() => Client?.Network?.UnregisterCallback(PacketType.AgentWearablesUpdate, AgentWearablesUpdateHandler), "Unregister AgentWearablesUpdate", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
-            DisposalHelper.SafeAction(() => Client?.Network?.UnregisterCallback(PacketType.AgentCachedTextureResponse, AgentCachedTextureResponseHandler), "Unregister AgentCachedTextureResponse", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
-            DisposalHelper.SafeAction(() => Client?.Network?.UnregisterCallback(PacketType.RebakeAvatarTextures, RebakeAvatarTexturesHandler), "Unregister RebakeAvatarTextures", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
+            DisposalHelper.SafeAction(() => Client?.Network?.UnregisterCallback(PacketType.AgentWearablesUpdate, AgentWearablesUpdateHandler), "Unregister AgentWearablesUpdate", (m,e) => { if (e != null) Logger.Warn(m + ": " + e.Message, e, Client); else Logger.Warn(m, Client); });
+            DisposalHelper.SafeAction(() => Client?.Network?.UnregisterCallback(PacketType.AgentCachedTextureResponse, AgentCachedTextureResponseHandler), "Unregister AgentCachedTextureResponse", (m,e) => { if (e != null) Logger.Warn(m + ": " + e.Message, e, Client); else Logger.Warn(m, Client); });
+            DisposalHelper.SafeAction(() => Client?.Network?.UnregisterCallback(PacketType.RebakeAvatarTextures, RebakeAvatarTexturesHandler), "Unregister RebakeAvatarTextures", (m,e) => { if (e != null) Logger.Warn(m + ": " + e.Message, e, Client); else Logger.Warn(m, Client); });
 
             // Unsubscribe from events
-            DisposalHelper.SafeAction(() => { if (Client?.Objects != null) Client.Objects.ObjectUpdate -= Objects_AttachmentUpdate; }, "Unsubscribe Objects.ObjectUpdate", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
-            DisposalHelper.SafeAction(() => { if (Client?.Network != null) Client.Network.Disconnected -= Network_OnDisconnected; }, "Unsubscribe Network.Disconnected", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
-            DisposalHelper.SafeAction(() => { if (Client?.Network != null) Client.Network.SimChanged -= Network_OnSimChanged; }, "Unsubscribe Network.SimChanged", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
-            DisposalHelper.SafeAction(() => { if (Client?.Network?.CurrentSim?.Caps != null) Client.Network.CurrentSim.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived; }, "Unsubscribe CapabilitiesReceived", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
+            DisposalHelper.SafeAction(() => { if (Client?.Objects != null) Client.Objects.ObjectUpdate -= Objects_AttachmentUpdate; }, "Unsubscribe Objects.ObjectUpdate", (m,e) => { if (e != null) Logger.Warn(m + ": " + e.Message, e, Client); else Logger.Warn(m, Client); });
+            DisposalHelper.SafeAction(() => { if (Client?.Network != null) Client.Network.Disconnected -= Network_OnDisconnected; }, "Unsubscribe Network.Disconnected", (m,e) => { if (e != null) Logger.Warn(m + ": " + e.Message, e, Client); else Logger.Warn(m, Client); });
+            DisposalHelper.SafeAction(() => { if (Client?.Network != null) Client.Network.SimChanged -= Network_OnSimChanged; }, "Unsubscribe Network.SimChanged", (m,e) => { if (e != null) Logger.Warn(m + ": " + e.Message, e, Client); else Logger.Warn(m, Client); });
+            DisposalHelper.SafeAction(() => { if (Client?.Network?.CurrentSim?.Caps != null) Client.Network.CurrentSim.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived; }, "Unsubscribe CapabilitiesReceived", (m,e) => { if (e != null) Logger.Warn(m + ": " + e.Message, e, Client); else Logger.Warn(m, Client); });
 
             // Cancel and dispose running appearance workflow and rebake scheduler reliably
             CancelAndAwaitTask(ref AppearanceCts, ref AppearanceTask);
@@ -504,13 +504,13 @@ namespace OpenMetaverse
         {
             Client = client;
 
-            Client.Network.RegisterCallback(PacketType.AgentWearablesUpdate, AgentWearablesUpdateHandler);
-            Client.Network.RegisterCallback(PacketType.AgentCachedTextureResponse, AgentCachedTextureResponseHandler);
-            Client.Network.RegisterCallback(PacketType.RebakeAvatarTextures, RebakeAvatarTexturesHandler);
+            Client.Network?.RegisterCallback(PacketType.AgentWearablesUpdate, AgentWearablesUpdateHandler);
+            Client.Network?.RegisterCallback(PacketType.AgentCachedTextureResponse, AgentCachedTextureResponseHandler);
+            Client.Network?.RegisterCallback(PacketType.RebakeAvatarTextures, RebakeAvatarTexturesHandler);
 
-            Client.Objects.ObjectUpdate += Objects_AttachmentUpdate;
-            Client.Network.Disconnected += Network_OnDisconnected;
-            Client.Network.SimChanged += Network_OnSimChanged;
+            if (Client.Objects != null) Client.Objects.ObjectUpdate += Objects_AttachmentUpdate;
+            Client.Network?.Disconnected += Network_OnDisconnected;
+            Client.Network?.SimChanged += Network_OnSimChanged;
 
             // Initialize TextureData instances for the Textures array now that TextureData is a class
             for (var i = 0; i < Textures.Length; i++)
@@ -527,8 +527,8 @@ namespace OpenMetaverse
         /// <param name="forceRebake">True to force rebaking, otherwise false</param>
         public Task RequestSetAppearance(bool forceRebake = false)
         {
-            Task previousTask = null;
-            CancellationTokenSource previousCts = null;
+            Task? previousTask = null;
+            CancellationTokenSource? previousCts = null;
 
             lock (_appearanceLock)
             {
@@ -549,8 +549,8 @@ namespace OpenMetaverse
                     if (RebakeScheduleCts != null)
                     {
                         try { RebakeScheduleCts.Cancel(); } catch (Exception ex) { Logger.Debug($"RebakeScheduleCts.Cancel failed: {ex}", Client); }
-                        RebakeScheduleTask = null;
-                        RebakeScheduleCts = null;
+                        RebakeScheduleTask = null!;
+                        RebakeScheduleCts = null!;
                     }
 
                     return StartAppearanceImmediate(forceRebake);
@@ -563,8 +563,8 @@ namespace OpenMetaverse
             if (RebakeScheduleCts != null)
             {
                 try { RebakeScheduleCts.Cancel(); } catch (Exception ex) { Logger.Debug($"RebakeScheduleCts.Cancel failed: {ex}", Client); }
-                RebakeScheduleTask = null;
-                RebakeScheduleCts = null;
+                RebakeScheduleTask = null!;
+                RebakeScheduleCts = null!;
             }
 
             return StartAppearanceImmediate(forceRebake);
@@ -623,7 +623,7 @@ namespace OpenMetaverse
             if (cof == null)
             {
                 Logger.Warn("Could not retrieve 'Current Outfit' folder", Client);
-                return null;
+                return new List<InventoryBase>();
             }
 
             List<InventoryBase> contents;
@@ -637,7 +637,7 @@ namespace OpenMetaverse
             if (contents == null)
             {
                 Logger.Warn("Could not retrieve 'Current Outfit' folder contents", Client);
-                return null;
+                return new List<InventoryBase>();
             }
 
             var wearables = new MultiValueDictionary<WearableType, WearableData>();
@@ -648,7 +648,7 @@ namespace OpenMetaverse
                     case InventoryWearable wearable:
                     {
                         var w = wearable;
-                        if (wearable.IsLink() && Client.Inventory.Store.Contains(wearable.ActualUUID))
+                        if (wearable.IsLink() && Client.Inventory?.Store != null && Client.Inventory.Store.Contains(wearable.ActualUUID))
                         {
                             w = Client.Inventory.Store[wearable.ActualUUID] as InventoryWearable;
                         }
@@ -667,7 +667,7 @@ namespace OpenMetaverse
                     case InventoryAttachment attachment:
                     {
                         var a = attachment;
-                        if (attachment.IsLink() && Client.Inventory.Store.Contains(attachment.ActualUUID))
+                        if (attachment.IsLink() && Client.Inventory?.Store != null && Client.Inventory.Store.Contains(attachment.ActualUUID))
                         {
                             a = Client.Inventory.Store[attachment.ActualUUID] as InventoryAttachment;
                         }
@@ -680,7 +680,7 @@ namespace OpenMetaverse
                     case InventoryObject attachedObject:
                     {
                         var a = attachedObject;
-                        if (attachedObject.IsLink() && Client.Inventory.Store.Contains(attachedObject.ActualUUID))
+                        if (attachedObject.IsLink() && Client.Inventory?.Store != null && Client.Inventory.Store.Contains(attachedObject.ActualUUID))
                         {
                             a = Client.Inventory.Store[attachedObject.ActualUUID] as InventoryObject;
                         }
@@ -1242,7 +1242,10 @@ namespace OpenMetaverse
         /// <returns>True on success retrieving attachments</returns>
         private bool GatherAgentAttachments()
         {
-            var objectsPrimitives = Client.Network.CurrentSim.ObjectsPrimitives;
+            var sim = Client.Network.CurrentSim;
+            if (sim == null) return true;
+
+            var objectsPrimitives = sim.ObjectsPrimitives;
 
             // No primitives found.
             if (objectsPrimitives.IsEmpty)
@@ -1256,10 +1259,10 @@ namespace OpenMetaverse
 
             var enumerable = primitives as Primitive[] ?? primitives.ToArray();
 
-            foreach (var primitive in enumerable)
-            {
-                // Find the inventory UUID from the primitive name-value collection.
-                if (primitive == null || primitive.NameValues == null || !primitive.NameValues.Any()) { continue; }
+                foreach (var primitive in enumerable)
+                {
+                    // Find the inventory UUID from the primitive name-value collection.
+                    if (primitive is null || primitive.NameValues is null || !primitive.NameValues.Any()) { continue; }
 
                 var nameValue = primitive.NameValues.SingleOrDefault(item => item.Name.Equals("AttachItemID"));
 
@@ -1269,7 +1272,7 @@ namespace OpenMetaverse
                 var inventoryItemId = nameValue.Value?.ToString();
 
                 // If the AttachItemID is missing or invalid, skip this primitive instead of failing the whole gather
-                if (string.IsNullOrEmpty(inventoryItemId) || !UUID.TryParse(inventoryItemId, out var itemID))
+                if (string.IsNullOrEmpty(inventoryItemId) || !UUID.TryParse(inventoryItemId!, out var itemID))
                 {
                     Logger.Debug($"GatherAgentAttachments: Invalid AttachItemID '{inventoryItemId}' on primitive {primitive.LocalID}", Client);
                     continue;
@@ -1302,7 +1305,11 @@ namespace OpenMetaverse
         /// a copy of all wearable data each time</remarks>
         public IEnumerable<InventoryItem> GetAttachments()
         {
-            return Attachments.Select(item => Client.Inventory.Store[item.Key] as InventoryItem);
+            var store = Client?.Inventory?.Store;
+            if (store == null) return Enumerable.Empty<InventoryItem>();
+
+            return Attachments.Select(item => store.Contains(item.Key) ? store[item.Key] as InventoryItem : null)
+                              .OfType<InventoryItem>();
         }
 
         public Dictionary<UUID, AttachmentPoint> GetAttachmentsByItemId()
@@ -1325,16 +1332,24 @@ namespace OpenMetaverse
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // If the item is already retrieved then speed this up.
-                if (Client.Inventory.Store.Contains(item.Key))
+                var store = Client?.Inventory?.Store;
+                if (store != null && store.Contains(item.Key))
                 {
-                    attachmentsByPoint.Add(item.Value, Client.Inventory.Store[item.Key] as InventoryItem);
+                    var invItem = store[item.Key] as InventoryItem;
+                    if (invItem != null)
+                    {
+                        attachmentsByPoint.Add(item.Value, invItem);
+                    }
                     continue;
                 }
 
                 // Otherwise, retrieve the item off the asset server asynchronously.
                 try
                 {
-                    var inventoryItem = await Client.Inventory.FetchItemHttpAsync(item.Key, Client.Self.AgentID, cancellationToken).ConfigureAwait(false);
+                    var clientLocal = Client;
+                    if (clientLocal?.Inventory == null) continue;
+
+                    var inventoryItem = await clientLocal.Inventory.FetchItemHttpAsync(item.Key, clientLocal.Self.AgentID, cancellationToken).ConfigureAwait(false);
                     if (inventoryItem != null)
                     {
                         attachmentsByPoint.Add(item.Value, inventoryItem);
@@ -1643,8 +1658,11 @@ namespace OpenMetaverse
 
             // Populate collection of alpha masks from visual params
             // also add color tinting information
-            foreach (var kvp in wearable.Asset.Params)
+            var assetParams = wearable.Asset?.Params;
+            if (assetParams != null)
             {
+                foreach (var kvp in assetParams)
+                {
                 if (!VisualParams.Params.TryGetValue(kvp.Key, out var p)) continue;
 
                 var colorInfo = new ColorParamInfo
@@ -1720,6 +1738,7 @@ namespace OpenMetaverse
                         }
                     }
                 }
+                }
             }
 
             var wearableColor = Color4.White; // Never actually used
@@ -1730,8 +1749,10 @@ namespace OpenMetaverse
             }
 
             // Loop through all the texture IDs in this decoded asset and put them in our cache of worn textures
-            foreach (var entry in wearable.Asset.Textures)
+            if (wearable.Asset != null)
             {
+                foreach (var entry in wearable.Asset.Textures)
+                {
                 var i = (int)entry.Key;
 
                 // Update information about color and alpha masks for this texture
@@ -1746,8 +1767,8 @@ namespace OpenMetaverse
                     textures[i].Texture = null;
                 }
             }
+            }
         }
-
         /// <summary>
         /// Creates a dictionary of visual param values from the downloaded wearables
         /// </summary>
@@ -1789,11 +1810,13 @@ namespace OpenMetaverse
             return paramValues;
         }
 
-        private Avatar GetOwnAvatar()
+        private Avatar? GetOwnAvatar()
         {
-            Client.Network.CurrentSim.ObjectsAvatars.TryGetValue(Client.Self.LocalID, out var av);
-
-            return av;
+            var client = Client;
+            var sim = client?.Network?.CurrentSim;
+            if (sim != null && client != null && sim.ObjectsAvatars.TryGetValue(client.Self.LocalID, out var av))
+                return av;
+            return null;
         }
 
         /// <summary>
@@ -1811,7 +1834,7 @@ namespace OpenMetaverse
                     return false;
                 }
 
-                var cap = Client.Network.CurrentSim.Caps?.CapabilityURI("UpdateAvatarAppearance");
+                var cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("UpdateAvatarAppearance");
                 if (cap == null)
                 {
                     Logger.Warn("Could not retrieve UpdateAvatarAppearance region capability", Client);
@@ -1833,19 +1856,19 @@ namespace OpenMetaverse
 
                 var request = new OSDMap(1) { ["cof_version"] = currentOutfitFolder.Version };
 
-                OSD res = null;
+                OSD? res = null;
 
                 var maxRetries = 1000; // About a minute. (50,000ms)
 
                 while (maxRetries-- > 0)
                 {
-                    if (!Client.Network.Connected)
+                    if (Client?.Network?.Connected != true)
                     {
                         await Task.Delay(50, cancellationToken).ConfigureAwait(false);
                     }
                     else
                     {
-                        if (GetOwnAvatar() == null)
+                        if (GetOwnAvatar() is null)
                         {
                             await Task.Delay(50, cancellationToken).ConfigureAwait(false);
                         }
@@ -1856,7 +1879,14 @@ namespace OpenMetaverse
                     }
                 }
 
-                await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, request, cancellationToken, (response, data, error) =>
+                var http = Client?.HttpCapsClient;
+                if (http == null)
+                {
+                    Logger.Warn("No HttpCapsClient available to UpdateAvatarAppearance", Client);
+                    return false;
+                }
+
+                await http.PostRequestAsync(cap, OSDFormat.Xml, request, cancellationToken, (response, data, error) =>
                 {
                     if (data != null)
                     {
@@ -1894,7 +1924,7 @@ namespace OpenMetaverse
                     {
                         var selfPrim = GetOwnAvatar();
 
-                        if (selfPrim == null)
+                        if (selfPrim is null)
                         {
                             Logger.Error("Unable to find avatar to set appearance information", Client);
                         }
@@ -1918,17 +1948,30 @@ namespace OpenMetaverse
                             selfPrim.COFVersion = cofVersion;
                             selfPrim.AppearanceFlags = 0;
 
-                            var appearance = new AvatarAppearanceEventArgs(Client.Network.CurrentSim,
-                                Client.Self.AgentID,
-                                false,
-                                selfPrim.Textures.DefaultTexture,
-                                selfPrim.Textures.FaceTextures,
-                                selfPrim.VisualParameters.ToList(), 1,
-                                cofVersion,
-                                AppearanceFlags.None,
-                                selfPrim.ChildCount);
+                            var texEntry = selfPrim.Textures ?? new Primitive.TextureEntry(UUID.Zero);
+                            var defaultTex = texEntry.DefaultTexture ?? new Primitive.TextureEntryFace(null);
+                            var faceTextures = texEntry.FaceTextures.Select(ft => ft ?? defaultTex).ToArray();
 
-                            Client.Avatars.TriggerAvatarAppearanceMessage(appearance);
+                            var sim = Client?.Network?.CurrentSim;
+                            if (sim == null)
+                            {
+                                Logger.Warn("No current simulator available to trigger avatar appearance event", Client);
+                            }
+                            else
+                            {
+                                var clientLocal = Client;
+                                var appearance = new AvatarAppearanceEventArgs(sim,
+                                    clientLocal?.Self.AgentID ?? UUID.Zero,
+                                    false,
+                                    defaultTex,
+                                    faceTextures,
+                                    selfPrim.VisualParameters.ToList(), 1,
+                                    cofVersion,
+                                    AppearanceFlags.None,
+                                    selfPrim.ChildCount);
+
+                                clientLocal?.Avatars?.TriggerAvatarAppearanceMessage(appearance);
+                            }
                         }
                     }
                     catch (Exception e)
@@ -1969,11 +2012,16 @@ namespace OpenMetaverse
         /// Get the latest version of COF
         /// </summary>
         /// <returns>Current Outfit Folder (or null if getting the data failed)</returns>
-        public async Task<InventoryFolder> GetCurrentOutfitFolder(CancellationToken cancellationToken = default)
+        public async Task<InventoryFolder?> GetCurrentOutfitFolder(CancellationToken cancellationToken = default)
         {
             // COF should be in the root folder. Request update to get the latest version number
-            List<InventoryBase> root = await Client.Inventory.RequestFolderContents(Client.Inventory.Store.RootFolder.UUID,
-                Client.Self.AgentID, true, false, InventorySortOrder.ByDate,
+            var clientLocal = Client;
+            if (clientLocal?.Inventory?.Store?.RootFolder == null) return null;
+
+            var rootFolder = clientLocal.Inventory.Store.RootFolder;
+
+            List<InventoryBase>? root = await clientLocal.Inventory.RequestFolderContents(rootFolder.UUID,
+                clientLocal.Self.AgentID, true, false, InventorySortOrder.ByDate,
                 cancellationToken).ConfigureAwait(false);
 
             if (root == null) { return null; }
@@ -2154,11 +2202,15 @@ namespace OpenMetaverse
 
                 if (Client.Settings.AVATAR_TRACKING)
                 {
-                    Avatar me;
-                    if (Client.Network.CurrentSim.ObjectsAvatars.TryGetValue(Client.Self.LocalID, out me))
+                    var client = Client;
+                    if (client != null)
                     {
-                        me.Textures = MyTextures;
-                        me.VisualParameters = MyVisualParameters;
+                        var cur = client.Network.CurrentSim;
+                        if (cur != null && cur.ObjectsAvatars.TryGetValue(client.Self.LocalID, out var me))
+                        {
+                            me.Textures = MyTextures;
+                            me.VisualParameters = MyVisualParameters;
+                        }
                     }
                 }
             }
@@ -2273,8 +2325,15 @@ namespace OpenMetaverse
         private void DelayedRequestSetAppearance()
         {
             // Cancel any existing scheduled rebake
-            try { DisposalHelper.SafeCancelAndDispose(RebakeScheduleCts, (m, ex) => Logger.Debug(m, ex)); }
-            catch (Exception ex) { Logger.Debug($"Cancel previous rebake failed: {ex}", Client); }
+            try
+            {
+                var ctsSnapshot = RebakeScheduleCts;
+                if (ctsSnapshot != null)
+                {
+                    DisposalHelper.SafeCancelAndDispose(ctsSnapshot, (m, ex) => { if (ex != null) Logger.Debug(m, ex); else Logger.Debug(m, Client); });
+                }
+            }
+            catch (Exception ex) { if (ex != null) Logger.Debug($"Cancel previous rebake failed: {ex}", ex, Client); else Logger.Debug("Cancel previous rebake failed", Client); }
 
             var cts = new CancellationTokenSource();
             var token = cts.Token;
@@ -2293,7 +2352,8 @@ namespace OpenMetaverse
                             await task.ContinueWith(t =>
                             {
                                 var ex = t.Exception; // Observe
-                                Logger.Warn($"Delayed RequestSetAppearance task faulted: {ex}", Client);
+                                if (ex != null) Logger.Warn($"Delayed RequestSetAppearance task faulted: {ex}", ex, Client);
+                                else Logger.Warn($"Delayed RequestSetAppearance task faulted", Client);
                             }, TaskContinuationOptions.OnlyOnFaulted);
                         }
                         catch (Exception ex)
@@ -2307,9 +2367,9 @@ namespace OpenMetaverse
                     {
                         lock (_appearanceLock)
                         {
-                            RebakeScheduleTask = null;
+                            RebakeScheduleTask = null!;
                             try { RebakeScheduleCts?.Dispose(); } catch { }
-                            RebakeScheduleCts = null;
+                            RebakeScheduleCts = null!;
                         }
                     }
                 }, token);
@@ -2320,7 +2380,7 @@ namespace OpenMetaverse
         {
             if (cancellationToken.IsCancellationRequested) { return; }
 
-            Uri capability = Client.Network.CurrentSim.Caps.CapabilityURI("IncrementCOFVersion");
+            Uri? capability = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("IncrementCOFVersion");
             if (capability == null)
             {
                 Logger.Warn("Region returned no IncrementCOFVersion capability", Client);
@@ -2330,7 +2390,14 @@ namespace OpenMetaverse
 
             using (var request = new HttpRequestMessage(HttpMethod.Get, capability))
             {
-                using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
+                var http = Client?.HttpCapsClient;
+                if (http == null)
+                {
+                    Logger.Warn("No HttpCapsClient available to increment COF version", Client);
+                    return;
+                }
+
+                using (var reply = await http.SendAsync(request, cancellationToken).ConfigureAwait(false))
                 {
                     if (!reply.IsSuccessStatusCode)
                     {
@@ -2345,7 +2412,10 @@ namespace OpenMetaverse
                             var version = map["version"].AsInteger();
                             Logger.Info($"Slamming {version} version to Current Outfit Folder", Client);
                             var cof = await GetCurrentOutfitFolder(cancellationToken).ConfigureAwait(false);
-                            cof.Version = version;
+                            if (cof != null)
+                            {
+                                cof.Version = version;
+                            }
                         }
                     }
                 }
@@ -2408,7 +2478,7 @@ namespace OpenMetaverse
         var wearables = new List<InventoryWearable>();
         var attachments = new List<InventoryItem>();
 
-        List<InventoryBase> objects = null;
+            List<InventoryBase>? objects = null;
         try
         {
             objects = await Client.Inventory.FolderContentsAsync(folder, Client.Self.AgentID, false, true,
@@ -2417,12 +2487,12 @@ namespace OpenMetaverse
         catch (OperationCanceledException)
         {
             Logger.Debug($"GetFolderWearablesAsync cancelled while fetching folder {folder}", Client);
-            return (false, null, null);
+            return (false, wearables, attachments);
         }
         catch (Exception ex)
         {
             Logger.Error($"Failed to download folder contents of {folder}: {ex}", Client);
-            return (false, null, null);
+            return (false, wearables, attachments);
         }
 
         if (objects != null)
@@ -2453,14 +2523,14 @@ namespace OpenMetaverse
         }
 
         Logger.Error($"Failed to download folder contents of {folder}", Client);
-        return (false, null, null);
+        return (false, wearables, attachments);
     }
 
     #endregion Inventory Helpers
 
     #region Callbacks
 
-    protected void AgentWearablesUpdateHandler(object sender, PacketReceivedEventArgs e)
+    protected void AgentWearablesUpdateHandler(object? sender, PacketReceivedEventArgs e)
     {
         var update = (AgentWearablesUpdatePacket)e.Packet;
 
@@ -2515,7 +2585,7 @@ namespace OpenMetaverse
         OnAgentWearables(new AgentWearablesReplyEventArgs());
     }
 
-    protected void RebakeAvatarTexturesHandler(object sender, PacketReceivedEventArgs e)
+    protected void RebakeAvatarTexturesHandler(object? sender, PacketReceivedEventArgs e)
     {
         var rebake = (RebakeAvatarTexturesPacket)e.Packet;
 
@@ -2528,7 +2598,7 @@ namespace OpenMetaverse
         OnRebakeAvatar(new RebakeAvatarTexturesEventArgs(rebake.TextureData.TextureID));
     }
 
-    protected void AgentCachedTextureResponseHandler(object sender, PacketReceivedEventArgs e)
+    protected void AgentCachedTextureResponseHandler(object? sender, PacketReceivedEventArgs e)
     {
         var response = (AgentCachedTextureResponsePacket)e.Packet;
 
@@ -2558,24 +2628,36 @@ namespace OpenMetaverse
         OnAgentCachedBakes(new AgentCachedBakesReplyEventArgs());
     }
 
-    private void Network_OnDisconnected(object sender, DisconnectedEventArgs e)
+    private void Network_OnDisconnected(object? sender, DisconnectedEventArgs e)
+        {
+            var rs = RebakeScheduleCts;
+            if (rs != null)
+            {
+                try { DisposalHelper.SafeCancelAndDispose(rs, (m, ex) => { if (ex != null) Logger.Debug(m, ex); else Logger.Debug(m, Client); }); } catch { }
+            }
+            RebakeScheduleTask = null;
+            RebakeScheduleCts = null;
+
+            var ac = AppearanceCts;
+            if (ac != null)
+            {
+                try { DisposalHelper.SafeCancelAndDispose(ac, (m, ex) => { if (ex != null) Logger.Debug(m, ex); else Logger.Debug(m, Client); }); } catch { }
+            }
+            AppearanceCts = null;
+
+            // Clear appearance workflow state
+        }
+
+    private void Network_OnSimChanged(object? sender, SimChangedEventArgs e)
     {
-        DisposalHelper.SafeCancelAndDispose(RebakeScheduleCts, (m, ex) => Logger.Debug(m, ex));
-        RebakeScheduleTask = null;
-        RebakeScheduleCts = null;
-
-        DisposalHelper.SafeCancelAndDispose(AppearanceCts, (m, ex) => Logger.Debug(m, ex));
-        AppearanceCts = null;
-
-        // Clear appearance workflow state
+        var cur = Client.Network.CurrentSim;
+        if (cur?.Caps != null)
+        {
+            cur.Caps.CapabilitiesReceived += Simulator_OnCapabilitiesReceived;
+        }
     }
 
-    private void Network_OnSimChanged(object sender, SimChangedEventArgs e)
-    {
-        Client.Network.CurrentSim.Caps.CapabilitiesReceived += Simulator_OnCapabilitiesReceived;
-    }
-
-    private void Objects_AttachmentUpdate(object sender, PrimEventArgs e)
+    private void Objects_AttachmentUpdate(object? sender, PrimEventArgs e)
     {
         Primitive prim = e.Prim;
 
@@ -2596,20 +2678,20 @@ namespace OpenMetaverse
                 continue;
             }
 
-            try
-            {
-                var valueStr = prim.NameValues[i].Value?.ToString();
-                if (UUID.TryParse(valueStr, out var inventoryID))
+                try
                 {
-                    var attachPoint = prim.PrimData.AttachmentPoint;
-                    // Always add or update using the attachment point from the primitive
-                    Attachments.AddOrUpdate(inventoryID, attachPoint, (id, old) => attachPoint);
+                    var valueStr = prim.NameValues[i].Value?.ToString();
+                    if (!string.IsNullOrEmpty(valueStr) && UUID.TryParse(valueStr!, out var inventoryID))
+                    {
+                        var attachPoint = prim.PrimData.AttachmentPoint;
+                        // Always add or update using the attachment point from the primitive
+                        Attachments.AddOrUpdate(inventoryID, attachPoint, (id, old) => attachPoint);
+                    }
+                    else
+                    {
+                        Logger.Debug($"Objects_AttachmentUpdate: AttachItemID '{valueStr}' could not be parsed to UUID", Client);
+                    }
                 }
-                else
-                {
-                    Logger.Debug($"Objects_AttachmentUpdate: AttachItemID '{valueStr}' could not be parsed to UUID", Client);
-                }
-            }
             catch (Exception ex)
             {
                 Logger.Debug($"Objects_AttachmentUpdate: failed parsing AttachItemID: {ex}", Client);
@@ -2619,11 +2701,12 @@ namespace OpenMetaverse
         }
     }
 
-    private async void Simulator_OnCapabilitiesReceived(object sender, CapabilitiesReceivedEventArgs e)
+    private async void Simulator_OnCapabilitiesReceived(object? sender, CapabilitiesReceivedEventArgs e)
     {
         try
         {
-            e.Simulator.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived;
+            if (e.Simulator?.Caps != null)
+                e.Simulator.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived;
 
             if (e.Simulator == Client.Network.CurrentSim && Client.Settings.SEND_AGENT_APPEARANCE)
             {

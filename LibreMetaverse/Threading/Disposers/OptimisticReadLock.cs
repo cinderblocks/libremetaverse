@@ -34,7 +34,7 @@ namespace LibreMetaverse.Threading.Disposers
 	public struct OptimisticReadLock:
 		IDisposable
 	{
-		private OptimisticReaderWriterLock _lock;
+		private OptimisticReaderWriterLock? _lock;
 		internal OptimisticReadLock(OptimisticReaderWriterLock yieldLock)
 		{
 			_lock = yieldLock;

@@ -60,7 +60,7 @@ namespace LibreMetaverse
         /// </summary>
         [Obsolete("Use Task-based GetRequestAsync overloads or the Task-based SendRequestTaskAsync and IProgress<ProgressReport> instead.")]
         public async Task GetRequestAsync(Uri uri, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+            IProgress<ProgressReport>? progress = null, DownloadCompleteHandler? completeHandler = null, ConnectedHandler? connectedHandler = null)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
             {
@@ -69,7 +69,7 @@ namespace LibreMetaverse
         }
 
         public async Task GetRequestAsync(Uri uri, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+            DownloadCompleteHandler? completeHandler = null, ConnectedHandler? connectedHandler = null)
         {
             await GetRequestAsync(uri, cancellationToken, null, completeHandler, connectedHandler);
         }
@@ -89,7 +89,7 @@ namespace LibreMetaverse
         /// </summary>
         [Obsolete("Use Task-based PostAsync overloads and IProgress<ProgressReport> instead.")]
         public async Task PostRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+            IProgress<ProgressReport>? progress = null, DownloadCompleteHandler? completeHandler = null, ConnectedHandler? connectedHandler = null)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Post, uri))
             {
@@ -108,7 +108,7 @@ namespace LibreMetaverse
         }
 
         public async Task PostRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+            DownloadCompleteHandler? completeHandler = null, ConnectedHandler? connectedHandler = null)
         {
             await PostRequestAsync(uri, contentType, payload, cancellationToken, null, completeHandler, connectedHandler);
         }
@@ -124,7 +124,7 @@ namespace LibreMetaverse
         /// </summary>
         [Obsolete("Use Task-based PostAsync overloads and IProgress<ProgressReport> instead.")]
         public async Task PostRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+            IProgress<ProgressReport>? progress = null, DownloadCompleteHandler? completeHandler = null, ConnectedHandler? connectedHandler = null)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
             using (var request = new HttpRequestMessage(HttpMethod.Post, uri))
@@ -133,7 +133,7 @@ namespace LibreMetaverse
                 {
                     if (progress != null)
                     {
-                        request.Content = new ProgressableStreamContent(serialized, contentType.MediaType, progress);
+                        request.Content = new ProgressableStreamContent(serialized, contentType?.MediaType ?? string.Empty, progress);
                     }
                     else
                     {
@@ -151,7 +151,7 @@ namespace LibreMetaverse
         }
 
         public async Task PostRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+            DownloadCompleteHandler? completeHandler = null, ConnectedHandler? connectedHandler = null)
         {
             await PostRequestAsync(uri, format, payload, cancellationToken, null, completeHandler, connectedHandler);
         }
@@ -171,7 +171,7 @@ namespace LibreMetaverse
         /// </summary>
         [Obsolete("Use Task-based PutAsync overloads and IProgress<ProgressReport> instead.")]
         public async Task PutRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+            IProgress<ProgressReport>? progress = null, DownloadCompleteHandler? completeHandler = null, ConnectedHandler? connectedHandler = null)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Put, uri))
             {
@@ -190,7 +190,7 @@ namespace LibreMetaverse
         }
 
         public async Task PutRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+            DownloadCompleteHandler? completeHandler = null, ConnectedHandler? connectedHandler = null)
         {
             await PutRequestAsync(uri, contentType, payload, cancellationToken, null, completeHandler, connectedHandler);
         }
@@ -207,14 +207,14 @@ namespace LibreMetaverse
         /// </summary>
         [Obsolete("Use Task-based PutAsync overloads and IProgress<ProgressReport> instead.")]
         public async Task PutRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+            IProgress<ProgressReport>? progress = null, DownloadCompleteHandler? completeHandler = null, ConnectedHandler? connectedHandler = null)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
             using (var request = new HttpRequestMessage(HttpMethod.Put, uri))
             {
                 if (progress != null)
                 {
-                    request.Content = new ProgressableStreamContent(serialized, contentType.MediaType, progress);
+                    request.Content = new ProgressableStreamContent(serialized, contentType.MediaType ?? string.Empty, progress);
                 }
                 else
                 {
@@ -227,7 +227,7 @@ namespace LibreMetaverse
         }
 
         public async Task PutRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+            DownloadCompleteHandler? completeHandler = null, ConnectedHandler? connectedHandler = null)
         {
             await PutRequestAsync(uri, format, payload, cancellationToken, null, completeHandler, connectedHandler);
         }
@@ -247,7 +247,7 @@ namespace LibreMetaverse
         /// </summary>
         [Obsolete("Use Task-based PatchAsync overloads and IProgress<ProgressReport> instead.")]
         public async Task PatchRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+            IProgress<ProgressReport>? progress = null, DownloadCompleteHandler? completeHandler = null, ConnectedHandler? connectedHandler = null)
         {
 #if (NETSTANDARD2_1_OR_GREATER || NET)
             using (var request = new HttpRequestMessage(HttpMethod.Patch, uri))
@@ -257,7 +257,7 @@ namespace LibreMetaverse
             {
                 if (progress != null)
                 {
-                    request.Content = new ProgressableStreamContent(payload, contentType, progress);
+                    request.Content = new ProgressableStreamContent(payload, contentType ?? string.Empty, progress);
                 }
                 else
                 {
@@ -270,7 +270,7 @@ namespace LibreMetaverse
         }
 
         public async Task PatchRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+            DownloadCompleteHandler? completeHandler = null, ConnectedHandler? connectedHandler = null)
         {
             await PatchRequestAsync(uri, contentType, payload, cancellationToken, null, completeHandler, connectedHandler);
         }
@@ -287,7 +287,7 @@ namespace LibreMetaverse
         /// </summary>
         [Obsolete("Use Task-based PatchAsync overloads and IProgress<ProgressReport> instead.")]
         public async Task PatchRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+            IProgress<ProgressReport>? progress = null, DownloadCompleteHandler? completeHandler = null, ConnectedHandler? connectedHandler = null)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
 #if (NETSTANDARD2_1_OR_GREATER || NET)
@@ -298,7 +298,7 @@ namespace LibreMetaverse
             {
                 if (progress != null)
                 {
-                    request.Content = new ProgressableStreamContent(serialized, contentType.MediaType, progress);
+                    request.Content = new ProgressableStreamContent(serialized, contentType.MediaType ?? string.Empty, progress);
                 }
                 else
                 {
@@ -311,7 +311,7 @@ namespace LibreMetaverse
         }
 
         public async Task PatchRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+            DownloadCompleteHandler? completeHandler = null, ConnectedHandler? connectedHandler = null)
         {
             await PatchRequestAsync(uri, format, payload, cancellationToken, null, completeHandler, connectedHandler);
         }
@@ -331,7 +331,7 @@ namespace LibreMetaverse
         /// </summary>
         [Obsolete("Use Task-based DeleteAsync overloads and IProgress<ProgressReport> instead.")]
         public async Task DeleteRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+            IProgress<ProgressReport>? progress = null, DownloadCompleteHandler? completeHandler = null, ConnectedHandler? connectedHandler = null)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Delete, uri))
             {
@@ -350,7 +350,7 @@ namespace LibreMetaverse
         }
 
         public async Task DeleteRequestAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+            DownloadCompleteHandler? completeHandler = null, ConnectedHandler? connectedHandler = null)
         {
             await DeleteRequestAsync(uri, contentType, payload, cancellationToken, null, completeHandler, connectedHandler);
         }
@@ -367,14 +367,14 @@ namespace LibreMetaverse
         /// </summary>
         [Obsolete("Use Task-based DeleteAsync overloads and IProgress<ProgressReport> instead.")]
         public async Task DeleteRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+            IProgress<ProgressReport>? progress = null, DownloadCompleteHandler? completeHandler = null, ConnectedHandler? connectedHandler = null)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
             using (var request = new HttpRequestMessage(HttpMethod.Delete, uri))
             {
                 if (progress != null)
                 {
-                    request.Content = new ProgressableStreamContent(serialized, contentType.MediaType, progress);
+                    request.Content = new ProgressableStreamContent(serialized, contentType?.MediaType ?? string.Empty, progress);
                 }
                 else
                 {
@@ -387,7 +387,7 @@ namespace LibreMetaverse
         }
 
         public async Task DeleteRequestAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+            DownloadCompleteHandler? completeHandler = null, ConnectedHandler? connectedHandler = null)
         {
             await DeleteRequestAsync(uri, format, payload, cancellationToken, null, completeHandler, connectedHandler);
         }
@@ -402,7 +402,7 @@ namespace LibreMetaverse
         #region Task-based helpers
 
         private async Task<(HttpResponseMessage response, byte[] data)> SendRequestTaskAsync(HttpRequestMessage request, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, ConnectedHandler connectedHandler = null)
+            IProgress<ProgressReport>? progress = null, ConnectedHandler? connectedHandler = null)
         {
             var tcs = new TaskCompletionSource<(HttpResponseMessage, byte[])>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -418,10 +418,10 @@ namespace LibreMetaverse
                         {
                             tcs.TrySetException(processError);
                         }
-                        else
-                        {
-                            tcs.TrySetResult((r, data));
-                        }
+                    else
+                    {
+                        tcs.TrySetResult((r!, data!));
+                    }
                     }).ConfigureAwait(false);
                 }
             }
@@ -432,13 +432,13 @@ namespace LibreMetaverse
         }
 
         public async Task<(HttpResponseMessage response, byte[] data)> PostAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, ConnectedHandler connectedHandler = null)
+            IProgress<ProgressReport>? progress = null, ConnectedHandler? connectedHandler = null)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Post, uri))
             {
                 if (progress != null)
                 {
-                    request.Content = new ProgressableStreamContent(payload, contentType, progress);
+                    request.Content = new ProgressableStreamContent(payload, contentType ?? string.Empty, progress);
                 }
                 else
                 {
@@ -451,14 +451,14 @@ namespace LibreMetaverse
         }
 
         public async Task<(HttpResponseMessage response, byte[] data)> PostAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, ConnectedHandler connectedHandler = null)
+            IProgress<ProgressReport>? progress = null, ConnectedHandler? connectedHandler = null)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
             using (var request = new HttpRequestMessage(HttpMethod.Post, uri))
             {
                 if (progress != null)
                 {
-                    request.Content = new ProgressableStreamContent(serialized, contentType.MediaType, progress);
+                    request.Content = new ProgressableStreamContent(serialized, contentType?.MediaType ?? string.Empty, progress);
                 }
                 else
                 {
@@ -471,7 +471,7 @@ namespace LibreMetaverse
         }
 
         public async Task<(HttpResponseMessage response, byte[] data)> PutAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, ConnectedHandler connectedHandler = null)
+            IProgress<ProgressReport>? progress = null, ConnectedHandler? connectedHandler = null)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Put, uri))
             {
@@ -490,14 +490,14 @@ namespace LibreMetaverse
         }
 
         public async Task<(HttpResponseMessage response, byte[] data)> PutAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, ConnectedHandler connectedHandler = null)
+            IProgress<ProgressReport>? progress = null, ConnectedHandler? connectedHandler = null)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
             using (var request = new HttpRequestMessage(HttpMethod.Put, uri))
             {
                 if (progress != null)
                 {
-                    request.Content = new ProgressableStreamContent(serialized, contentType.MediaType, progress);
+                    request.Content = new ProgressableStreamContent(serialized, contentType?.MediaType ?? string.Empty, progress);
                 }
                 else
                 {
@@ -510,7 +510,7 @@ namespace LibreMetaverse
         }
 
         public async Task<(HttpResponseMessage response, byte[] data)> PatchAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, ConnectedHandler connectedHandler = null)
+            IProgress<ProgressReport>? progress = null, ConnectedHandler? connectedHandler = null)
         {
 #if (NET5_0_OR_GREATER || NET)
             using (var request = new HttpRequestMessage(HttpMethod.Patch, uri))
@@ -533,7 +533,7 @@ namespace LibreMetaverse
         }
 
         public async Task<(HttpResponseMessage response, byte[] data)> PatchAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, ConnectedHandler connectedHandler = null)
+            IProgress<ProgressReport>? progress = null, ConnectedHandler? connectedHandler = null)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
 #if (NET5_0_OR_GREATER || NET)
@@ -544,7 +544,7 @@ namespace LibreMetaverse
             {
                 if (progress != null)
                 {
-                    request.Content = new ProgressableStreamContent(serialized, contentType.MediaType, progress);
+                    request.Content = new ProgressableStreamContent(serialized, contentType?.MediaType ?? string.Empty, progress);
                 }
                 else
                 {
@@ -557,7 +557,7 @@ namespace LibreMetaverse
         }
 
         public async Task<(HttpResponseMessage response, byte[] data)> DeleteAsync(Uri uri, string contentType, byte[] payload, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, ConnectedHandler connectedHandler = null)
+            IProgress<ProgressReport>? progress = null, ConnectedHandler? connectedHandler = null)
         {
             using (var request = new HttpRequestMessage(HttpMethod.Delete, uri))
             {
@@ -576,14 +576,14 @@ namespace LibreMetaverse
         }
 
         public async Task<(HttpResponseMessage response, byte[] data)> DeleteAsync(Uri uri, OSDFormat format, OSD payload, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, ConnectedHandler connectedHandler = null)
+            IProgress<ProgressReport>? progress = null, ConnectedHandler? connectedHandler = null)
         {
             SerializeData(format, payload, out var serialized, out var contentType);
             using (var request = new HttpRequestMessage(HttpMethod.Delete, uri))
             {
                 if (progress != null)
                 {
-                    request.Content = new ProgressableStreamContent(serialized, contentType.MediaType, progress);
+                    request.Content = new ProgressableStreamContent(serialized, contentType?.MediaType ?? string.Empty, progress);
                 }
                 else
                 {
@@ -600,7 +600,7 @@ namespace LibreMetaverse
         /// /// /// /// /// /// /// /// /// /// /// /// 
 
         private async Task SendRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null, ConnectedHandler connectedHandler = null)
+            IProgress<ProgressReport>? progress = null, DownloadCompleteHandler? completeHandler = null, ConnectedHandler? connectedHandler = null)
         {
             // Forward to the Task-based helper and invoke legacy callbacks for compatibility
             try
@@ -629,7 +629,7 @@ namespace LibreMetaverse
         }
 
         private static async Task ProcessResponseAsync(HttpResponseMessage response, CancellationToken cancellationToken,
-            IProgress<ProgressReport> progress = null, DownloadCompleteHandler completeHandler = null)
+            IProgress<ProgressReport>? progress = null, DownloadCompleteHandler? completeHandler = null)
         {
             var totalBytes = response.Content.Headers.ContentLength;
 #if NET5_0_OR_GREATER
@@ -639,10 +639,10 @@ namespace LibreMetaverse
 #endif
             var length = (int)(totalBytes ?? 8192);
             var totalSize = totalBytes ?? 0;
-            var ms = totalBytes.HasValue ? null : new MemoryStream();
+            MemoryStream? ms = totalBytes.HasValue ? null : new MemoryStream();
             var buffer = new byte[length];
-            byte[] responseData = null;
-            Exception error = null;
+            byte[]? responseData = null;
+            Exception? error = null;
             var bytesRead = 0;
             var offset = 0;
             var totalBytesRead = 0;
@@ -662,7 +662,7 @@ namespace LibreMetaverse
                     else
                     {
                         totalSize += (length - bytesRead);
-                        ms.Write(buffer, 0, bytesRead);
+                        ms!.Write(buffer, 0, bytesRead);
                     }
 
                     double? progressPercent = null;
@@ -682,9 +682,9 @@ namespace LibreMetaverse
                 }
                 else
                 {
-                    responseData = ms.ToArray();
-                    ms.Close();
-                    ms.Dispose();
+                    responseData = ms!.ToArray();
+                    ms!.Close();
+                    ms!.Dispose();
                 }
             }
             catch (Exception ex)
@@ -786,13 +786,13 @@ namespace LibreMetaverse
         /// Delegate invoked when an HTTP request completes (legacy). Consider using Task-based wrappers instead.
         /// </summary>
         [Obsolete("Use Task-based APIs and IProgress<ProgressReport> overloads instead.")]
-        public delegate void DownloadCompleteHandler(HttpResponseMessage response, byte[] responseData, Exception error);
+        public delegate void DownloadCompleteHandler(HttpResponseMessage? response, byte[]? responseData, Exception? error);
 
         /// <summary>
         /// Delegate invoked when a connection is established (legacy). Prefer stronger typed async APIs.
         /// </summary>
         [Obsolete("Prefer Task-based APIs and IProgress<ProgressReport> overloads instead.")]
-        public delegate void ConnectedHandler(HttpResponseMessage response);
+        public delegate void ConnectedHandler(HttpResponseMessage? response);
     }
 }
 

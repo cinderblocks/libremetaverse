@@ -86,18 +86,18 @@ namespace OpenMetaverse
         {
             public CrossingState State;
             public DateTime StartTime;
-            public Simulator OldSimulator;
-            public Simulator NewSimulator;
+            public Simulator? OldSimulator;
+            public Simulator? NewSimulator;
             public ulong RegionHandle;
-            public IPEndPoint EndPoint;
-            public Uri SeedCapability;
+            public IPEndPoint? EndPoint;
+            public Uri? SeedCapability;
             public Vector3 Position;
             public Vector3 LookAt;
             public int RetryCount;
             public const int MaxRetries = 3;
             public CrossingFailureReason FailureReason;
-            public string FailureMessage;
-            public Exception LastException;
+            public string FailureMessage = string.Empty;
+            public Exception? LastException;
             public readonly object SyncLock = new object();
             
             /// <summary>
@@ -106,9 +106,9 @@ namespace OpenMetaverse
             public bool HasRestoredOldSim;
         }
 
-        private CrossingInfo _currentCrossing;
+        private CrossingInfo? _currentCrossing;
         private readonly object _crossingLock = new object();
-        private Timer _crossingTimeoutTimer;
+        private Timer? _crossingTimeoutTimer;
         private const int CrossingTimeoutMs = 30000; // 30 second timeout
         private const int RetryDelayMs = 1000; // 1 second delay between retries
         private const int RecoveryTimeoutMs = 10000; // 10 second recovery timeout
@@ -125,7 +125,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Start a region crossing
         /// </summary>
-        private bool BeginRegionCrossing(Simulator oldSim, ulong regionHandle, IPEndPoint endPoint, 
+        private bool BeginRegionCrossing(Simulator? oldSim, ulong regionHandle, IPEndPoint endPoint, 
             Uri seedCap, Vector3 position, Vector3 lookAt)
         {
             lock (_crossingLock)
@@ -175,7 +175,7 @@ namespace OpenMetaverse
                 Logger.Info($"Beginning region crossing from {oldSim?.Name ?? "unknown"} to {endPoint}", Client);
 
                 // Start timeout timer
-                _crossingTimeoutTimer.Change(CrossingTimeoutMs, Timeout.Infinite);
+                _crossingTimeoutTimer?.Change(CrossingTimeoutMs, Timeout.Infinite);
 
                 // Proceed to connection phase
                 return TransitionCrossingState(CrossingState.Connecting);
@@ -297,7 +297,7 @@ namespace OpenMetaverse
                     }
 
                     // Attempt the connection
-                    Simulator newSim = Client.Network.Connect(
+                    Simulator? newSim = Client?.Network?.Connect(
                         _currentCrossing.EndPoint,
                         _currentCrossing.RegionHandle,
                         true,
@@ -447,7 +447,7 @@ namespace OpenMetaverse
             lock (_currentCrossing.SyncLock)
             {
                 // Stop timeout timer
-                _crossingTimeoutTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                _crossingTimeoutTimer?.Change(Timeout.Infinite, Timeout.Infinite);
 
                 TimeSpan duration = DateTime.UtcNow - _currentCrossing.StartTime;
                 Logger.Info($"Region crossing completed successfully in {duration.TotalSeconds:F2} seconds", Client);
@@ -480,7 +480,7 @@ namespace OpenMetaverse
             lock (_currentCrossing.SyncLock)
             {
                 // Stop timeout timer
-                _crossingTimeoutTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                _crossingTimeoutTimer?.Change(Timeout.Infinite, Timeout.Infinite);
 
                 TimeSpan duration = DateTime.UtcNow - _currentCrossing.StartTime;
                 
@@ -563,7 +563,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Timeout callback for region crossing
         /// </summary>
-        private void CrossingTimeoutCallback(object state)
+        private void CrossingTimeoutCallback(object? state)
         {
             lock (_crossingLock)
             {

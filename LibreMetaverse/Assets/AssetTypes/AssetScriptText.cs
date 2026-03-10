@@ -35,7 +35,7 @@ namespace OpenMetaverse.Assets
         public override AssetType AssetType => AssetType.LSLText;
 
         /// <summary>A string of characters represting the script contents</summary>
-        public string Source;
+        public string? Source;
 
         /// <summary>Initializes a new AssetScriptText object</summary>
         public AssetScriptText() { }
@@ -52,7 +52,7 @@ namespace OpenMetaverse.Assets
         /// </summary>
         public sealed override void Encode()
         {
-            AssetData = Utils.StringToBytes(Source);
+            AssetData = Utils.StringToBytes(Source ?? string.Empty);
         }
 
         /// <summary>

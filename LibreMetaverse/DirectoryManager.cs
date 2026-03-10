@@ -508,14 +508,14 @@ namespace OpenMetaverse
         #region Event delegates, Raise Events
         
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<EventInfoReplyEventArgs> m_EventInfoReply;
+        private EventHandler<EventInfoReplyEventArgs>? m_EventInfoReply;
 
         /// <summary>Raises the EventInfoReply event</summary>
         /// <param name="e">An EventInfoReplyEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnEventInfo(EventInfoReplyEventArgs e)
         {
-            EventHandler<EventInfoReplyEventArgs> handler = m_EventInfoReply;
+            EventHandler<EventInfoReplyEventArgs>? handler = m_EventInfoReply;
             handler?.Invoke(this, e);
         }
 
@@ -530,14 +530,14 @@ namespace OpenMetaverse
         }
         
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<DirEventsReplyEventArgs> m_DirEvents;
+        private EventHandler<DirEventsReplyEventArgs>? m_DirEvents;
 
         /// <summary>Raises the DirEventsReply event</summary>
         /// <param name="e">An DirEventsReplyEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnDirEvents(DirEventsReplyEventArgs e)
         {
-            EventHandler<DirEventsReplyEventArgs> handler = m_DirEvents;
+            EventHandler<DirEventsReplyEventArgs>? handler = m_DirEvents;
             handler?.Invoke(this, e);
         }
 
@@ -552,14 +552,14 @@ namespace OpenMetaverse
         }
         
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<PlacesReplyEventArgs> m_Places;
+        private EventHandler<PlacesReplyEventArgs>? m_Places;
 
         /// <summary>Raises the PlacesReply event</summary>
         /// <param name="e">A PlacesReplyEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnPlaces(PlacesReplyEventArgs e)
         {
-            EventHandler<PlacesReplyEventArgs> handler = m_Places;
+            EventHandler<PlacesReplyEventArgs>? handler = m_Places;
             handler?.Invoke(this, e);
         }
 
@@ -574,14 +574,14 @@ namespace OpenMetaverse
         }
         
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<DirPlacesReplyEventArgs> m_DirPlaces;
+        private EventHandler<DirPlacesReplyEventArgs>? m_DirPlaces;
 
         /// <summary>Raises the DirPlacesReply event</summary>
         /// <param name="e">A DirPlacesReplyEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnDirPlaces(DirPlacesReplyEventArgs e)
         {
-            EventHandler<DirPlacesReplyEventArgs> handler = m_DirPlaces;
+            EventHandler<DirPlacesReplyEventArgs>? handler = m_DirPlaces;
             handler?.Invoke(this, e);
         }
 
@@ -596,14 +596,14 @@ namespace OpenMetaverse
         }
         
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<DirClassifiedsReplyEventArgs> m_DirClassifieds;
+        private EventHandler<DirClassifiedsReplyEventArgs>? m_DirClassifieds;
 
         /// <summary>Raises the DirClassifiedsReply event</summary>
         /// <param name="e">A DirClassifiedsReplyEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnDirClassifieds(DirClassifiedsReplyEventArgs e)
         {
-            EventHandler<DirClassifiedsReplyEventArgs> handler = m_DirClassifieds;
+            EventHandler<DirClassifiedsReplyEventArgs>? handler = m_DirClassifieds;
             handler?.Invoke(this, e);
         }
 
@@ -618,14 +618,14 @@ namespace OpenMetaverse
         }
         
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<DirGroupsReplyEventArgs> m_DirGroups;
+        private EventHandler<DirGroupsReplyEventArgs>? m_DirGroups;
 
         /// <summary>Raises the DirGroupsReply event</summary>
         /// <param name="e">A DirGroupsReplyEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnDirGroups(DirGroupsReplyEventArgs e)
         {
-            EventHandler<DirGroupsReplyEventArgs> handler = m_DirGroups;
+            EventHandler<DirGroupsReplyEventArgs>? handler = m_DirGroups;
             handler?.Invoke(this, e);
         }
 
@@ -640,14 +640,14 @@ namespace OpenMetaverse
         }
         
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<DirPeopleReplyEventArgs> m_DirPeople;
+        private EventHandler<DirPeopleReplyEventArgs>? m_DirPeople;
 
         /// <summary>Raises the DirPeopleReply event</summary>
         /// <param name="e">A DirPeopleReplyEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnDirPeople(DirPeopleReplyEventArgs e)
         {
-            EventHandler<DirPeopleReplyEventArgs> handler = m_DirPeople;
+            EventHandler<DirPeopleReplyEventArgs>? handler = m_DirPeople;
             handler?.Invoke(this, e);
         }
 
@@ -662,14 +662,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<DirLandReplyEventArgs> m_DirLandReply;
+        private EventHandler<DirLandReplyEventArgs>? m_DirLandReply;
 
         /// <summary>Raises the DirLandReply event</summary>
         /// <param name="e">A DirLandReplyEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnDirLand(DirLandReplyEventArgs e)
         {
-            EventHandler<DirLandReplyEventArgs> handler = m_DirLandReply;
+            EventHandler<DirLandReplyEventArgs>? handler = m_DirLandReply;
             handler?.Invoke(this, e);
         }
 
@@ -760,8 +760,7 @@ namespace OpenMetaverse
                     try { m_DirPeople = null; } catch { }
                     try { m_DirLandReply = null; } catch { }
 
-                    // Release client reference
-                    try { Client = null; } catch { }
+                    // Release client reference: do not assign null to non-nullable field, just stop using it
                 }
                 catch { /* swallow exceptions in Dispose */ }
             }
@@ -1228,10 +1227,10 @@ namespace OpenMetaverse
         {
             AutoResetEvent searchEvent = new AutoResetEvent(false);
             UUID id = UUID.Zero;
-            List<AgentSearchData> people = null;
+            List<AgentSearchData>? people = null;
 
             EventHandler<DirPeopleReplyEventArgs> callback =
-                delegate(object sender, DirPeopleReplyEventArgs e)
+                delegate(object? sender, DirPeopleReplyEventArgs e)
                 {
                     if (id == e.QueryID)
                     {
@@ -1246,8 +1245,8 @@ namespace OpenMetaverse
             searchEvent.WaitOne(timeoutMS, false);
             DirPeopleReply -= callback;
 
-            results = people;
-            return (results != null);
+            results = people ?? new List<AgentSearchData>();
+            return (people != null);
         }
 
         #endregion Blocking Functions
@@ -1257,7 +1256,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void DirClassifiedReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void DirClassifiedReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_DirClassifieds != null)
             {
@@ -1272,7 +1271,7 @@ namespace OpenMetaverse
                         ExpirationDate = Utils.UnixTimeToDateTime(block.ExpirationDate),
                         Flags = (ClassifiedFlags)block.ClassifiedFlags,
                         ID = block.ClassifiedID,
-                        Name = Utils.BytesToString(block.Name),
+                        Name = Utils.BytesToString(block.Name) ?? string.Empty,
                         Price = block.PriceForListing
                     };
 
@@ -1286,7 +1285,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void DirLandReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void DirLandReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_DirLandReply != null)
             {
@@ -1299,7 +1298,7 @@ namespace OpenMetaverse
                     {
                         ActualArea = block.ActualArea,
                         ID = block.ParcelID,
-                        Name = Utils.BytesToString(block.Name),
+                        Name = Utils.BytesToString(block.Name) ?? string.Empty,
                         SalePrice = block.SalePrice,
                         Auction = block.Auction,
                         ForSale = block.ForSale
@@ -1345,7 +1344,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void DirPeopleReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void DirPeopleReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_DirPeople != null)
             {
@@ -1353,8 +1352,8 @@ namespace OpenMetaverse
                 {
                     List<AgentSearchData> matches = new List<AgentSearchData>(peopleReply.QueryReplies.Length);
                     matches.AddRange(peopleReply.QueryReplies.Select(reply 
-                        => new AgentSearchData { Online = reply.Online, FirstName = Utils.BytesToString(reply.FirstName), 
-                            LastName = Utils.BytesToString(reply.LastName), AgentID = reply.AgentID }));
+                        => new AgentSearchData { Online = reply.Online, FirstName = Utils.BytesToString(reply.FirstName) ?? string.Empty, 
+                            LastName = Utils.BytesToString(reply.LastName) ?? string.Empty, AgentID = reply.AgentID }));
 
                     OnDirPeople(new DirPeopleReplyEventArgs(peopleReply.QueryData.QueryID, matches));
                 }
@@ -1364,7 +1363,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void DirGroupsReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void DirGroupsReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_DirGroups != null)
             {
@@ -1376,7 +1375,7 @@ namespace OpenMetaverse
                     GroupSearchData groupsData = new GroupSearchData
                     {
                         GroupID = reply.GroupID,
-                        GroupName = Utils.BytesToString(reply.GroupName),
+                        GroupName = Utils.BytesToString(reply.GroupName) ?? string.Empty,
                         Members = reply.Members
                     };
                     matches.Add(groupsData);
@@ -1426,7 +1425,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void PlacesReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void PlacesReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_Places != null)
             {
@@ -1438,15 +1437,15 @@ namespace OpenMetaverse
                     places.AddRange(placesReply.QueryData.Select(block => new PlacesSearchData
                     {
                         OwnerID = block.OwnerID,
-                        Name = Utils.BytesToString(block.Name),
-                        Desc = Utils.BytesToString(block.Desc),
+                        Name = Utils.BytesToString(block.Name) ?? string.Empty,
+                        Desc = Utils.BytesToString(block.Desc) ?? string.Empty,
                         ActualArea = block.ActualArea,
                         BillableArea = block.BillableArea,
                         Flags = (PlacesFlags)block.Flags,
                         GlobalX = block.GlobalX,
                         GlobalY = block.GlobalY,
                         GlobalZ = block.GlobalZ,
-                        SimName = Utils.BytesToString(block.SimName),
+                        SimName = Utils.BytesToString(block.SimName) ?? string.Empty,
                         SnapshotID = block.SnapshotID,
                         Dwell = block.Dwell,
                         Price = block.Price
@@ -1460,7 +1459,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void EventsReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void EventsReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_DirEvents != null)
             {
@@ -1489,7 +1488,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void EventInfoReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void EventInfoReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_EventInfoReply != null)
             {
@@ -1519,7 +1518,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void DirPlacesReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void DirPlacesReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_DirPlaces != null)
             {

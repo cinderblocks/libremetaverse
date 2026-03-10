@@ -34,7 +34,7 @@ namespace LibreMetaverse.Threading.Disposers
 	public struct SpinReadLock:
 		IDisposable
 	{
-		private SpinReaderWriterLock _lock;
+		private SpinReaderWriterLock? _lock;
 		internal SpinReadLock(SpinReaderWriterLock yieldLock)
 		{
 			_lock = yieldLock;

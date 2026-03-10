@@ -48,8 +48,8 @@ namespace OpenMetaverse
         public float MonoScore;
         public UUID TaskID;
         public uint TaskLocalID;
-        public string TaskName;
-        public string OwnerName;
+        public string TaskName = string.Empty;
+        public string OwnerName = string.Empty;
     }
 
     /// <summary>
@@ -181,7 +181,7 @@ namespace OpenMetaverse
         #region Event delegates, Raise Events
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<TopCollidersReplyEventArgs> m_TopCollidersReply;
+        private EventHandler<TopCollidersReplyEventArgs>? m_TopCollidersReply;
 
         /// <summary>Raises the TopCollidersReply event</summary>
         /// <param name="e">A TopCollidersReplyEventArgs object containing the
@@ -203,7 +203,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<TopScriptsReplyEventArgs> m_TopScriptsReply;
+        private EventHandler<TopScriptsReplyEventArgs>? m_TopScriptsReply;
 
         /// <summary>Raises the TopScriptsReply event</summary>
         /// <param name="e">A TopScriptsReplyEventArgs object containing the
@@ -226,7 +226,7 @@ namespace OpenMetaverse
 
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<EstateUsersReplyEventArgs> m_EstateUsersReply;
+        private EventHandler<EstateUsersReplyEventArgs>? m_EstateUsersReply;
 
         /// <summary>Raises the EstateUsersReply event</summary>
         /// <param name="e">A EstateUsersReplyEventArgs object containing the
@@ -249,7 +249,7 @@ namespace OpenMetaverse
 
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<EstateGroupsReplyEventArgs> m_EstateGroupsReply;
+        private EventHandler<EstateGroupsReplyEventArgs>? m_EstateGroupsReply;
 
         /// <summary>Raises the EstateGroupsReply event</summary>
         /// <param name="e">A EstateGroupsReplyEventArgs object containing the
@@ -271,7 +271,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<EstateManagersReplyEventArgs> m_EstateManagersReply;
+        private EventHandler<EstateManagersReplyEventArgs>? m_EstateManagersReply;
 
         /// <summary>Raises the EstateManagersReply event</summary>
         /// <param name="e">A EstateManagersReplyEventArgs object containing the
@@ -293,7 +293,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<EstateBansReplyEventArgs> m_EstateBansReply;
+        private EventHandler<EstateBansReplyEventArgs>? m_EstateBansReply;
 
         /// <summary>Raises the EstateBansReply event</summary>
         /// <param name="e">A EstateBansReplyEventArgs object containing the
@@ -315,7 +315,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<EstateCovenantReplyEventArgs> m_EstateCovenantReply;
+        private EventHandler<EstateCovenantReplyEventArgs>? m_EstateCovenantReply;
 
         /// <summary>Raises the EstateCovenantReply event</summary>
         /// <param name="e">A EstateCovenantReplyEventArgs object containing the
@@ -338,7 +338,7 @@ namespace OpenMetaverse
 
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<EstateUpdateInfoReplyEventArgs> m_EstateUpdateInfoReply;
+        private EventHandler<EstateUpdateInfoReplyEventArgs>? m_EstateUpdateInfoReply;
 
         /// <summary>Raises the EstateUpdateInfoReply event</summary>
         /// <param name="e">A EstateUpdateInfoReplyEventArgs object containing the
@@ -774,7 +774,14 @@ namespace OpenMetaverse
         /// <seealso cref="AssetManager.RequestAssetUDP"/>
         public void RequestCovenantNotecard(UUID covenantId, AssetManager.AssetReceivedCallback callback)
         {
-            RequestCovenantNotecard(covenantId, Client.Network.CurrentSim, callback);
+            var sim = Client.Network.CurrentSim;
+            if (sim == null)
+            {
+                Logger.Warn("Cannot request covenant notecard: no current simulator available", Client);
+                return;
+            }
+
+            RequestCovenantNotecard(covenantId, sim, callback);
         }
 
         /// <summary>
@@ -945,7 +952,7 @@ namespace OpenMetaverse
         /// <returns></returns>
         public async Task SendEstateChangeInfo(string estateName, float sunHour, RegionFlags flags)
         {
-            var cap = Client.Network.CurrentSim.Caps.CapabilityURI("EstateChangeInfo");
+            var cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("EstateChangeInfo");
             if (cap != null)
             {
                 if (await SendEstateChangeInfoHttp(cap, estateName, sunHour, flags))
@@ -1026,7 +1033,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void EstateCovenantReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void EstateCovenantReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             var reply = (EstateCovenantReplyPacket)e.Packet;
             OnEstateCovenantReply(new EstateCovenantReplyEventArgs(
@@ -1039,7 +1046,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void EstateOwnerMessageHandler(object sender, PacketReceivedEventArgs e)
+        protected void EstateOwnerMessageHandler(object? sender, PacketReceivedEventArgs e)
         {
             var message = (EstateOwnerMessagePacket)e.Packet;
             var method = Utils.BytesToString(message.MethodData.Method);
@@ -1169,7 +1176,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void LandStatReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void LandStatReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             //if (OnLandStatReply != null || OnGetTopScripts != null || OnGetTopColliders != null)
             //if (OnGetTopScripts != null || OnGetTopColliders != null)

@@ -40,10 +40,10 @@ namespace OpenMetaverse.Assets
         public override AssetType AssetType => AssetType.Notecard;
 
         /// <summary>A text string containing main text of the notecard</summary>
-        public string BodyText;
+        public string BodyText = string.Empty;
 
         /// <summary>List of <see cref="OpenMetaverse.InventoryItem"/>s embedded on the notecard</summary>
-        public List<InventoryItem> EmbeddedItems;
+        public List<InventoryItem> EmbeddedItems = new List<InventoryItem>();
 
         /// <summary>Construct an Asset of type Notecard</summary>
         public AssetNotecard() { }

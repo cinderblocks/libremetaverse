@@ -33,14 +33,14 @@ namespace OpenMetaverse
     {
         #region EventHandling
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<LandPatchReceivedEventArgs> m_LandPatchReceivedEvent;
+        private EventHandler<LandPatchReceivedEventArgs>? m_LandPatchReceivedEvent;
 
         /// <summary>Raises the LandPatchReceived event</summary>
         /// <param name="e">A LandPatchReceivedEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnLandPatchReceived(LandPatchReceivedEventArgs e)
         {
-            EventHandler<LandPatchReceivedEventArgs> handler = m_LandPatchReceivedEvent;
+            EventHandler<LandPatchReceivedEventArgs>? handler = m_LandPatchReceivedEvent;
             handler?.Invoke(this, e);
         }
 
@@ -139,9 +139,9 @@ namespace OpenMetaverse
             TerrainCompressor.DecodePatch(patches, bitpack, header, group.PatchSize);
             float[] yvalues = TerrainCompressor.DecompressPatch(patches, header, group);
 
-            if (simulator.Client.Settings.STORE_LAND_PATCHES)
+            if (simulator.Client.Settings.STORE_LAND_PATCHES && simulator.WindSpeeds != null)
             {
-                for (int i = 0; i < 256; i++)
+                for (int i = 0; i < Math.Min(256, simulator.WindSpeeds.Length); i++)
                     simulator.WindSpeeds[i] = new Vector2(xvalues[i], yvalues[i]);
             }
         }
@@ -151,7 +151,7 @@ namespace OpenMetaverse
             // FIXME:
         }
 
-        private void LayerDataHandler(object sender, PacketReceivedEventArgs e)
+        private void LayerDataHandler(object? sender, PacketReceivedEventArgs e)
         {
             LayerDataPacket layer = (LayerDataPacket)e.Packet;
             BitPack bitpack = new BitPack(layer.LayerData.Data, 0);
@@ -169,18 +169,27 @@ namespace OpenMetaverse
             {
                 case TerrainPatch.LayerType.Land:
                     if (m_LandPatchReceivedEvent != null || Client.Settings.STORE_LAND_PATCHES)
-                        DecompressLand(e.Simulator, bitpack, header);
+                    {
+                        var sim = e.Simulator ?? Client?.Network?.CurrentSim;
+                        if (sim != null) DecompressLand(sim, bitpack, header);
+                    }
                     break;
                 case TerrainPatch.LayerType.LandExtended:
                     if (m_LandPatchReceivedEvent != null || Client.Settings.STORE_LAND_PATCHES)
-                        DecompressLand(e.Simulator, bitpack, header, true);
+                    {
+                        var sim = e.Simulator ?? Client?.Network?.CurrentSim;
+                        if (sim != null) DecompressLand(sim, bitpack, header, true);
+                    }
                     break;
                 case TerrainPatch.LayerType.Water:
                     Logger.Error("Got a Water LayerData packet, implement me!", Client);
                     break;
                 case TerrainPatch.LayerType.Wind:
-                    DecompressWind(e.Simulator, bitpack, header);
+                {
+                    var sim = e.Simulator ?? Client?.Network?.CurrentSim;
+                    if (sim != null) DecompressWind(sim, bitpack, header);
                     break;
+                }
                 case TerrainPatch.LayerType.Cloud:
                     DecompressCloud(e.Simulator, bitpack, header);
                     break;

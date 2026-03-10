@@ -615,7 +615,8 @@ namespace OpenMetaverse
         /// the update with a reply packet or not</param>
         public void Update(GridClient client, Simulator simulator, bool wantReply)
         {
-            Uri cap = simulator.Caps.CapabilityURI("ParcelPropertiesUpdate");
+            if (simulator == null) throw new ArgumentNullException(nameof(simulator));
+            Uri? cap = simulator.Caps?.CapabilityURI("ParcelPropertiesUpdate");
             if (cap != null)
             {
                 ParcelPropertiesUpdateMessage payload = new ParcelPropertiesUpdateMessage
@@ -701,6 +702,7 @@ namespace OpenMetaverse
         /// <param name="simulator">Simulator to send the update to</param>
         public void UpdateOtherCleanTime(Simulator simulator)
         {
+            if (simulator == null) throw new ArgumentNullException(nameof(simulator));
             ParcelSetOtherCleanTimePacket request = new ParcelSetOtherCleanTimePacket
             {
                 AgentData =
@@ -769,14 +771,14 @@ namespace OpenMetaverse
         public delegate void LandResourcesCallback(bool success, LandResourcesInfo info);
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<ParcelDwellReplyEventArgs> m_DwellReply;
+        private EventHandler<ParcelDwellReplyEventArgs>? m_DwellReply;
 
         /// <summary>Raises the ParcelDwellReply event</summary>
         /// <param name="e">A ParcelDwellReplyEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnParcelDwellReply(ParcelDwellReplyEventArgs e)
         {
-            EventHandler<ParcelDwellReplyEventArgs> handler = m_DwellReply;
+            EventHandler<ParcelDwellReplyEventArgs>? handler = m_DwellReply;
             handler?.Invoke(this, e);
         }
 
@@ -791,14 +793,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<ParcelInfoReplyEventArgs> m_ParcelInfo;
+        private EventHandler<ParcelInfoReplyEventArgs>? m_ParcelInfo;
 
         /// <summary>Raises the ParcelInfoReply event</summary>
         /// <param name="e">A ParcelInfoReplyEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnParcelInfoReply(ParcelInfoReplyEventArgs e)
         {
-            EventHandler<ParcelInfoReplyEventArgs> handler = m_ParcelInfo;
+            EventHandler<ParcelInfoReplyEventArgs>? handler = m_ParcelInfo;
             handler?.Invoke(this, e);
         }
 
@@ -813,14 +815,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<ParcelPropertiesEventArgs> m_ParcelProperties;
+        private EventHandler<ParcelPropertiesEventArgs>? m_ParcelProperties;
 
         /// <summary>Raises the ParcelProperties event</summary>
         /// <param name="e">A ParcelPropertiesEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnParcelProperties(ParcelPropertiesEventArgs e)
         {
-            EventHandler<ParcelPropertiesEventArgs> handler = m_ParcelProperties;
+            EventHandler<ParcelPropertiesEventArgs>? handler = m_ParcelProperties;
             handler?.Invoke(this, e);
         }
 
@@ -835,14 +837,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<ParcelAccessListReplyEventArgs> m_ParcelACL;
+        private EventHandler<ParcelAccessListReplyEventArgs>? m_ParcelACL;
 
         /// <summary>Raises the ParcelAccessListReply event</summary>
         /// <param name="e">A ParcelAccessListReplyEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnParcelAccessListReply(ParcelAccessListReplyEventArgs e)
         {
-            EventHandler<ParcelAccessListReplyEventArgs> handler = m_ParcelACL;
+            EventHandler<ParcelAccessListReplyEventArgs>? handler = m_ParcelACL;
             handler?.Invoke(this, e);
         }
 
@@ -857,14 +859,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<ParcelObjectOwnersReplyEventArgs> m_ParcelObjectOwnersReply;
+        private EventHandler<ParcelObjectOwnersReplyEventArgs>? m_ParcelObjectOwnersReply;
 
         /// <summary>Raises the ParcelObjectOwnersReply event</summary>
         /// <param name="e">A ParcelObjectOwnersReplyEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnParcelObjectOwnersReply(ParcelObjectOwnersReplyEventArgs e)
         {
-            EventHandler<ParcelObjectOwnersReplyEventArgs> handler = m_ParcelObjectOwnersReply;
+            EventHandler<ParcelObjectOwnersReplyEventArgs>? handler = m_ParcelObjectOwnersReply;
             handler?.Invoke(this, e);
         }
 
@@ -879,14 +881,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<SimParcelsDownloadedEventArgs> m_SimParcelsDownloaded;
+        private EventHandler<SimParcelsDownloadedEventArgs>? m_SimParcelsDownloaded;
 
         /// <summary>Raises the SimParcelsDownloaded event</summary>
         /// <param name="e">A SimParcelsDownloadedEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnSimParcelsDownloaded(SimParcelsDownloadedEventArgs e)
         {
-            EventHandler<SimParcelsDownloadedEventArgs> handler = m_SimParcelsDownloaded;
+            EventHandler<SimParcelsDownloadedEventArgs>? handler = m_SimParcelsDownloaded;
             handler?.Invoke(this, e);
         }
 
@@ -901,14 +903,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<ForceSelectObjectsReplyEventArgs> m_ForceSelectObjects;
+        private EventHandler<ForceSelectObjectsReplyEventArgs>? m_ForceSelectObjects;
 
         /// <summary>Raises the ForceSelectObjectsReply event</summary>
         /// <param name="e">A ForceSelectObjectsReplyEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnForceSelectObjectsReply(ForceSelectObjectsReplyEventArgs e)
         {
-            EventHandler<ForceSelectObjectsReplyEventArgs> handler = m_ForceSelectObjects;
+            EventHandler<ForceSelectObjectsReplyEventArgs>? handler = m_ForceSelectObjects;
             handler?.Invoke(this, e);
         }
 
@@ -923,26 +925,26 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<ParcelMediaUpdateReplyEventArgs> m_ParcelMediaUpdateReply;
+        private EventHandler<ParcelMediaUpdateReplyEventArgs>? m_ParcelMediaUpdateReply;
 
         /// <summary>Raises the ParcelMediaUpdateReply event</summary>
         /// <param name="e">A ParcelMediaUpdateReplyEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnParcelMediaUpdateReply(ParcelMediaUpdateReplyEventArgs e)
         {
-            EventHandler<ParcelMediaUpdateReplyEventArgs> handler = m_ParcelMediaUpdateReply;
+            EventHandler<ParcelMediaUpdateReplyEventArgs>? handler = m_ParcelMediaUpdateReply;
             handler?.Invoke(this, e);
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<ParcelMediaCommandEventArgs> m_ParcelMediaCommand;
+        private EventHandler<ParcelMediaCommandEventArgs>? m_ParcelMediaCommand;
 
         /// <summary>Raises the ParcelMediaCommand event</summary>
         /// <param name="e">A ParcelMediaCommandEventArgs object containing the
         /// data returned from the simulator</param>
         protected virtual void OnParcelMediaCommand(ParcelMediaCommandEventArgs e)
         {
-            EventHandler<ParcelMediaCommandEventArgs> handler = m_ParcelMediaCommand;
+            EventHandler<ParcelMediaCommandEventArgs>? handler = m_ParcelMediaCommand;
             handler?.Invoke(this, e);
         }
         
@@ -967,13 +969,13 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<ParcelOverlayEventArgs> m_ParcelOverlaysDownloaded;
+        private EventHandler<ParcelOverlayEventArgs>? m_ParcelOverlaysDownloaded;
 
         /// <summary>Raises the ParcelOverlaysDownloaded event</summary>
         /// <param name="e">A ParcelOverlayEventArgs object containing the data</param>
         protected virtual void OnParcelOverlaysDownloaded(ParcelOverlayEventArgs e)
         {
-            EventHandler<ParcelOverlayEventArgs> handler = m_ParcelOverlaysDownloaded;
+            EventHandler<ParcelOverlayEventArgs>? handler = m_ParcelOverlaysDownloaded;
             handler?.Invoke(this, e);
         }
 
@@ -990,7 +992,7 @@ namespace OpenMetaverse
         #endregion Delegates
 
         private readonly GridClient Client;
-        private TaskCompletionSource<bool> WaitForSimParcelTcs;
+        private TaskCompletionSource<bool>? WaitForSimParcelTcs;
         private readonly object WaitForSimParcelLock = new object();
         // Per-request TCS map keyed by sequence id to avoid races when downloading full parcel map
         private readonly ConcurrentDictionary<int, TaskCompletionSource<bool>> _parcelTcsMap = new ConcurrentDictionary<int, TaskCompletionSource<bool>>();
@@ -1043,15 +1045,15 @@ namespace OpenMetaverse
                 // Unregister network callbacks safely
                 if (Client?.Network != null)
                 {
-                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ParcelInfoReply, ParcelInfoReplyHandler), "Unregister ParcelInfoReply", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
-                    Helpers.SafeAction(() => Client.Network.UnregisterEventCallback("ParcelObjectOwnersReply", ParcelObjectOwnersReplyHandler), "Unregister ParcelObjectOwnersReply", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
-                    Helpers.SafeAction(() => Client.Network.UnregisterEventCallback("ParcelProperties", ParcelPropertiesReplyHandler), "Unregister ParcelProperties", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
-                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ParcelDwellReply, ParcelDwellReplyHandler), "Unregister ParcelDwellReply", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
-                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ParcelAccessListReply, ParcelAccessListReplyHandler), "Unregister ParcelAccessListReply", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
-                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ForceObjectSelect, SelectParcelObjectsReplyHandler), "Unregister ForceObjectSelect", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
-                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ParcelMediaUpdate, ParcelMediaUpdateHandler), "Unregister ParcelMediaUpdate", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
-                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ParcelOverlay, ParcelOverlayHandler), "Unregister ParcelOverlay", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
-                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ParcelMediaCommandMessage, ParcelMediaCommandMessagePacketHandler), "Unregister ParcelMediaCommandMessage", (m,e) => Logger.Warn(m + ": " + e?.Message, e, Client));
+                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ParcelInfoReply, ParcelInfoReplyHandler), "Unregister ParcelInfoReply", (m,e) => Logger.Warn(m + ": " + e?.Message, Client));
+                    Helpers.SafeAction(() => Client.Network.UnregisterEventCallback("ParcelObjectOwnersReply", ParcelObjectOwnersReplyHandler), "Unregister ParcelObjectOwnersReply", (m,e) => Logger.Warn(m + ": " + e?.Message, Client));
+                    Helpers.SafeAction(() => Client.Network.UnregisterEventCallback("ParcelProperties", ParcelPropertiesReplyHandler), "Unregister ParcelProperties", (m,e) => Logger.Warn(m + ": " + e?.Message, Client));
+                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ParcelDwellReply, ParcelDwellReplyHandler), "Unregister ParcelDwellReply", (m,e) => Logger.Warn(m + ": " + e?.Message, Client));
+                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ParcelAccessListReply, ParcelAccessListReplyHandler), "Unregister ParcelAccessListReply", (m,e) => Logger.Warn(m + ": " + e?.Message, Client));
+                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ForceObjectSelect, SelectParcelObjectsReplyHandler), "Unregister ForceObjectSelect", (m,e) => Logger.Warn(m + ": " + e?.Message, Client));
+                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ParcelMediaUpdate, ParcelMediaUpdateHandler), "Unregister ParcelMediaUpdate", (m,e) => Logger.Warn(m + ": " + e?.Message, Client));
+                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ParcelOverlay, ParcelOverlayHandler), "Unregister ParcelOverlay", (m,e) => Logger.Warn(m + ": " + e?.Message, Client));
+                    Helpers.SafeAction(() => Client.Network.UnregisterCallback(PacketType.ParcelMediaCommandMessage, ParcelMediaCommandMessagePacketHandler), "Unregister ParcelMediaCommandMessage", (m,e) => Logger.Warn(m + ": " + e?.Message, Client));
                 }
 
                 // Cancel any waiting TCS
@@ -1110,7 +1112,7 @@ namespace OpenMetaverse
         /// Will return null in the event the user is not connected, or the parcel information has
         /// not yet been retrieved.
         /// </summary>
-        public Parcel CurrentParcel
+        public Parcel? CurrentParcel
         {
             get
             {
@@ -1554,8 +1556,8 @@ namespace OpenMetaverse
             }
             else
             {
-                Parcel p;
-                if (!simulator.Parcels.TryGetValue(localID, out p))
+                Parcel? p;
+                if (!simulator.Parcels.TryGetValue(localID, out p) || p == null)
                 {
                     Logger.Warn($"Can't find parcel {localID} in simulator {simulator}", Client);
                     return false;
@@ -1743,7 +1745,7 @@ namespace OpenMetaverse
                 return UUID.Zero;
             }
 
-            Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("RemoteParcelRequest");
+            Uri? cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("RemoteParcelRequest");
 
             if (cap == null) { return UUID.Zero; }
             
@@ -1756,16 +1758,16 @@ namespace OpenMetaverse
 
             try
             {
-                OSD res = null;
+                OSD? res = null;
                 await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken,
                     (response, data, error) =>
                     {
                         if (error != null)
                             throw error;
-                        
-                        if (response.IsSuccessStatusCode && data != null)
+
+                        if (response != null && response.IsSuccessStatusCode && data != null)
                             res = OSDParser.Deserialize(data);
-                        
+
                     });
 
                 if (res is OSDMap result)
@@ -1797,8 +1799,14 @@ namespace OpenMetaverse
             try
             {
                 LandResourcesRequest req = new LandResourcesRequest { ParcelID = parcelID };
-                Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("LandResources");
-                
+                Uri? cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("LandResources");
+                if (cap == null)
+                {
+                    Logger.Warn("LandResources capability unavailable", Client);
+                    callback(false, new LandResourcesInfo());
+                    return;
+                }
+
                 await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req.Serialize(),
                     cancellationToken, ( httpResponse, data, error) =>
                     {
@@ -1806,47 +1814,71 @@ namespace OpenMetaverse
                         {
                             if (error != null)
                             {
-                                callback(false, null);
+                                callback(false, new LandResourcesInfo());
                                 return;
                             }
-                            
+
+                            if (data == null || data.Length == 0)
+                            {
+                                Logger.Error("Failed fetching land resources; response empty.", Client);
+                                callback(false, new LandResourcesInfo());
+                                return;
+                            }
+
                             OSD result = OSDParser.Deserialize(data);
                             LandResourcesMessage landResourcesMessage = new LandResourcesMessage();
-                            landResourcesMessage.Deserialize((OSDMap)result);
+                            var resultMap = result as OSDMap;
+                            if (resultMap == null)
+                            {
+                                Logger.Error("Failed fetching land resources; unexpected payload.", Client);
+                                callback(false, new LandResourcesInfo());
+                                return;
+                            }
+                            landResourcesMessage.Deserialize(resultMap);
 
-                            OSD summaryResponse = null;
-                            AsyncHelper.Sync(() => Client.HttpCapsClient.GetRequestAsync(
-                                Client.Network.CurrentSim.Caps.CapabilityURI("ScriptResourceSummary"),
-                                cancellationToken,
-                                (response, respData, err) => summaryResponse = OSDParser.Deserialize(respData)));
+                            OSD? summaryResponse = null;
+                            Uri? summaryCap = Client.Network.CurrentSim?.Caps?.CapabilityURI("ScriptResourceSummary");
+                            if (summaryCap != null)
+                            {
+                                AsyncHelper.Sync(() => Client.HttpCapsClient.GetRequestAsync(
+                                    summaryCap,
+                                    cancellationToken,
+                                    (response, respData, err) => { if (respData != null && respData.Length > 0) summaryResponse = OSDParser.Deserialize(respData); }));
+                            }
 
                             LandResourcesInfo resInfo = new LandResourcesInfo();
-                            resInfo.Deserialize((OSDMap)summaryResponse);
+                            if (summaryResponse is OSDMap summaryMap)
+                                resInfo.Deserialize(summaryMap);
 
                             if (landResourcesMessage.ScriptResourceDetails != null && getDetails)
                             {
-                                OSD detailResponse = null;
-                                AsyncHelper.Sync(() => Client.HttpCapsClient.GetRequestAsync(
-                                    Client.Network.CurrentSim.Caps.CapabilityURI("ScriptResourceDetails"),
-                                    cancellationToken,
-                                    (response, respData, err) => detailResponse = OSDParser.Deserialize(respData)));
+                                OSD? detailResponse = null;
+                                Uri? detailsCap = Client.Network.CurrentSim?.Caps?.CapabilityURI("ScriptResourceDetails");
+                                if (detailsCap != null)
+                                {
+                                    AsyncHelper.Sync(() => Client.HttpCapsClient.GetRequestAsync(
+                                        detailsCap,
+                                        cancellationToken,
+                                        (response, respData, err) => { if (respData != null && respData.Length > 0) detailResponse = OSDParser.Deserialize(respData); }));
+                                }
 
-                                resInfo.Deserialize((OSDMap)detailResponse);
+                                if (detailResponse is OSDMap detailMap)
+                                    resInfo.Deserialize(detailMap);
                             }
 
                             callback(true, resInfo);
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed fetching land resources", ex, Client);
-                            callback(false, null);
-                        }
+                            catch (Exception ex)
+                            {
+                                Logger.Error("Failed fetching land resources", ex, Client);
+                                callback(false, new LandResourcesInfo());
+                            }
                     });
             }
             catch (Exception ex)
             {
                 Logger.Error("Failed fetching land resources:", ex, Client);
-                callback(false, null);
+                callback(false, new LandResourcesInfo());
             }
         }
 
@@ -1858,7 +1890,7 @@ namespace OpenMetaverse
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         /// <remarks>Raises the <see cref="ParcelDwellReply"/> event</remarks>
-        protected void ParcelDwellReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void ParcelDwellReplyHandler(object? sender, PacketReceivedEventArgs e)
         {            
             if (m_DwellReply == null || !Client.Settings.ALWAYS_REQUEST_PARCEL_DWELL)
                 return;
@@ -1881,7 +1913,7 @@ namespace OpenMetaverse
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         /// <remarks>Raises the <see cref="ParcelInfoReply"/> event</remarks>
-        protected void ParcelInfoReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void ParcelInfoReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_ParcelInfo == null) 
                 return;
@@ -2049,7 +2081,7 @@ namespace OpenMetaverse
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         /// <remarks>Raises the <see cref="ParcelAccessListReply"/> event</remarks>
-        protected void ParcelAccessListReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void ParcelAccessListReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_ParcelACL == null || !Client.Settings.ALWAYS_REQUEST_PARCEL_ACL) 
                 return;
@@ -2121,7 +2153,7 @@ namespace OpenMetaverse
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         /// <remarks>Raises the <see cref="ForceSelectObjectsReply"/> event</remarks>
-        protected void SelectParcelObjectsReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void SelectParcelObjectsReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_ForceSelectObjects == null) 
                 return;
@@ -2141,7 +2173,7 @@ namespace OpenMetaverse
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         /// <remarks>Raises the <see cref="ParcelMediaUpdate"/> event</remarks>
-        protected void ParcelMediaUpdateHandler(object sender, PacketReceivedEventArgs e)
+        protected void ParcelMediaUpdateHandler(object? sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
             Simulator simulator = e.Simulator;
@@ -2167,7 +2199,7 @@ namespace OpenMetaverse
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         /// <remarks>Raises the <see cref="ParcelOverlay"/> event</remarks>
-        protected void ParcelOverlayHandler(object sender, PacketReceivedEventArgs e)
+        protected void ParcelOverlayHandler(object? sender, PacketReceivedEventArgs e)
         {
             const int OVERLAY_COUNT = 4;
             Packet packet = e.Packet;
@@ -2202,7 +2234,7 @@ namespace OpenMetaverse
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
         /// <remarks>Raises the <see cref="ParcelMediaCommand"/> event</remarks>
-        protected void ParcelMediaCommandMessagePacketHandler(object sender, PacketReceivedEventArgs e)
+        protected void ParcelMediaCommandMessagePacketHandler(object? sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
             Simulator simulator = e.Simulator;

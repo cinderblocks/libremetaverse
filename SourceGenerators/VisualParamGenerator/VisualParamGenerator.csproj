@@ -6,7 +6,6 @@
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <Nullable>enable</Nullable>
     <ImplicitUsings>true</ImplicitUsings>
-    <LangVersion>Latest</LangVersion>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
   </PropertyGroup>
   <ItemGroup>

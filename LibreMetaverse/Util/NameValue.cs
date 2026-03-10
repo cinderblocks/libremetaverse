@@ -105,7 +105,7 @@ namespace OpenMetaverse
         /// <summary></summary>
         public SendtoType Sendto;
         /// <summary></summary>
-        public object Value;
+        public object? Value;
 
 
         private static readonly string[] TypeStrings = new string[]

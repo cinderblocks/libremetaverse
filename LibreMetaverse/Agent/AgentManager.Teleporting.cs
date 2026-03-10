@@ -206,15 +206,17 @@ namespace OpenMetaverse
                 AutoResetEvent queueEvent = new AutoResetEvent(false);
 
                 EventHandler<EventQueueRunningEventArgs> queueCallback =
-                    delegate(object sender, EventQueueRunningEventArgs e)
+                    delegate(object? sender, EventQueueRunningEventArgs e)
                     {
-                        if (e.Simulator == Client.Network.CurrentSim)
+                        var sim = Client.Network.CurrentSim;
+                        if (e.Simulator == sim)
                             queueEvent.Set();
                     };
 
-                if (Client.Network.CurrentSim != null && Client.Network.CurrentSim.Caps != null)
+                var curSim = Client.Network.CurrentSim;
+                if (curSim?.Caps?.EventQueue != null)
                 {
-                    Client.Network.CurrentSim.Caps.EventQueue.Start();
+                    curSim.Caps.EventQueue.Start();
                 }
 
                 Client.Network.EventQueueRunning += queueCallback;
@@ -316,7 +318,8 @@ namespace OpenMetaverse
         /// <param name="targetID">target avatars <see cref="UUID"/> to lure</param>
         public void SendTeleportLure(UUID targetID)
         {
-            SendTeleportLure(targetID, $"Join me in {Client.Network.CurrentSim.Name}!");
+            var regionName = Client?.Network?.CurrentSim?.Name ?? "unknown";
+            SendTeleportLure(targetID, $"Join me in {regionName}!");
         }
 
         /// <summary>

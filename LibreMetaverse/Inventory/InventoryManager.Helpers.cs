@@ -7,7 +7,7 @@ namespace OpenMetaverse
     public partial class InventoryManager
     {
         // Helpers to reduce duplicated AIS Task continuation and local store merge logic
-        private void ContinueWithLog(Task<bool> task, string context, Action onSuccess = null)
+        private void ContinueWithLog(Task<bool> task, string context, Action? onSuccess = null)
         {
             if (task == null) return;
             task.ContinueWith(t =>
@@ -26,7 +26,7 @@ namespace OpenMetaverse
             }, TaskScheduler.Default);
         }
 
-        private void ContinueWithWhenAllLog(Task<bool[]> task, string context, Action<bool[]> onSuccess = null)
+        private void ContinueWithWhenAllLog(Task<bool[]> task, string context, Action<bool[]>? onSuccess = null)
         {
             if (task == null) return;
             task.ContinueWith(t =>

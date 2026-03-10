@@ -103,7 +103,7 @@ namespace OpenMetaverse.Imaging
 
         public static byte[] Encode(SKBitmap image)
         {
-            if (image == null) { return null; }
+            if (image == null) { return Array.Empty<byte>(); }
 
             var imageType = (byte)(image.ColorType == SKColorType.Gray8 || image.ColorType == SKColorType.Alpha8
                 ? 0x03 : 0x02);

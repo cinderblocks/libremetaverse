@@ -25,6 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using System;
 using CoreJ2K;
 using CoreJ2K.Configuration;
 using OpenMetaverse.Imaging;
@@ -40,7 +41,7 @@ namespace OpenMetaverse.Assets
         public override AssetType AssetType => AssetType.Texture;
 
         /// <summary>A <see cref="ManagedImage"/> object containing image data</summary>
-        public ManagedImage Image;
+        public ManagedImage? Image;
 
         /// <summary></summary>
         public int Components;
@@ -79,6 +80,12 @@ namespace OpenMetaverse.Assets
         /// </summary>
         public sealed override void Encode()
         {
+            if (Image == null)
+            {
+                AssetData = Array.Empty<byte>();
+                return;
+            }
+
             AssetData = J2kImage.ToBytes(Image.ExportBitmap(),
                 new CompleteEncoderConfigurationBuilder().ForStreaming().Build());
         }

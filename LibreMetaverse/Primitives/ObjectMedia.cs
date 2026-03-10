@@ -86,10 +86,10 @@ namespace OpenMetaverse
         public MediaControls Controls;
 
         /// <summary>Starting URL for the media</summary>
-        public string HomeURL;
+        public string HomeURL = string.Empty;
 
         /// <summary>Currently navigated URL</summary>
-        public string CurrentURL;
+        public string CurrentURL = string.Empty;
 
         /// <summary>Media height in pixes</summary>
         public int Height;
@@ -107,7 +107,7 @@ namespace OpenMetaverse
         public bool EnableWhiteList;
 
         /// <summary>Array of URLs that are whitelisted</summary>
-        public string[] WhiteList;
+        public string[] WhiteList = Array.Empty<string>();
 
         /// <summary>
         /// Serialize to OSD

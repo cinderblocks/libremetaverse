@@ -376,7 +376,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void EconomyDataHandler(object sender, PacketReceivedEventArgs e)
+        protected void EconomyDataHandler(object? sender, PacketReceivedEventArgs e)
         {
             EconomyDataPacket econ = (EconomyDataPacket)e.Packet;
 

@@ -62,7 +62,7 @@ namespace OpenMetaverse
         public UUID ParentUUID;
         /// <summary>Name of item/folder</summary>
         [Key("Name")]
-        public string Name;
+        public string Name = string.Empty;
         /// <summary>Item/Folder Owners <see cref="OpenMetaverse.UUID"/></summary>
         [Key("OwnerID")]
         public UUID OwnerID;
@@ -145,7 +145,7 @@ namespace OpenMetaverse
         public UUID CreatorID;
         /// <summary>Description of the item</summary>
         [Key("Description")]
-        public string Description;
+        public string Description = string.Empty;
         /// <summary><see cref="Group"/>s <see cref="UUID"/> the item is owned by</summary>
         [Key("GroupID")]
         public UUID GroupID;

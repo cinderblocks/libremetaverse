@@ -157,7 +157,11 @@ namespace OpenMetaverse
             var type = typeof(Sounds);
             foreach (FieldInfo field in type.GetFields(BindingFlags.Public | BindingFlags.Static))
             {
-                dict.Add((UUID)field.GetValue(type), field.Name);
+                var val = field.GetValue(type);
+                if (val is UUID id)
+                {
+                    dict.Add(id, field.Name);
+                }
             }
             return dict.ToImmutable();
         }

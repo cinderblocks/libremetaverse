@@ -61,7 +61,7 @@ namespace OpenMetaverse
             /// <summary>Human-readable message describing the issue or info.</summary>
             public string Message { get; }
             /// <summary>An optional exception associated with the diagnostic.</summary>
-            public Exception Exception { get; }
+            public Exception? Exception { get; }
 
             /// <summary>
             /// Create a new parse diagnostic message.
@@ -69,7 +69,7 @@ namespace OpenMetaverse
             /// <param name="level">Severity level.</param>
             /// <param name="message">Message text.</param>
             /// <param name="ex">Optional exception captured during parsing.</param>
-            public ParseMessage(ParseMessageLevel level, string message, Exception ex = null)
+            public ParseMessage(ParseMessageLevel level, string message, Exception? ex = null)
             {
                 Level = level;
                 Message = message;
@@ -92,10 +92,10 @@ namespace OpenMetaverse
 
             /// <summary>The LoginResponseData instance produced by the parse operation.
             /// This is a copy and safe to use independently of the instance that performed parsing.</summary>
-            public LoginResponseData ParsedData { get; set; }
+            public LoginResponseData? ParsedData { get; set; }
 
             /// <summary>Add a diagnostics message to the result.</summary>
-            public void Add(ParseMessageLevel level, string message, Exception ex = null) => _messages.Add(new ParseMessage(level, message, ex));
+            public void Add(ParseMessageLevel level, string message, Exception? ex = null) => _messages.Add(new ParseMessage(level, message, ex));
         }
 
         /// <summary>
@@ -125,22 +125,22 @@ namespace OpenMetaverse
         /// <summary>True when Login == LoginState.True</summary>
         public bool Success => Login == LoginState.True;
 
-        public string Reason { get; set; }
+        public string Reason { get; set; } = string.Empty;
         /// <summary>Login message of the day</summary>
-        public string Message { get; set; }
+        public string Message { get; set; } = string.Empty;
         public bool FirstLogin { get; set; }
         public UUID AgentID { get; set; }
         public UUID SessionID { get; set; }
         public UUID SecureSessionID { get; set; }
-        public string MfaHash { get; set; }
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-        public string StartLocation { get; set; }
-        public string AccountType { get; set; }
-        public string AgentAccess { get; set; }
-        public string AgentAccessMax { get; set; }
-        public string AgentRegionAccess { get; set; }
-        public string InitialOutfit { get; set; }
+        public string MfaHash { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string StartLocation { get; set; } = string.Empty;
+        public string AccountType { get; set; } = string.Empty;
+        public string AgentAccess { get; set; } = string.Empty;
+        public string AgentAccessMax { get; set; } = string.Empty;
+        public string AgentRegionAccess { get; set; } = string.Empty;
+        public string InitialOutfit { get; set; } = string.Empty;
         public Vector3 LookAt { get; set; }
         public HomeInfo Home { get; }
         public int CircuitCode { get; set; }
@@ -149,19 +149,19 @@ namespace OpenMetaverse
         public uint RegionSizeX { get; set; }
         public uint RegionSizeY { get; set; }
         public ushort SimPort { get; set; }
-        public IPAddress SimIP { get; set; }
-        public string SeedCapability { get; set; }
+        public IPAddress? SimIP { get; set; }
+        public string SeedCapability { get; set; } = string.Empty;
         public BuddyListEntry[] BuddyList { get; set; } = Array.Empty<BuddyListEntry>();
         public int SecondsSinceEpoch { get; set; }
-        public string UDPBlacklist { get; set; }
+        public string UDPBlacklist { get; set; } = string.Empty;
         public int MaxAgentGroups { get; set; }
-        public string OpenIDUrl { get; set; }
-        public string AgentAppearanceServiceURL { get; set; }
-        public string MapServerUrl { get; set; }
-        public string SnapshotConfigUrl { get; set; }
+        public string OpenIDUrl { get; set; } = string.Empty;
+        public string AgentAppearanceServiceURL { get; set; } = string.Empty;
+        public string MapServerUrl { get; set; } = string.Empty;
+        public string SnapshotConfigUrl { get; set; } = string.Empty;
         public uint COFVersion { get; set; }
-        public AccountLevelBenefits AccountLevelBenefits { get; set; }
-        public Dictionary<string, object> PremiumPackages { get; set; } = new Dictionary<string, object>();
+        public AccountLevelBenefits? AccountLevelBenefits { get; set; }
+        public Dictionary<string, object?> PremiumPackages { get; set; } = new Dictionary<string, object?>();
         public List<object> ClassifiedCategories { get; set; } = new List<object>();
         public List<object> EventCategories { get; set; } = new List<object>();
         public List<object> GlobalTextures { get; set; } = new List<object>();
@@ -180,9 +180,9 @@ namespace OpenMetaverse
 
         #region Redirection
 
-        public string NextMethod { get; set; }
-        public string NextUrl { get; set; }
-        public string[] NextOptions { get; set; }
+        public string NextMethod { get; set; } = string.Empty;
+        public string NextUrl { get; set; } = string.Empty;
+        public string[] NextOptions { get; set; } = Array.Empty<string>();
         public int NextDuration { get; set; }
 
         #endregion
@@ -306,7 +306,9 @@ namespace OpenMetaverse
             SnapshotConfigUrl = other.SnapshotConfigUrl;
             COFVersion = other.COFVersion;
             AccountLevelBenefits = other.AccountLevelBenefits;
-            PremiumPackages = other.PremiumPackages != null ? new Dictionary<string, object>(other.PremiumPackages) : new Dictionary<string, object>();
+            PremiumPackages = other.PremiumPackages != null
+                ? new Dictionary<string, object?>(other.PremiumPackages.ToDictionary(kv => kv.Key, kv => (object?)kv.Value))
+                : new Dictionary<string, object?>();
             ClassifiedCategories = other.ClassifiedCategories != null ? new List<object>(other.ClassifiedCategories) : new List<object>();
             EventCategories = other.EventCategories != null ? new List<object>(other.EventCategories) : new List<object>();
             GlobalTextures = other.GlobalTextures != null ? new List<object>(other.GlobalTextures) : new List<object>();
@@ -319,7 +321,7 @@ namespace OpenMetaverse
             Gestures = other.Gestures != null ? new Dictionary<UUID, UUID>(other.Gestures) : new Dictionary<UUID, UUID>();
             NextMethod = other.NextMethod;
             NextUrl = other.NextUrl;
-            NextOptions = (string[])other.NextOptions?.Clone();
+            NextOptions = other.NextOptions != null ? (string[])other.NextOptions.Clone() : Array.Empty<string>();
             NextDuration = other.NextDuration;
         }
 
@@ -355,7 +357,7 @@ namespace OpenMetaverse
 
         // Centralized parsing implementation used by both Parse overloads
         // diagnostics is optional; when provided, parsing issues are added to it in addition to logging
-        private void ParseCore(ReplyAdapter adapter, bool earlyReturnIfNotSuccess, ParseResult diagnostics = null)
+        private void ParseCore(ReplyAdapter adapter, bool earlyReturnIfNotSuccess, ParseResult? diagnostics = null)
         {
             // delegate to instance-aware parser to allow parsing into a supplied object
             ParseInto(this, adapter, earlyReturnIfNotSuccess, diagnostics);
@@ -363,7 +365,7 @@ namespace OpenMetaverse
 
         // Parse into the provided target instance. This enables ParseWithDiagnostics to parse
         // into a new immutable instance while leaving the current object unchanged.
-        private static void ParseInto(LoginResponseData target, ReplyAdapter adapter, bool earlyReturnIfNotSuccess, ParseResult diagnostics = null)
+        private static void ParseInto(LoginResponseData target, ReplyAdapter adapter, bool earlyReturnIfNotSuccess, ParseResult? diagnostics = null)
         {
             try
             {
@@ -466,10 +468,14 @@ namespace OpenMetaverse
 
                     if (map.TryGetValue(Keys.HomeInfo.RegionHandle, out var value))
                     {
-                        var coords = (OSDArray)OSDParser.DeserializeLLSDNotation(value.ToString());
-                        if (coords != null && coords.Type == OSDType.Array)
+                        var notation = value?.ToString();
+                        if (!string.IsNullOrEmpty(notation))
                         {
-                            hi.RegionHandle = (coords.Count == 2) ? Utils.UIntsToLong((uint)coords[0].AsInteger(), (uint)coords[1].AsInteger()) : 0;
+                            var coords = (OSDArray)OSDParser.DeserializeLLSDNotation(notation ?? string.Empty);
+                            if (coords != null && coords.Type == OSDType.Array)
+                            {
+                                hi.RegionHandle = (coords.Count == 2) ? Utils.UIntsToLong((uint)coords[0].AsInteger(), (uint)coords[1].AsInteger()) : 0;
+                            }
                         }
                     }
 
@@ -487,10 +493,14 @@ namespace OpenMetaverse
 
                     if (ht.ContainsKey(Keys.HomeInfo.RegionHandle))
                     {
-                        var coords = (OSDArray)OSDParser.DeserializeLLSDNotation(ht[Keys.HomeInfo.RegionHandle].ToString());
-                        if (coords != null && coords.Type == OSDType.Array)
+                        var notation = ht[Keys.HomeInfo.RegionHandle]?.ToString();
+                        if (!string.IsNullOrEmpty(notation))
                         {
-                            hi.RegionHandle = (coords.Count == 2) ? Utils.UIntsToLong((uint)coords[0].AsInteger(), (uint)coords[1].AsInteger()) : 0;
+                            var coords = (OSDArray)OSDParser.DeserializeLLSDNotation(notation ?? string.Empty);
+                            if (coords != null && coords.Type == OSDType.Array)
+                            {
+                                hi.RegionHandle = (coords.Count == 2) ? Utils.UIntsToLong((uint)coords[0].AsInteger(), (uint)coords[1].AsInteger()) : 0;
+                            }
                         }
                     }
 
@@ -504,20 +514,23 @@ namespace OpenMetaverse
                 if (adapter.IsOSD)
                 {
                     var osdStr = adapter.GetString(Keys.HomeInfo.Home);
-                    var osdHome = OSDParser.DeserializeLLSDNotation(osdStr);
-                    if (osdHome.Type == OSDType.Map)
+                    if (!string.IsNullOrEmpty(osdStr))
                     {
-                        var home = (OSDMap)osdHome;
-                        var hi = Home;
-                        if (home.TryGetValue(Keys.HomeInfo.RegionHandle, out var homeRegion) && homeRegion.Type == OSDType.Array)
+                        var osdHome = OSDParser.DeserializeLLSDNotation(osdStr ?? string.Empty);
+                        if (osdHome.Type == OSDType.Map)
                         {
-                            var coords = (OSDArray)homeRegion;
-                            hi.RegionHandle = (coords.Count == 2) ? Utils.UIntsToLong((uint)coords[0].AsInteger(), (uint)coords[1].AsInteger()) : 0;
-                        }
+                            var home = (OSDMap)osdHome;
+                            var hi = Home;
+                            if (home.TryGetValue(Keys.HomeInfo.RegionHandle, out var homeRegion) && homeRegion.Type == OSDType.Array)
+                            {
+                                var coords = (OSDArray)homeRegion;
+                                hi.RegionHandle = (coords.Count == 2) ? Utils.UIntsToLong((uint)coords[0].AsInteger(), (uint)coords[1].AsInteger()) : 0;
+                            }
 
-                        hi.Position = ParseVector3(Keys.HomeInfo.Position, home);
-                        hi.LookAt = ParseVector3(Keys.HomeInfo.LookAt, home);
-                        return;
+                            hi.Position = ParseVector3(Keys.HomeInfo.Position, home);
+                            hi.LookAt = ParseVector3(Keys.HomeInfo.LookAt, home);
+                            return;
+                        }
                     }
                 }
                 else
@@ -531,11 +544,15 @@ namespace OpenMetaverse
 
                         if (map.ContainsKey(Keys.HomeInfo.RegionHandle))
                         {
-                            var coords = (OSDArray)OSDParser.DeserializeLLSDNotation(map[Keys.HomeInfo.RegionHandle].ToString());
+                        var notation = map[Keys.HomeInfo.RegionHandle]?.ToString();
+                        if (!string.IsNullOrEmpty(notation))
+                        {
+                            var coords = (OSDArray)OSDParser.DeserializeLLSDNotation(notation ?? string.Empty);
                             if (coords != null && coords.Type == OSDType.Array)
                             {
                                 hi.RegionHandle = (coords.Count == 2) ? Utils.UIntsToLong((uint)coords[0].AsInteger(), (uint)coords[1].AsInteger()) : 0;
                             }
+                        }
                         }
 
                         return;
@@ -639,11 +656,11 @@ namespace OpenMetaverse
         private void ParseInventory(ReplyAdapter adapter)
         {
             InventoryRoot = adapter.GetMappedUUID(Keys.InventoryRoot, Keys.FolderId);
-            InventorySkeleton = adapter.IsOSD ? ParseInventorySkeleton(Keys.InventorySkeleton, adapter.OSD) : ParseInventorySkeleton(Keys.InventorySkeleton, adapter.Table);
+            InventorySkeleton = adapter.IsOSD ? ParseInventorySkeleton(Keys.InventorySkeleton, adapter.OSD!) : ParseInventorySkeleton(Keys.InventorySkeleton, adapter.Table!);
 
             LibraryOwner = adapter.GetMappedUUID(Keys.InventoryLibOwner, Keys.AgentId);
             LibraryRoot = adapter.GetMappedUUID(Keys.InventoryLibRoot, Keys.FolderId);
-            LibrarySkeleton = adapter.IsOSD ? ParseInventorySkeleton(Keys.InventorySkelLib, adapter.OSD) : ParseInventorySkeleton(Keys.InventorySkelLib, adapter.Table);
+            LibrarySkeleton = adapter.IsOSD ? ParseInventorySkeleton(Keys.InventorySkelLib, adapter.OSD!) : ParseInventorySkeleton(Keys.InventorySkelLib, adapter.Table!);
         }
 
         private void ParseOptionalAndLists(ReplyAdapter adapter)
@@ -715,8 +732,14 @@ namespace OpenMetaverse
                 if (map != null)
                 {
                     var ht = map.ToHashtable();
-                    var dict = new Dictionary<string, object>(ht.Count);
-                    foreach (DictionaryEntry de in ht) dict[(string)de.Key] = de.Value;
+                    var dict = new Dictionary<string, object?>(ht.Count);
+                    foreach (DictionaryEntry de in ht)
+                    {
+                        if (de.Key is string keyStr)
+                        {
+                            dict[keyStr] = de.Value;
+                        }
+                    }
                     PremiumPackages = dict;
                 }
             }
@@ -725,8 +748,14 @@ namespace OpenMetaverse
                 var ht = adapter.GetHashtable(Keys.PremiumPackages);
                 if (ht != null)
                 {
-                    var dict = new Dictionary<string, object>(ht.Count);
-                    foreach (DictionaryEntry de in ht) dict[(string)de.Key] = de.Value;
+                    var dict = new Dictionary<string, object?>(ht.Count);
+                    foreach (DictionaryEntry de in ht)
+                    {
+                        if (de.Key is string keyStr)
+                        {
+                            dict[keyStr] = de.Value;
+                        }
+                    }
                     PremiumPackages = dict;
                 }
             }
@@ -765,8 +794,8 @@ namespace OpenMetaverse
         private sealed class ReplyAdapter
         {
             public readonly bool IsOSD;
-            public readonly OSDMap OSD;
-            public readonly Hashtable Table;
+            public readonly OSDMap? OSD;
+            public readonly Hashtable? Table;
 
             public ReplyAdapter(OSDMap osd)
             {
@@ -783,55 +812,56 @@ namespace OpenMetaverse
             public bool ContainsKey(string key) => IsOSD ? (OSD?.ContainsKey(key) ?? false) : (Table?.ContainsKey(key) ?? false);
             public bool HasKey(string key) => ContainsKey(key);
 
-            public string GetString(string key) => IsOSD ? ParseString(key, OSD) : ParseString(key, Table);
-            public UUID GetUUID(string key) => IsOSD ? ParseUUID(key, OSD) : ParseUUID(key, Table);
-            public uint GetUInt(string key) => IsOSD ? ParseUInt(key, OSD) : ParseUInt(key, Table);
-            public Vector3 GetVector3(string key) => IsOSD ? ParseVector3(key, OSD) : ParseVector3(key, Table);
+            public string GetString(string key) => IsOSD ? ParseString(key, OSD!) : ParseString(key, Table!);
+            public UUID GetUUID(string key) => IsOSD ? ParseUUID(key, OSD!) : ParseUUID(key, Table!);
+            public uint GetUInt(string key) => IsOSD ? ParseUInt(key, OSD!) : ParseUInt(key, Table!);
+            public Vector3 GetVector3(string key) => IsOSD ? ParseVector3(key, OSD!) : ParseVector3(key, Table!);
 
-            public OSDMap GetOSDMap(string key)
+            public OSDMap? GetOSDMap(string key)
             {
                 if (!IsOSD) return null;
-                if (!OSD.TryGetValue(key, out var val)) return null;
+                if (!OSD!.TryGetValue(key, out var val)) return null;
                 return val != null && val.Type == OSDType.Map ? (OSDMap)val : null;
             }
 
-            public OSDArray GetOSDArray(string key)
+            public OSDArray? GetOSDArray(string key)
             {
                 if (!IsOSD) return null;
-                if (!OSD.TryGetValue(key, out var val)) return null;
+                if (!OSD!.TryGetValue(key, out var val)) return null;
                 return val != null && val.Type == OSDType.Array ? (OSDArray)val : null;
             }
 
-            public Hashtable GetHashtable(string key)
+            public Hashtable? GetHashtable(string key)
             {
-                if (IsOSD) return null;
+                if (IsOSD || Table == null) return null;
                 if (!Table.ContainsKey(key)) return null;
                 return Table[key] as Hashtable;
             }
 
-            public ArrayList GetArrayList(string key)
+            public ArrayList? GetArrayList(string key)
             {
-                if (IsOSD) return null;
+                if (IsOSD || Table == null) return null;
                 if (!Table.ContainsKey(key)) return null;
                 return Table[key] as ArrayList;
             }
 
-            public object GetObject(string key)
+            public object? GetObject(string key)
             {
                 if (IsOSD) return GetString(key);
-                return !Table.ContainsKey(key) ? null : Table[key];
+                return Table != null && Table.ContainsKey(key) ? Table[key] : null;
             }
 
             public bool HasKeyAndUInt(string key)
             {
-                if (IsOSD) return OSD.ContainsKey(key);
-                if (!Table.ContainsKey(key)) return false;
-                return Table[key] is int || Table[key] is uint || Table[key] is long || Table[key] is string;
+                if (IsOSD) return OSD?.ContainsKey(key) ?? false;
+                if (Table == null || !Table.ContainsKey(key)) return false;
+                var v = Table[key];
+                return v is int || v is uint || v is long || v is string;
             }
 
             public UUID GetMappedUUID(string key, string key2)
             {
-                return IsOSD ? ParseMappedUUID(key, key2, OSD) : ParseMappedUUID(key, key2, Table);
+                return IsOSD ? ParseMappedUUID(key, key2, OSD!) : ParseMappedUUID(key, key2, Table!);
             }
         }
 
@@ -862,7 +892,9 @@ namespace OpenMetaverse
         {
             if (!reply.ContainsKey(key)) return UUID.Zero;
 
-            return UUID.TryParse((string)reply[key], out var value) ? value : UUID.Zero;
+            var obj = reply[key];
+            var s = obj as string;
+            return s != null && UUID.TryParse(s, out var value) ? value : UUID.Zero;
         }
 
         public static string ParseString(string key, OSDMap reply)
@@ -901,9 +933,9 @@ namespace OpenMetaverse
                 var list = list1;
                 if (list.Count == 3)
                 {
-                    float.TryParse((string)list[0], out var x);
-                    float.TryParse((string)list[1], out var y);
-                    float.TryParse((string)list[2], out var z);
+                    float.TryParse($"{list[0]}", out var x);
+                    float.TryParse($"{list[1]}", out var y);
+                    float.TryParse($"{list[2]}", out var z);
 
                     return new Vector3(x, y, z);
                 }
@@ -936,10 +968,11 @@ namespace OpenMetaverse
         {
             if (!reply.ContainsKey(key) || !(reply[key] is ArrayList)) { return UUID.Zero; }
 
-            var array = (ArrayList)reply[key];
-            if (array.Count == 1 && array[0] is Hashtable)
+            var array = reply[key] as ArrayList;
+            if (array == null) return UUID.Zero;
+
+            if (array.Count == 1 && array[0] is Hashtable map)
             {
-                var map = (Hashtable)array[0];
                 return ParseUUID(key2, map);
             }
 
@@ -999,7 +1032,9 @@ namespace OpenMetaverse
 
             if (!reply.ContainsKey(key) || !(reply[key] is ArrayList)) { return folders.ToArray(); }
 
-            var array = (ArrayList)reply[key];
+            var array = reply[key] as ArrayList;
+            if (array == null) return folders.ToArray();
+
             foreach (var t in array)
             {
                 if (!(t is Hashtable map)) continue;

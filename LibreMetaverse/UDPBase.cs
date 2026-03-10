@@ -48,10 +48,10 @@ namespace OpenMetaverse
         protected int udpPort;
 
         // the remote endpoint to communicate with
-        protected IPEndPoint remoteEndPoint = null;
+        protected IPEndPoint? remoteEndPoint = null;
 
         // the UDP socket
-        private Socket udpSocket;
+        private Socket? udpSocket = null;
 
         // the all important shutdownFlag.
         private volatile bool shutdownFlag = true;
@@ -99,7 +99,7 @@ namespace OpenMetaverse
                     // this udp socket flag is not supported under mono,
                     // so we'll catch the exception and continue
                     const int SIO_UDP_CONNRESET = -1744830452;
-                    udpSocket.IOControl(SIO_UDP_CONNRESET, new byte[] { 0 }, null);
+                    udpSocket!.IOControl(SIO_UDP_CONNRESET, new byte[] { 0 }, null);
                 }
                 catch (Exception)
                 {
@@ -111,9 +111,9 @@ namespace OpenMetaverse
             // when running multiple connections, two can occasionally bind to the same port, leading to unexpected
             // errors as they intercept each others messages.  We need to prevent this.  This is not allowed by
             // default on Windows.
-            udpSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, false);
+            udpSocket!.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, false);
 
-            udpSocket.Bind(ipep);
+            udpSocket!.Bind(ipep);
 
             // we're not shutting down, we're starting up
             shutdownFlag = false;
@@ -136,7 +136,7 @@ namespace OpenMetaverse
             // threads.  Once we have the lock, we set shutdownFlag to inform the other
             // threads that the socket is closed.
             shutdownFlag = true;
-            udpSocket.Close();
+            udpSocket?.Close();
         }
 
         /// <summary>
@@ -147,7 +147,9 @@ namespace OpenMetaverse
         private void AsyncBeginReceive()
         {
             // allocate a packet buffer
-            UDPPacketBuffer buf = _packetPool.Get();
+            UDPPacketBuffer? buf = _packetPool.Get();
+
+            if (buf == null) return;
 
             if (shutdownFlag)
             {
@@ -159,7 +161,7 @@ namespace OpenMetaverse
             try
             {
                 // kick off an async read
-                udpSocket.BeginReceiveFrom(
+                udpSocket!.BeginReceiveFrom(
                     buf.Data,
                     0,
                     UDPPacketBuffer.DEFAULT_BUFFER_SIZE,
@@ -187,7 +189,7 @@ namespace OpenMetaverse
 
                         try
                         {
-                            udpSocket.BeginReceiveFrom(
+                            udpSocket!.BeginReceiveFrom(
                                 buf.Data,
                                 0,
                                 UDPPacketBuffer.DEFAULT_BUFFER_SIZE,
@@ -245,13 +247,17 @@ namespace OpenMetaverse
             // this is the received data
             //WrappedObject<UDPPacketBuffer> wrappedBuffer = (WrappedObject<UDPPacketBuffer>)iar.AsyncState;
             //UDPPacketBuffer buffer = wrappedBuffer.Instance;
-            UDPPacketBuffer buffer = (UDPPacketBuffer)iar.AsyncState;
+            UDPPacketBuffer? buffer = iar.AsyncState as UDPPacketBuffer;
+
+            if (buffer == null) return;
 
             try
             {
                 // get the length of data actually read from the socket, store it with the
                 // buffer
-                buffer.DataLength = udpSocket.EndReceiveFrom(iar, ref buffer.RemoteEndPoint);
+                var socket = udpSocket;
+                if (socket == null) return;
+                buffer.DataLength = socket.EndReceiveFrom(iar, ref buffer.RemoteEndPoint);
 
                 // call the abstract method PacketReceived(), passing the buffer that
                 // has just been filled from the socket read.
@@ -259,7 +265,7 @@ namespace OpenMetaverse
             }
             catch (SocketException) { }
             catch (ObjectDisposedException) { }
-            finally { _packetPool.Return(buffer); }
+            finally { if (buffer != null) _packetPool.Return(buffer); }
         }
 
         public void AsyncBeginSend(UDPPacketBuffer buf)
@@ -269,7 +275,10 @@ namespace OpenMetaverse
             {
                 // Profiling heavily loaded clients was showing better performance with
                 // synchronous UDP packet sending
-                udpSocket.SendTo(
+                var socket = udpSocket;
+                if (socket == null) return;
+
+                socket.SendTo(
                     buf.Data,
                     0,
                     buf.DataLength,

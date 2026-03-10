@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using LibreMetaverse;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
+#nullable enable
 
 namespace TestClient.Commands.Appearance
 {
@@ -97,7 +98,7 @@ namespace TestClient.Commands.Appearance
             }
         }
 
-        private void AvatarAppearanceHandler(object sender, PacketReceivedEventArgs e)
+        private void AvatarAppearanceHandler(object? sender, PacketReceivedEventArgs e)
         {
             AvatarAppearancePacket appearance = (AvatarAppearancePacket)e.Packet;
 

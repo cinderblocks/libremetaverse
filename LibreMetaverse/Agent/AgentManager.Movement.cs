@@ -446,7 +446,7 @@ namespace OpenMetaverse
             private int duplicateCount;
             private AgentState lastState;
             /// <summary>Timer for sending AgentUpdate packets</summary>
-            private Timer updateTimer;
+            private Timer? updateTimer;
             private int updateInterval;
 
             /// <summary>Default constructor</summary>
@@ -465,12 +465,12 @@ namespace OpenMetaverse
                 updateTimer = null;
             }
 
-            private void Network_OnDisconnected(object sender, DisconnectedEventArgs e)
+            private void Network_OnDisconnected(object? sender, DisconnectedEventArgs e)
             {
                 CleanupTimer();
             }
 
-            private void Network_OnConnected(object sender, LoginProgressEventArgs e)
+            private void Network_OnConnected(object? sender, LoginProgressEventArgs e)
             {
                 if (e.Status == LoginStatus.Success)
                 {
@@ -518,9 +518,11 @@ namespace OpenMetaverse
 
                 Quaternion parentRot = Quaternion.Identity;
 
-                if (Client.Self.SittingOn > 0)
+                var selfLocal = Client.Self;
+                if (selfLocal.SittingOn > 0)
                 {
-                    if (!Client.Network.CurrentSim.ObjectsPrimitives.TryGetValue(Client.Self.SittingOn, out var parent))
+                    var sim = Client?.Network?.CurrentSim;
+                    if (sim == null || !sim.ObjectsPrimitives.TryGetValue(selfLocal.SittingOn, out var parent))
                     {
                         Logger.Warn("Attempted TurnToward but parent prim is not found", Client);
                         return false;
@@ -529,12 +531,12 @@ namespace OpenMetaverse
                     parentRot = parent.Rotation;
                 }
 
-                Quaternion between = Vector3.RotationBetween(Vector3.UnitX, Vector3.Normalize(target - Client.Self.SimPosition));
+                Quaternion between = Vector3.RotationBetween(Vector3.UnitX, Vector3.Normalize(target - selfLocal.SimPosition));
                 Quaternion rot = between * (Quaternion.Identity / parentRot);
 
                 BodyRotation = rot;
                 HeadRotation = rot;
-                Camera.LookAt(Client.Self.SimPosition, target);
+                Camera.LookAt(selfLocal.SimPosition, target);
 
                 if (sendUpdate) { SendUpdate(); }
 
@@ -549,7 +551,7 @@ namespace OpenMetaverse
             /// of this packet</param>
             public void SendUpdate(bool reliable = false)
             {
-                SendUpdate(reliable, Client.Network.CurrentSim);
+                        SendUpdate(reliable, Client.Network.CurrentSim!);
             }
 
             /// <summary>
@@ -733,12 +735,12 @@ namespace OpenMetaverse
                 Client.Network.SendPacket(msg);
             }
 
-            private void UpdateTimer_Elapsed(object obj)
+            private void UpdateTimer_Elapsed(object? obj)
             {
                 if (Client.Network.Connected && Client.Settings.SEND_AGENT_UPDATES)
                 {
                     //Send an AgentUpdate packet
-                    SendUpdate(false, Client.Network.CurrentSim);
+                    SendUpdate(false, Client.Network.CurrentSim!);
                 }
             }
         }

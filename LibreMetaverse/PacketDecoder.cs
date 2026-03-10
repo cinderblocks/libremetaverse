@@ -783,7 +783,7 @@ namespace OpenMetaverse.Packets
 
         private static string DecodeNameValue(string fieldName, object fieldData)
         {
-            NameValue[] nameValues = null;
+            NameValue[]? nameValues = null;
             if (fieldData is NameValue[] data)
                 nameValues = data;
             else
@@ -829,10 +829,10 @@ namespace OpenMetaverse.Packets
             int i = 0;
             //int totalLength = 1;
 
-            Primitive.FlexibleData flexible = null;
-            Primitive.LightData light = null;
-            Primitive.SculptData sculpt = null;
-            Primitive.SculptData mesh = null;
+            Primitive.FlexibleData? flexible = null;
+            Primitive.LightData? light = null;
+            Primitive.SculptData? sculpt = null;
+            Primitive.SculptData? mesh = null;
             uint meshFlags = 0;
             bool hasMeshFlags = false;
 
@@ -1525,24 +1525,25 @@ namespace OpenMetaverse.Packets
                 foreach (FieldInfo t in fields)
                 {
                     string special;
-                    if (SpecialDecoder(packet.GetType().Name + "." + fieldInfo.Name + "." + t.Name,
-                        t.GetValue(nestedArrayRecord), out special))
+                    var fieldVal = t.GetValue(nestedArrayRecord);
+                    if (SpecialDecoder(packet.GetType().Name + "." + fieldInfo.Name + "." + t.Name, fieldVal, out special))
                     {
                         result.AppendLine(special);
                     }
                     else if (t.FieldType.IsArray) // default for an array (probably a byte[])
                     {
+                        var bytes = fieldVal as byte[] ?? Utils.EmptyBytes;
                         result.AppendFormat("{0,30: } {1,-40} [{2}]" + Environment.NewLine,
                             t.Name,
-                            Utils.BytesToString((byte[]) t.GetValue(nestedArrayRecord)),
+                            Utils.BytesToString(bytes),
                             /*fields[i].GetValue(nestedArrayRecord).GetType().Name*/ "String");
                     }
                     else // default for a field
                     {
                         result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
                             t.Name,
-                            t.GetValue(nestedArrayRecord),
-                            t.GetValue(nestedArrayRecord).GetType().Name);
+                            fieldVal,
+                            fieldVal?.GetType().Name ?? "null");
                     }
                 }
 
@@ -1553,17 +1554,17 @@ namespace OpenMetaverse.Packets
                         continue;
 
                     string special;
-                    if (SpecialDecoder(packet.GetType().Name + "." + fieldInfo.Name + "." + propertyInfo.Name,
-                        propertyInfo.GetValue(nestedArrayRecord, null),
-                        out special))
+                    var propVal = propertyInfo.GetValue(nestedArrayRecord, null);
+                    if (SpecialDecoder(packet.GetType().Name + "." + fieldInfo.Name + "." + propertyInfo.Name, propVal, out special))
                     {
                         result.AppendLine(special);
                     }
                     else
                     {
+                        var bytes = propVal as byte[] ?? Utils.EmptyBytes;
                         result.AppendFormat("{0, 30}: {1,-40} [{2}]c" + Environment.NewLine,
                             propertyInfo.Name,
-                            Utils.BytesToString((byte[]) propertyInfo.GetValue(nestedArrayRecord, null)),
+                            Utils.BytesToString(bytes),
                             propertyInfo.PropertyType.Name);
                     }
                 }
@@ -1574,30 +1575,30 @@ namespace OpenMetaverse.Packets
 
         private static void RecursePacketField(FieldInfo fieldInfo, object packet, ref StringBuilder result)
         {
-            object packetDataObject = fieldInfo.GetValue(packet);
+            object? packetDataObject = fieldInfo.GetValue(packet);
+            if (packetDataObject == null) return;
 
             // handle Fields
             foreach (FieldInfo packetValueField in _fieldsCache.GetOrAdd(packetDataObject.GetType(), t => t.GetFields()))
             {
                 string special;
-                if (SpecialDecoder(packet.GetType().Name + "." + fieldInfo.Name + "." + packetValueField.Name,
-                    packetValueField.GetValue(packetDataObject),
-                    out special))
+                var fieldVal = packetValueField.GetValue(packetDataObject);
+                if (SpecialDecoder(packet.GetType().Name + "." + fieldInfo.Name + "." + packetValueField.Name, fieldVal, out special))
                 {
                     result.AppendLine(special);
                 }
                 else if (packetValueField.FieldType.IsArray)
                 {
+                    var bytes = fieldVal as byte[] ?? Utils.EmptyBytes;
                     result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
                         packetValueField.Name,
-                        Utils.BytesToString((byte[]) packetValueField.GetValue(packetDataObject)),
+                        Utils.BytesToString(bytes),
                         /*packetValueField.FieldType.Name*/ "String");
                 }
                 else
                 {
                     result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
-                        packetValueField.Name, packetValueField.GetValue(packetDataObject),
-                        packetValueField.FieldType.Name);
+                        packetValueField.Name, fieldVal, fieldVal?.GetType().Name ?? packetValueField.FieldType.Name);
                 }
             }
 
@@ -1608,30 +1609,29 @@ namespace OpenMetaverse.Packets
                     continue;
 
                 string special;
-                if (SpecialDecoder(packet.GetType().Name + "." + fieldInfo.Name + "." + propertyInfo.Name,
-                    propertyInfo.GetValue(packetDataObject, null),
-                    out special))
+                var propVal = propertyInfo.GetValue(packetDataObject, null);
+                if (SpecialDecoder(packet.GetType().Name + "." + fieldInfo.Name + "." + propertyInfo.Name, propVal, out special))
                 {
                     result.AppendLine(special);
                 }
-                else if (propertyInfo.GetValue(packetDataObject, null).GetType() == typeof(byte[]))
+                else if (propVal is byte[] b)
                 {
                     result.AppendFormat("{0, 30}: {1,-40} [{2}]" + Environment.NewLine,
                         propertyInfo.Name,
-                        Utils.BytesToString((byte[]) propertyInfo.GetValue(packetDataObject, null)),
+                        Utils.BytesToString(b),
                         propertyInfo.PropertyType.Name);
                 }
                 else
                 {
                     result.AppendFormat("{0, 30}: {1,-40} [{2}]" + Environment.NewLine,
                         propertyInfo.Name,
-                        propertyInfo.GetValue(packetDataObject, null),
+                        propVal,
                         propertyInfo.PropertyType.Name);
                 }
             }
         }
 
-        private static bool SpecialDecoder(string decoderKey, object fieldData, out string result)
+        private static bool SpecialDecoder(string decoderKey, object? fieldData, out string result)
         {
             result = string.Empty;
             string[] keys = decoderKey.Split(new[] {'.'}, StringSplitOptions.RemoveEmptyEntries);
@@ -1648,7 +1648,7 @@ namespace OpenMetaverse.Packets
                 // fieldname e.g: Plane
                 if (Callbacks.Value.TryGetValue(key, out var callback))
                 {
-                    result = callback(keys[2], fieldData);
+                    result = callback(keys[2], fieldData ?? string.Empty);
                     return true;
                 }
             }
@@ -1684,26 +1684,26 @@ namespace OpenMetaverse.Packets
             // @todo: expensive - caching of GetFields() per Type?
             foreach (FieldInfo messageField in message.GetType().GetFields())
             {
+                var fieldValue = messageField.GetValue(message);
+
                 // an abstract message class
                 if (messageField.FieldType.IsAbstract)
                 {
-                    result.AppendLine(MessageToString(messageField.GetValue(message), recurseLevel));
+                    result.AppendLine(MessageToString(fieldValue!, recurseLevel));
                 }
                 // a byte array
-                else if (messageField.GetValue(message) != null &&
-                         messageField.GetValue(message).GetType() == typeof(byte[]))
+                else if (fieldValue != null && fieldValue.GetType() == typeof(byte[]))
                 {
                     result.AppendFormat("{0, 30}:" + Environment.NewLine, messageField.Name);
 
                     result.AppendFormat("{0}" + Environment.NewLine,
-                        Utils.BytesToHexString((byte[]) messageField.GetValue(message),
-                            $"{"",30}"));
+                        Utils.BytesToHexString((byte[])fieldValue!, $"{"",30}"));
                 }
 
                 // an array of class objects
                 else if (messageField.FieldType.IsArray)
                 {
-                    var messageObjectData = messageField.GetValue(message) as Array;
+                    var messageObjectData = fieldValue as Array;
                     
                     if (messageObjectData == null) continue;
 
@@ -1724,25 +1724,27 @@ namespace OpenMetaverse.Packets
                         // @todo: expensive - caching of GetFields() per Type?
                         foreach (FieldInfo nestedField in nestedArrayObject.GetType().GetFields())
                         {
+                            var nestedVal = nestedField.GetValue(nestedArrayObject);
                             if (nestedField.FieldType.IsEnum)
                             {
+                                var enumStr = nestedVal != null
+                                    ? Enum.Format(nestedVal.GetType(), nestedVal, "D")
+                                    : "null";
                                 result.AppendFormat("{0,30}: {1,-10} {2,-29} [{3}]" + Environment.NewLine,
                                     nestedField.Name,
-                                    Enum.Format(nestedField.GetValue(nestedArrayObject).GetType(),
-                                        nestedField.GetValue(nestedArrayObject), "D"),
-                                    "(" + nestedField.GetValue(nestedArrayObject) + ")",
-                                    nestedField.GetValue(nestedArrayObject).GetType().Name);
+                                    enumStr,
+                                    "(" + nestedVal + ")",
+                                    nestedVal?.GetType().Name ?? "null");
                             }
                             else if (nestedField.FieldType.IsInterface)
                             {
-                                result.AppendLine(
-                                    MessageToString(nestedField.GetValue(nestedArrayObject), recurseLevel));
+                                result.AppendLine(MessageToString(nestedVal!, recurseLevel));
                             }
                             else
                             {
                                 result.AppendFormat("{0, 30}: {1,-40} [{2}]" + Environment.NewLine,
                                     nestedField.Name,
-                                    nestedField.GetValue(nestedArrayObject),
+                                    nestedVal,
                                     nestedField.FieldType.Name);
                             }
                         }
@@ -1752,21 +1754,22 @@ namespace OpenMetaverse.Packets
                 {
                     if (messageField.FieldType.IsEnum)
                     {
+                        var val = fieldValue;
+                        var enumStr = val != null ? Enum.Format(val.GetType(), val, "D") : "null";
                         result.AppendFormat("{0,30}: {1,-2} {2,-37} [{3}]" + Environment.NewLine,
                             messageField.Name,
-                            Enum.Format(messageField.GetValue(message).GetType(),
-                                messageField.GetValue(message), "D"),
-                            "(" + messageField.GetValue(message) + ")",
+                            enumStr,
+                            "(" + val + ")",
                             messageField.FieldType.Name);
                     }
                     else if (messageField.FieldType.IsInterface)
                     {
-                        result.AppendLine(MessageToString(messageField.GetValue(message), recurseLevel));
+                        result.AppendLine(MessageToString(fieldValue!, recurseLevel));
                     }
                     else
                     {
                         result.AppendFormat("{0, 30}: {1,-40} [{2}]" + Environment.NewLine,
-                            messageField.Name, messageField.GetValue(message), messageField.FieldType.Name);
+                            messageField.Name, fieldValue, messageField.FieldType.Name);
                     }
                 }
             }

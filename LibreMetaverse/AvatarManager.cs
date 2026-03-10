@@ -45,13 +45,13 @@ namespace OpenMetaverse
         /// <summary> Agent UUID </summary>
         public UUID ID;
         /// <summary> Username </summary>
-        public string UserName;
+        public string? UserName;
         /// <summary> Display name </summary>
-        public string DisplayName;
+        public string? DisplayName;
         /// <summary> First name (legacy) </summary>
-        public string LegacyFirstName;
+        public string? LegacyFirstName;
         /// <summary> Last name (legacy) </summary>
-        public string LegacyLastName;
+        public string? LegacyLastName;
         /// <summary> Full name (legacy) </summary>
         public string LegacyFullName => $"{LegacyFirstName} {LegacyLastName}";
         /// <summary> Is display name default display name </summary>
@@ -92,10 +92,10 @@ namespace OpenMetaverse
             OSDMap map = new OSDMap
             {
                 ["id"] = ID,
-                ["username"] = UserName,
-                ["display_name"] = DisplayName,
-                ["legacy_first_name"] = LegacyFirstName,
-                ["legacy_last_name"] = LegacyLastName,
+                ["username"] = OSD.FromString(UserName ?? string.Empty),
+                ["display_name"] = OSD.FromString(DisplayName ?? string.Empty),
+                ["legacy_first_name"] = OSD.FromString(LegacyFirstName ?? string.Empty),
+                ["legacy_last_name"] = OSD.FromString(LegacyLastName ?? string.Empty),
                 ["is_display_name_default"] = IsDefaultDisplayName,
                 ["display_name_next_update"] = NextUpdate,
                 ["last_updated"] = Updated
@@ -191,14 +191,14 @@ namespace OpenMetaverse
  
          #region Events
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<AvatarAnimationEventArgs> m_AvatarAnimation;
+        private EventHandler<AvatarAnimationEventArgs>? m_AvatarAnimation;
 
         ///<summary>Raises the AvatarAnimation Event</summary>
         /// <param name="e">An AvatarAnimationEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnAvatarAnimation(AvatarAnimationEventArgs e)
         {
-            EventHandler<AvatarAnimationEventArgs> handler = m_AvatarAnimation;
+            EventHandler<AvatarAnimationEventArgs>? handler = m_AvatarAnimation;
             handler?.Invoke(this, e);
         }
 
@@ -214,14 +214,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<AvatarAppearanceEventArgs> m_AvatarAppearance;
+        private EventHandler<AvatarAppearanceEventArgs>? m_AvatarAppearance;
 
         ///<summary>Raises the AvatarAppearance Event</summary>
         /// <param name="e">A AvatarAppearanceEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnAvatarAppearance(AvatarAppearanceEventArgs e)
         {
-            EventHandler<AvatarAppearanceEventArgs> handler = m_AvatarAppearance;
+            EventHandler<AvatarAppearanceEventArgs>? handler = m_AvatarAppearance;
             handler?.Invoke(this, e);
         }
 
@@ -245,14 +245,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<UUIDNameReplyEventArgs> m_UUIDNameReply;
+        private EventHandler<UUIDNameReplyEventArgs>? m_UUIDNameReply;
 
         ///<summary>Raises the UUIDNameReply Event</summary>
         /// <param name="e">A UUIDNameReplyEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnUUIDNameReply(UUIDNameReplyEventArgs e)
         {
-            EventHandler<UUIDNameReplyEventArgs> handler = m_UUIDNameReply;
+            EventHandler<UUIDNameReplyEventArgs>? handler = m_UUIDNameReply;
             handler?.Invoke(this, e);
         }
 
@@ -268,14 +268,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<AvatarInterestsReplyEventArgs> m_AvatarInterestsReply;
+        private EventHandler<AvatarInterestsReplyEventArgs>? m_AvatarInterestsReply;
 
         ///<summary>Raises the AvatarInterestsReply Event</summary>
         /// <param name="e">A AvatarInterestsReplyEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnAvatarInterestsReply(AvatarInterestsReplyEventArgs e)
         {
-            EventHandler<AvatarInterestsReplyEventArgs> handler = m_AvatarInterestsReply;
+            EventHandler<AvatarInterestsReplyEventArgs>? handler = m_AvatarInterestsReply;
             handler?.Invoke(this, e);
         }
 
@@ -291,14 +291,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<AvatarNotesReplyEventArgs> m_AvatarNotesReply;
+        private EventHandler<AvatarNotesReplyEventArgs>? m_AvatarNotesReply;
 
         ///<summary>Raises the AvatarNotesReply Event</summary>
         /// <param name="e">A AvatarNotesReplyEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnAvatarNotesReply(AvatarNotesReplyEventArgs e)
         {
-            EventHandler<AvatarNotesReplyEventArgs> handler = m_AvatarNotesReply;
+            EventHandler<AvatarNotesReplyEventArgs>? handler = m_AvatarNotesReply;
             handler?.Invoke(this, e);
         }
 
@@ -314,14 +314,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<AvatarPropertiesReplyEventArgs> m_AvatarPropertiesReply;
+        private EventHandler<AvatarPropertiesReplyEventArgs>? m_AvatarPropertiesReply;
 
         ///<summary>Raises the AvatarPropertiesReply Event</summary>
         /// <param name="e">A AvatarPropertiesReplyEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnAvatarPropertiesReply(AvatarPropertiesReplyEventArgs e)
         {
-            EventHandler<AvatarPropertiesReplyEventArgs> handler = m_AvatarPropertiesReply;
+            EventHandler<AvatarPropertiesReplyEventArgs>? handler = m_AvatarPropertiesReply;
             handler?.Invoke(this, e);
         }
 
@@ -337,14 +337,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<AvatarGroupsReplyEventArgs> m_AvatarGroupsReply;
+        private EventHandler<AvatarGroupsReplyEventArgs>? m_AvatarGroupsReply;
 
         ///<summary>Raises the AvatarGroupsReply Event</summary>
         /// <param name="e">A AvatarGroupsReplyEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnAvatarGroupsReply(AvatarGroupsReplyEventArgs e)
         {
-            EventHandler<AvatarGroupsReplyEventArgs> handler = m_AvatarGroupsReply;
+            EventHandler<AvatarGroupsReplyEventArgs>? handler = m_AvatarGroupsReply;
             handler?.Invoke(this, e);
         }
 
@@ -360,14 +360,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<AvatarPickerReplyEventArgs> m_AvatarPickerReply;
+        private EventHandler<AvatarPickerReplyEventArgs>? m_AvatarPickerReply;
 
         ///<summary>Raises the AvatarPickerReply Event</summary>
         /// <param name="e">A AvatarPickerReplyEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnAvatarPickerReply(AvatarPickerReplyEventArgs e)
         {
-            EventHandler<AvatarPickerReplyEventArgs> handler = m_AvatarPickerReply;
+            EventHandler<AvatarPickerReplyEventArgs>? handler = m_AvatarPickerReply;
             handler?.Invoke(this, e);
         }
 
@@ -383,14 +383,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<ViewerEffectPointAtEventArgs> m_ViewerEffectPointAt;
+        private EventHandler<ViewerEffectPointAtEventArgs>? m_ViewerEffectPointAt;
 
         ///<summary>Raises the ViewerEffectPointAt Event</summary>
         /// <param name="e">A ViewerEffectPointAtEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnViewerEffectPointAt(ViewerEffectPointAtEventArgs e)
         {
-            EventHandler<ViewerEffectPointAtEventArgs> handler = m_ViewerEffectPointAt;
+            EventHandler<ViewerEffectPointAtEventArgs>? handler = m_ViewerEffectPointAt;
             handler?.Invoke(this, e);
         }
 
@@ -406,14 +406,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<ViewerEffectLookAtEventArgs> m_ViewerEffectLookAt;
+        private EventHandler<ViewerEffectLookAtEventArgs>? m_ViewerEffectLookAt;
 
         ///<summary>Raises the ViewerEffectLookAt Event</summary>
         /// <param name="e">A ViewerEffectLookAtEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnViewerEffectLookAt(ViewerEffectLookAtEventArgs e)
         {
-            EventHandler<ViewerEffectLookAtEventArgs> handler = m_ViewerEffectLookAt;
+            EventHandler<ViewerEffectLookAtEventArgs>? handler = m_ViewerEffectLookAt;
             handler?.Invoke(this, e);
         }
 
@@ -429,14 +429,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<ViewerEffectEventArgs> m_ViewerEffect;
+        private EventHandler<ViewerEffectEventArgs>? m_ViewerEffect;
 
         ///<summary>Raises the ViewerEffect Event</summary>
         /// <param name="e">A ViewerEffectEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnViewerEffect(ViewerEffectEventArgs e)
         {
-            EventHandler<ViewerEffectEventArgs> handler = m_ViewerEffect;
+            EventHandler<ViewerEffectEventArgs>? handler = m_ViewerEffect;
             handler?.Invoke(this, e);
         }
 
@@ -452,14 +452,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<AvatarPicksReplyEventArgs> m_AvatarPicksReply;
+        private EventHandler<AvatarPicksReplyEventArgs>? m_AvatarPicksReply;
 
         ///<summary>Raises the AvatarPicksReply Event</summary>
         /// <param name="e">A AvatarPicksReplyEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnAvatarPicksReply(AvatarPicksReplyEventArgs e)
         {
-            EventHandler<AvatarPicksReplyEventArgs> handler = m_AvatarPicksReply;
+            EventHandler<AvatarPicksReplyEventArgs>? handler = m_AvatarPicksReply;
             handler?.Invoke(this, e);
         }
 
@@ -475,14 +475,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<PickInfoReplyEventArgs> m_PickInfoReply;
+        private EventHandler<PickInfoReplyEventArgs>? m_PickInfoReply;
 
         ///<summary>Raises the PickInfoReply Event</summary>
         /// <param name="e">A PickInfoReplyEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnPickInfoReply(PickInfoReplyEventArgs e)
         {
-            EventHandler<PickInfoReplyEventArgs> handler = m_PickInfoReply;
+            EventHandler<PickInfoReplyEventArgs>? handler = m_PickInfoReply;
             handler?.Invoke(this, e);
         }
 
@@ -498,14 +498,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<AvatarClassifiedReplyEventArgs> m_AvatarClassifiedReply;
+        private EventHandler<AvatarClassifiedReplyEventArgs>? m_AvatarClassifiedReply;
 
         ///<summary>Raises the AvatarClassifiedReply Event</summary>
         /// <param name="e">A AvatarClassifiedReplyEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnAvatarClassifiedReply(AvatarClassifiedReplyEventArgs e)
         {
-            EventHandler<AvatarClassifiedReplyEventArgs> handler = m_AvatarClassifiedReply;
+            EventHandler<AvatarClassifiedReplyEventArgs>? handler = m_AvatarClassifiedReply;
             handler?.Invoke(this, e);
         }
 
@@ -521,14 +521,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<ClassifiedInfoReplyEventArgs> m_ClassifiedInfoReply;
+        private EventHandler<ClassifiedInfoReplyEventArgs>? m_ClassifiedInfoReply;
 
         ///<summary>Raises the ClassifiedInfoReply Event</summary>
         /// <param name="e">A ClassifiedInfoReplyEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnClassifiedInfoReply(ClassifiedInfoReplyEventArgs e)
         {
-            EventHandler<ClassifiedInfoReplyEventArgs> handler = m_ClassifiedInfoReply;
+            EventHandler<ClassifiedInfoReplyEventArgs>? handler = m_ClassifiedInfoReply;
             handler?.Invoke(this, e);
         }
 
@@ -544,14 +544,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<DisplayNameUpdateEventArgs> m_DisplayNameUpdate;
+        private EventHandler<DisplayNameUpdateEventArgs>? m_DisplayNameUpdate;
 
         ///<summary>Raises the DisplayNameUpdate Event</summary>
         /// <param name="e">A DisplayNameUpdateEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnDisplayNameUpdate(DisplayNameUpdateEventArgs e)
         {
-            EventHandler<DisplayNameUpdateEventArgs> handler = m_DisplayNameUpdate;
+            EventHandler<DisplayNameUpdateEventArgs>? handler = m_DisplayNameUpdate;
             handler?.Invoke(this, e);
         }
 
@@ -575,14 +575,14 @@ namespace OpenMetaverse
         /// <param name="success">If the request was successful</param>
         /// <param name="names">Array of display names</param>
         /// <param name="badIDs">Array of UUIDs that could not be fetched</param>
-        public delegate void DisplayNamesCallback(bool success, AgentDisplayName[] names, UUID[] badIDs);
+        public delegate void DisplayNamesCallback(bool success, AgentDisplayName[]? names, UUID[]? badIDs);
 
         /// <summary>
         /// Callback giving results when fetching AgentProfile
         /// </summary>
         /// <param name="success">If the request was successful</param>
         /// <param name="profile">AgentProfile result</param>
-        public delegate void AgentProfileCallback(bool success, AgentProfileMessage profile);
+        public delegate void AgentProfileCallback(bool success, AgentProfileMessage? profile);
         #endregion Delegates
 
         private readonly GridClient Client;
@@ -718,9 +718,17 @@ namespace OpenMetaverse
             if (!DisplayNamesAvailable() || ids.Count == 0)
             {
                 callback(false, null, null);
+                return;
             }
 
-            var uri = new UriBuilder(Client.Network.CurrentSim.Caps.CapabilityURI("GetDisplayNames"))
+            var cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("GetDisplayNames");
+            if (cap == null)
+            {
+                callback(false, null, null);
+                return;
+            }
+
+            var uri = new UriBuilder(cap)
             {
                 Query = "ids=" + string.Join("&ids=", ids)
             };
@@ -730,6 +738,13 @@ namespace OpenMetaverse
                 try
                 {
                     if (error != null) { throw error; }
+
+                    if (data == null)
+                    {
+                        callback(false, null, null);
+                        return;
+                    }
+
                     GetDisplayNamesMessage msg = new GetDisplayNamesMessage();
                     OSD result = OSDParser.Deserialize(data);
                     if (result is OSDMap respMap)
@@ -782,14 +797,15 @@ namespace OpenMetaverse
         /// <param name="cancellationToken"></param>
         public async Task RequestAgentProfile(UUID avatarid, AgentProfileCallback callback, CancellationToken cancellationToken = default)
         {
-            if (!AgentProfileAvailable())
+            // Re-check and capture the capability URI under a local variable to avoid races
+            var baseUri = Client.Network.CurrentSim?.Caps?.CapabilityURI("AgentProfile");
+            if (baseUri == null)
             {
                 callback(false, null);
                 return;
             }
 
-            var baseUri = Client.Network.CurrentSim.Caps.CapabilityURI("AgentProfile");
-            var uri = new Uri($"{baseUri}/{avatarid}");
+            var uri = new Uri(baseUri, avatarid.ToString());
 
             await Client.HttpCapsClient.GetRequestAsync(uri, cancellationToken, (response, data, error) =>
             {
@@ -798,6 +814,12 @@ namespace OpenMetaverse
                     if (error != null)
                     {
                         throw error;
+                    }
+
+                    if (data == null)
+                    {
+                        callback(false, null);
+                        return;
                     }
 
                     var msg = new AgentProfileMessage();
@@ -987,15 +1009,15 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void UUIDNameReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void UUIDNameReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_UUIDNameReply != null)
             {
                 Packet packet = e.Packet;
                 var names = new Dictionary<UUID, string>();
-                UUIDNameReplyPacket reply = (UUIDNameReplyPacket)packet;
+                UUIDNameReplyPacket? reply = packet as UUIDNameReplyPacket;
 
-                foreach (var block in reply.UUIDNameBlock)
+                foreach (var block in reply?.UUIDNameBlock ?? Array.Empty<UUIDNameReplyPacket.UUIDNameBlockBlock>())
                 {
                     names[block.ID] = Utils.BytesToString(block.FirstName) +
                         " " + Utils.BytesToString(block.LastName);
@@ -1008,7 +1030,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void AvatarAnimationHandler(object sender, PacketReceivedEventArgs e)
+        protected void AvatarAnimationHandler(object? sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
 
@@ -1034,7 +1056,7 @@ namespace OpenMetaverse
             bool found = false;
             foreach (var a in e.Simulator.ObjectsAvatars)
             {
-                if (a.Value == null || a.Value.ID != data.Sender.ID) { continue; }
+                if (a.Value is null || a.Value.ID != data.Sender.ID) { continue; }
 
                 found = true;
                 var av = a.Value;
@@ -1056,14 +1078,14 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void AvatarAppearanceHandler(object sender, PacketReceivedEventArgs e)
+        protected void AvatarAppearanceHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (!(m_AvatarAppearance != null || Client.Settings.AVATAR_TRACKING)) return;
 
             Packet packet = e.Packet;
             Simulator simulator = e.Simulator;
 
-            AvatarAppearancePacket appearance = packet as AvatarAppearancePacket;
+            AvatarAppearancePacket? appearance = packet as AvatarAppearancePacket;
             if (appearance == null) return;
 
             // Guard against malformed packets
@@ -1105,7 +1127,7 @@ namespace OpenMetaverse
             {
                 foreach (var a in e.Simulator.ObjectsAvatars)
                 {
-                    if (a.Value == null || a.Value.ID != appearance.Sender.ID) { continue; }
+                    if (a.Value is null || a.Value.ID != appearance.Sender.ID) { continue; }
 
                     var av = a.Value;
                     lock (av)
@@ -1130,7 +1152,7 @@ namespace OpenMetaverse
 
             foreach (var a in e.Simulator.ObjectsAvatars)
             {
-                if (a.Value == null || a.Value.ID != appearance.Sender.ID) { continue; }
+                if (a.Value is null || a.Value.ID != appearance.Sender.ID) { continue; }
 
                 var av = a.Value;
                 lock (av)
@@ -1147,7 +1169,7 @@ namespace OpenMetaverse
             OnAvatarAppearance(new AvatarAppearanceEventArgs(simulator,
                 appearance.Sender.ID,
                 appearance.Sender.IsTrial,
-                defaultTexture,
+                defaultTexture ?? new Primitive.TextureEntryFace(null),
                 faceTextures,
                 visualParams,
                 appearanceVersion,
@@ -1159,12 +1181,12 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void AvatarPropertiesHandler(object sender, PacketReceivedEventArgs e)
+        protected void AvatarPropertiesHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_AvatarPropertiesReply == null) return;
 
             Packet packet = e.Packet;
-            AvatarPropertiesReplyPacket reply = packet as AvatarPropertiesReplyPacket;
+            AvatarPropertiesReplyPacket? reply = packet as AvatarPropertiesReplyPacket;
             if (reply?.PropertiesData == null) return;
 
             Avatar.AvatarProperties properties = new Avatar.AvatarProperties
@@ -1199,12 +1221,12 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void AvatarInterestsHandler(object sender, PacketReceivedEventArgs e)
+        protected void AvatarInterestsHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_AvatarInterestsReply == null) return;
 
             Packet packet = e.Packet;
-            AvatarInterestsReplyPacket airp = packet as AvatarInterestsReplyPacket;
+            AvatarInterestsReplyPacket? airp = packet as AvatarInterestsReplyPacket;
             if (airp?.PropertiesData == null) return;
 
             Avatar.Interests interests = new Avatar.Interests
@@ -1219,12 +1241,12 @@ namespace OpenMetaverse
             OnAvatarInterestsReply(new AvatarInterestsReplyEventArgs(airp.AgentData.AvatarID, interests));
          }
 
-        protected void AvatarNotesHandler(object sender, PacketReceivedEventArgs e)
+        protected void AvatarNotesHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_AvatarNotesReply == null) return;
 
             Packet packet = e.Packet;
-            AvatarNotesReplyPacket anrp = packet as AvatarNotesReplyPacket;
+            AvatarNotesReplyPacket? anrp = packet as AvatarNotesReplyPacket;
             if (anrp?.Data == null) return;
 
             string notes = Utils.BytesToString(anrp.Data.Notes);
@@ -1255,7 +1277,7 @@ namespace OpenMetaverse
         /// <param name="simulator">The <see cref="Simulator"/> which originated the packet</param>
         protected void AvatarGroupsReplyMessageHandler(string capsKey, IMessage message, Simulator simulator)
         {
-            AgentGroupDataUpdateMessage msg = message as AgentGroupDataUpdateMessage;
+            AgentGroupDataUpdateMessage? msg = message as AgentGroupDataUpdateMessage;
             if (msg == null || msg.GroupDataBlock == null)
                 return;
 
@@ -1282,25 +1304,25 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void AvatarGroupsReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void AvatarGroupsReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_AvatarGroupsReply == null) return;
 
             Packet packet = e.Packet;
-            AvatarGroupsReplyPacket groups = packet as AvatarGroupsReplyPacket;
+            AvatarGroupsReplyPacket? groups = packet as AvatarGroupsReplyPacket;
             if (groups?.GroupData == null) return;
 
             List<AvatarGroup> avatarGroups = new List<AvatarGroup>(groups.GroupData.Length);
             foreach (AvatarGroupsReplyPacket.GroupDataBlock groupData in groups.GroupData)
             {
-                AvatarGroup avatarGroup = new AvatarGroup
+                    AvatarGroup avatarGroup = new AvatarGroup
                 {
                     AcceptNotices = groupData.AcceptNotices,
                     GroupID = groupData.GroupID,
                     GroupInsigniaID = groupData.GroupInsigniaID,
-                    GroupName = Utils.BytesToString(groupData.GroupName),
+                    GroupName = Utils.BytesToString(groupData.GroupName) ?? string.Empty,
                     GroupPowers = (GroupPowers)groupData.GroupPowers,
-                    GroupTitle = Utils.BytesToString(groupData.GroupTitle),
+                    GroupTitle = Utils.BytesToString(groupData.GroupTitle) ?? string.Empty,
                     ListInProfile = groups.NewGroupData.ListInProfile
                 };
                 avatarGroups.Add(avatarGroup);
@@ -1312,27 +1334,29 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void AvatarPickerReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void AvatarPickerReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_AvatarPickerReply != null)
             {
                 Packet packet = e.Packet;
-                AvatarPickerReplyPacket reply = (AvatarPickerReplyPacket)packet;
+                AvatarPickerReplyPacket? reply = packet as AvatarPickerReplyPacket;
                 Dictionary<UUID, string> avatars = new Dictionary<UUID, string>();
 
-                foreach (AvatarPickerReplyPacket.DataBlock block in reply.Data)
+                foreach (AvatarPickerReplyPacket.DataBlock block in reply?.Data ?? Array.Empty<AvatarPickerReplyPacket.DataBlock>())
                 {
-                    avatars[block.AvatarID] = Utils.BytesToString(block.FirstName) +
-                        " " + Utils.BytesToString(block.LastName);
+                    avatars[block.AvatarID] = (Utils.BytesToString(block.FirstName) ?? string.Empty) +
+                        " " + (Utils.BytesToString(block.LastName) ?? string.Empty);
                 }
-                OnAvatarPickerReply(new AvatarPickerReplyEventArgs(reply.AgentData.QueryID, avatars));
+
+                if (reply != null)
+                    OnAvatarPickerReply(new AvatarPickerReplyEventArgs(reply.AgentData.QueryID, avatars));
             }
         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void ViewerEffectHandler(object sender, PacketReceivedEventArgs e)
+        protected void ViewerEffectHandler(object? sender, PacketReceivedEventArgs e)
         {
             Packet packet = e.Packet;
             ViewerEffectPacket effect = (ViewerEffectPacket)packet;
@@ -1441,44 +1465,44 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void AvatarPicksReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void AvatarPicksReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_AvatarPicksReply == null) return;
 
             Packet packet = e.Packet;
-            AvatarPicksReplyPacket p = packet as AvatarPicksReplyPacket;
+            AvatarPicksReplyPacket? p = packet as AvatarPicksReplyPacket;
             if (p?.Data == null) return;
 
-            var picks = p.Data.ToDictionary(b => b.PickID, b => Utils.BytesToString(b.PickName));
+            var picks = p.Data.ToDictionary(b => b.PickID, b => Utils.BytesToString(b.PickName) ?? string.Empty);
             OnAvatarPicksReply(new AvatarPicksReplyEventArgs(p.AgentData.TargetID, picks));
          }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void PickInfoReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void PickInfoReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_PickInfoReply == null) return;
 
             Packet packet = e.Packet;
-            PickInfoReplyPacket p = packet as PickInfoReplyPacket;
+            PickInfoReplyPacket? p = packet as PickInfoReplyPacket;
             if (p?.Data == null) return;
 
             ProfilePick ret = new ProfilePick
             {
                 CreatorID = p.Data.CreatorID,
-                Desc = Utils.BytesToString(p.Data.Desc),
+                Desc = Utils.BytesToString(p.Data.Desc) ?? string.Empty,
                 Enabled = p.Data.Enabled,
-                Name = Utils.BytesToString(p.Data.Name),
-                OriginalName = Utils.BytesToString(p.Data.OriginalName),
+                Name = Utils.BytesToString(p.Data.Name) ?? string.Empty,
+                OriginalName = Utils.BytesToString(p.Data.OriginalName) ?? string.Empty,
                 ParcelID = p.Data.ParcelID,
                 PickID = p.Data.PickID,
                 PosGlobal = p.Data.PosGlobal,
-                SimName = Utils.BytesToString(p.Data.SimName),
+                SimName = Utils.BytesToString(p.Data.SimName) ?? string.Empty,
                 SnapshotID = p.Data.SnapshotID,
                 SortOrder = p.Data.SortOrder,
                 TopPick = p.Data.TopPick,
-                User = Utils.BytesToString(p.Data.User)
+                User = Utils.BytesToString(p.Data.User) ?? string.Empty
             };
 
             OnPickInfoReply(new PickInfoReplyEventArgs(ret.PickID, ret));
@@ -1487,26 +1511,26 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void AvatarClassifiedReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void AvatarClassifiedReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_AvatarClassifiedReply == null) return;
 
             Packet packet = e.Packet;
-            AvatarClassifiedReplyPacket p = packet as AvatarClassifiedReplyPacket;
+            AvatarClassifiedReplyPacket? p = packet as AvatarClassifiedReplyPacket;
             if (p?.Data == null) return;
 
-            var classifieds = p.Data.ToDictionary(b => b.ClassifiedID, b => Utils.BytesToString(b.Name));
+            var classifieds = p.Data.ToDictionary(b => b.ClassifiedID, b => Utils.BytesToString(b.Name) ?? string.Empty);
             OnAvatarClassifiedReply(new AvatarClassifiedReplyEventArgs(p.AgentData.TargetID, classifieds));
          }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void ClassifiedInfoReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void ClassifiedInfoReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             // This handler raises ClassifiedInfoReply; ensure data present
             Packet packet = e.Packet;
-            ClassifiedInfoReplyPacket p = packet as ClassifiedInfoReplyPacket;
+            ClassifiedInfoReplyPacket? p = packet as ClassifiedInfoReplyPacket;
             if (p?.Data == null) return;
 
             ClassifiedAd ret = new ClassifiedAd

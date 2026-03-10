@@ -34,17 +34,17 @@ namespace OpenMetaverse
     [MessagePackObject]
     public partial class InventoryNode
     {
-        private InventoryNodeDictionary nodes;
+        private InventoryNodeDictionary? nodes;
 
         [Key("Data")]
-        public InventoryBase Data { get; set; }
+        public InventoryBase? Data { get; set; }
 
         /// <summary>User data</summary>
         [IgnoreMember]
-        public object Tag { get; set; }
+        public object? Tag { get; set; }
 
         [IgnoreMember]
-        public InventoryNode Parent { get; set; }
+        public InventoryNode? Parent { get; set; }
 
         [IgnoreMember]
         public InventoryNodeDictionary Nodes
@@ -142,7 +142,7 @@ namespace OpenMetaverse
 
         public override string ToString()
         {
-            return this.Data == null ? "[Empty Node]" : this.Data.ToString();
+            return this.Data?.ToString() ?? "[Empty Node]";
         }
     }
 }

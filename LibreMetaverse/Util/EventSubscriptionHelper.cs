@@ -45,7 +45,7 @@ namespace LibreMetaverse
             Func<TEventArgs, bool> filter,
             Func<TEventArgs, TResult> resultSelector,
             int timeoutMs,
-            TResult defaultValue = default)
+            TResult? defaultValue = default)
         {
             var tcs = new TaskCompletionSource<TResult>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -60,7 +60,7 @@ namespace LibreMetaverse
             subscribe(handler);
             try
             {
-                return tcs.Task.Wait(timeoutMs) ? tcs.Task.Result : defaultValue;
+                return tcs.Task.Wait(timeoutMs) ? tcs.Task.Result : defaultValue!;
             }
             finally
             {
@@ -78,7 +78,7 @@ namespace LibreMetaverse
             Func<TEventArgs, TResult> resultSelector,
             int timeoutMs,
             CancellationToken cancellationToken = default,
-            TResult defaultValue = default)
+            TResult? defaultValue = default)
         {
             var tcs = new TaskCompletionSource<TResult>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -101,7 +101,7 @@ namespace LibreMetaverse
                         return await tcs.Task;
                     }
 
-                    return defaultValue;
+                    return defaultValue!;
                 }
                 finally
                 {

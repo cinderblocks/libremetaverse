@@ -68,19 +68,19 @@ namespace LibreMetaverse
         private static Dictionary<string, LslKeyword> _keywords = new Dictionary<string, LslKeyword>();
         public static FrozenDictionary<string, LslKeyword> Keywords => _keywords.ToFrozenDictionary();
 
-        private GridClient _client;
+        private GridClient? _client;
         private UUID _syntaxId;
 
         #region EVENTS
         
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler _syntaxChanged;
+        private EventHandler? _syntaxChanged;
 
         ///<summary>Raises the SyntaxChanged Event</summary>
         protected void OnSyntaxChanged()
         {
-            EventHandler handler = _syntaxChanged;
-            handler?.Invoke(this, null);
+            EventHandler? handler = _syntaxChanged;
+            handler?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>Thread sync lock object</summary>
@@ -123,59 +123,69 @@ namespace LibreMetaverse
         public void Register(GridClient client)
         {
             _client = client;
+            // Use the non-nullable method parameter within this registration scope to help the
+            // nullable analyzer — the field is set above but the analyzer may not track it.
+            var clientLocal = client;
 
             var keywordFile = Path.Combine(Settings.RESOURCE_DIR, KEYWORDS_DEFAULT);
-            if (_client.Network.Connected && _client.Network.CurrentSim.Features != null)
+            var net = _client?.Network;
+            if (net != null && net.Connected && net.CurrentSim?.Features != null)
             {
-                var syntaxId = _client.Network.CurrentSim.Features.Get(SYNTAX_FEATURE_IDENTIFIER);
+                var syntaxId = net.CurrentSim.Features.Get(SYNTAX_FEATURE_IDENTIFIER);
                 if (syntaxId != null && syntaxId.Type == OSDType.UUID)
                 {
-                    var file = Path.Combine(_client.Settings.ASSET_CACHE_DIR, $"keywords_lsl_{syntaxId}.xml");
+                    var file = Path.Combine(clientLocal.Settings.ASSET_CACHE_DIR, $"keywords_lsl_{syntaxId}.xml");
                     if (File.Exists(file))
                     {
                         keywordFile = file;
                     }
                     else
                     {
-                        var uri = _client.Network.CurrentSim.Caps.CapabilityURI(SYNTAX_CAPABILITY_IDENTIFIER);
+                        var uri = net.CurrentSim?.Caps?.CapabilityURI(SYNTAX_CAPABILITY_IDENTIFIER);
                         if (uri != null)
                         {
-                            Task fetch = _client.Network.CurrentSim.Client.HttpCapsClient.GetRequestAsync(uri,
-                                CancellationToken.None, (response, data, error) =>
+                            var sim = net.CurrentSim;
+                            if (sim != null)
+                            {
+                                Task fetch = sim.Client.HttpCapsClient.GetRequestAsync(uri,
+                                    CancellationToken.None, (response, data, error) =>
                                 {
                                     if (error != null)
                                     {
-                                        Logger.Warn($"Failed to retrieve syntax file. Error: {error.Message}", _client);
+                                        Logger.Warn($"Failed to retrieve syntax file. Error: {error.Message}", clientLocal);
                                         return;
                                     }
 
-                                    if (!response.IsSuccessStatusCode)
-                                    {
-                                        Logger.Warn($"Failed to retrieve syntax file. Status: {response.StatusCode} {response.ReasonPhrase}", _client);
-                                        return;
-                                    }
+                                        if (response == null || !response.IsSuccessStatusCode)
+                                        {
+                                            Logger.Warn($"Failed to retrieve syntax file. Status: {(response == null ? "null response" : response.StatusCode.ToString())}", _client);
+                                            return;
+                                        }
 
-                                    OSD features = OSDParser.Deserialize(data);
-                                    if (features.Type != OSDType.Map)
-                                    {
-                                        Logger.Warn("Invalid format for syntax file. Root element is not a map.");
-                                        return;
-                                    }
+                                        if (data == null) return;
 
-                                    Parse((OSDMap)features);
-                                    _syntaxId = syntaxId;
-                                    using (FileStream writer =
-                                           new FileStream(
-                                               Path.Combine(_client.Settings.ASSET_CACHE_DIR,
-                                                   $"keywords_lsl_{syntaxId}.xml"),
-                                               FileMode.Create, FileAccess.Write))
-                                    {
-                                        var bytes = OSDParser.SerializeLLSDXmlBytes(features);
-                                        writer.Write(bytes, 0, bytes.Length);
-                                    }
-                                });
-                            fetch.Wait(TimeSpan.FromSeconds(20));
-                            return;
+                                        var des = OSDParser.Deserialize(data ?? Utils.EmptyBytes);
+                                        if (des.Type != OSDType.Map)
+                                        {
+                                            Logger.Warn("Invalid format for syntax file. Root element is not a map.");
+                                            return;
+                                        }
+
+                                        Parse((OSDMap)des);
+                                        _syntaxId = syntaxId.AsUUID();
+                                        using (FileStream writer =
+                                               new FileStream(
+                                                   Path.Combine(clientLocal.Settings.ASSET_CACHE_DIR,
+                                                       $"keywords_lsl_{syntaxId}.xml"),
+                                                   FileMode.Create, FileAccess.Write))
+                                        {
+                                            var bytes = OSDParser.SerializeLLSDXmlBytes(des);
+                                            writer.Write(bytes, 0, bytes.Length);
+                                        }
+                                    });
+                                fetch.Wait(TimeSpan.FromSeconds(20));
+                                return;
+                            }
                         }
                     }
                 }
@@ -197,20 +207,25 @@ namespace LibreMetaverse
                 Logger.Warn($"Failed to read {keywordFile}: {e.Message}");
             }
 
-            _client.Network.SimChanged += Network_OnSimChanged;
+            clientLocal.Network.SimChanged += Network_OnSimChanged;
         }
 
-        private void Network_OnSimChanged(object sender, SimChangedEventArgs e)
+        private void Network_OnSimChanged(object? sender, SimChangedEventArgs e)
         {
-            _client.Network.CurrentSim.Caps.CapabilitiesReceived += Simulator_OnCapabilitiesReceived;
+            var sim = _client?.Network?.CurrentSim;
+            if (sim?.Caps != null)
+            {
+                sim.Caps.CapabilitiesReceived += Simulator_OnCapabilitiesReceived;
+            }
         }
 
-        private void Simulator_OnCapabilitiesReceived(object sender, CapabilitiesReceivedEventArgs e)
+        private void Simulator_OnCapabilitiesReceived(object? sender, CapabilitiesReceivedEventArgs e)
         {
-            e.Simulator.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived;
+            e.Simulator.Caps?.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived;
 
             var syntaxId = e.Simulator.Features.Get(SYNTAX_FEATURE_IDENTIFIER);
-            var uri = e.Simulator.Caps.CapabilityURI(SYNTAX_CAPABILITY_IDENTIFIER);
+            var caps = e.Simulator.Caps;
+            var uri = caps?.CapabilityURI(SYNTAX_CAPABILITY_IDENTIFIER);
             if (uri == null || syntaxId == null || syntaxId.Type != OSDType.UUID) { return; }
             if (syntaxId.AsUUID() == _syntaxId) { return; }
             
@@ -218,24 +233,26 @@ namespace LibreMetaverse
             {
                 if (error != null)
                 {
-                    Logger.Warn($"Failed to retrieve syntax file. Error: {error.Message}", _client);
+                    Logger.Warn($"Failed to retrieve syntax file. Error: {error.Message}", _client!);
                     return;
                 }
-                if (!response.IsSuccessStatusCode)
+                if (response == null || !response.IsSuccessStatusCode)
                 {
-                    Logger.Warn($"Failed to retrieve syntax file. Status: {response.StatusCode} {response.ReasonPhrase}", _client);
+                    var status = response == null ? "null response" : $"{response.StatusCode} {response.ReasonPhrase}";
+                    Logger.Warn($"Failed to retrieve syntax file. Status: {status}", _client!);
                     return;
                 }
-                OSD features = OSDParser.Deserialize(data);
+                if (data == null) return;
+                OSD features = OSDParser.Deserialize(data ?? Utils.EmptyBytes);
                 if (features.Type != OSDType.Map)
                 {
                     Logger.Warn("Invalid format for syntax file. Root element is not a map.");
                     return;
                 }
                 Parse((OSDMap)features);
-                _syntaxId = syntaxId;
+                _syntaxId = syntaxId.AsUUID();
                 using (FileStream writer =
-                       new FileStream(Path.Combine(_client.Settings.ASSET_CACHE_DIR, $"keywords_lsl_{syntaxId}.xml"), 
+                       new FileStream(Path.Combine(_client!.Settings.ASSET_CACHE_DIR, $"keywords_lsl_{syntaxId}.xml"), 
                            FileMode.Create, FileAccess.Write))
                 {
                     var bytes = OSDParser.SerializeLLSDXmlBytes(features);
@@ -276,10 +293,10 @@ namespace LibreMetaverse
                 var groupEnumerator = map.GetEnumerator();
                 while (groupEnumerator.MoveNext())
                 {
-                    var group = (string)groupEnumerator.Key;
+                    if (!(groupEnumerator.Key is string group)) { continue; }
                     if (group == VERSION_KEY) { continue; }
-                    
-                    var items = (OSDMap)groupEnumerator.Value;
+
+                    if (!(groupEnumerator.Value is OSDMap items)) { continue; }
 
                     var enumerator = items.GetEnumerator();
                     while (enumerator.MoveNext())
@@ -287,10 +304,11 @@ namespace LibreMetaverse
                         ++tokens;
                         StringBuilder tooltip = new StringBuilder();
                         LslCategory category = LslCategory.Unknown;
-                        var key = (string)enumerator.Key;
-                        var attr = (OSDMap)enumerator.Value;
-                        
-                        tooltip.AppendLine(attr["tooltip"].AsString());
+                        if (!(enumerator.Key is string key)) { continue; }
+                        if (!(enumerator.Value is OSDMap attr)) { continue; }
+
+                        if (attr.TryGetValue("tooltip", out var tip))
+                            tooltip.AppendLine(tip?.AsString() ?? string.Empty);
                         
                         switch (group)
                         {
@@ -302,16 +320,20 @@ namespace LibreMetaverse
                                 break;
                             case "constants":
                                 category = LslCategory.Constant;
-                                tooltip.Append($" Type: {attr["type"]}-{attr["value"]}");
+                                var typestr = string.Empty;
+                                var valstr = string.Empty;
+                                if (attr.TryGetValue("type", out var ttype)) typestr = ttype?.AsString() ?? string.Empty;
+                                if (attr.TryGetValue("value", out var tvalue)) valstr = tvalue?.AsString() ?? string.Empty;
+                                tooltip.Append($" Type: {typestr}-{valstr}");
                                 break;
                             case "events":
                                 category = LslCategory.Event;
-                                tooltip.Append($"{key} ({ParseArguments(attr["arguments"])})");
+                                tooltip.Append($"{key} ({ParseArguments(attr.TryGetValue("arguments", out var a) ? a : new OSDArray())})");
                                 break;
                             case "functions":
                                 category = LslCategory.Function;
-                                tooltip.AppendLine(
-                                    $"{attr["return"]} {key} ({ParseArguments(attr["arguments"])})");
+                                var returnStr = attr.TryGetValue("return", out var r) ? r?.AsString() ?? string.Empty : string.Empty;
+                                tooltip.AppendLine($"{returnStr} {key} ({ParseArguments(attr.TryGetValue("arguments", out var aa) ? aa : new OSDArray())})");
                                 tooltip.Append(
                                     $"Energy: {(attr.ContainsKey("energy") ? attr["energy"].AsString() : "0.0")}");
                                 if (attr.TryGetValue("sleep", out var sleep))
@@ -357,11 +379,13 @@ namespace LibreMetaverse
                         var enumerable = map.GetEnumerator();
                         while (enumerable.MoveNext())
                         {
-                            var value = (OSD)enumerable.Value;
-                            str.Append($"{value.AsString()} {(string)enumerable.Key}");
-                            if (left-- > 1)
+                            if (enumerable.Value is OSD value)
                             {
-                                str.Append(", ");
+                                str.Append($"{value.AsString()} {(string)enumerable.Key}");
+                                if (left-- > 1)
+                                {
+                                    str.Append(", ");
+                                }
                             }
                         }
                     }

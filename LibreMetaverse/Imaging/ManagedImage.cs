@@ -61,27 +61,27 @@ namespace OpenMetaverse.Imaging
         /// <summary>
         /// Red channel data
         /// </summary>
-        public byte[] Red;
+        public byte[] Red = Array.Empty<byte>();
         
         /// <summary>
         /// Green channel data
         /// </summary>
-        public byte[] Green;
+        public byte[] Green = Array.Empty<byte>();
         
         /// <summary>
         /// Blue channel data
         /// </summary>
-        public byte[] Blue;
+        public byte[] Blue = Array.Empty<byte>();
 
         /// <summary>
         /// Alpha channel data
         /// </summary>
-        public byte[] Alpha;
+        public byte[] Alpha = Array.Empty<byte>();
         
         /// <summary>
         /// Bump channel data
         /// </summary>
-        public byte[] Bump;
+        public byte[] Bump = Array.Empty<byte>();
 
         /// <summary>
         /// Create a new blank image
@@ -479,9 +479,9 @@ namespace OpenMetaverse.Imaging
             }
             else if ((del & ImageChannels.Color) != 0)
             {
-                Red = null;
-                Green = null;
-                Blue = null;
+                Red = Array.Empty<byte>();
+                Green = Array.Empty<byte>();
+                Blue = Array.Empty<byte>();
             }
 
             if ((add & ImageChannels.Alpha) != 0)
@@ -491,7 +491,7 @@ namespace OpenMetaverse.Imaging
             }
             else if ((del & ImageChannels.Alpha) != 0)
             {
-                Alpha = null;
+                Alpha = Array.Empty<byte>();
             }
 
             if ((add & ImageChannels.Bump) != 0)
@@ -500,7 +500,7 @@ namespace OpenMetaverse.Imaging
             }
             else if ((del & ImageChannels.Bump) != 0)
             {
-                Bump = null;
+                Bump = Array.Empty<byte>();
             }
 
             Channels = channels;
@@ -516,20 +516,26 @@ namespace OpenMetaverse.Imaging
             if (width == Width && height == Height)
                 return;
 
-            byte[]
-                red = null, 
-                green = null, 
-                blue = null, 
-                alpha = null, 
-                bump = null;
+            byte[]? red = null, green = null, blue = null, alpha = null, bump = null;
             int n = width * height;
             int di = 0;
+            // Allocate target channel buffers based on current channel flags
+            if ((Channels & ImageChannels.Gray) != 0)
+            {
+                red = new byte[n];
+            }
+            else if ((Channels & ImageChannels.Color) != 0)
+            {
+                red = new byte[n];
+                green = new byte[n];
+                blue = new byte[n];
+            }
 
-            if (Red != null) red = new byte[n];
-            if (Green != null) green = new byte[n];
-            if (Blue != null) blue = new byte[n];
-            if (Alpha != null) alpha = new byte[n];
-            if (Bump != null) bump = new byte[n];
+            if ((Channels & ImageChannels.Alpha) != 0)
+                alpha = new byte[n];
+
+            if ((Channels & ImageChannels.Bump) != 0)
+                bump = new byte[n];
             
             for (int y = 0; y < height; y++)
             {
@@ -542,22 +548,22 @@ namespace OpenMetaverse.Imaging
                     if (si < 0) si = 0;
                     else if (si >= Width * Height) si = Width * Height - 1;
 
-                    if (Red != null) red[di] = Red[si];
-                    if (Green != null) green[di] = Green[si];
-                    if (Blue != null) blue[di] = Blue[si];
-                    if (Alpha != null) alpha[di] = Alpha[si];
-                    if (Bump != null) bump[di] = Bump[si];
+                    if ((Channels & ImageChannels.Color) != 0 || (Channels & ImageChannels.Gray) != 0) red![di] = Red[si];
+                    if ((Channels & ImageChannels.Color) != 0) green![di] = Green[si];
+                    if ((Channels & ImageChannels.Color) != 0) blue![di] = Blue[si];
+                    if ((Channels & ImageChannels.Alpha) != 0) alpha![di] = Alpha[si];
+                    if ((Channels & ImageChannels.Bump) != 0) bump![di] = Bump[si];
                     di++;
                 }
             }
 
             Width = width;
             Height = height;
-            Red = red;
-            Green = green;
-            Blue = blue;
-            Alpha = alpha;
-            Bump = bump;
+            Red = red ?? Array.Empty<byte>();
+            Green = green ?? Array.Empty<byte>();
+            Blue = blue ?? Array.Empty<byte>();
+            Alpha = alpha ?? Array.Empty<byte>();
+            Bump = bump ?? Array.Empty<byte>();
         }
 
         /// <summary>
@@ -752,7 +758,7 @@ namespace OpenMetaverse.Imaging
             return tga;
         }
 
-        private static void FillArray(byte[] array, byte value)
+        private static void FillArray(byte[]? array, byte value)
         {
             if (array != null)
             {

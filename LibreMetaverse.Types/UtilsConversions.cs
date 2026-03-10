@@ -707,7 +707,7 @@ namespace OpenMetaverse
         /// dump</param>
         /// <returns>A string containing hexadecimal characters on multiple
         /// lines. Each line is prepended with the field name</returns>
-        public static string BytesToHexString(byte[] bytes, int length, string fieldName)
+        public static string BytesToHexString(byte[] bytes, int length, string? fieldName)
         {
             StringBuilder output = new StringBuilder();
 

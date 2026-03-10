@@ -80,7 +80,7 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// Animation inventory name
         /// </summary>
-        public string Name;
+        public string Name = string.Empty;
 
         public override string ToString()
         {
@@ -113,7 +113,7 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// Sound inventory name
         /// </summary>
-        public string Name;
+        public string Name = string.Empty;
 
         public override string ToString()
         {
@@ -135,7 +135,7 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// Text to output in chat
         /// </summary>
-        public string Text;
+        public string Text = string.Empty;
 
         public override string ToString()
         {
@@ -227,17 +227,17 @@ namespace OpenMetaverse.Assets
         /// <summary>
         /// String that triggers playing of the gesture sequence
         /// </summary>
-        public string Trigger;
+        public string Trigger = string.Empty;
 
         /// <summary>
         /// Text that replaces trigger in chat once gesture is triggered
         /// </summary>
-        public string ReplaceWith;
+        public string ReplaceWith = string.Empty;
 
         /// <summary>
         /// Sequence of gesture steps
         /// </summary>
-        public List<GestureStep> Sequence;
+        public List<GestureStep> Sequence = new List<GestureStep>();
 
         /// <summary>
         /// Constructs gesture asset

@@ -27,6 +27,7 @@
 
 using System;
 using System.Threading;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using OpenMetaverse.StructuredData;
@@ -47,21 +48,21 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="success">Indicates if operation was successful</param>
         /// <param name="info">Attachment resource usage information</param>
-        public delegate void AttachmentResourcesCallback(bool success, AttachmentResourcesMessage info);
+        public delegate void AttachmentResourcesCallback(bool success, AttachmentResourcesMessage? info);
         public delegate void AgentAccessCallback(AgentAccessEventArgs e);
         #endregion Delegates
 
         #region Event Delegates
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<ChatEventArgs> m_Chat;
+        private EventHandler<ChatEventArgs>? m_Chat;
 
         /// <summary>Raises the ChatFromSimulator event</summary>
         /// <param name="e">A ChatEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnChat(ChatEventArgs e)
         {
-            EventHandler<ChatEventArgs> handler = m_Chat;
+            EventHandler<ChatEventArgs>? handler = m_Chat;
             handler?.Invoke(this, e);
         }
 
@@ -76,14 +77,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<ScriptDialogEventArgs> m_ScriptDialog;
+        private EventHandler<ScriptDialogEventArgs>? m_ScriptDialog;
 
         /// <summary>Raises the ScriptDialog event</summary>
         /// <param name="e">A ScriptDialogEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnScriptDialog(ScriptDialogEventArgs e)
         {
-            EventHandler<ScriptDialogEventArgs> handler = m_ScriptDialog;
+            EventHandler<ScriptDialogEventArgs>? handler = m_ScriptDialog;
             handler?.Invoke(this, e);
         }
 
@@ -98,14 +99,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<ScriptQuestionEventArgs> m_ScriptQuestion;
+        private EventHandler<ScriptQuestionEventArgs>? m_ScriptQuestion;
 
         /// <summary>Raises the ScriptQuestion event</summary>
         /// <param name="e">A ScriptQuestionEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnScriptQuestion(ScriptQuestionEventArgs e)
         {
-            EventHandler<ScriptQuestionEventArgs> handler = m_ScriptQuestion;
+            EventHandler<ScriptQuestionEventArgs>? handler = m_ScriptQuestion;
             handler?.Invoke(this, e);
         }
 
@@ -119,14 +120,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<LoadUrlEventArgs> m_LoadURL;
+        private EventHandler<LoadUrlEventArgs>? m_LoadURL;
 
         /// <summary>Raises the LoadURL event</summary>
         /// <param name="e">A LoadUrlEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnLoadURL(LoadUrlEventArgs e)
         {
-            EventHandler<LoadUrlEventArgs> handler = m_LoadURL;
+            EventHandler<LoadUrlEventArgs>? handler = m_LoadURL;
             handler?.Invoke(this, e);
         }
 
@@ -140,14 +141,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<BalanceEventArgs> m_Balance;
+        private EventHandler<BalanceEventArgs>? m_Balance;
 
         /// <summary>Raises the MoneyBalance event</summary>
         /// <param name="e">A BalanceEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnBalance(BalanceEventArgs e)
         {
-            EventHandler<BalanceEventArgs> handler = m_Balance;
+            EventHandler<BalanceEventArgs>? handler = m_Balance;
             handler?.Invoke(this, e);
         }
 
@@ -162,14 +163,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<MoneyBalanceReplyEventArgs> m_MoneyBalance;
+        private EventHandler<MoneyBalanceReplyEventArgs>? m_MoneyBalance;
 
         /// <summary>Raises the MoneyBalanceReply event</summary>
         /// <param name="e">A MoneyBalanceReplyEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnMoneyBalanceReply(MoneyBalanceReplyEventArgs e)
         {
-            EventHandler<MoneyBalanceReplyEventArgs> handler = m_MoneyBalance;
+            EventHandler<MoneyBalanceReplyEventArgs>? handler = m_MoneyBalance;
             handler?.Invoke(this, e);
         }
 
@@ -184,14 +185,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<InstantMessageEventArgs> m_InstantMessage;
+        private EventHandler<InstantMessageEventArgs>? m_InstantMessage;
 
         /// <summary>Raises the IM event</summary>
         /// <param name="e">A InstantMessageEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnInstantMessage(InstantMessageEventArgs e)
         {
-            EventHandler<InstantMessageEventArgs> handler = m_InstantMessage;
+            EventHandler<InstantMessageEventArgs>? handler = m_InstantMessage;
             handler?.Invoke(this, e);
         }
 
@@ -206,14 +207,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<TeleportEventArgs> m_Teleport;
+        private EventHandler<TeleportEventArgs>? m_Teleport;
 
         /// <summary>Raises the TeleportProgress event</summary>
         /// <param name="e">A TeleportEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnTeleport(TeleportEventArgs e)
         {
-            EventHandler<TeleportEventArgs> handler = m_Teleport;
+            EventHandler<TeleportEventArgs>? handler = m_Teleport;
             handler?.Invoke(this, e);
         }
 
@@ -228,14 +229,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<AgentDataReplyEventArgs> m_AgentData;
+        private EventHandler<AgentDataReplyEventArgs>? m_AgentData;
 
         /// <summary>Raises the AgentDataReply event</summary>
         /// <param name="e">A AgentDataReplyEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnAgentData(AgentDataReplyEventArgs e)
         {
-            EventHandler<AgentDataReplyEventArgs> handler = m_AgentData;
+            EventHandler<AgentDataReplyEventArgs>? handler = m_AgentData;
             handler?.Invoke(this, e);
         }
 
@@ -250,14 +251,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<AnimationsChangedEventArgs> m_AnimationsChanged;
+        private EventHandler<AnimationsChangedEventArgs>? m_AnimationsChanged;
 
         /// <summary>Raises the AnimationsChanged event</summary>
         /// <param name="e">A AnimationsChangedEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnAnimationsChanged(AnimationsChangedEventArgs e)
         {
-            EventHandler<AnimationsChangedEventArgs> handler = m_AnimationsChanged;
+            EventHandler<AnimationsChangedEventArgs>? handler = m_AnimationsChanged;
             handler?.Invoke(this, e);
         }
 
@@ -272,14 +273,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<MeanCollisionEventArgs> m_MeanCollision;
+        private EventHandler<MeanCollisionEventArgs>? m_MeanCollision;
 
         /// <summary>Raises the MeanCollision event</summary>
         /// <param name="e">A MeanCollisionEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnMeanCollision(MeanCollisionEventArgs e)
         {
-            EventHandler<MeanCollisionEventArgs> handler = m_MeanCollision;
+            EventHandler<MeanCollisionEventArgs>? handler = m_MeanCollision;
             handler?.Invoke(this, e);
         }
 
@@ -294,14 +295,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<RegionCrossedEventArgs> m_RegionCrossed;
+        private EventHandler<RegionCrossedEventArgs>? m_RegionCrossed;
 
         /// <summary>Raises the RegionCrossed event</summary>
         /// <param name="e">A RegionCrossedEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnRegionCrossed(RegionCrossedEventArgs e)
         {
-            EventHandler<RegionCrossedEventArgs> handler = m_RegionCrossed;
+            EventHandler<RegionCrossedEventArgs>? handler = m_RegionCrossed;
             handler?.Invoke(this, e);
         }
 
@@ -316,14 +317,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<GroupChatJoinedEventArgs> m_GroupChatJoined;
+        private EventHandler<GroupChatJoinedEventArgs>? m_GroupChatJoined;
 
         /// <summary>Raises the GroupChatJoined event</summary>
         /// <param name="e">A GroupChatJoinedEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnGroupChatJoined(GroupChatJoinedEventArgs e)
         {
-            EventHandler<GroupChatJoinedEventArgs> handler = m_GroupChatJoined;
+            EventHandler<GroupChatJoinedEventArgs>? handler = m_GroupChatJoined;
             handler?.Invoke(this, e);
         }
 
@@ -338,14 +339,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<AlertMessageEventArgs> m_AlertMessage;
+        private EventHandler<AlertMessageEventArgs>? m_AlertMessage;
 
         /// <summary>Raises the AlertMessage event</summary>
         /// <param name="e">A AlertMessageEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnAlertMessage(AlertMessageEventArgs e)
         {
-            EventHandler<AlertMessageEventArgs> handler = m_AlertMessage;
+            EventHandler<AlertMessageEventArgs>? handler = m_AlertMessage;
             handler?.Invoke(this, e);
         }
 
@@ -361,14 +362,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<ScriptControlEventArgs> m_ScriptControl;
+        private EventHandler<ScriptControlEventArgs>? m_ScriptControl;
 
         /// <summary>Raises the ScriptControlChange event</summary>
         /// <param name="e">A ScriptControlEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnScriptControlChange(ScriptControlEventArgs e)
         {
-            EventHandler<ScriptControlEventArgs> handler = m_ScriptControl;
+            EventHandler<ScriptControlEventArgs>? handler = m_ScriptControl;
             handler?.Invoke(this, e);
         }
 
@@ -383,14 +384,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<CameraConstraintEventArgs> m_CameraConstraint;
+        private EventHandler<CameraConstraintEventArgs>? m_CameraConstraint;
 
         /// <summary>Raises the CameraConstraint event</summary>
         /// <param name="e">A CameraConstraintEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnCameraConstraint(CameraConstraintEventArgs e)
         {
-            EventHandler<CameraConstraintEventArgs> handler = m_CameraConstraint;
+            EventHandler<CameraConstraintEventArgs>? handler = m_CameraConstraint;
             handler?.Invoke(this, e);
         }
 
@@ -406,14 +407,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<ScriptSensorReplyEventArgs> m_ScriptSensorReply;
+        private EventHandler<ScriptSensorReplyEventArgs>? m_ScriptSensorReply;
 
         /// <summary>Raises the ScriptSensorReply event</summary>
         /// <param name="e">A ScriptSensorReplyEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnScriptSensorReply(ScriptSensorReplyEventArgs e)
         {
-            EventHandler<ScriptSensorReplyEventArgs> handler = m_ScriptSensorReply;
+            EventHandler<ScriptSensorReplyEventArgs>? handler = m_ScriptSensorReply;
             handler?.Invoke(this, e);
         }
 
@@ -428,14 +429,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<AvatarSitResponseEventArgs> m_AvatarSitResponse;
+        private EventHandler<AvatarSitResponseEventArgs>? m_AvatarSitResponse;
 
         /// <summary>Raises the AvatarSitResponse event</summary>
         /// <param name="e">A AvatarSitResponseEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnAvatarSitResponse(AvatarSitResponseEventArgs e)
         {
-            EventHandler<AvatarSitResponseEventArgs> handler = m_AvatarSitResponse;
+            EventHandler<AvatarSitResponseEventArgs>? handler = m_AvatarSitResponse;
             handler?.Invoke(this, e);
         }
 
@@ -450,14 +451,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<ChatSessionMemberAddedEventArgs> m_ChatSessionMemberAdded;
+        private EventHandler<ChatSessionMemberAddedEventArgs>? m_ChatSessionMemberAdded;
 
         /// <summary>Raises the ChatSessionMemberAdded event</summary>
         /// <param name="e">A ChatSessionMemberAddedEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnChatSessionMemberAdded(ChatSessionMemberAddedEventArgs e)
         {
-            EventHandler<ChatSessionMemberAddedEventArgs> handler = m_ChatSessionMemberAdded;
+            EventHandler<ChatSessionMemberAddedEventArgs>? handler = m_ChatSessionMemberAdded;
             handler?.Invoke(this, e);
         }
 
@@ -472,14 +473,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<ChatSessionMemberLeftEventArgs> m_ChatSessionMemberLeft;
+        private EventHandler<ChatSessionMemberLeftEventArgs>? m_ChatSessionMemberLeft;
 
         /// <summary>Raises the ChatSessionMemberLeft event</summary>
         /// <param name="e">A ChatSessionMemberLeftEventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnChatSessionMemberLeft(ChatSessionMemberLeftEventArgs e)
         {
-            EventHandler<ChatSessionMemberLeftEventArgs> handler = m_ChatSessionMemberLeft;
+            EventHandler<ChatSessionMemberLeftEventArgs>? handler = m_ChatSessionMemberLeft;
             handler?.Invoke(this, e);
         }
 
@@ -494,14 +495,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers, null if no subscribers</summary>
-        private EventHandler<SetDisplayNameReplyEventArgs> m_SetDisplayNameReply;
+        private EventHandler<SetDisplayNameReplyEventArgs>? m_SetDisplayNameReply;
 
         ///<summary>Raises the SetDisplayNameReply Event</summary>
         /// <param name="e">A SetDisplayNameReplyEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnSetDisplayNameReply(SetDisplayNameReplyEventArgs e)
         {
-            EventHandler<SetDisplayNameReplyEventArgs> handler = m_SetDisplayNameReply;
+            EventHandler<SetDisplayNameReplyEventArgs>? handler = m_SetDisplayNameReply;
             handler?.Invoke(this, e);
         }
 
@@ -517,14 +518,14 @@ namespace OpenMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<EventArgs> m_MuteListUpdated;
+        private EventHandler<EventArgs>? m_MuteListUpdated;
 
         /// <summary>Raises the MuteListUpdated event</summary>
         /// <param name="e">A EventArgs object containing the
         /// data returned from the data server</param>
         protected virtual void OnMuteListUpdated(EventArgs e)
         {
-            EventHandler<EventArgs> handler = m_MuteListUpdated;
+            EventHandler<EventArgs>? handler = m_MuteListUpdated;
             handler?.Invoke(this, e);
         }
 
@@ -673,14 +674,14 @@ namespace OpenMetaverse
         /// <param name="e">PacketReceivedEventArgs containing the simulator</param>
         /// <param name="simulator">Explicit simulator parameter</param>
         /// <returns>Resolved simulator or current simulator as fallback</returns>
-        private Simulator ResolveSimulator(PacketReceivedEventArgs e = null, Simulator simulator = null)
+        private Simulator? ResolveSimulator(PacketReceivedEventArgs? e = null, Simulator? simulator = null)
         {
             // First priority: simulator from PacketReceivedEventArgs
-            if (e != null && e.Simulator != null)
+            if (e?.Simulator is not null)
                 return e.Simulator;
 
             // Second priority: explicitly passed simulator
-            if (simulator != null)
+            if (simulator is not null)
                 return simulator;
 
             // Last resort: current simulator
@@ -699,13 +700,11 @@ namespace OpenMetaverse
                     
                     // Apply hover height offset for mesh avatars with deformed shapes
                     // The avatar's HoverHeight.Z contains the Z-axis offset calculated from visual parameters
-                    if (Client?.Network?.CurrentSim != null)
+                    var sim = Client?.Network?.CurrentSim;
+                    if (sim != null && sim.ObjectsAvatars.TryGetValue(localID, out Avatar? self) && self != null)
                     {
-                        if (Client.Network.CurrentSim.ObjectsAvatars.TryGetValue(localID, out Avatar self))
-                        {
-                            // Apply the hover height Z offset from appearance data
-                            position.Z += self.HoverHeight.Z;
-                        }
+                        // Apply the hover height Z offset from appearance data
+                        position.Z += self.HoverHeight.Z;
                     }
                     
                     return position;
@@ -714,35 +713,38 @@ namespace OpenMetaverse
                 // a bit more complicated, agent sitting on a prim
                 Vector3 fullPosition = relativePosition;
 
-                if (Client.Network.CurrentSim.ObjectsPrimitives.TryGetValue(sittingOn, out var p))
+                var sim2 = Client?.Network?.CurrentSim;
+                Primitive? p = null;
+                if (sim2 != null && sim2.ObjectsPrimitives.TryGetValue(sittingOn, out p))
                 {
                     fullPosition = p.Position + relativePosition * p.Rotation;
                 }
 
                 // go up the hierarchy trying to find the root prim
-                while (p != null && p.ParentID != 0)
+                while (p is not null && p.ParentID != 0)
                 {
-                    if (Client.Network.CurrentSim.ObjectsAvatars.TryGetValue(p.ParentID, out var av))
+                    if (sim2 != null && sim2.ObjectsAvatars.TryGetValue(p.ParentID, out var av))
                     {
                         p = av;
                         fullPosition += p.Position;
                     }
                     else
                     {
-                        if (Client.Network.CurrentSim.ObjectsPrimitives.TryGetValue(p.ParentID, out p))
+                        if (sim2 != null && sim2.ObjectsPrimitives.TryGetValue(p.ParentID, out p))
                         {
                             fullPosition += p.Position;
                         }
                     }
                 }
 
-                if (p != null) // we found the root prim
+                if (p is not null) // we found the root prim
                 {
                     return fullPosition;
                 }
 
                 // Didn't find the seat's root prim, try returning coarse location
-                if (Client.Network.CurrentSim.avatarPositions.TryGetValue(AgentID, out fullPosition))
+                var currentSim = Client?.Network?.CurrentSim;
+                if (currentSim != null && currentSim.avatarPositions.TryGetValue(AgentID, out fullPosition))
                 {
                     return fullPosition;
                 }
@@ -790,9 +792,9 @@ namespace OpenMetaverse
         }
 
         /// <summary>Various abilities and preferences sent by the grid</summary>
-        public AgentStateUpdateMessage AgentStateStatus;
+        public AgentStateUpdateMessage? AgentStateStatus;
 
-        public AccountLevelBenefits Benefits { get; protected set; }
+        public AccountLevelBenefits Benefits { get; protected set; } = new AccountLevelBenefits(new Hashtable());
         #endregion Properties
 
         internal uint localID;
@@ -807,8 +809,8 @@ namespace OpenMetaverse
 
         #region Private Members
 
-        private HomeInfo home;
-        private string fullName;
+        private HomeInfo home = new HomeInfo();
+        private string? fullName;
         private TeleportStatus teleportStatus = TeleportStatus.None;
         private readonly ManualResetEvent teleportEvent = new ManualResetEvent(false);
         private uint heightWidthGenCounter;
@@ -1084,7 +1086,10 @@ namespace OpenMetaverse
         /// <param name="z">Floating-point value for the Z coordinate to move to</param>
         public void AutoPilotLocal(int localX, int localY, float z)
         {
-            Utils.LongToUInts(Client.Network.CurrentSim.Handle, out var x, out var y);
+            var sim = Client?.Network?.CurrentSim;
+            if (sim == null) return;
+
+            Utils.LongToUInts(sim.Handle, out var x, out var y);
             AutoPilot((ulong)(x + localX), (ulong)(y + localY), z);
         }
 
@@ -1636,7 +1641,14 @@ namespace OpenMetaverse
                     return;
                 }
 
-                await Client.HttpCapsClient.GetRequestAsync(cap, cancellationToken,
+                var http = Client?.HttpCapsClient;
+                if (http == null)
+                {
+                    callback(false, null);
+                    return;
+                }
+
+                await http.GetRequestAsync(cap, cancellationToken,
                     (response, data, error) =>
                     {
                         if (error != null)
@@ -1661,6 +1673,13 @@ namespace OpenMetaverse
 
                         try
                         {
+                            if (data == null)
+                            {
+                                Logger.Warn("AttachmentResources request returned no data.", Client);
+                                callback(false, null);
+                                return;
+                            }
+
                             OSD result = OSDParser.Deserialize(data);
                             AttachmentResourcesMessage info = AttachmentResourcesMessage.FromOSD(result);
                             callback(true, info);
@@ -1707,7 +1726,7 @@ namespace OpenMetaverse
                 return;
             }
 
-            Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("SetDisplayName");
+            Uri? cap = Client.Network.CurrentSim.Caps.CapabilityURI("SetDisplayName");
             if (cap == null)
             {
                 Logger.Warn("Unable to obtain capability to set display name.", Client);
@@ -1746,8 +1765,8 @@ namespace OpenMetaverse
                      LanguagePublic = isPublic
                  };
 
-                 Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateAgentLanguage");
-                 if (cap == null) { return; }
+                  Uri? cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("UpdateAgentLanguage");
+                  if (cap == null) { return; }
 
                  await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken).ConfigureAwait(false);
              }
@@ -1764,7 +1783,7 @@ namespace OpenMetaverse
         /// <param name="access">PG, M or A</param>
         /// <param name="callback">Callback function</param>
         /// <param name="cancellationToken"></param>
-        public async Task SetAgentAccessAsync(string access, AgentAccessCallback callback, CancellationToken cancellationToken = default)
+        public async Task SetAgentAccessAsync(string access, AgentAccessCallback? callback, CancellationToken cancellationToken = default)
          {
              if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim?.Caps == null) { return; }
 
@@ -1774,8 +1793,8 @@ namespace OpenMetaverse
              {
                  ["access_prefs"] = new OSDMap { ["max"] = access }
              };
-             Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateAgentInformation");
-             if (cap == null) { return; }
+              Uri? cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateAgentInformation");
+              if (cap == null) { return; }
 
              await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, cancellationToken,
                  (response, data, error) =>
@@ -1801,17 +1820,25 @@ namespace OpenMetaverse
                      {
                          try
                          {
-                             OSD result = OSDParser.Deserialize(data);
-                             if (result is OSDMap osdMap && osdMap.TryGetValue("access_prefs", out var mapObj) && mapObj is OSDMap accessMap && accessMap.TryGetValue("max", out var maxVal))
-                             {
-                                 AgentAccess = maxVal;
-                                 Logger.Info($"Max maturity access set to {AgentAccess}", Client);
-                             }
+                            if (data == null)
+                            {
+                                Logger.Warn("UpdateAgentInformation returned no data.", Client);
+                                success = false;
+                            }
                              else
                              {
-                                 Logger.Info($"Max maturity unchanged at {AgentAccess}", Client);
+                                 OSD result = OSDParser.Deserialize(data);
+                                 if (result is OSDMap osdMap && osdMap.TryGetValue("access_prefs", out var mapObj) && mapObj is OSDMap accessMap && accessMap.TryGetValue("max", out var maxVal))
+                                 {
+                                     AgentAccess = maxVal;
+                                     Logger.Info($"Max maturity access set to {AgentAccess}", Client);
+                                 }
+                                 else
+                                 {
+                                     Logger.Info($"Max maturity unchanged at {AgentAccess}", Client);
+                                 }
                              }
-                         }
+                          }
                          catch (Exception ex)
                          {
                              Logger.Warn($"Failed to parse UpdateAgentInformation response: {ex.Message}", Client);
@@ -1846,40 +1873,46 @@ namespace OpenMetaverse
 
             var postData = new OSDMap { ["hover_height"] = hoverHeight };
 
-            Uri cap = Client.Network.CurrentSim.Caps.CapabilityURI("AgentPreferences");
+            Uri? cap = Client.Network.CurrentSim.Caps.CapabilityURI("AgentPreferences");
             if (cap == null) { return; }
 
             await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, postData, cancellationToken,
                  (response, data, error) =>
-             {
-                 if (error != null)
-                 {
-                     Logger.Warn($"Failed to set hover height: {error}.", Client);
-                     return;
-                 }
+                  {
+                      if (error != null)
+                      {
+                          Logger.Warn($"Failed to set hover height: {error}.", Client);
+                          return;
+                      }
 
-                 if (response == null)
-                 {
-                     Logger.Warn("Failed to set hover height: no response.", Client);
-                     return;
-                 }
+                      if (response == null)
+                      {
+                          Logger.Warn("Failed to set hover height: no response.", Client);
+                          return;
+                      }
 
-                 if (!response.IsSuccessStatusCode)
-                 {
-                     Logger.Warn($"Failed to set hover height: status {response.StatusCode}.", Client);
-                     return;
-                 }
+                      if (!response.IsSuccessStatusCode)
+                      {
+                          Logger.Warn($"Failed to set hover height: status {response.StatusCode}.", Client);
+                          return;
+                      }
 
-                 OSD result;
-                 try
-                 {
-                     result = OSDParser.Deserialize(data);
-                 }
-                 catch (Exception ex)
-                 {
-                     Logger.Warn($"Failed to parse hover height response: {ex.Message}", Client);
-                     return;
-                 }
+                      if (data == null)
+                      {
+                          Logger.Warn("Failed to set hover height: no data.", Client);
+                          return;
+                      }
+
+                      OSD result;
+                      try
+                      {
+                          result = OSDParser.Deserialize(data);
+                      }
+                      catch (Exception ex)
+                      {
+                          Logger.Warn($"Failed to parse hover height response: {ex.Message}", Client);
+                          return;
+                      }
 
                  if (!(result is OSDMap resultMap))
                  {

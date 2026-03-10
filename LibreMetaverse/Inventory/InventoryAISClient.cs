@@ -85,7 +85,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Indicates whether the InventoryAPIv3 capability is available on the current simulator.
         /// </summary>
-        public bool IsAvailable => (Client.Network.CurrentSim.Caps?.CapabilityURI(INVENTORY_CAP_NAME) != null);
+        public bool IsAvailable => (Client.Network?.CurrentSim?.Caps?.CapabilityURI(INVENTORY_CAP_NAME) != null);
 
         /// <summary>
         /// Create a new inventory item or link under the specified parent category.
@@ -102,7 +102,7 @@ namespace LibreMetaverse
             if (!getInventoryCap(out var cap)) { callback?.Invoke(false, null); return; }
 
             var success = false;
-            InventoryItem item = null;
+            InventoryItem? item = null;
 
             try
             {
@@ -510,9 +510,9 @@ namespace LibreMetaverse
             if (!getInventoryCap(out var cap)) { callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>()); return; }
 
             var success = false;
-            List<InventoryFolder> folders = null;
-            List<InventoryItem> items = null;
-            List<InventoryItem> links = null;
+            List<InventoryFolder>? folders = null;
+            List<InventoryItem>? items = null;
+            List<InventoryItem>? links = null;
 
             try
             {
@@ -566,9 +566,9 @@ namespace LibreMetaverse
             if (!getInventoryCap(out var cap)) { callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>()); return; }
 
             var success = false;
-            List<InventoryFolder> folders = null;
-            List<InventoryItem> items = null;
-            List<InventoryItem> links = null;
+            List<InventoryFolder>? folders = null;
+            List<InventoryItem>? items = null;
+            List<InventoryItem>? links = null;
 
             try
             {
@@ -618,9 +618,9 @@ namespace LibreMetaverse
             if (!getInventoryCap(out var cap)) { callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>()); return; }
 
             var success = false;
-            List<InventoryFolder> folders = null;
-            List<InventoryItem> items = null;
-            List<InventoryItem> links = null;
+            List<InventoryFolder>? folders = null;
+            List<InventoryItem>? items = null;
+            List<InventoryItem>? links = null;
 
             try
             {
@@ -1423,7 +1423,7 @@ namespace LibreMetaverse
             return ret;
         }
 
-        private bool getInventoryCap(out Uri inventoryCapUri)
+        private bool getInventoryCap(out Uri? inventoryCapUri)
         {
             inventoryCapUri = Client.Network.CurrentSim?.Caps?.CapabilityURI(INVENTORY_CAP_NAME);
             if (inventoryCapUri != null) { return true; }
@@ -1431,7 +1431,7 @@ namespace LibreMetaverse
             return false;
         }
 
-        private bool getLibraryCap(out Uri libraryCapUri)
+        private bool getLibraryCap(out Uri? libraryCapUri)
         {
             libraryCapUri = Client.Network.CurrentSim?.Caps?.CapabilityURI(LIBRARY_CAP_NAME);
             if (libraryCapUri != null) { return true; }

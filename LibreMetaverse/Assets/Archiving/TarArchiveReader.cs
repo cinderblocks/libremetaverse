@@ -79,13 +79,13 @@ namespace OpenMetaverse.Assets
         /// <param name="filePath"></param>
         /// <param name="entryType"></param>
         /// <returns>the data for the entry.  Returns null if there are no more entries</returns>
-        public byte[] ReadEntry(out string filePath, out TarEntryType entryType)
+        public byte[]? ReadEntry(out string filePath, out TarEntryType entryType)
         {
             filePath = string.Empty;
             entryType = TarEntryType.TYPE_UNKNOWN;
-            TarHeader header = ReadHeader();
+            TarHeader? header = ReadHeader();
 
-            if (null == header)
+            if (header == null)
                 return null;
 
             entryType = header.EntryType;
@@ -97,7 +97,7 @@ namespace OpenMetaverse.Assets
         /// Read the next 512 byte chunk of data as a tar header.
         /// </summary>
         /// <returns>A tar header struct.  null if we have reached the end of the archive.</returns>
-        protected TarHeader ReadHeader()
+        protected TarHeader? ReadHeader()
         {
             byte[] header = m_br.ReadBytes(512);
 
@@ -215,7 +215,7 @@ namespace OpenMetaverse.Assets
 
     public class TarHeader
     {
-        public string FilePath;
+        public string FilePath = string.Empty;
         public int FileSize;
         public TarArchiveReader.TarEntryType EntryType;
     }

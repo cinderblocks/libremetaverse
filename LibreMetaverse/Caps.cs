@@ -65,7 +65,7 @@ namespace OpenMetaverse
         internal Dictionary<string, Uri> _Caps = new Dictionary<string, Uri>();
 
         private readonly CancellationTokenSource _HttpCts = new CancellationTokenSource();
-        private EventQueueClient _EventQueueClient = null;
+        private EventQueueClient? _EventQueueClient = null;
 
         /// <summary>Capabilities URI this system was initialized with</summary>
         public Uri SeedCapsURI => _SeedCapsURI;
@@ -74,7 +74,7 @@ namespace OpenMetaverse
         /// listening for incoming events</summary>
         public bool IsEventQueueRunning => _EventQueueClient != null && _EventQueueClient.Running;
 
-        public EventQueueClient EventQueue => _EventQueueClient;
+        public EventQueueClient? EventQueue => _EventQueueClient;
 
         /// <summary>
         /// Default constructor
@@ -93,7 +93,7 @@ namespace OpenMetaverse
         {
             Logger.Info($"Caps system for {Simulator} is {(immediate ? "aborting" : "disconnecting")}", Simulator.Client);
 
-            DisposalHelper.SafeCancelAndDispose(_HttpCts, (m, e) => Logger.Debug(m, e));
+            DisposalHelper.SafeCancelAndDispose(_HttpCts, (m, e) => { if (e != null) Logger.Debug(m, e); else Logger.Debug(m); });
             _EventQueueClient?.Dispose();
         }
 
@@ -102,7 +102,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="capability">Name of the capability to request</param>
         /// <returns>The URI of the requested capability, or null if not found</returns>
-        public Uri CapabilityURI(string capability)
+        public Uri? CapabilityURI(string capability)
         {
             return _Caps.TryGetValue(capability, out var cap) ? cap : null;
         }
@@ -121,7 +121,7 @@ namespace OpenMetaverse
         /// <param name="capability">Capability name</param>
         /// <returns>Newly created CapsClient or null of capability does not exist</returns>
         [Obsolete("CapsClient is obsolete. Use HttpCapsClient instead.")]
-        public CapsClient CreateCapsClient(string capability)
+        public CapsClient? CreateCapsClient(string capability)
         {
             return _Caps.TryGetValue(capability, out var uri) ? new CapsClient(uri, capability) : null;
         }
@@ -140,10 +140,9 @@ namespace OpenMetaverse
         /// Request preferred URI for texture fetch capability
         /// </summary>
         /// <returns>URI of preferred capability or null, or null if not found</returns>
-        public Uri GetTextureCapURI()
+        public Uri? GetTextureCapURI()
         {
-            Uri cap;
-            if (_Caps.TryGetValue("ViewerAsset", out cap)) { return cap; }
+            if (_Caps.TryGetValue("ViewerAsset", out var cap)) { return cap; }
             return _Caps.TryGetValue("GetTexture", out cap) ? cap : null;
         }
 
@@ -151,10 +150,9 @@ namespace OpenMetaverse
         /// Request preferred URI for object mesh fetch capability
         /// </summary>
         /// <returns>URI of preferred capability or null, or null if not found</returns>
-        public Uri GetMeshCapURI()
+        public Uri? GetMeshCapURI()
         {
-            Uri cap;
-            if (_Caps.TryGetValue("ViewerAsset", out cap)) { return cap; }
+            if (_Caps.TryGetValue("ViewerAsset", out var cap)) { return cap; }
             if (_Caps.TryGetValue("GetMesh2", out cap)) { return cap; }
             return _Caps.TryGetValue("GetMesh", out cap) ? cap : null;
         }
@@ -280,19 +278,19 @@ namespace OpenMetaverse
                 _HttpCts.Token, SeedRequestCompleteHandler);
         }
 
-        private void SeedRequestCompleteHandler(HttpResponseMessage response, byte[] responseData, Exception error)
+        private void SeedRequestCompleteHandler(HttpResponseMessage? response, byte[]? responseData, Exception? error)
         {
             if (error != null)
             {
-                if (response.StatusCode == HttpStatusCode.NotFound)
+                if (response != null && response.StatusCode == HttpStatusCode.NotFound)
                 {
                     Logger.Error("Seed capability returned a 404, capability system is aborting");
                 }
                 else
                 {
-                    Logger.Warn($"Seed capability returned {response.StatusCode}. Trying again.");
+                    Logger.Warn($"Seed capability returned {(response == null ? "no response" : response.StatusCode.ToString())}. Trying again.");
                     // Retry the seed request after disposing/renewing the previous CTS to avoid using canceled token
-                    DisposalHelper.SafeCancelAndDispose(_HttpCts, (m, e) => Logger.Debug(m, e));
+                    DisposalHelper.SafeCancelAndDispose(_HttpCts, (m, e) => { if (e != null) Logger.Debug(m, e); else Logger.Debug(m); });
                     // Create a fresh CTS for retry
                     // Note: _HttpCts is readonly, so we cannot reassign; instead, call MakeSeedRequest only if the original CTS hasn't been disposed.
                     MakeSeedRequest();
@@ -302,12 +300,17 @@ namespace OpenMetaverse
 
             try
             {
+                if (responseData == null) return;
                 OSD result = OSDParser.Deserialize(responseData);
                 if (result is OSDMap respMap)
                 {
                     foreach (var cap in respMap.Keys)
                     {
-                        _Caps[cap] = respMap[cap].AsUri();
+                        var maybeUri = respMap[cap]?.AsUri();
+                        if (maybeUri != null)
+                        {
+                            _Caps[cap] = maybeUri;
+                        }
                     }
 
                     if (_Caps.TryGetValue("EventQueueGet", out var eventQueueGetCap))
@@ -333,7 +336,8 @@ namespace OpenMetaverse
             }
             catch (LitJson.JsonException)
             {
-                Logger.Warn($"Invalid caps response; '{System.Text.Encoding.UTF8.GetString(responseData)}' for seed request.", Simulator.Client);
+                var respText = responseData != null ? System.Text.Encoding.UTF8.GetString(responseData) : string.Empty;
+                Logger.Warn($"Invalid caps response; '{respText}' for seed request.", Simulator.Client);
             }
         }
 
@@ -349,7 +353,7 @@ namespace OpenMetaverse
         /// <param name="body"></param>
         private void EventQueueEventHandler(string eventName, OSDMap body)
         {
-            IMessage message = Messages.MessageUtils.DecodeEvent(eventName, body);
+            IMessage? message = Messages.MessageUtils.DecodeEvent(eventName, body);
             if (message != null)
             {
                 Simulator.Client.Network.CapsEvents.BeginRaiseEvent(eventName, message, Simulator);
@@ -370,7 +374,7 @@ namespace OpenMetaverse
                 if (body.Type == OSDType.Map)
                 {
                     OSDMap map = body;
-                    Packet packet = Packet.BuildPacket(eventName, map);
+                    Packet? packet = Packet.BuildPacket(eventName, map);
                     if (packet != null)
                     {
                         var incomingPacket = new NetworkManager.IncomingPacket
@@ -393,7 +397,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>Raised whenever the capabilities have been received from a simulator</summary>
-        public event EventHandler<CapabilitiesReceivedEventArgs> CapabilitiesReceived;
+        public event EventHandler<CapabilitiesReceivedEventArgs>? CapabilitiesReceived;
 
         /// <summary>
         /// Raises the CapabilitiesReceived event

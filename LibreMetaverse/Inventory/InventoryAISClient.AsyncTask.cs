@@ -80,9 +80,9 @@ namespace LibreMetaverse
             }
 
             var success = false;
-            List<InventoryFolder> folders = null;
-            List<InventoryItem> items = null;
-            List<InventoryItem> links = null;
+            List<InventoryFolder>? folders = null;
+            List<InventoryItem>? items = null;
+            List<InventoryItem>? links = null;
 
             try
             {
@@ -136,9 +136,9 @@ namespace LibreMetaverse
             }
 
             var success = false;
-            List<InventoryFolder> folders = null;
-            List<InventoryItem> items = null;
-            List<InventoryItem> links = null;
+            List<InventoryFolder>? folders = null;
+            List<InventoryItem>? items = null;
+            List<InventoryItem>? links = null;
 
             try
             {
@@ -188,9 +188,9 @@ namespace LibreMetaverse
             }
 
             var success = false;
-            List<InventoryFolder> folders = null;
-            List<InventoryItem> items = null;
-            List<InventoryItem> links = null;
+            List<InventoryFolder>? folders = null;
+            List<InventoryItem>? items = null;
+            List<InventoryItem>? links = null;
 
             try
             {
@@ -380,7 +380,7 @@ namespace LibreMetaverse
             {
                 try
                 {
-                    await CreateInventory(parentUuid, newInventory, createLink, (success, item) => tcs.TrySetResult((success, item)), cancellationToken).ConfigureAwait(false);
+                    await CreateInventory(parentUuid, newInventory, createLink, (success, item) => tcs.TrySetResult((success, item!)), cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {

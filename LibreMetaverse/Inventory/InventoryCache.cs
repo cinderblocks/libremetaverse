@@ -121,7 +121,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Try-save variant that returns a (success, error) tuple instead of throwing.
         /// </summary>
-        public static async Task<(bool Success, Exception Error)> TrySaveToDiskAsync(string filename, ConcurrentDictionary<UUID, InventoryNode> Items, CancellationToken cancellationToken = default)
+        public static async Task<(bool Success, Exception? Error)> TrySaveToDiskAsync(string filename, ConcurrentDictionary<UUID, InventoryNode> Items, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -142,7 +142,7 @@ namespace OpenMetaverse
         /// <returns>The number of inventory items successfully reconstructed into the inventory node tree, or -1 on error</returns>
         public static int RestoreFromDisk(string filename, ConcurrentDictionary<UUID, InventoryNode> Items)
         {
-            List<InventoryNode> cacheNodes;
+            List<InventoryNode>? cacheNodes = null;
 
             try
             {
@@ -189,7 +189,7 @@ namespace OpenMetaverse
                 return -1;
             }
 
-            Logger.Info($"Read {cacheNodes.Count} items from inventory cache file");
+            Logger.Info($"Read {cacheNodes!.Count} items from inventory cache file");
 
             var dirtyFolders = new HashSet<UUID>();
 
@@ -224,8 +224,8 @@ namespace OpenMetaverse
 
                 if (serverNode.NeedsUpdate)
                 {
-                    Logger.DebugLog($"Inventory Cache/Server version mismatch on {cacheNode.Data.Name} {cacheFolder.Version} vs {serverFolder.Version}");
-                    dirtyFolders.Add(cacheNode.Data.UUID);
+                    Logger.DebugLog($"Inventory Cache/Server version mismatch on {cacheNode.Data?.Name ?? "<null>"} {cacheFolder.Version} vs {serverFolder.Version}");
+                    dirtyFolders.Add(cacheNode.Data!.UUID);
                 }
             }
 
@@ -248,7 +248,7 @@ namespace OpenMetaverse
 
                 if (!(serverParentNode.Data is InventoryFolder serverParentFolder))
                 {
-                    Logger.Warn($"Cached inventory node item {cacheItem.Name} has a parent {serverParentNode.Data.Name} that is not an InventoryFolder");
+                    Logger.Warn($"Cached inventory node item {cacheItem.Name} has a parent {serverParentNode.Data?.Name ?? "<null>"} that is not an InventoryFolder");
                     continue;
                 }
 
@@ -389,7 +389,7 @@ namespace OpenMetaverse
 
                 if (!(serverParentNode.Data is InventoryFolder serverParentFolder))
                 {
-                    Logger.Warn($"Cached inventory node item {cacheItem.Name} has a parent {serverParentNode.Data.Name} that is not an InventoryFolder");
+                    Logger.Warn($"Cached inventory node item {cacheItem.Name} has a parent {serverParentNode.Data?.Name ?? "<null>"} that is not an InventoryFolder");
                     continue;
                 }
 
@@ -424,7 +424,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Try-restore variant that returns a (success, count, error) tuple instead of throwing.
         /// </summary>
-        public static async Task<(bool Success, int Count, Exception Error)> TryRestoreFromDiskAsync(string filename, ConcurrentDictionary<UUID, InventoryNode> Items, CancellationToken cancellationToken = default)
+        public static async Task<(bool Success, int Count, Exception? Error)> TryRestoreFromDiskAsync(string filename, ConcurrentDictionary<UUID, InventoryNode> Items, CancellationToken cancellationToken = default)
         {
             try
             {

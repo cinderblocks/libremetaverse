@@ -32,7 +32,7 @@ namespace OpenMetaverse.Assets
     public abstract class Asset
     {
         /// <summary>A byte array containing the raw asset data</summary>
-        public byte[] AssetData;
+        public byte[] AssetData = OpenMetaverse.Utils.EmptyBytes;
         /// <summary>True if the asset it only stored on the server temporarily</summary>
         public bool Temporary;
 

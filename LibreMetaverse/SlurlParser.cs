@@ -82,14 +82,14 @@ namespace OpenMetaverse
     /// </summary>
     public class SlurlParser
     {
-        public string Sim { get; private set; }
+        public string Sim { get; private set; } = string.Empty;
         public int X { get; private set; }
         public int Y { get; private set; }
         public int Z { get; private set; }
         public ViewerUriType UriType { get; private set; }
         public SlappCommand Command { get; private set; }
-        public string CommandPath { get; private set; }
-        public Dictionary<string, string> QueryParameters { get; private set; }
+        public string CommandPath { get; private set; } = string.Empty;
+        public Dictionary<string, string> QueryParameters { get; private set; } = new Dictionary<string, string>();
 
         /// <summary>
         /// Parse a Second Life location string or SLURL/SLAPP URI
@@ -280,7 +280,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Get a SLAPP URL for the specified command and path
         /// </summary>
-        public static string GetSlappUrl(SlappCommand command, string path = null, Dictionary<string, string> queryParams = null)
+        public static string GetSlappUrl(SlappCommand command, string? path = null, Dictionary<string, string>? queryParams = null)
         {
             StringBuilder sb = new StringBuilder("secondlife:///app/");
             
@@ -305,9 +305,9 @@ namespace OpenMetaverse
             
             if (!string.IsNullOrEmpty(path))
             {
-                if (!path.StartsWith("/"))
+                if (!path!.StartsWith("/"))
                     sb.Append('/');
-                sb.Append(path);
+                sb.Append(path!);
             }
 
             if (queryParams != null && queryParams.Count > 0)
@@ -383,16 +383,16 @@ namespace OpenMetaverse
         /// <summary>
         /// Generate login SLAPP URL
         /// </summary>
-        public static string GetLoginUrl(string lastName = null, string sessionId = null, string location = null)
+        public static string GetLoginUrl(string? lastName = null, string? sessionId = null, string? location = null)
         {
             var queryParams = new Dictionary<string, string>();
             
             if (!string.IsNullOrEmpty(lastName))
-                queryParams["last"] = lastName;
+                queryParams["last"] = lastName!;
             if (!string.IsNullOrEmpty(sessionId))
-                queryParams["session"] = sessionId;
+                queryParams["session"] = sessionId!;
             if (!string.IsNullOrEmpty(location))
-                queryParams["location"] = location;
+                queryParams["location"] = location!;
 
             return GetSlappUrl(SlappCommand.Login, null, queryParams.Count > 0 ? queryParams : null);
         }

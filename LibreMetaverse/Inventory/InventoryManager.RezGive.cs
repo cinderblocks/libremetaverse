@@ -128,7 +128,7 @@ namespace OpenMetaverse
             Client.Network.SendPacket(add, simulator);
 
             // Remove from store if the item is no copy
-            if (Store.TryGetValue(item.UUID, out var storeItem) && storeItem is InventoryItem invItem)
+            if (Store != null && Store.TryGetValue(item.UUID, out var storeItem) && storeItem is InventoryItem invItem)
             {
                 if ((invItem.Permissions.OwnerMask & PermissionMask.Copy) == PermissionMask.None)
                 {
@@ -288,6 +288,7 @@ namespace OpenMetaverse
             bucket[0] = (byte)assetType;
             Buffer.BlockCopy(itemID.GetBytes(), 0, bucket, 1, 16);
 
+            var currentSimId = Client.Network.CurrentSim?.ID ?? UUID.Zero;
             Client.Self.InstantMessage(
                     Client.Self.Name,
                     recipient,
@@ -296,7 +297,7 @@ namespace OpenMetaverse
                     InstantMessageDialog.InventoryOffered,
                     InstantMessageOnline.Online,
                     Client.Self.SimPosition,
-                    Client.Network.CurrentSim.ID,
+                    currentSimId,
                     bucket);
 
             if (doEffect)
@@ -306,7 +307,7 @@ namespace OpenMetaverse
             }
 
             // Remove from store if the item is no copy
-            if (Store.TryGetValue(itemID, out var storeItem) && storeItem is InventoryItem invItem)
+            if (Store != null && Store.TryGetValue(itemID, out var storeItem) && storeItem is InventoryItem invItem)
             {
                 if ((invItem.Permissions.OwnerMask & PermissionMask.Copy) == PermissionMask.None)
                 {

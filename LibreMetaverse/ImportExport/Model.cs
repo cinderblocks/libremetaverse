@@ -34,10 +34,10 @@ namespace OpenMetaverse.ImportExport
 
     public class ModelMaterial
     {
-        public string ID;
+        public string ID = string.Empty;
         public Color4 DiffuseColor = Color4.White;
-        public string Texture;
-        public byte[] TextureData;
+        public string Texture = string.Empty;
+        public byte[] TextureData = Array.Empty<byte>();
     }
 
     public class ModelFace
@@ -71,15 +71,15 @@ namespace OpenMetaverse.ImportExport
 
     public class ModelPrim
     {
-        public List<Vector3> Positions;
+        public List<Vector3> Positions = new List<Vector3>();
         public Vector3 BoundMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
         public Vector3 BoundMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
         public Vector3 Position;
         public Vector3 Scale;
         public Quaternion Rotation = Quaternion.Identity;
         public List<ModelFace> Faces = new List<ModelFace>();
-        public string ID;
-        public byte[] Asset;
+        public string ID = string.Empty;
+        public byte[] Asset = Array.Empty<byte>();
 
         public void CreateAsset(UUID creator)
         {

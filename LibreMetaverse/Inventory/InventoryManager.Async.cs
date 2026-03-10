@@ -71,7 +71,7 @@ namespace OpenMetaverse
 
         public async Task RequestCreateItemFromAssetAsync(byte[] data, string name, string description, AssetType assetType,
             InventoryType invType, UUID folderID, Permissions permissions, ItemCreatedFromAssetCallback callback,
-            CancellationToken cancellationToken = default, IProgress<ProgressReport> progress = null)
+            CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
             var cap = GetCapabilityURI("NewFileAgentInventory", false);
             if (cap == null)
@@ -104,7 +104,7 @@ namespace OpenMetaverse
         }
 
         public async Task RequestCopyItemFromNotecardAsync(UUID objectID, UUID notecardID, UUID folderID, UUID itemID, 
-            ItemCopiedCallback callback, CancellationToken cancellationToken = default, IProgress<ProgressReport> progress = null)
+            ItemCopiedCallback callback, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
             _ItemCopiedCallbacks[0] = callback; // Notecards always use callback ID 0
 
@@ -179,7 +179,7 @@ namespace OpenMetaverse
         }
 
         public async Task RequestUploadNotecardAssetAsync(byte[] data, UUID notecardID, InventoryUploadedAssetCallback callback, 
-            CancellationToken cancellationToken = default, IProgress<ProgressReport> progress = null)
+            CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
             var cap = GetCapabilityURI("UpdateNotecardAgentInventory", false);
             if (cap == null)
@@ -203,7 +203,7 @@ namespace OpenMetaverse
         }
 
         public async Task RequestUpdateNotecardTaskAsync(byte[] data, UUID notecardID, UUID taskID, InventoryUploadedAssetCallback callback, 
-            CancellationToken cancellationToken = default, IProgress<ProgressReport> progress = null)
+            CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
             var cap = GetCapabilityURI("UpdateNotecardTaskInventory", false);
             if (cap == null)
@@ -231,7 +231,7 @@ namespace OpenMetaverse
         }
 
         public async Task RequestUploadGestureAssetAsync(byte[] data, UUID gestureID, InventoryUploadedAssetCallback callback,
-            CancellationToken cancellationToken = default, IProgress<ProgressReport> progress = null)
+            CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
             var cap = GetCapabilityURI("UpdateGestureAgentInventory", false);
             if (cap == null)
@@ -255,7 +255,7 @@ namespace OpenMetaverse
         }
 
         public async Task RequestUpdateScriptAgentInventoryAsync(byte[] data, UUID itemID, bool mono, ScriptUpdatedCallback callback, 
-            CancellationToken cancellationToken = default, IProgress<ProgressReport> progress = null)
+            CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
             var cap = GetCapabilityURI("UpdateScriptAgent");
             if (cap == null)
@@ -281,7 +281,7 @@ namespace OpenMetaverse
         }
 
         public async Task RequestUpdateScriptTaskAsync(byte[] data, UUID itemID, UUID taskID, bool mono, bool running, 
-            ScriptUpdatedCallback callback, CancellationToken cancellationToken = default, IProgress<ProgressReport> progress = null)
+            ScriptUpdatedCallback callback, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
             var cap = GetCapabilityURI("UpdateScriptTask");
             if (cap == null)
@@ -315,7 +315,7 @@ namespace OpenMetaverse
         {
             if (GetCapabilityURI("FetchInventory2") != null)
             {
-                return RequestFetchInventoryHttpAsync(itemID, ownerID, cancellationToken, null);
+                return RequestFetchInventoryHttpAsync(itemID, ownerID, cancellationToken, null!);
             }
 
             RequestFetchInventory(itemID, ownerID, cancellationToken);
@@ -326,7 +326,7 @@ namespace OpenMetaverse
         /// Async-first variant to request multiple inventory items. Uses FetchInventory2 capability when available.
         /// </summary>
         public Task RequestFetchInventoryAsync(Dictionary<UUID, UUID> items, CancellationToken cancellationToken = default, 
-            Action<List<InventoryItem>> callback = null)
+            Action<List<InventoryItem>>? callback = null)
         {
             if (GetCapabilityURI("FetchInventory2") != null)
             {
@@ -402,9 +402,9 @@ namespace OpenMetaverse
                     NewFolderID = targetFolders[i],
                     OldAgentID = oldOwnerID,
                     OldItemID = items[i],
-                    NewName = !string.IsNullOrEmpty(newNames?[i])
-                        ? Utils.StringToBytes(newNames[i])
-                        : Utils.EmptyBytes
+                        NewName = (!string.IsNullOrEmpty(newNames?[i] ?? string.Empty))
+                            ? Utils.StringToBytes(newNames![i]!)
+                            : Utils.EmptyBytes
                 };
             }
 
@@ -434,11 +434,11 @@ namespace OpenMetaverse
             return RequestCopyItemsAsync(items, folders, names, oldOwnerID, callback, cancellationToken);
         }
 
-        public async Task<InventoryItem> FetchItemAsync(UUID itemID, UUID ownerID, CancellationToken cancellationToken = default)
+        public async Task<InventoryItem?> FetchItemAsync(UUID itemID, UUID ownerID, CancellationToken cancellationToken = default)
         {
-            var tcs = new TaskCompletionSource<InventoryItem>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var tcs = new TaskCompletionSource<InventoryItem?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            void Callback(object sender, ItemReceivedEventArgs e)
+            void Callback(object? sender, ItemReceivedEventArgs e)
             {
                 if (e.Item.UUID == itemID)
                     tcs.TrySetResult(e.Item);
@@ -467,7 +467,7 @@ namespace OpenMetaverse
         public async Task<List<InventoryBase>> FolderContentsAsync(UUID folder, UUID owner, bool fetchFolders, bool fetchItems,
             InventorySortOrder order, CancellationToken cancellationToken = default, bool followLinks = false)
         {
-            List<InventoryBase> inventory = null;
+            List<InventoryBase>? inventory = null;
 
             try
             {
@@ -484,7 +484,7 @@ namespace OpenMetaverse
 
             if (inventory == null)
             {
-                inventory = _Store.GetContents(folder);
+                inventory = _Store?.GetContents(folder) ?? new List<InventoryBase>();
             }
 
             if (inventory != null && followLinks)
@@ -495,17 +495,18 @@ namespace OpenMetaverse
 
                     if (item.IsLink())
                     {
-                        if (!Store.Contains(item.AssetUUID))
-                        {
-                            var fetched = await FetchItemAsync(item.AssetUUID, owner, cancellationToken).ConfigureAwait(false);
-                            if (fetched != null)
-                                inventory[i] = fetched;
-                        }
+                    var store = Store;
+                    if (!(store?.Contains(item.AssetUUID) ?? false))
+                    {
+                        var fetched = await FetchItemAsync(item.AssetUUID, owner, cancellationToken).ConfigureAwait(false);
+                        if (fetched != null)
+                            inventory[i] = fetched;
+                    }
                     }
                 }
             }
 
-            return inventory;
+            return inventory!;
         }
 
         public async Task<UUID> FindObjectByPathAsync(UUID baseFolder, UUID inventoryOwner, string path, 
@@ -516,7 +517,7 @@ namespace OpenMetaverse
 
             var tcs = new TaskCompletionSource<UUID>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            void Callback(object sender, FindObjectByPathReplyEventArgs e)
+            void Callback(object? sender, FindObjectByPathReplyEventArgs e)
             {
                 if (e.Path == path)
                 {
@@ -549,7 +550,7 @@ namespace OpenMetaverse
         {
             var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            void Callback(object sender, TaskInventoryReplyEventArgs e)
+            void Callback(object? sender, TaskInventoryReplyEventArgs e)
             {
                 if (e.ItemID == objectID)
                     tcs.TrySetResult(e.AssetFilename);
@@ -571,7 +572,7 @@ namespace OpenMetaverse
                 }
                 catch (OperationCanceledException)
                 {
-                    return null;
+                    return new List<InventoryBase>(0);
                 }
 
                 if (string.IsNullOrEmpty(filename))
@@ -583,7 +584,7 @@ namespace OpenMetaverse
                 var xferTcs = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
                 ulong xferID = 0;
 
-                void XferCallback(object sender, XferReceivedEventArgs e)
+                void XferCallback(object? sender, XferReceivedEventArgs e)
                 {
                     if (e.Xfer.XferID == xferID)
                         xferTcs.TrySetResult(e.Xfer.AssetData);
@@ -605,7 +606,7 @@ namespace OpenMetaverse
                     }
                     catch (OperationCanceledException)
                     {
-                        return null;
+                        return new List<InventoryBase>(0);
                     }
 
                     var taskList = Utils.BytesToString(assetData);
@@ -667,7 +668,7 @@ namespace OpenMetaverse
                 offset += 16;
             }
 
-            Client.Self.InstantMessage(
+                    Client.Self.InstantMessage(
                     Client.Self.Name,
                     recipient,
                     folderName,
@@ -675,7 +676,7 @@ namespace OpenMetaverse
                     InstantMessageDialog.InventoryOffered,
                     InstantMessageOnline.Online,
                     Client.Self.SimPosition,
-                    Client.Network.CurrentSim.ID,
+                    Client.Network.CurrentSim?.ID ?? UUID.Zero,
                     bucket);
 
             if (doEffect)
@@ -685,11 +686,16 @@ namespace OpenMetaverse
             }
 
             // Remove from store if items were no copy
-            foreach (var invItem in items.Where(item => Store.Contains(item.UUID) && Store[item.UUID] is InventoryItem)
-                     .Select(item => (InventoryItem)Store[item.UUID])
-                     .Where(invItem => (invItem.Permissions.OwnerMask & PermissionMask.Copy) == PermissionMask.None))
+            var store = Store;
+            if (store != null)
             {
-                Store.RemoveNodeFor(invItem);
+                foreach (var item in items)
+                {
+                    if (store.TryGetValue(item.UUID, out var node) && node is InventoryItem invItem && (invItem.Permissions.OwnerMask & PermissionMask.Copy) == PermissionMask.None)
+                    {
+                        store.RemoveNodeFor(invItem);
+                    }
+                }
             }
         }
 
@@ -767,15 +773,15 @@ namespace OpenMetaverse
             /// <summary>True if operation completed successfully</summary>
             public bool Success { get; set; }
             /// <summary>Human-readable status returned from server (eg 'upload' or 'complete')</summary>
-            public string Status { get; set; }
+            public string? Status { get; set; }
             /// <summary>UUID of the created inventory item (if available)</summary>
             public UUID ItemID { get; set; }
             /// <summary>UUID of the created asset (if available)</summary>
             public UUID AssetID { get; set; }
             /// <summary>Any exception that occurred during the operation</summary>
-            public Exception Error { get; set; }
+            public Exception? Error { get; set; }
             /// <summary>Raw OSD result returned from capability calls (when available)</summary>
-            public OSD RawResult { get; set; }
+            public OSD? RawResult { get; set; }
         }
 
         /// <summary>
@@ -788,7 +794,7 @@ namespace OpenMetaverse
             /// <summary>True when the folder update succeeded</summary>
             public bool Success { get; set; }
             /// <summary>Contents of the folder at the time of the update (may be null)</summary>
-            public List<InventoryBase> Contents { get; set; }
+            public List<InventoryBase>? Contents { get; set; }
         }
 
         /// <summary>
@@ -797,7 +803,7 @@ namespace OpenMetaverse
         /// </summary>
         public async Task<CreateItemFromAssetResult> CreateItemFromAssetAsync(byte[] data, string name, string description, 
             AssetType assetType, InventoryType invType, UUID folderID, Permissions permissions,
-            CancellationToken cancellationToken = default, IProgress<ProgressReport> progress = null)
+            CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
             var result = new CreateItemFromAssetResult
             {
@@ -916,14 +922,14 @@ namespace OpenMetaverse
         {
             var tcs = new TaskCompletionSource<FolderUpdateResult>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            void Handler(object sender, FolderUpdatedEventArgs e)
+            void Handler(object? sender, FolderUpdatedEventArgs e)
             {
                 if (e.FolderID == folderID)
                 {
                     // build best-effort result; do not block the event handler
                     _ = Task.Run(async () =>
                     {
-                        List<InventoryBase> contents = null;
+                        List<InventoryBase>? contents = null;
                         try
                         {
                             contents = await RequestFolderContents(folderID, ownerID, fetchFolders, fetchItems, order, cancellationToken).ConfigureAwait(false);
@@ -970,7 +976,7 @@ namespace OpenMetaverse
         {
             var tcs = new TaskCompletionSource<InventoryObjectOfferedEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            void Handler(object sender, InventoryObjectOfferedEventArgs e)
+            void Handler(object? sender, InventoryObjectOfferedEventArgs e)
             {
                 tcs.TrySetResult(e);
             }
@@ -998,9 +1004,9 @@ namespace OpenMetaverse
             /// <summary>True if the request was accepted/submitted successfully</summary>
             public bool Success { get; set; }
             /// <summary>Collection of items copied back by the server (might be null or partial)</summary>
-            public List<InventoryBase> CopiedItems { get; set; }
+            public List<InventoryBase>? CopiedItems { get; set; }
             /// <summary>If an exception occurred during the operation, populated with the error</summary>
-            public Exception Error { get; set; }
+            public Exception? Error { get; set; }
         }
 
         /// <summary>
@@ -1116,8 +1122,8 @@ namespace OpenMetaverse
                         NewFolderID = targetFolders[i],
                         OldAgentID = oldOwnerID,
                         OldItemID = items[i],
-                        NewName = !string.IsNullOrEmpty(newNames?[i])
-                            ? Utils.StringToBytes(newNames[i])
+                        NewName = (newNames != null && !string.IsNullOrEmpty(newNames[i]))
+                            ? Utils.StringToBytes(newNames[i]!)
                             : Utils.EmptyBytes
                     };
                 }

@@ -37,7 +37,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void SaveAssetIntoInventoryHandler(object sender, PacketReceivedEventArgs e)
+        protected void SaveAssetIntoInventoryHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_SaveAssetToInventory != null)
             {
@@ -52,11 +52,14 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void InventoryDescendentsHandler(object sender, PacketReceivedEventArgs e)
+        protected void InventoryDescendentsHandler(object? sender, PacketReceivedEventArgs e)
         {
             var packet = e.Packet;
 
             var reply = (InventoryDescendentsPacket)packet;
+
+            // If the local inventory store is not initialized, we cannot process this packet
+            if (_Store is null) return;
 
             // Include folder and agent context for correlation across logs for this reply
             using (Logger.BeginScope(new { FolderId = reply.AgentData.FolderID, OwnerId = reply.AgentData.OwnerID }))
@@ -65,7 +68,7 @@ namespace OpenMetaverse
             if (reply.AgentData.Descendents > 0)
             {
                 // InventoryDescendantsReply sends a null folder if the parent doesn't contain any folders
-                if (reply.FolderData[0].FolderID != UUID.Zero)
+                if (reply.FolderData != null && reply.FolderData.Length > 0 && reply.FolderData[0].FolderID != UUID.Zero)
                 {
                     // Iterate folders in this packet
                     foreach (var data in reply.FolderData)
@@ -88,7 +91,7 @@ namespace OpenMetaverse
                 }
 
                 // InventoryDescendantsReply sends a null item if the parent doesn't contain any items.
-                if (reply.ItemData[0].ItemID != UUID.Zero)
+                if (reply.ItemData != null && reply.ItemData.Length > 0 && reply.ItemData[0].ItemID != UUID.Zero)
                 {
                     // Iterate items in this packet
                     foreach (var data in reply.ItemData)
@@ -143,7 +146,7 @@ namespace OpenMetaverse
                 }
             }
 
-            InventoryFolder parentFolder = null;
+            InventoryFolder? parentFolder = null;
 
             if (_Store.Contains(reply.AgentData.FolderID) &&
                 _Store[reply.AgentData.FolderID] is InventoryFolder invFolder)
@@ -232,10 +235,12 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void UpdateCreateInventoryItemHandler(object sender, PacketReceivedEventArgs e)
+        protected void UpdateCreateInventoryItemHandler(object? sender, PacketReceivedEventArgs e)
         {
             var packet = e.Packet;
             if (!(packet is UpdateCreateInventoryItemPacket reply)) return;
+
+            if (_Store is null) return;
 
             foreach (var dataBlock in reply.InventoryData)
             {
@@ -336,7 +341,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void MoveInventoryItemHandler(object sender, PacketReceivedEventArgs e)
+        protected void MoveInventoryItemHandler(object? sender, PacketReceivedEventArgs e)
         {
             var packet = e.Packet;
 
@@ -355,6 +360,8 @@ namespace OpenMetaverse
         protected void BulkUpdateInventoryCapHandler(string capsKey, Interfaces.IMessage message, Simulator simulator)
         {
             var msg = (BulkUpdateInventoryMessage)message;
+
+            if (_Store is null) return;
 
             foreach (var newFolder in msg.FolderData)
             {
@@ -445,11 +452,13 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void BulkUpdateInventoryHandler(object sender, PacketReceivedEventArgs e)
+        protected void BulkUpdateInventoryHandler(object? sender, PacketReceivedEventArgs e)
         {
             var packet = e.Packet;
 
             if (!(packet is BulkUpdateInventoryPacket update)) return;
+
+            if (_Store is null) return;
 
             if (update.FolderData.Length > 0 && update.FolderData[0].FolderID != UUID.Zero)
             {
@@ -541,10 +550,12 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void FetchInventoryReplyHandler(object sender, PacketReceivedEventArgs e)
+        protected void FetchInventoryReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
             var packet = e.Packet;
             if (!(packet is FetchInventoryReplyPacket reply)) return;
+
+            if (_Store is null) return;
 
             foreach (var dataBlock in reply.InventoryData)
             {
@@ -587,7 +598,7 @@ namespace OpenMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
-        protected void ReplyTaskInventoryHandler(object sender, PacketReceivedEventArgs e)
+        protected void ReplyTaskInventoryHandler(object? sender, PacketReceivedEventArgs e)
         {
             if (m_TaskInventoryReply != null)
             {

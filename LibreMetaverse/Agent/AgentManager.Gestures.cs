@@ -47,7 +47,7 @@ namespace OpenMetaverse
             ThreadPool.QueueUserWorkItem(_ =>
             {
                 // First fetch the gesture
-                AssetGesture gesture = null;
+                AssetGesture? gesture = null;
 
                 if (gestureCache.TryGetValue(gestureID, out var gestureId))
                 {
@@ -58,11 +58,11 @@ namespace OpenMetaverse
                     AutoResetEvent gotAsset = new AutoResetEvent(false);
 
                     Client.Assets.RequestAsset(gestureID, AssetType.Gesture, true,
-                        delegate(AssetDownload transfer, Asset asset)
+                        delegate(AssetDownload transfer, Asset? asset)
                         {
-                            if (transfer.Success)
+                            if (transfer.Success && asset is AssetGesture g)
                             {
-                                gesture = (AssetGesture) asset;
+                                gesture = g;
                             }
 
                             gotAsset.Set();

@@ -42,11 +42,11 @@ namespace OpenMetaverse
         // User can plug in a routine to compute the asset cache location
         public delegate string ComputeAssetCacheFilenameDelegate(string cacheDir, UUID assetID);
 
-        public ComputeAssetCacheFilenameDelegate ComputeAssetCacheFilename = null;
+        public ComputeAssetCacheFilenameDelegate? ComputeAssetCacheFilename = null;
 
         private readonly GridClient Client;
         private readonly ManualResetEventSlim cleanerEvent = new ManualResetEventSlim();
-        private System.Timers.Timer cleanerTimer;
+        private System.Timers.Timer? cleanerTimer;
         private double pruneInterval = 1000 * 60 * 5;
         private bool autoPruneEnabled = true;
 
@@ -175,7 +175,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="assetID">UUID of the asset we want to get</param>
         /// <returns>Raw bytes of the asset, or null on failure</returns>
-        public byte[] GetCachedAssetBytes(UUID assetID)
+        public byte[]? GetCachedAssetBytes(UUID assetID)
         {
             // Keep synchronous wrapper for compatibility
             return GetCachedAssetBytesAsync(assetID, CancellationToken.None).GetAwaiter().GetResult();
@@ -184,7 +184,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Async variant that returns bytes read from the local asset cache, null if it does not exist
         /// </summary>
-        public async Task<byte[]> GetCachedAssetBytesAsync(UUID assetID, CancellationToken cancellationToken = default)
+        public async Task<byte[]?> GetCachedAssetBytesAsync(UUID assetID, CancellationToken cancellationToken = default)
         {
             if (!Operational())
             {
@@ -247,7 +247,7 @@ namespace OpenMetaverse
         /// Try to read cached bytes synchronously in a safe manner.
         /// Returns false on any failure (locked file, IO error, missing file).
         /// </summary>
-        public bool TryGetCachedAssetBytes(UUID assetID, out byte[] data)
+        public bool TryGetCachedAssetBytes(UUID assetID, out byte[]? data)
         {
             data = null;
 
@@ -286,7 +286,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Async variant of TryGetCachedAssetBytes. Returns (false, null) on failure.
         /// </summary>
-        public async Task<(bool Success, byte[] Data)> TryGetCachedAssetBytesAsync(UUID assetID, CancellationToken cancellationToken = default)
+        public async Task<(bool Success, byte[]? Data)> TryGetCachedAssetBytesAsync(UUID assetID, CancellationToken cancellationToken = default)
         {
             if (!Operational())
             {
@@ -351,7 +351,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="imageID">UUID of the image we want to get</param>
         /// <returns>ImageDownload object containing the image, or null on failure</returns>
-        public ImageDownload GetCachedImage(UUID imageID)
+        public ImageDownload? GetCachedImage(UUID imageID)
         {
             if (!Operational()) { return null; }
 
@@ -364,7 +364,7 @@ namespace OpenMetaverse
             {
                 AssetType = AssetType.Texture,
                 ID = imageID,
-                Simulator = Client.Network.CurrentSim,
+                Simulator = Client.Network.CurrentSim!,
                 Size = imageData.Length,
                 Success = true,
                 Transferred = imageData.Length,
@@ -457,7 +457,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="assetID">UUID of the asset</param>
         /// <returns>Null if we don't have that UUID cached on disk, file name if found in the cache folder</returns>
-        public string AssetFileName(UUID assetID)
+        public string? AssetFileName(UUID assetID)
         {
             if (!Operational())
             {
@@ -640,7 +640,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Periodically prune the cache
         /// </summary>
-        private void cleanerTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        private void cleanerTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
             BeginPrune();
         }
