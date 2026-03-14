@@ -22,8 +22,11 @@ namespace TestClient.Commands.Movement
             if (args.Length != 3)
                 return Task.FromResult("Usage: moveto x y z");
 
+            var currentSim = Client.Network?.CurrentSim;
+            if (currentSim == null) return Task.FromResult("Usage: moveto x y z");
+
             uint regionX, regionY;
-            Utils.LongToUInts(Client.Network.CurrentSim.Handle, out regionX, out regionY);
+            Utils.LongToUInts(currentSim.Handle, out regionX, out regionY);
 
             if (!double.TryParse(args[0], out var x) ||
                 !double.TryParse(args[1], out var y) ||

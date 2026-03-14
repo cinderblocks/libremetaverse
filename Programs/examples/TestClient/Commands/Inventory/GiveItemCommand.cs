@@ -7,8 +7,8 @@ namespace TestClient.Commands.Inventory
 {
     class GiveItemCommand : Command
     {
-        private InventoryManager Manager;
-        private OpenMetaverse.Inventory Inventory;
+        private InventoryManager? Manager;
+        private OpenMetaverse.Inventory? Inventory;
         public GiveItemCommand(TestClient client)
         {
             Name = "give";
@@ -31,14 +31,27 @@ namespace TestClient.Commands.Inventory
                 return "First argument expected agent UUID.";
             }
             Manager = Client.Inventory;
-            Inventory = Manager.Store;
+            var manager = Manager;
+            Inventory = manager?.Store;
+
+            if (manager == null)
+            {
+                return "Inventory manager not initialized";
+            }
             string ret = "";
 
             string target = string.Join(" ", args.Skip(1)).Trim();
 
             string inventoryName = target;
             // WARNING: Uses local copy of inventory contents, need to download them first.
-            List<InventoryBase> contents = await Manager.FolderContentsAsync(Client.CurrentDirectory.UUID, Client.Self.AgentID, true, true, InventorySortOrder.ByName).ConfigureAwait(false);
+            var currentDir = Client.CurrentDirectory;
+            if (currentDir == null) return "Current directory not available";
+
+            List<InventoryBase> contents = await manager.FolderContentsAsync(currentDir.UUID, Client.Self.AgentID, true, true, InventorySortOrder.ByName).ConfigureAwait(false);
+            if (contents == null)
+            {
+                return "Failed to retrieve folder contents";
+            }
             bool found = false;
             foreach (var b in contents.Where(b => inventoryName == b.Name || inventoryName == b.UUID.ToString()))
             {

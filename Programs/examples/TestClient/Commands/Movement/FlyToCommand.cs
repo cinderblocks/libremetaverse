@@ -58,7 +58,7 @@ namespace TestClient.Commands.Movement
             return $"flying to {target.ToString()} in {duration / 1000} seconds";
         }
 
-        private void Objects_OnObjectUpdated(object sender, TerseObjectUpdateEventArgs e)
+        private void Objects_OnObjectUpdated(object? sender, TerseObjectUpdateEventArgs e)
         {
             if (startTime == 0) return;
             if (e.Update.LocalID == Client.Self.LocalID)

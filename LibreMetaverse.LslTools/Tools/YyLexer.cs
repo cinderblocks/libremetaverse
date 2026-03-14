@@ -60,15 +60,16 @@ namespace LibreMetaverse.LslTools
         return;
       Serialiser serialiser = new Serialiser(arr);
       serialiser.VersionCheck();
-      m_encoding = (Encoding) serialiser.Deserialise();
-      toupper = (bool) serialiser.Deserialise();
-      cats = (Hashtable) serialiser.Deserialise();
-      m_gencat = (UnicodeCategory) serialiser.Deserialise();
-      usingEOF = (bool) serialiser.Deserialise();
-      starts = (Hashtable) serialiser.Deserialise();
+      m_encoding = serialiser.Deserialise() as Encoding ?? Encoding.ASCII;
+      try { toupper = Convert.ToBoolean(serialiser.Deserialise()); } catch { toupper = false; }
+      cats = serialiser.Deserialise() as Hashtable ?? new Hashtable();
+      var tmp = serialiser.Deserialise();
+      m_gencat = tmp is UnicodeCategory uc ? uc : UnicodeCategory.OtherPunctuation;
+      try { usingEOF = Convert.ToBoolean(serialiser.Deserialise()); } catch { usingEOF = false; }
+      starts = serialiser.Deserialise() as Hashtable ?? new Hashtable();
       Dfa.SetTokens(this, starts);
-      tokens = (Hashtable) serialiser.Deserialise();
-      reswds = (Hashtable) serialiser.Deserialise();
+      tokens = serialiser.Deserialise() as Hashtable ?? new Hashtable();
+      reswds = serialiser.Deserialise() as Hashtable ?? new Hashtable();
     }
 
     public void EmitDfa(TextWriter outFile)
@@ -144,7 +145,7 @@ namespace LibreMetaverse.LslTools
 
     internal char Filter(char ch)
     {
-      Charset charset = (Charset) cats[char.GetUnicodeCategory(ch)] ?? (Charset) cats[m_gencat];
+      var charset = cats[char.GetUnicodeCategory(ch)] as Charset ?? cats[m_gencat] as Charset ?? new Charset(m_gencat);
       if (charset.m_chars.Contains(ch))
         return ch;
       return charset.m_generic;

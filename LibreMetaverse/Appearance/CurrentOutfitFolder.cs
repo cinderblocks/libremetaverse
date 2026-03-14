@@ -76,10 +76,10 @@ namespace LibreMetaverse.Appearance
         /// Creates a new Current Outfit Folder manager
         /// </summary>
         /// <param name="client">GridClient instance to use</param>
-        public CurrentOutfitFolder(GridClient client)
+        public CurrentOutfitFolder(GridClient? client)
         {
             this.client = client ?? throw new ArgumentNullException(nameof(client));
-            RegisterClientEvents(client);
+            RegisterClientEvents(this.client);
         }
 
         /// <summary>
@@ -163,7 +163,7 @@ namespace LibreMetaverse.Appearance
         /// Atomically update the GridClient used by this instance and re-register events.
         /// </summary>
         /// <param name="newClient"></param>
-        protected void UpdateClient(GridClient newClient)
+        protected void UpdateClient(GridClient? newClient)
         {
             if (newClient == null) throw new ArgumentNullException(nameof(newClient));
 

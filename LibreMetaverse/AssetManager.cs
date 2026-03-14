@@ -461,7 +461,7 @@ namespace OpenMetaverse
         /// <param name="client">A reference to the GridClient object</param>
         public AssetManager(GridClient client)
         {
-            Client = client;
+            Client = client ?? throw new ArgumentNullException(nameof(client));
             Cache = new AssetCache(client);
             Texture = new TexturePipeline(client);
             HttpDownloads = new DownloadManager(client);

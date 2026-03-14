@@ -38,14 +38,22 @@ namespace TestClient.Commands.Prims
             var radius = float.Parse(args[0]);
             var searchString = (args.Length > 1) ? args[1] : string.Empty;
 
-            // *** get current location ***
+            // *** get current simulator and location ***
+            var currentSim = Client.Network?.CurrentSim;
+            if (currentSim == null)
+            {
+                return "No current simulator available";
+            }
+
             var location = Client.Self.SimPosition;
 
             // *** find all objects in radius ***
-            var prims = (from kvp 
-                in Client.Network.CurrentSim.ObjectsPrimitives 
-                where kvp.Value != null select kvp.Value into prim let pos = PositionHelper.GetPrimPosition(Client.Network.CurrentSim, prim) 
-                where pos != Vector3.Zero && Vector3.Distance(pos, location) < radius select prim).ToList();
+            var prims = (from kvp in currentSim.ObjectsPrimitives
+                         where kvp.Value != null
+                         select kvp.Value into prim
+                         let pos = PositionHelper.GetPrimPosition(currentSim, prim)
+                         where pos != Vector3.Zero && Vector3.Distance(pos, location) < radius
+                         select prim).ToList();
 
             // *** request properties of these objects ***
             var complete = await RequestObjectPropertiesAsync(prims, 250).ConfigureAwait(false);
@@ -84,7 +92,7 @@ namespace TestClient.Commands.Prims
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             // Wire up a temporary watcher to complete the TCS when all properties are received
-            void LocalHandler(object s, ObjectPropertiesEventArgs e)
+            void LocalHandler(object? s, ObjectPropertiesEventArgs e)
             {
                 lock (PrimsWaiting)
                 {
@@ -106,7 +114,15 @@ namespace TestClient.Commands.Prims
                 // Temporary subscribe
                 Client.Objects.ObjectProperties += LocalHandler;
 
-                Client.Objects.SelectObjects(Client.Network.CurrentSim, localids);
+                var currentSim = Client.Network?.CurrentSim;
+                if (currentSim == null)
+                {
+                    // Unable to select objects without a current simulator
+                    Client.Objects.ObjectProperties -= LocalHandler;
+                    return false;
+                }
+
+                Client.Objects.SelectObjects(currentSim, localids);
 
                 var completed = await Task.WhenAny(tcs.Task, Task.Delay(2000 + msPerRequest * objects.Count)).ConfigureAwait(false);
                 return completed == tcs.Task;
@@ -117,7 +133,7 @@ namespace TestClient.Commands.Prims
             }
         }
 
-        void Objects_OnObjectProperties(object sender, ObjectPropertiesEventArgs e)
+        void Objects_OnObjectProperties(object? sender, ObjectPropertiesEventArgs e)
         {
             // Keep the global handler to populate properties when received by other flows
             lock (PrimsWaiting)

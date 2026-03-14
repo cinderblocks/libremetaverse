@@ -224,19 +224,25 @@ namespace LibreMetaverse.Tests
             inventory.UpdateNodeFor(folder);
 
             var folderNode = inventory.GetNodeFor(folder.UUID);
-            Assert.That(((InventoryFolder)folderNode.Data).DescendentCount, Is.Zero);
+            var folderData = folderNode.Data as InventoryFolder;
+            Assert.That(folderData, Is.Not.Null);
+            Assert.That(folderData!.DescendentCount, Is.Zero);
 
             var item = new InventoryItem(UUID.Random()) { Name = "Item", ParentUUID = folder.UUID };
             inventory.UpdateNodeFor(item);
 
             folderNode = inventory.GetNodeFor(folder.UUID);
-            Assert.That(((InventoryFolder)folderNode.Data).DescendentCount, Is.GreaterThan(0));
+            folderData = folderNode.Data as InventoryFolder;
+            Assert.That(folderData, Is.Not.Null);
+            Assert.That(folderData!.DescendentCount, Is.GreaterThan(0));
 
             inventory.RemoveNodeFor(item);
 
             // After removal the folder's descendant count should be decreased
             folderNode = inventory.GetNodeFor(folder.UUID);
-            Assert.That(((InventoryFolder)folderNode.Data).DescendentCount, Is.Zero);
+            folderData = folderNode.Data as InventoryFolder;
+            Assert.That(folderData, Is.Not.Null);
+            Assert.That(folderData!.DescendentCount, Is.Zero);
         }
 
         [Test]
@@ -250,21 +256,29 @@ namespace LibreMetaverse.Tests
             var item = new InventoryItem(UUID.Random()) { Name = "Movable", ParentUUID = f1.UUID };
             inventory.UpdateNodeFor(item);
 
-            var n1 = (InventoryFolder)inventory.GetNodeFor(f1.UUID).Data;
-            var n2 = (InventoryFolder)inventory.GetNodeFor(f2.UUID).Data;
+            var n1Node = inventory.GetNodeFor(f1.UUID);
+            var n1 = n1Node.Data as InventoryFolder;
+            Assert.That(n1, Is.Not.Null);
+            var n2Node = inventory.GetNodeFor(f2.UUID);
+            var n2 = n2Node.Data as InventoryFolder;
+            Assert.That(n2, Is.Not.Null);
 
-            Assert.That(n1.DescendentCount, Is.GreaterThan(0));
-            Assert.That(n2.DescendentCount, Is.Zero);
+            Assert.That(n1!.DescendentCount, Is.GreaterThan(0));
+            Assert.That(n2!.DescendentCount, Is.Zero);
 
             // Move item to f2
             item.ParentUUID = f2.UUID;
             inventory.UpdateNodeFor(item);
 
-            n1 = (InventoryFolder)inventory.GetNodeFor(f1.UUID).Data;
-            n2 = (InventoryFolder)inventory.GetNodeFor(f2.UUID).Data;
+            n1Node = inventory.GetNodeFor(f1.UUID);
+            n1 = n1Node.Data as InventoryFolder;
+            Assert.That(n1, Is.Not.Null);
+            n2Node = inventory.GetNodeFor(f2.UUID);
+            n2 = n2Node.Data as InventoryFolder;
+            Assert.That(n2, Is.Not.Null);
 
-            Assert.That(n1.DescendentCount, Is.Zero);
-            Assert.That(n2.DescendentCount, Is.GreaterThan(0));
+            Assert.That(n1!.DescendentCount, Is.Zero);
+            Assert.That(n2!.DescendentCount, Is.GreaterThan(0));
         }
 
         [Test]
@@ -314,12 +328,18 @@ namespace LibreMetaverse.Tests
             await Task.WhenAll(moveTasks);
 
             // Check descendant counts: f1 should be zero, f2 + f3 should equal itemCount
-            var n1 = (InventoryFolder)inventory.GetNodeFor(f1.UUID).Data;
-            var n2 = (InventoryFolder)inventory.GetNodeFor(f2.UUID).Data;
-            var n3 = (InventoryFolder)inventory.GetNodeFor(f3.UUID).Data;
+            var n1Node = inventory.GetNodeFor(f1.UUID);
+            var n1 = n1Node.Data as InventoryFolder;
+            Assert.That(n1, Is.Not.Null);
+            var n2Node = inventory.GetNodeFor(f2.UUID);
+            var n2 = n2Node.Data as InventoryFolder;
+            Assert.That(n2, Is.Not.Null);
+            var n3Node = inventory.GetNodeFor(f3.UUID);
+            var n3 = n3Node.Data as InventoryFolder;
+            Assert.That(n3, Is.Not.Null);
 
-            Assert.That(n1.DescendentCount, Is.EqualTo(0));
-            Assert.That(n2.DescendentCount + n3.DescendentCount, Is.EqualTo(itemCount));
+            Assert.That(n1!.DescendentCount, Is.EqualTo(0));
+            Assert.That(n2!.DescendentCount + n3!.DescendentCount, Is.EqualTo(itemCount));
 
             // Concurrently remove all items
             var removeTasks = new List<Task>(itemCount);
@@ -336,13 +356,19 @@ namespace LibreMetaverse.Tests
             }
 
             // Descendant counts should be zero after removals
-            n1 = (InventoryFolder)inventory.GetNodeFor(f1.UUID).Data;
-            n2 = (InventoryFolder)inventory.GetNodeFor(f2.UUID).Data;
-            n3 = (InventoryFolder)inventory.GetNodeFor(f3.UUID).Data;
+            n1Node = inventory.GetNodeFor(f1.UUID);
+            n1 = n1Node.Data as InventoryFolder;
+            Assert.That(n1, Is.Not.Null);
+            n2Node = inventory.GetNodeFor(f2.UUID);
+            n2 = n2Node.Data as InventoryFolder;
+            Assert.That(n2, Is.Not.Null);
+            n3Node = inventory.GetNodeFor(f3.UUID);
+            n3 = n3Node.Data as InventoryFolder;
+            Assert.That(n3, Is.Not.Null);
 
-            Assert.That(n1.DescendentCount, Is.EqualTo(0));
-            Assert.That(n2.DescendentCount, Is.EqualTo(0));
-            Assert.That(n3.DescendentCount, Is.EqualTo(0));
+            Assert.That(n1!.DescendentCount, Is.EqualTo(0));
+            Assert.That(n2!.DescendentCount, Is.EqualTo(0));
+            Assert.That(n3!.DescendentCount, Is.EqualTo(0));
         }
 
         [Test]
@@ -428,7 +454,9 @@ namespace LibreMetaverse.Tests
 
             var found1 = inventory.FindAllLinks(asset1);
             Assert.That(found1.Count, Is.EqualTo(1));
-            Assert.That(found1[0].Data.UUID, Is.EqualTo(item.UUID));
+            var fnode = found1[0];
+            Assert.That(fnode.Data, Is.Not.Null);
+            Assert.That(fnode.Data!.UUID, Is.EqualTo(item.UUID));
 
             // Change the underlying asset the link points to
             item.AssetUUID = asset2;
@@ -439,7 +467,9 @@ namespace LibreMetaverse.Tests
 
             Assert.That(found1.Count, Is.EqualTo(0));
             Assert.That(found2.Count, Is.EqualTo(1));
-            Assert.That(found2[0].Data.UUID, Is.EqualTo(item.UUID));
+            var fnode2 = found2[0];
+            Assert.That(fnode2.Data, Is.Not.Null);
+            Assert.That(fnode2.Data!.UUID, Is.EqualTo(item.UUID));
         }
     }
 }

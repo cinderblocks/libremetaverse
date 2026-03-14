@@ -144,11 +144,11 @@ namespace OpenMetaverse.Rendering
             return new List<ushort>(indices);
         }
 
-        private List<Face> GenerateFaces(Primitive.TextureEntry te)
+        private List<Face> GenerateFaces(Primitive.TextureEntry? te)
         {
             Face face = new Face();
             face.Edge = new List<int>();
-            face.TextureFace = te.DefaultTexture;
+            face.TextureFace = te?.DefaultTexture ?? new Primitive.TextureEntryFace(null);
             face.Vertices = GenerateVertices();
             face.Indices = GenerateIndices();
 

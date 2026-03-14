@@ -75,9 +75,13 @@ namespace TestClient.Commands.Inventory
 
                         lock (OutfitAssets) OutfitAssets.Clear();
 
-                        for (int j = 0; j < targetAv.Textures.FaceTextures.Length; j++)
+                        var textures = targetAv.Textures;
+                        if (textures == null || textures.FaceTextures == null)
+                            return "No textures available for target avatar";
+
+                        for (int j = 0; j < textures.FaceTextures.Length; j++)
                         {
-                            Primitive.TextureEntryFace face = targetAv.Textures.FaceTextures[j];
+                            Primitive.TextureEntryFace face = textures.FaceTextures[j];
 
                             if (face != null)
                             {
@@ -109,10 +113,12 @@ namespace TestClient.Commands.Inventory
             return "Couldn't find avatar " + target;
         }
 
-        private void Assets_OnImageReceived(TextureRequestState state, AssetTexture assetTexture)
+        private void Assets_OnImageReceived(TextureRequestState state, AssetTexture? assetTexture)
         {
             lock (OutfitAssets)
             {
+                if (assetTexture == null) return;
+
                 if (OutfitAssets.Contains(assetTexture.AssetID))
                 {
                     if (state == TextureRequestState.Finished)

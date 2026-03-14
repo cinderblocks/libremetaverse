@@ -502,7 +502,7 @@ namespace OpenMetaverse
         /// <param name="client">A reference to our agent</param>
         public AppearanceManager(GridClient client)
         {
-            Client = client;
+            Client = client ?? throw new ArgumentNullException(nameof(client));
 
             Client.Network?.RegisterCallback(PacketType.AgentWearablesUpdate, AgentWearablesUpdateHandler);
             Client.Network?.RegisterCallback(PacketType.AgentCachedTextureResponse, AgentCachedTextureResponseHandler);

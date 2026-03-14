@@ -37,7 +37,7 @@ namespace LibreMetaverse.Voice.Vivox
         /// require the voice daemon to make remote queries before replying</summary>
         public readonly int BlockingTimeout = 30 * 1000;
 
-        private readonly Dictionary<int, AutoResetEvent> _events = new Dictionary<int, AutoResetEvent>();
+        private readonly Dictionary<int, AutoResetEvent?> _events = new Dictionary<int, AutoResetEvent?>();
 
         public List<string> CaptureDevices()
         {
@@ -113,27 +113,27 @@ namespace LibreMetaverse.Voice.Vivox
 
         #region Callbacks
 
-        private void VoiceManager_OnCaptureDevices(int cookie, int statusCode, string statusString, string currentDevice)
+        private void VoiceManager_OnCaptureDevices(int cookie, int statusCode, string statusString, string? currentDevice)
         {
-            if (_events.TryGetValue(cookie, out AutoResetEvent value))
+            if (_events.TryGetValue(cookie, out AutoResetEvent? value) && value != null)
                 value.Set();
         }
 
-        private void VoiceManager_OnRenderDevices(int cookie, int statusCode, string statusString, string currentDevice)
+        private void VoiceManager_OnRenderDevices(int cookie, int statusCode, string statusString, string? currentDevice)
         {
-            if (_events.TryGetValue(cookie, out AutoResetEvent value))
+            if (_events.TryGetValue(cookie, out AutoResetEvent? value) && value != null)
                 value.Set();
         }
 
-        private void VoiceManager_OnConnectorCreated(int cookie, int statusCode, string statusString, string connectorHandle)
+        private void VoiceManager_OnConnectorCreated(int cookie, int statusCode, string statusString, string? connectorHandle)
         {
-            if (_events.TryGetValue(cookie, out AutoResetEvent value))
+            if (_events.TryGetValue(cookie, out AutoResetEvent? value) && value != null)
                 value.Set();
         }
 
-        private void VoiceManager_OnLogin(int cookie, int statusCode, string statusString, string accountHandle)
+        private void VoiceManager_OnLogin(int cookie, int statusCode, string statusString, string? accountHandle)
         {
-            if (_events.TryGetValue(cookie, out AutoResetEvent value))
+            if (_events.TryGetValue(cookie, out AutoResetEvent? value) && value != null)
                 value.Set();
         }
 

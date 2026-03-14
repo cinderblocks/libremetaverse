@@ -40,14 +40,14 @@ namespace LibreMetaverse
 {
     public class Sdl3Audio : IDisposable
     {
-        public SDL3AudioEndPoint EndPoint { get; private set; }
-        public SDL3AudioSource Source { get; private set; }
+        public SDL3AudioEndPoint? EndPoint { get; private set; }
+        public SDL3AudioSource? Source { get; private set; }
         private readonly OpusAudioEncoder _audioEncoder = new OpusAudioEncoder();
         public bool IsAvailable { get; } = false;
 
-        public event Action<bool> OnPlaybackActiveChanged;
-        public event Action<bool> OnRecordingActiveChanged;
-        public event Action<uint, byte[]> OnAudioSourceEncodedSample;
+        public event Action<bool>? OnPlaybackActiveChanged;
+        public event Action<bool>? OnRecordingActiveChanged;
+        public event Action<uint, byte[]>? OnAudioSourceEncodedSample;
 
         public bool PlaybackActive { get; private set; } = false;
         public bool RecordingActive { get; private set; } = false;
@@ -82,7 +82,7 @@ namespace LibreMetaverse
 
         private readonly IVoiceLogger _log;
 
-        public Sdl3Audio(IVoiceLogger logger = null)
+        public Sdl3Audio(IVoiceLogger? logger = null)
         {
             _log = logger ?? new OpenMetaverseVoiceLogger();
             try { var factory = LoggerFactory.Create(builder => { builder.AddProvider(new VoiceLoggerProvider(_log)); }); } catch { }
@@ -148,7 +148,7 @@ namespace LibreMetaverse
 
         private (uint id, string name)? GetDevice(int index, bool recordingDevice)
         {
-            if (index < 0) return recordingDevice ? SDL3Helper.GetAudioRecordingDevice(null) : SDL3Helper.GetAudioPlaybackDevice(null);
+            if (index < 0) return recordingDevice ? SDL3Helper.GetAudioRecordingDevice(string.Empty) : SDL3Helper.GetAudioPlaybackDevice(string.Empty);
             return recordingDevice ? SDL3Helper.GetAudioRecordingDevice(index) : SDL3Helper.GetAudioPlaybackDevice(index);
         }
 
@@ -157,7 +157,7 @@ namespace LibreMetaverse
             if (EndPoint == null) return;
             try
             {
-                var epType = EndPoint.GetType();
+                var epType = EndPoint!.GetType();
                 var methodNames = new[] { "SetVolume", "SetPlaybackVolume", "SetSinkVolume", "SetAudioVolume" };
                 foreach (var name in methodNames)
                 {
@@ -238,7 +238,7 @@ namespace LibreMetaverse
             bool needsReinit = false;
             try
             {
-                var epType = EndPoint.GetType();
+                var epType = EndPoint!.GetType();
                 var closedField = epType.GetField("_isClosed", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 if (closedField != null)
                 {
@@ -261,7 +261,7 @@ namespace LibreMetaverse
                 try
                 {
                     var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
-                    EndPoint.SetAudioSinkFormat(fmt);
+                    EndPoint!.SetAudioSinkFormat(fmt);
                     TrySetEndpointVolume(_speakerLevel);
                     _log.Debug("Endpoint reinitialized for playback");
                 }
@@ -273,7 +273,7 @@ namespace LibreMetaverse
                     {
                         EndPoint = new SDL3AudioEndPoint(PlaybackDevice.name, _audioEncoder);
                         var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
-                        EndPoint.SetAudioSinkFormat(fmt);
+                        EndPoint!.SetAudioSinkFormat(fmt);
                         TrySetEndpointVolume(_speakerLevel);
                         _log.Debug("Endpoint recreated from scratch");
                     }
@@ -289,7 +289,7 @@ namespace LibreMetaverse
             {
                 // Reset the samples counter when starting playback to allow auto-restart after reconnection
                 _samplesReceivedCount = 0;
-                await EndPoint.StartAudioSink();
+                await EndPoint!.StartAudioSink();
                 PlaybackActive = true;
                 OnPlaybackActiveChanged?.Invoke(true);
                 _log.Debug("Playback started");
@@ -384,7 +384,7 @@ namespace LibreMetaverse
             try { DetachSourceHandlers(); StopSourceSafely(Source); RecordingActive = false; OnRecordingActiveChanged?.Invoke(false); _log.Debug("Recording stopped"); } catch (Exception ex) { _log.Error($"Failed to stop recording: {ex.Message}"); }
         }
 
-        private void StopSourceSafely(object source)
+        private void StopSourceSafely(object? source)
         {
             if (source == null) return;
             var t = source.GetType();
@@ -394,15 +394,15 @@ namespace LibreMetaverse
         }
 
         // File playback and raw stream support
-        private Task _filePlaybackTask;
-        private CancellationTokenSource _filePlaybackCts;
+        private Task? _filePlaybackTask;
+        private CancellationTokenSource? _filePlaybackCts;
         private bool _filePlaybackLoop = false;
         private bool _filePlaybackActive = false;
         private bool _filePlaybackWasRecording = false;
-        private string _filePlaybackPath;
+        private string? _filePlaybackPath;
 
-        private Task _rawStreamTask;
-        private CancellationTokenSource _rawStreamCts;
+        private Task? _rawStreamTask;
+        private CancellationTokenSource? _rawStreamCts;
         private bool _rawStreamActive = false;
 
         public void StartFilePlayback(string path, bool loop = false)
@@ -482,7 +482,7 @@ namespace LibreMetaverse
                                     int remaining = mono.Length - idx;
                                     short[] frame = new short[frameSize];
                                     if (remaining >= frameSize) Array.Copy(mono, idx, frame, 0, frameSize); else Array.Copy(mono, idx, frame, 0, remaining);
-                                    byte[] encoded = null;
+                                    byte[]? encoded = null;
                                     try { encoded = _audioEncoder.EncodeAudio(frame, OpusAudioEncoder.MEDIA_FORMAT_OPUS); } catch (Exception ex) { _log.Warn($"WAV encode failed: {ex.Message}"); encoded = null; }
                                     if (encoded != null && encoded.Length > 0) 
                                     { 
@@ -530,7 +530,7 @@ namespace LibreMetaverse
         public void StopFilePlayback()
         {
             if (!_filePlaybackActive || _filePlaybackCts == null) return;
-            try { _filePlaybackCts.Cancel(); _filePlaybackTask?.Wait(500); } catch { } finally { _filePlaybackCts.Dispose(); _filePlaybackCts = null; _filePlaybackActive = false; }
+            try { _filePlaybackCts.Cancel(); _filePlaybackTask?.Wait(500); } catch { } finally { try { _filePlaybackCts?.Dispose(); } catch { } _filePlaybackCts = null; _filePlaybackActive = false; }
         }
 
         // Convenience helpers
@@ -649,7 +649,7 @@ namespace LibreMetaverse
             {
                 int remaining = monoSamples.Length - idx; short[] frame = new short[frameSize];
                 if (remaining >= frameSize) Array.Copy(monoSamples, idx, frame, 0, frameSize); else Array.Copy(monoSamples, idx, frame, 0, remaining);
-                byte[] encoded = null; try { encoded = _audioEncoder.EncodeAudio(frame, OpusAudioEncoder.MEDIA_FORMAT_OPUS); } catch (Exception ex) { _log.Warn($"FeedPcmSamples: encode failed: {ex.Message}"); }
+                byte[]? encoded = null; try { encoded = _audioEncoder.EncodeAudio(frame, OpusAudioEncoder.MEDIA_FORMAT_OPUS); } catch (Exception ex) { _log.Warn($"FeedPcmSamples: encode failed: {ex.Message}"); }
                 if (encoded != null && encoded.Length > 0) { try { OnAudioSourceEncodedSample?.Invoke((uint)frameSize, encoded); } catch { } }
                 idx += frameSize;
             }
@@ -742,7 +742,7 @@ namespace LibreMetaverse
 
         public void AudioSource_OnAudioSourceRawSample(AudioSamplingRatesEnum samplingRate, uint durationMilliseconds, short[] sample)
         {
-            try { byte[] pcmBytes = sample.SelectMany(BitConverter.GetBytes).ToArray(); EndPoint.PutAudioSample(pcmBytes); } catch { }
+            try { byte[] pcmBytes = sample.SelectMany(BitConverter.GetBytes).ToArray(); EndPoint?.PutAudioSample(pcmBytes); } catch { }
         }
 
         // Device lists
@@ -757,7 +757,7 @@ namespace LibreMetaverse
         }
 
         // Replace playback device at runtime (recreates endpoint)
-        public void SetPlaybackDevice(string deviceName)
+        public void SetPlaybackDevice(string? deviceName)
         {
             if (!IsAvailable) return;
             try
@@ -767,7 +767,7 @@ namespace LibreMetaverse
                 bool wasPlaying = PlaybackActive;
                 
                 try { EndPoint?.CloseAudioSink().Wait(2000); } catch { }
-                EndPoint = new SDL3AudioEndPoint(deviceName, _audioEncoder);
+                 EndPoint = new SDL3AudioEndPoint(deviceName ?? string.Empty, _audioEncoder);
                 var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
                 EndPoint.SetAudioSinkFormat(fmt);
                 TrySetEndpointVolume(_speakerLevel);
@@ -783,7 +783,7 @@ namespace LibreMetaverse
             }
         }
 
-        public void SetRecordingDevice(string deviceName)
+        public void SetRecordingDevice(string? deviceName)
         {
             if (!IsAvailable) return;
             try
@@ -792,13 +792,13 @@ namespace LibreMetaverse
                 
                 try { DetachSourceHandlers(); StopSourceSafely(Source); } catch { }
 
-                Exception lastEx = null;
-                try { Source = new SDL3AudioSource(deviceName, _audioEncoder); }
+                Exception? lastEx = null;
+                try { Source = new SDL3AudioSource(deviceName ?? string.Empty, _audioEncoder); }
                 catch (Exception ex1) { lastEx = ex1; Source = null; }
 
                 if (Source == null && deviceName != null)
                 {
-                    try { Source = new SDL3AudioSource(null, _audioEncoder); }
+                    try { Source = new SDL3AudioSource(string.Empty, _audioEncoder); }
                     catch (Exception ex2) { lastEx = ex2; Source = null; }
                 }
 
@@ -966,7 +966,7 @@ namespace LibreMetaverse
                 {
                     if (!EnsureEndpoint()) return;
                 }
-                try { EndPoint.PutAudioSample(pcmBytes); }
+                try { EndPoint?.PutAudioSample(pcmBytes); }
                 catch (Exception ex) { _log.Debug($"PlayRtpPacket PutAudioSample failed: {ex.Message}"); }
             }
             catch (Exception ex)

@@ -57,7 +57,7 @@ namespace LibreMetaverse.Appearance
         /// </summary>
         /// <param name="policyToAdd">Policy to add</param>
         /// <returns>This instance for method chaining</returns>
-        public CompositeCurrentOutfitPolicy AddPolicy(ICurrentOutfitPolicy policyToAdd)
+        public CompositeCurrentOutfitPolicy AddPolicy(ICurrentOutfitPolicy? policyToAdd)
         {
             if (policyToAdd == null)
             {
@@ -76,11 +76,12 @@ namespace LibreMetaverse.Appearance
         /// Remove a policy from the composite
         /// </summary>
         /// <param name="policyToRemove">Policy to remove</param>
-        public void RemovePolicy(ICurrentOutfitPolicy policyToRemove)
+        public void RemovePolicy(ICurrentOutfitPolicy? policyToRemove)
         {
             lock (policiesLock)
             {
-                policies = policies.Remove(policyToRemove);
+                if (policyToRemove != null)
+                    policies = policies.Remove(policyToRemove);
             }
         }
 
@@ -90,15 +91,10 @@ namespace LibreMetaverse.Appearance
         /// </summary>
         /// <param name="item">Item to check</param>
         /// <returns>True if all policies allow attachment</returns>
-        public bool CanAttach(InventoryItem item)
+        public bool CanAttach(InventoryItem? item)
         {
-            if (item == null)
-            {
-                throw new ArgumentNullException(nameof(item));
-            }
-
-            return GetCurrentPolicies()
-                .All(n => n.CanAttach(item));
+            if (item == null) throw new ArgumentNullException(nameof(item));
+            return GetCurrentPolicies().All(n => n.CanAttach(item));
         }
 
         /// <summary>
@@ -107,15 +103,10 @@ namespace LibreMetaverse.Appearance
         /// </summary>
         /// <param name="item">Item to check</param>
         /// <returns>True if all policies allow detachment</returns>
-        public bool CanDetach(InventoryItem item)
+        public bool CanDetach(InventoryItem? item)
         {
-            if (item == null)
-            {
-                throw new ArgumentNullException(nameof(item));
-            }
-
-            return GetCurrentPolicies()
-                .All(n => n.CanDetach(item));
+            if (item == null) throw new ArgumentNullException(nameof(item));
+            return GetCurrentPolicies().All(n => n.CanDetach(item));
         }
 
         /// <summary>
@@ -124,7 +115,7 @@ namespace LibreMetaverse.Appearance
         /// <param name="addedItems">Items that were added to the outfit</param>
         /// <param name="removedItems">Items that were removed from the outfit</param>
         /// <param name="cancellationToken">Cancellation token</param>
-        public async Task ReportItemChange(List<InventoryItem> addedItems, List<InventoryItem> removedItems, CancellationToken cancellationToken = default)
+        public async Task ReportItemChange(List<InventoryItem>? addedItems, List<InventoryItem>? removedItems, CancellationToken cancellationToken = default)
         {
             var currentPolicies = GetCurrentPolicies();
 

@@ -79,7 +79,7 @@ namespace LibreMetaverse
         /// <param name="client">Grid client used to access HTTP capability client and current sim caps.</param>
         public InventoryAISClient(GridClient client)
         {
-            Client = client;
+            Client = client ?? throw new ArgumentNullException(nameof(client));
         }
 
         /// <summary>
@@ -118,7 +118,7 @@ namespace LibreMetaverse
                 using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(newInventory), 
                            Encoding.UTF8, HttpCapsClient.LLSD_XML))
                 {
-                    using (var reply = await Client.HttpCapsClient.PostAsync(uri, content, cancellationToken).ConfigureAwait(false))
+                using (var reply = await Client.HttpCapsClient.PostAsync(uri, content, cancellationToken).ConfigureAwait(false))
                     {
                         success = HandleResponseStatus(reply, $"Create inventory in {parentUuid}");
 
@@ -1425,7 +1425,7 @@ namespace LibreMetaverse
 
         private bool getInventoryCap(out Uri? inventoryCapUri)
         {
-            inventoryCapUri = Client.Network.CurrentSim?.Caps?.CapabilityURI(INVENTORY_CAP_NAME);
+            inventoryCapUri = Client.Network?.CurrentSim?.Caps?.CapabilityURI(INVENTORY_CAP_NAME);
             if (inventoryCapUri != null) { return true; }
             Logger.Warn("AISv3 Inventory Capability not found!", Client);
             return false;
@@ -1433,7 +1433,7 @@ namespace LibreMetaverse
 
         private bool getLibraryCap(out Uri? libraryCapUri)
         {
-            libraryCapUri = Client.Network.CurrentSim?.Caps?.CapabilityURI(LIBRARY_CAP_NAME);
+            libraryCapUri = Client.Network?.CurrentSim?.Caps?.CapabilityURI(LIBRARY_CAP_NAME);
             if (libraryCapUri != null) { return true; }
             Logger.Warn("AISv3 Library Capability not found!", Client);
             return false;

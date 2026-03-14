@@ -49,7 +49,7 @@ namespace TestClient.Commands.Inventory
 
                 var desc = $"{file} created by OpenMetaverse TestClient {DateTime.Now}";
 
-                var createTcs = new TaskCompletionSource<InventoryItem>(TaskCreationOptions.RunContinuationsAsynchronously);
+                var createTcs = new TaskCompletionSource<InventoryItem?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
                 Client.Inventory.RequestCreateItem(Client.Inventory.FindFolderForType(AssetType.LSLText),
                     file, desc, AssetType.LSLText, UUID.Random(),
@@ -64,6 +64,10 @@ namespace TestClient.Commands.Inventory
                     return "Timed out creating inventory item";
 
                 var createdItem = await createTcs.Task.ConfigureAwait(false);
+                if (createdItem == null)
+                {
+                    return "Failed to create inventory item";
+                }
 
                 var uploadTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
 

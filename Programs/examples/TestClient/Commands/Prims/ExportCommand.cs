@@ -12,7 +12,7 @@ namespace TestClient.Commands.Prims
     public class ExportCommand : Command
     {
         private readonly List<UUID> Textures = new List<UUID>();
-        private Primitive.ObjectProperties Properties;
+        private Primitive.ObjectProperties? Properties;
         private bool GotPermissions = false;
         private UUID SelectedObject = UUID.Zero;
 
@@ -63,7 +63,13 @@ namespace TestClient.Commands.Prims
                 id = SelectedObject;
             }
 
-            var kvp = Client.Network.CurrentSim.ObjectsPrimitives.FirstOrDefault(
+            var currentSim = Client.Network.CurrentSim;
+            if (currentSim == null)
+            {
+                return "No current simulator available";
+            }
+
+            var kvp = currentSim.ObjectsPrimitives.FirstOrDefault(
                 prim => prim.Value.ID == id);
 
             if (kvp.Value == null)
@@ -77,7 +83,7 @@ namespace TestClient.Commands.Prims
             // Check for export permission first
             var gotPermsTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            EventHandler<ObjectPropertiesFamilyEventArgs> familyHandler = null;
+            EventHandler<ObjectPropertiesFamilyEventArgs>? familyHandler = null;
             familyHandler = (sender, e) =>
             {
                 if (e.Properties.ObjectID == id)
@@ -92,7 +98,7 @@ namespace TestClient.Commands.Prims
             try
             {
                 Client.Objects.ObjectPropertiesFamily += familyHandler;
-                Client.Objects.RequestObjectPropertiesFamily(Client.Network.CurrentSim, id);
+                Client.Objects.RequestObjectPropertiesFamily(currentSim, id);
 
                 var completed = await Task.WhenAny(gotPermsTcs.Task, Task.Delay(TimeSpan.FromSeconds(20))).ConfigureAwait(false);
                 if (completed != gotPermsTcs.Task || !GotPermissions)
@@ -105,13 +111,13 @@ namespace TestClient.Commands.Prims
                 Client.Objects.ObjectPropertiesFamily -= familyHandler;
             }
 
-            if (Properties.OwnerID != Client.Self.AgentID &&
-                Properties.OwnerID != Client.MasterKey)
+            if (Properties!.OwnerID != Client.Self.AgentID &&
+                Properties!.OwnerID != Client.MasterKey)
             {
                 return "That object is owned by " + Properties.OwnerID + ", we don't have permission to export it";
             }
 
-            var prims = (from kvprim in Client.Network.CurrentSim.ObjectsPrimitives
+            var prims = (from kvprim in currentSim.ObjectsPrimitives
                          where kvprim.Value != null select kvprim.Value into prim
                          where prim.LocalID == localId || prim.ParentID == localId select prim).ToList();
 
@@ -137,19 +143,26 @@ namespace TestClient.Commands.Prims
             {
                 foreach (var prim in prims)
                 {
-                    if (prim.Textures.DefaultTexture.TextureID != Primitive.TextureEntry.WHITE_TEXTURE &&
-                        !Textures.Contains(prim.Textures.DefaultTexture.TextureID))
+                    if (prim.Textures != null)
                     {
-                        Textures.Add(prim.Textures.DefaultTexture.TextureID);
-                    }
-
-                    foreach (var face in prim.Textures.FaceTextures)
-                    {
-                        if (face != null &&
-                            face.TextureID != Primitive.TextureEntry.WHITE_TEXTURE &&
-                            !Textures.Contains(face.TextureID))
+                        var dt = prim.Textures.DefaultTexture;
+                        if (dt != null && dt.TextureID != Primitive.TextureEntry.WHITE_TEXTURE &&
+                            !Textures.Contains(dt.TextureID))
                         {
-                            Textures.Add(face.TextureID);
+                            Textures.Add(dt.TextureID);
+                        }
+
+                        if (prim.Textures.FaceTextures != null)
+                        {
+                            foreach (var face in prim.Textures.FaceTextures)
+                            {
+                                if (face != null &&
+                                    face.TextureID != Primitive.TextureEntry.WHITE_TEXTURE &&
+                                    !Textures.Contains(face.TextureID))
+                                {
+                                    Textures.Add(face.TextureID);
+                                }
+                            }
                         }
                     }
 
@@ -190,7 +203,7 @@ namespace TestClient.Commands.Prims
 
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            void LocalHandler(object s, ObjectPropertiesEventArgs e)
+            void LocalHandler(object? s, ObjectPropertiesEventArgs e)
             {
                 lock (PrimsWaiting)
                 {
@@ -206,7 +219,13 @@ namespace TestClient.Commands.Prims
             {
                 Client.Objects.ObjectProperties += LocalHandler;
 
-                Client.Objects.SelectObjects(Client.Network.CurrentSim, localIds);
+                var sim = Client.Network.CurrentSim;
+                if (sim == null)
+                {
+                    return false;
+                }
+
+                Client.Objects.SelectObjects(sim, localIds);
 
                 var completed = await Task.WhenAny(tcs.Task, Task.Delay(2000 + msPerRequest * objects.Count)).ConfigureAwait(false);
                 return completed == tcs.Task;
@@ -217,8 +236,12 @@ namespace TestClient.Commands.Prims
             }
         }
 
-        private void Assets_OnImageReceived(TextureRequestState state, AssetTexture asset)
+        private void Assets_OnImageReceived(TextureRequestState state, AssetTexture? asset)
         {
+            if (asset == null)
+            {
+                return;
+            }
 
             if (state == TextureRequestState.Finished && Textures.Contains(asset.AssetID))
             {
@@ -228,7 +251,7 @@ namespace TestClient.Commands.Prims
                 try { File.WriteAllBytes(asset.AssetID + ".jp2", asset.AssetData); }
                 catch (Exception ex) { Logger.Error(ex.Message, Client); }
 
-                if (asset.Decode())
+                if (asset.Decode() && asset.Image != null)
                 {
                     try { File.WriteAllBytes(asset.AssetID + ".tga", OpenMetaverse.Imaging.Targa.Encode(asset.Image)); }
                     catch (Exception ex) { Logger.Error(ex.Message, Client); }

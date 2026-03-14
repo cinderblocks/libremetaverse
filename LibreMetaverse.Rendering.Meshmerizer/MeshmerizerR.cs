@@ -59,7 +59,7 @@ namespace OpenMetaverse.Rendering
         {
             PrimMesh newPrim = GeneratePrimMesh(prim, lod, false);
             if (newPrim == null)
-                return null;
+                return new SimpleMesh { Path = new Path(), Prim = prim, Profile = new Profile(), Vertices = new List<Vertex>(), Indices = new List<ushort>() };
 
             SimpleMesh mesh = new SimpleMesh
             {
@@ -94,8 +94,8 @@ namespace OpenMetaverse.Rendering
         /// <returns>The generated mesh or null on failure</returns>
         public SimpleMesh GenerateSimpleMeshWithNormals(Primitive prim, DetailLevel lod) {
             PrimMesh newPrim = GeneratePrimMesh(prim, lod, true);
-	        if(newPrim == null)
-		        return null;
+        	if(newPrim == null)
+        		return new SimpleMesh { Path = new Path(), Prim = prim, Profile = new Profile(), Vertices = new List<Vertex>(), Indices = new List<ushort>() };
 
             SimpleMesh mesh = new SimpleMesh {
                 Path = new Path(),
@@ -151,7 +151,7 @@ namespace OpenMetaverse.Rendering
                 return mesh;
             }
 
-            return null;
+            return new SimpleMesh { Path = new Path(), Prim = prim, Profile = new Profile(), Vertices = new List<Vertex>(), Indices = new List<ushort>() };
         }
 
         /// <summary>
@@ -169,7 +169,7 @@ namespace OpenMetaverse.Rendering
             bool isSphere = ((ProfileCurve)(prim.PrimData.profileCurve & 0x07) == ProfileCurve.HalfCircle);
             PrimMesh newPrim = GeneratePrimMesh(prim, lod, true);
             if (newPrim == null)
-                return null;
+                return new FacetedMesh { Faces = new List<Face>(), Prim = prim, Profile = new Profile { Faces = new List<ProfileFace>(), Positions = new List<Vector3>() }, Path = new Path { Points = new List<PathPoint>() } };
 
             // copy the vertex information into IRendering structures
             var omvrmesh = new FacetedMesh
@@ -191,7 +191,7 @@ namespace OpenMetaverse.Rendering
                 {
                     Vertices = new List<Vertex>(),
                     Indices = new List<ushort>(),
-                    TextureFace = prim.Textures.GetFace((uint) i)
+                    TextureFace = (prim.Textures != null) ? (prim.Textures.GetFace((uint)i) ?? new Primitive.TextureEntryFace(null)) : new Primitive.TextureEntryFace(null)
                 };
 
                 for (int j = 0; j < indexer.viewerVertices[i].Count; j++)
@@ -227,6 +227,7 @@ namespace OpenMetaverse.Rendering
         /// <returns>The faceted mesh or null if can't do it</returns>
         public FacetedMesh GenerateFacetedSculptMesh(Primitive prim, SKBitmap scupltTexture, DetailLevel lod)
         {
+            if (prim.Sculpt == null) return new FacetedMesh { Faces = new List<Face>(), Prim = prim, Profile = new Profile { Faces = new List<ProfileFace>(), Positions = new List<Vector3>() }, Path = new Path { Points = new List<PathPoint>() } };
             LibreMetaverse.PrimMesher.SculptMesh.SculptType smSculptType;
             switch (prim.Sculpt.Type)
             {
@@ -283,11 +284,22 @@ namespace OpenMetaverse.Rendering
 
             for (int ii = 0; ii < numPrimFaces; ii++)
             {
+                // Resolve texture face safely to avoid null dereferences
+                var tex = prim.Textures;
+                Primitive.TextureEntryFace tf = new Primitive.TextureEntryFace(null);
+                if (tex != null)
+                {
+                    if (tex.FaceTextures != null && ii < tex.FaceTextures.Length && tex.FaceTextures[ii] != null)
+                        tf = tex.FaceTextures[ii];
+                    else if (tex.DefaultTexture != null)
+                        tf = tex.DefaultTexture;
+                }
+
                 Face oface = new Face
                 {
                     Vertices = new List<Vertex>(),
                     Indices = new List<ushort>(),
-                    TextureFace = prim.Textures.GetFace((uint) ii)
+                    TextureFace = tf
                 };
                 int faceVertices = newMesh.coords.Count;
 
@@ -311,7 +323,6 @@ namespace OpenMetaverse.Rendering
 
                 if (faceVertices > 0)
                 {
-                    oface.TextureFace = prim.Textures.FaceTextures[ii] ?? prim.Textures.DefaultTexture;
                     oface.ID = ii;
                     omvrmesh.Faces.Add(oface);
                 }
@@ -401,19 +412,19 @@ namespace OpenMetaverse.Rendering
         /// routine since all the context for finding the data is elsewhere.
         /// </summary>
         /// <returns>The faceted mesh or null if can't do it</returns>
-        public FacetedMesh GenerateFacetedMeshMesh(Primitive prim, byte[] meshData)
+        public FacetedMesh? GenerateFacetedMeshMesh(Primitive prim, byte[] meshData)
         {
-            FacetedMesh ret = null;
-            OSDMap meshParts = UnpackMesh(meshData);
+            FacetedMesh? ret = null;
+            OSDMap? meshParts = UnpackMesh(meshData);
             if (meshParts != null)
             {
-                byte[] meshBytes = null;
+                byte[]? meshBytes = null;
                 string[] decreasingLOD = { "high_lod", "medium_lod", "low_lod", "lowest_lod" };
                 foreach (string partName in decreasingLOD)
                 {
-                    if (meshParts.TryGetValue(partName, out var part))
+                    if (meshParts.TryGetValue(partName, out var part) && part is OSD partOsd && partOsd.Type == OSDType.Binary)
                     {
-                        meshBytes = part;
+                        meshBytes = partOsd.AsBinary();
                         break;
                     }
                 }
@@ -428,9 +439,9 @@ namespace OpenMetaverse.Rendering
 
         // A version of GenerateFacetedMeshMesh that takes LOD spec so it's similar in calling convention of
         //    the other Generate* methods.
-        public FacetedMesh GenerateFacetedMeshMesh(Primitive prim, byte[] meshData, DetailLevel lod) {
-            FacetedMesh ret = null;
-            string partName = null;
+        public FacetedMesh? GenerateFacetedMeshMesh(Primitive prim, byte[] meshData, DetailLevel lod) {
+            FacetedMesh? ret = null;
+            string? partName = null;
             switch (lod)
             {
                 case DetailLevel.Highest:
@@ -444,15 +455,13 @@ namespace OpenMetaverse.Rendering
             }
             if (partName != null)
             {
-                OSDMap meshParts = UnpackMesh(meshData);
+                OSDMap? meshParts = UnpackMesh(meshData);
                 if (meshParts != null)
                 {
-                    if (meshParts.TryGetValue(partName, out var meshBytes))
+                    if (meshParts.TryGetValue(partName, out var meshBytesObj) && meshBytesObj is OSD meshOsd && meshOsd.Type == OSDType.Binary)
                     {
-                        if (meshBytes != null)
-                        {
-                            ret = MeshSubMeshAsFacetedMesh(prim, meshBytes);
-                        }
+                        var meshBytes = meshOsd.AsBinary();
+                        ret = MeshSubMeshAsFacetedMesh(prim, meshBytes);
                     }
                 }
             }
@@ -460,10 +469,10 @@ namespace OpenMetaverse.Rendering
         }
 
         // Convert a compressed submesh buffer into a FacetedMesh.
-        public FacetedMesh MeshSubMeshAsFacetedMesh(Primitive prim, byte[] compressedMeshData)
+        public FacetedMesh? MeshSubMeshAsFacetedMesh(Primitive prim, byte[] compressedMeshData)
         {
-            FacetedMesh ret = null;
-            OSD meshOSD = Helpers.DecompressOSD(compressedMeshData);
+            FacetedMesh? ret = null;
+            OSD? meshOSD = Helpers.DecompressOSD(compressedMeshData);
 
             if (meshOSD is OSDArray meshFaces)
             {
@@ -478,12 +487,12 @@ namespace OpenMetaverse.Rendering
 
 
         // Convert a compressed submesh buffer into a SimpleMesh.
-        public SimpleMesh MeshSubMeshAsSimpleMesh(Primitive prim, byte[] compressedMeshData)
+        public SimpleMesh? MeshSubMeshAsSimpleMesh(Primitive prim, byte[] compressedMeshData)
         {
-            SimpleMesh ret = null;
-            OSD meshOSD = Helpers.DecompressOSD(compressedMeshData);
+            SimpleMesh? ret = null;
+            OSD? meshOSD = Helpers.DecompressOSD(compressedMeshData);
 
-            OSDArray meshFaces = meshOSD as OSDArray;
+            OSDArray? meshFaces = meshOSD as OSDArray;
             if (meshOSD != null)
             {
                 ret = new SimpleMesh();
@@ -596,7 +605,7 @@ namespace OpenMetaverse.Rendering
                     ID = faceIndex,
                     Vertices = new List<Vertex>(),
                     Indices = new List<ushort>(),
-                    TextureFace = prim.Textures.GetFace((uint) faceIndex)
+                    TextureFace = (prim.Textures != null) ? (prim.Textures.GetFace((uint)faceIndex) ?? new Primitive.TextureEntryFace(null)) : new Primitive.TextureEntryFace(null)
                 };
 
                 OSDMap subMeshMap = subMesh;
@@ -628,24 +637,32 @@ namespace OpenMetaverse.Rendering
             }
 
             // Vertex positions
-            byte[] posBytes = subMeshMap["Position"];
+            if (!subMeshMap.TryGetValue("Position", out var posObj) || !(posObj is OSD posOsd) || posOsd.Type != OSDType.Binary)
+            {
+                // No position data, nothing to collect
+                return vertices;
+            }
+            byte[] posBytes = posOsd.AsBinary();
 
             // Normals
-            byte[] norBytes = null;
-            if (subMeshMap.TryGetValue("Normal", out var normal))
+            byte[]? norBytes = null;
+            if (subMeshMap.TryGetValue("Normal", out var normalObj) && normalObj is OSD normalOsd && normalOsd.Type == OSDType.Binary)
             {
-                norBytes = normal;
+                norBytes = normalOsd.AsBinary();
             }
 
             // UV texture map
             Vector2 texPosMax = Vector2.Zero;
             Vector2 texPosMin = Vector2.Zero;
-            byte[] texBytes = null;
-            if (subMeshMap.TryGetValue("TexCoord0", out var texCoord0))
+            byte[]? texBytes = null;
+            if (subMeshMap.TryGetValue("TexCoord0", out var texCoord0Obj) && texCoord0Obj is OSD texCoordOsd && texCoordOsd.Type == OSDType.Binary)
             {
-                texBytes = texCoord0;
-                texPosMax = ((OSDMap)subMeshMap["TexCoord0Domain"])["Max"];
-                texPosMin = ((OSDMap)subMeshMap["TexCoord0Domain"])["Min"];
+                texBytes = texCoordOsd.AsBinary();
+                if (subMeshMap.TryGetValue("TexCoord0Domain", out var domainObj) && domainObj is OSDMap domainMap)
+                {
+                    texPosMax = domainMap["Max"];
+                    texPosMin = domainMap["Min"];
+                }
             }
 
             // Extract the vertex position data
@@ -716,9 +733,9 @@ namespace OpenMetaverse.Rendering
         /// is the uncompressed data for that mesh.
         /// The OSDMap is made up of the asset_header section (which includes a lot of stuff)
         /// plus each of the submeshes unpacked into compressed byte arrays.</returns>
-        public OSDMap UnpackMesh(byte[] assetData)
+        public OSDMap? UnpackMesh(byte[] assetData)
         {
-            OSDMap meshData = new OSDMap();
+            OSDMap? meshData = new OSDMap();
             try
             {
                 using (MemoryStream data = new MemoryStream(assetData))

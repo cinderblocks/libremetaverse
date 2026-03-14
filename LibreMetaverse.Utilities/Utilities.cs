@@ -170,8 +170,8 @@ namespace OpenMetaverse.Utilities
         private readonly GridClient _client;
         private ulong _simHandle;
         private Vector3 _position = Vector3.Zero;
-        private CancellationTokenSource _checkCts;
-        private Task _checkTask;
+        private CancellationTokenSource? _checkCts;
+        private Task? _checkTask;
         private readonly int _timerFrequency;
 
         public ConnectionManager(GridClient client, int timerFrequency)
@@ -252,11 +252,15 @@ namespace OpenMetaverse.Utilities
                     {
                         try
                         {
-                            if (_simHandle != 0 && _client?.Network?.CurrentSim?.Handle != 0 && _client.Network.CurrentSim.Handle != _simHandle)
+                            if (_simHandle != 0)
                             {
-                                // Attempt to move to our target sim
-                                _client.Self.Teleport(_simHandle, _position);
-                             }
+                                var currentHandle = _client?.Network?.CurrentSim?.Handle ?? 0UL;
+                                if (currentHandle != 0 && currentHandle != _simHandle)
+                                {
+                                    // Attempt to move to our target sim
+                                    try { _client?.Self?.Teleport(_simHandle, _position); } catch { }
+                                }
+                            }
                         }
                         catch (Exception) { }
 
@@ -269,7 +273,7 @@ namespace OpenMetaverse.Utilities
 
         public void Stop()
         {
-            LibreMetaverse.DisposalHelper.SafeCancelAndDispose(_checkCts, (m, ex) => Logger.Debug(m, ex));
+            LibreMetaverse.DisposalHelper.SafeCancelAndDispose(_checkCts, (m, ex) => Logger.Debug(m, ex ?? new Exception("(no exception)")));
             _checkCts = null;
             _checkTask = null;
         }

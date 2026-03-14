@@ -824,7 +824,7 @@ namespace OpenMetaverse
         /// <param name="client">A reference to the <see cref="T:OpenMetaverse.GridClient"/> Class</param>
         public AgentManager(GridClient client)
         {
-            Client = client;
+            Client = client ?? throw new ArgumentNullException(nameof(client));
 
             Movement = new AgentMovement(Client);
             

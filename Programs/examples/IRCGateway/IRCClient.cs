@@ -5,25 +5,25 @@ using System.Threading;
 
 public class IRCClient
 {
-    private TcpClient ircClient;
+    private TcpClient? ircClient;
     private bool Shutdown = false;
-    private string ServerHost;
+    private string? ServerHost;
     private int ServerPort;
-    private string Nickname;
-    private string RealName;
-    private Thread LoopThread;
-    private Thread ConnectThread;
+    private string? Nickname;
+    private string? RealName;
+    private Thread? LoopThread;
+    private Thread? ConnectThread;
 
     public delegate void ConnectCallback();
-    public event ConnectCallback OnConnectFail;
-    public event ConnectCallback OnConnected;
-    public event ConnectCallback OnDisconnected;
+    public event ConnectCallback? OnConnectFail;
+    public event ConnectCallback? OnConnected;
+    public event ConnectCallback? OnDisconnected;
 
     public delegate void DataCallback(string data);
-    public event DataCallback OnData;
+    public event DataCallback? OnData;
 
     public delegate void MessageCallback(string target, string name, string address, string message);
-    public event MessageCallback OnMessage;
+    public event MessageCallback? OnMessage;
 
     /// <summary>
     /// Basic class for a threaded, sychronous TCP client with built-in functions and events for IRC connectivity
@@ -73,7 +73,8 @@ public class IRCClient
     /// <param name="channel"></param>
     public void JoinChannel(string channel)
     {
-        ircClient.Client.Send(Encoding.ASCII.GetBytes("JOIN " + channel + "\r\n"));
+        if (ircClient != null && ircClient.Connected)
+            ircClient.Client.Send(Encoding.ASCII.GetBytes("JOIN " + channel + "\r\n"));
     }
 
     /// <summary>
@@ -83,18 +84,17 @@ public class IRCClient
     /// <param name="message"></param>
     public void SendMessage(string target, string message)
     {
-        ircClient.Client.Send(Encoding.ASCII.GetBytes("PRIVMSG " + target + " :" + message + "\r\n"));
+        if (ircClient != null && ircClient.Connected)
+            ircClient.Client.Send(Encoding.ASCII.GetBytes("PRIVMSG " + target + " :" + message + "\r\n"));
     }
 
     private void ConnectThreadStart()
     {
-        ircClient.Connect(ServerHost, ServerPort);
+        ircClient!.Connect(ServerHost ?? string.Empty, ServerPort);
 
-        if (!ircClient.Connected)
+        if (ircClient == null || !ircClient.Connected)
         {
-            if (OnConnectFail != null)
-                OnConnectFail();
-
+            OnConnectFail?.Invoke();
             return;
         }
 
@@ -107,13 +107,14 @@ public class IRCClient
 
     private void LoopThreadStart()
     {
-        while (!Shutdown && ircClient.Connected)
+        while (!Shutdown && ircClient != null && ircClient.Connected)
         {
             byte[] buffer = new byte[4096];
-            ircClient.Client.Receive(buffer);
-            if (buffer.Length == 0) break;
+            var client = ircClient.Client;
+            int read = client.Receive(buffer);
+            if (read == 0) break;
 
-            string[] lines = Encoding.ASCII.GetString(buffer).Split(new string[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries);
+            string[] lines = Encoding.ASCII.GetString(buffer, 0, read).Split(new string[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries);
 
             for(int i=0; i<lines.Length - 1; i++)
             {
@@ -146,7 +147,7 @@ public class IRCClient
             }            
         }
 
-        if (!ircClient.Connected)
+        if (ircClient == null || !ircClient.Connected)
         {
             OnDisconnected?.Invoke();
         }

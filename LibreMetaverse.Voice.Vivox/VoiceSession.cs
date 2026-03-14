@@ -25,6 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -36,16 +37,16 @@ namespace LibreMetaverse.Voice.Vivox
     /// </summary>
     public class VoiceSession
     {
-        private static Dictionary<string, VoiceParticipant> _knownParticipants;
-        public string RegionName;
+        private readonly Dictionary<string, VoiceParticipant> _knownParticipants = new Dictionary<string, VoiceParticipant>();
+        public string RegionName = string.Empty;
         public bool IsSpatial { get; }
 
         public VoiceGateway Connector { get; }
         public string Handle { get; }
 
-        public event System.EventHandler OnParticipantAdded;
-        public event System.EventHandler OnParticipantUpdate;
-        public event System.EventHandler OnParticipantRemoved;
+        public event System.EventHandler? OnParticipantAdded;
+        public event System.EventHandler? OnParticipantUpdate;
+        public event System.EventHandler? OnParticipantRemoved;
 
         public VoiceSession(VoiceGateway conn, string handle)
         {
@@ -53,7 +54,6 @@ namespace LibreMetaverse.Voice.Vivox
             Connector = conn;
 
             IsSpatial = true;
-            _knownParticipants = new Dictionary<string, VoiceParticipant>();
         }
 
         /// <summary>
@@ -83,7 +83,7 @@ namespace LibreMetaverse.Voice.Vivox
                 p.SetProperties(isSpeaking, isMuted, energy);
 
                 // Inform interested parties.
-                OnParticipantUpdate?.Invoke(p, null);
+                OnParticipantUpdate?.Invoke(p, EventArgs.Empty);
             }
         }
 
@@ -112,7 +112,7 @@ namespace LibreMetaverse.Voice.Vivox
                */
 
                 // Inform interested parties.
-                OnParticipantAdded?.Invoke(p, null);
+                OnParticipantAdded?.Invoke(p, EventArgs.Empty);
             }
         }
 
@@ -127,7 +127,7 @@ namespace LibreMetaverse.Voice.Vivox
                 _knownParticipants.Remove(uri);
 
                 // Inform interested parties.
-                OnParticipantRemoved?.Invoke(p, null);
+                OnParticipantRemoved?.Invoke(p, EventArgs.Empty);
             }
         }
 
@@ -136,7 +136,7 @@ namespace LibreMetaverse.Voice.Vivox
         /// </summary>
         /// <param name="puri"></param>
         /// <returns></returns>
-        private VoiceParticipant FindParticipant(string puri)
+        private VoiceParticipant? FindParticipant(string puri)
         {
             return _knownParticipants.TryGetValue(puri, out var participant) ? participant : null;
         }

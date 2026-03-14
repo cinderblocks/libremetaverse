@@ -79,7 +79,7 @@ namespace TestClient.Commands.Inventory
 
             #endregion Notecard asset data
 
-            var createTcs = new TaskCompletionSource<InventoryItem>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var createTcs = new TaskCompletionSource<InventoryItem?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             Client.Inventory.RequestCreateItem(Client.Inventory.FindFolderForType(AssetType.Notecard),
                 filename, filename + " created by OpenMetaverse TestClient " + DateTime.Now, AssetType.Notecard,
@@ -93,7 +93,7 @@ namespace TestClient.Commands.Inventory
                 }
             );
 
-            InventoryItem createdItem;
+            InventoryItem? createdItem;
             try
             {
                 createdItem = await Task.WhenAny(createTcs.Task, Task.Delay(NOTECARD_CREATE_TIMEOUT)).ConfigureAwait(false) == createTcs.Task
@@ -136,9 +136,9 @@ namespace TestClient.Commands.Inventory
                 return "Notecard creation failed during upload";
         }
 
-        private async Task<InventoryItem> FetchItemAsync(UUID itemID)
+        private async Task<InventoryItem?> FetchItemAsync(UUID itemID)
         {
-            var tcs = new TaskCompletionSource<InventoryItem>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var tcs = new TaskCompletionSource<InventoryItem?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             EventHandler<ItemReceivedEventArgs> itemReceivedCallback = null;
             itemReceivedCallback = (sender, e) =>
@@ -168,7 +168,7 @@ namespace TestClient.Commands.Inventory
 
         private async Task<string> DownloadNotecardAsync(UUID itemID, UUID assetID)
         {
-            byte[] notecardData = null;
+            byte[]? notecardData = null;
             string error = "Timeout";
 
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);

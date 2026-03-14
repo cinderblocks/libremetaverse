@@ -45,20 +45,20 @@ namespace LibreMetaverse.Voice.Vivox
         public delegate void DaemonDisconnectedCallback();
         public delegate void DaemonCouldntConnectCallback();
 
-        public event DaemonRunningCallback OnDaemonRunning;
-        public event DaemonExitedCallback OnDaemonExited;
-        public event DaemonCouldntRunCallback OnDaemonCouldntRun;
-        public event DaemonConnectedCallback OnDaemonConnected;
-        public event DaemonDisconnectedCallback OnDaemonDisconnected;
-        public event DaemonCouldntConnectCallback OnDaemonCouldntConnect;
+        public event DaemonRunningCallback? OnDaemonRunning;
+        public event DaemonExitedCallback? OnDaemonExited;
+        public event DaemonCouldntRunCallback? OnDaemonCouldntRun;
+        public event DaemonConnectedCallback? OnDaemonConnected;
+        public event DaemonDisconnectedCallback? OnDaemonDisconnected;
+        public event DaemonCouldntConnectCallback? OnDaemonCouldntConnect;
 
         public bool DaemonIsRunning { get; private set; }
         public bool DaemonIsConnected { get; private set; }
         public int RequestId { get; private set; }
 
-        private Process _daemonProcess;
+        private Process? _daemonProcess;
         private readonly ManualResetEvent _daemonLoopSignal = new ManualResetEvent(false);
-        private TCPPipe _daemonPipe;
+        private TCPPipe? _daemonPipe;
 
         #region Daemon Management
 
@@ -221,7 +221,7 @@ namespace LibreMetaverse.Voice.Vivox
             return Request(action, null);
         }
 
-        public int Request(string action, string requestXML)
+        public int Request(string action, string? requestXML)
         {
             var returnId = RequestId;
             if (DaemonIsConnected)
@@ -245,7 +245,7 @@ namespace LibreMetaverse.Voice.Vivox
 #endif
                 try
                 {
-                    _daemonPipe.SendData(Encoding.ASCII.GetBytes(sb.ToString()));
+                    _daemonPipe!.SendData(Encoding.ASCII.GetBytes(sb.ToString()));
                 }
                 catch
                 {
@@ -275,10 +275,11 @@ namespace LibreMetaverse.Voice.Vivox
 
             if (line.Substring(0, 10) == "<Response ")
             {
-                VoiceResponse rsp = null;
+                VoiceResponse? rsp = null;
                 try
                 {
-                    rsp = (VoiceResponse)ResponseSerializer.Deserialize(new StringReader(line));
+                    var tmp = ResponseSerializer.Deserialize(new StringReader(line));
+                    rsp = tmp as VoiceResponse;
                 }
                 catch (Exception e)
                 {
@@ -296,34 +297,34 @@ namespace LibreMetaverse.Voice.Vivox
                         // so they each have a specific Event.
                         case "Connector.Create.1":
                             OnConnectorCreateResponse?.Invoke(
-                                rsp.InputXml.Request,
+                                rsp.InputXml?.Request?.RequestId ?? string.Empty,
                                 new VoiceConnectorEventArgs(
                                     rsp.ReturnCode,
-                                    rsp.Results.StatusCode,
-                                    rsp.Results.StatusString,
-                                    rsp.Results.VersionID,
-                                    rsp.Results.ConnectorHandle));
+                                    rsp.Results?.StatusCode ?? 0,
+                                    rsp.Results?.StatusString ?? string.Empty,
+                                    rsp.Results?.VersionID ?? string.Empty,
+                                    rsp.Results?.ConnectorHandle ?? string.Empty));
                             break;
                         case "Aux.GetCaptureDevices.1":
                             CaptureDevices = new List<string>();
 
-                            if (rsp.Results.CaptureDevices.Count == 0 || rsp.Results.CurrentCaptureDevice == null)
+                            if (rsp.Results == null || rsp.Results.CaptureDevices == null || rsp.Results.CaptureDevices.Count == 0 || rsp.Results.CurrentCaptureDevice == null)
                                 break;
 
                             foreach (var device in rsp.Results.CaptureDevices)
-                                CaptureDevices.Add(device.Device);
-                            _currentCaptureDevice = rsp.Results.CurrentCaptureDevice.Device;
+                                CaptureDevices.Add(device?.Device ?? string.Empty);
+                            _currentCaptureDevice = rsp.Results.CurrentCaptureDevice?.Device ?? string.Empty;
 
                             if (OnAuxGetCaptureDevicesResponse != null && rsp.Results.CaptureDevices.Count > 0)
                             {
                                 OnAuxGetCaptureDevicesResponse(
-                                    rsp.InputXml.Request,
+                                    rsp.InputXml?.Request?.RequestId ?? string.Empty,
                                     new VoiceDevicesEventArgs(
                                         ResponseType.GetCaptureDevices,
                                         rsp.ReturnCode,
-                                        rsp.Results.StatusCode,
-                                        rsp.Results.StatusString,
-                                        rsp.Results.CurrentCaptureDevice.Device,
+                                        rsp.Results?.StatusCode ?? 0,
+                                        rsp.Results?.StatusString ?? string.Empty,
+                                        rsp.Results?.CurrentCaptureDevice?.Device ?? string.Empty,
                                         CaptureDevices));
                             }
 
@@ -331,45 +332,45 @@ namespace LibreMetaverse.Voice.Vivox
                         case "Aux.GetRenderDevices.1":
                             PlaybackDevices = new List<string>();
 
-                            if (rsp.Results.RenderDevices.Count == 0 || rsp.Results.CurrentRenderDevice == null)
+                            if (rsp.Results == null || rsp.Results.RenderDevices == null || rsp.Results.RenderDevices.Count == 0 || rsp.Results.CurrentRenderDevice == null)
                                 break;
 
                             foreach (var device in rsp.Results.RenderDevices)
-                                PlaybackDevices.Add(device.Device);
+                                PlaybackDevices.Add(device?.Device ?? string.Empty);
 
 
-                            _currentPlaybackDevice = rsp.Results.CurrentRenderDevice.Device;
+                            _currentPlaybackDevice = rsp.Results.CurrentRenderDevice?.Device ?? string.Empty;
 
                             OnAuxGetRenderDevicesResponse?.Invoke(
-                                rsp.InputXml.Request,
+                                rsp.InputXml?.Request?.RequestId ?? string.Empty,
                                 new VoiceDevicesEventArgs(
                                     ResponseType.GetCaptureDevices,
                                     rsp.ReturnCode,
-                                    rsp.Results.StatusCode,
-                                    rsp.Results.StatusString,
-                                    rsp.Results.CurrentRenderDevice.Device,
+                                    rsp.Results?.StatusCode ?? 0,
+                                    rsp.Results?.StatusString ?? string.Empty,
+                                    rsp.Results?.CurrentRenderDevice?.Device ?? string.Empty,
                                     PlaybackDevices));
 
                             break;
 
                         case "Account.Login.1":
-                            OnAccountLoginResponse?.Invoke(rsp.InputXml.Request,
+                            OnAccountLoginResponse?.Invoke(rsp.InputXml?.Request?.RequestId ?? string.Empty,
                                 new VoiceAccountEventArgs(
                                     rsp.ReturnCode,
-                                    rsp.Results.StatusCode,
-                                    rsp.Results.StatusString,
-                                    rsp.Results.AccountHandle));
+                                    rsp.Results?.StatusCode ?? 0,
+                                    rsp.Results?.StatusString ?? string.Empty,
+                                    rsp.Results?.AccountHandle ?? string.Empty));
 
                             break;
 
                         case "Session.Create.1":
                             OnSessionCreateResponse?.Invoke(
-                                rsp.InputXml.Request,
+                                rsp.InputXml?.Request?.RequestId ?? string.Empty,
                                 new VoiceSessionEventArgs(
                                     rsp.ReturnCode,
-                                    rsp.Results.StatusCode,
-                                    rsp.Results.StatusString,
-                                    rsp.Results.SessionHandle));
+                                    rsp.Results?.StatusCode ?? 0,
+                                    rsp.Results?.StatusString ?? string.Empty,
+                                    rsp.Results?.SessionHandle ?? string.Empty));
 
                             break;
 
@@ -441,21 +442,22 @@ namespace LibreMetaverse.Voice.Vivox
                     // Send the Response Event for all the simple cases.
                     if (genericResponse != ResponseType.None && OnVoiceResponse != null)
                     {
-                        OnVoiceResponse(rsp.InputXml.Request,
+                        OnVoiceResponse?.Invoke(this,
                             new VoiceResponseEventArgs(
                                 genericResponse,
                                 rsp.ReturnCode,
-                                rsp.Results.StatusCode,
-                                rsp.Results.StatusString));
+                                rsp.Results?.StatusCode ?? 0,
+                                rsp.Results?.StatusString ?? string.Empty));
                     }
                 }
             }
             else if (line.Substring(0, 7) == "<Event ")
             {
-                VoiceEvent evt = null;
+                VoiceEvent? evt = null;
                 try
                 {
-                    evt = (VoiceEvent)EventSerializer.Deserialize(new StringReader(line));
+                    var tmp = EventSerializer.Deserialize(new StringReader(line));
+                    evt = tmp as VoiceEvent;
                 }
                 catch (Exception e)
                 {
@@ -468,167 +470,214 @@ namespace LibreMetaverse.Voice.Vivox
                     {
                         case "LoginStateChangeEvent":
                         case "AccountLoginStateChangeEvent":
-                            OnAccountLoginStateChangeEvent?.Invoke(this,
-                                new AccountLoginStateChangeEventArgs(
-                                    evt.AccountHandle,
-                                    int.Parse(evt.StatusCode),
-                                    evt.StatusString,
-                                    (LoginState)int.Parse(evt.State)));
+                            {
+                                int.TryParse(evt.StatusCode, out var statusCodeVal);
+                                int.TryParse(evt.State, out var stateVal);
+                                OnAccountLoginStateChangeEvent?.Invoke(this,
+                                    new AccountLoginStateChangeEventArgs(
+                                        evt.AccountHandle ?? string.Empty,
+                                        statusCodeVal,
+                                        evt.StatusString ?? string.Empty,
+                                        (LoginState)stateVal));
+                            }
                             break;
 
                         case "SessionNewEvent":
-                            OnSessionNewEvent?.Invoke(this,
-                                new NewSessionEventArgs(
-                                    evt.AccountHandle,
-                                    evt.SessionHandle,
-                                    evt.URI,
-                                    bool.Parse(evt.IsChannel),
-                                    evt.Name,
-                                    evt.AudioMedia));
+                            {
+                                var isChannelVal = bool.TryParse(evt.IsChannel, out var chVal) && chVal;
+                                OnSessionNewEvent?.Invoke(this,
+                                    new NewSessionEventArgs(
+                                        evt.AccountHandle ?? string.Empty,
+                                        evt.SessionHandle ?? string.Empty,
+                                        evt.URI ?? string.Empty,
+                                        isChannelVal,
+                                        evt.Name ?? string.Empty,
+                                        evt.AudioMedia ?? string.Empty));
+                            }
 
                             break;
 
                         case "SessionStateChangeEvent":
-                            OnSessionStateChangeEvent?.Invoke(this,
-                                new SessionStateChangeEventArgs(
-                                    evt.SessionHandle,
-                                    int.Parse(evt.StatusCode),
-                                    evt.StatusString,
-                                    (SessionState)int.Parse(evt.State),
-                                    evt.URI,
-                                    bool.Parse(evt.IsChannel),
-                                    evt.ChannelName));
+                            {
+                                int.TryParse(evt.StatusCode, out var statusCodeVal);
+                                int.TryParse(evt.State, out var stateVal);
+                                var isChannelVal = bool.TryParse(evt.IsChannel, out var isCh) && isCh;
+                                OnSessionStateChangeEvent?.Invoke(this,
+                                    new SessionStateChangeEventArgs(
+                                        evt.SessionHandle ?? string.Empty,
+                                        statusCodeVal,
+                                        evt.StatusString ?? string.Empty,
+                                        (SessionState)stateVal,
+                                        evt.URI ?? string.Empty,
+                                        isChannelVal,
+                                        evt.ChannelName ?? string.Empty));
+                            }
 
                             break;
 
                         case "ParticipantAddedEvent":
-                            Logger.Debug("Add participant " + evt.ParticipantUri);
-                            OnSessionParticipantAddedEvent?.Invoke(this,
-                                new ParticipantAddedEventArgs(
-                                    evt.SessionGroupHandle,
-                                    evt.SessionHandle,
-                                    evt.ParticipantUri,
-                                    evt.AccountName,
-                                    evt.DisplayName,
-                                    (ParticipantType)int.Parse(evt.ParticipantType),
-                                    evt.Application));
+                            Logger.Debug("Add participant " + (evt.ParticipantUri ?? string.Empty));
+                            {
+                                int.TryParse(evt.ParticipantType, out var pTypeVal);
+                                OnSessionParticipantAddedEvent?.Invoke(this,
+                                    new ParticipantAddedEventArgs(
+                                        evt.SessionGroupHandle ?? string.Empty,
+                                        evt.SessionHandle ?? string.Empty,
+                                        evt.ParticipantUri ?? string.Empty,
+                                        evt.AccountName ?? string.Empty,
+                                        evt.DisplayName ?? string.Empty,
+                                        (ParticipantType)pTypeVal,
+                                        evt.Application ?? string.Empty));
+                            }
 
                             break;
 
                         case "ParticipantRemovedEvent":
                             OnSessionParticipantRemovedEvent?.Invoke(this,
                                 new ParticipantRemovedEventArgs(
-                                    evt.SessionGroupHandle,
-                                    evt.SessionHandle,
-                                    evt.ParticipantUri,
-                                    evt.AccountName,
-                                    evt.Reason));
+                                    evt.SessionGroupHandle ?? string.Empty,
+                                    evt.SessionHandle ?? string.Empty,
+                                    evt.ParticipantUri ?? string.Empty,
+                                    evt.AccountName ?? string.Empty,
+                                    evt.Reason ?? string.Empty));
 
                             break;
 
                         case "ParticipantStateChangeEvent":
                             // Useful in person-to-person calls
-                            OnSessionParticipantStateChangeEvent?.Invoke(this,
-                                new ParticipantStateChangeEventArgs(
-                                    evt.SessionHandle,
-                                    int.Parse(evt.StatusCode),
-                                    evt.StatusString,
-                                    (ParticipantState)int.Parse(evt.State), // Ringing, Connected, etc
-                                    evt.ParticipantUri,
-                                    evt.AccountName,
-                                    evt.DisplayName,
-                                    (ParticipantType)int.Parse(evt.ParticipantType)));
+                            {
+                                int.TryParse(evt.StatusCode, out var statusCodeVal);
+                                int.TryParse(evt.State, out var stateVal);
+                                int.TryParse(evt.ParticipantType, out var participantTypeVal);
+                                OnSessionParticipantStateChangeEvent?.Invoke(this,
+                                    new ParticipantStateChangeEventArgs(
+                                        evt.SessionHandle ?? string.Empty,
+                                        statusCodeVal,
+                                        evt.StatusString ?? string.Empty,
+                                        (ParticipantState)stateVal, // Ringing, Connected, etc
+                                        evt.ParticipantUri ?? string.Empty,
+                                        evt.AccountName ?? string.Empty,
+                                        evt.DisplayName ?? string.Empty,
+                                        (ParticipantType)participantTypeVal));
+                            }
 
                             break;
 
                         case "ParticipantPropertiesEvent":
-                            OnSessionParticipantPropertiesEvent?.Invoke(this,
-                                new ParticipantPropertiesEventArgs(
-                                    evt.SessionHandle,
-                                    evt.ParticipantUri,
-                                    bool.Parse(evt.IsLocallyMuted),
-                                    bool.Parse(evt.IsModeratorMuted),
-                                    bool.Parse(evt.IsSpeaking),
-                                    int.Parse(evt.Volume),
-                                    float.Parse(evt.Energy)));
+                            {
+                                var isLocallyMuted = bool.TryParse(evt.IsLocallyMuted, out var lm) && lm;
+                                var isModeratorMuted = bool.TryParse(evt.IsModeratorMuted, out var mm) && mm;
+                                var isSpeaking = bool.TryParse(evt.IsSpeaking, out var spk) && spk;
+                                var volume = int.TryParse(evt.Volume, out var vol) ? vol : 0;
+                                var energy = float.TryParse(evt.Energy, out var en) ? en : 0.0f;
+                                OnSessionParticipantPropertiesEvent?.Invoke(this,
+                                    new ParticipantPropertiesEventArgs(
+                                        evt.SessionHandle ?? string.Empty,
+                                        evt.ParticipantUri ?? string.Empty,
+                                        isLocallyMuted,
+                                        isModeratorMuted,
+                                        isSpeaking,
+                                        volume,
+                                        energy));
+                            }
 
                             break;
 
                         case "ParticipantUpdatedEvent":
-                            OnSessionParticipantUpdatedEvent?.Invoke(this,
-                                new ParticipantUpdatedEventArgs(
-                                    evt.SessionHandle,
-                                    evt.ParticipantUri,
-                                    bool.Parse(evt.IsModeratorMuted),
-                                    bool.Parse(evt.IsSpeaking),
-                                    int.Parse(evt.Volume),
-                                    float.Parse(evt.Energy)));
+                            {
+                                var isModeratorMuted2 = bool.TryParse(evt.IsModeratorMuted, out var mm2) && mm2;
+                                var isSpeaking2 = bool.TryParse(evt.IsSpeaking, out var spk2) && spk2;
+                                var volume2 = int.TryParse(evt.Volume, out var vol2) ? vol2 : 0;
+                                var energy2 = float.TryParse(evt.Energy, out var en2) ? en2 : 0.0f;
+                                OnSessionParticipantUpdatedEvent?.Invoke(this,
+                                    new ParticipantUpdatedEventArgs(
+                                        evt.SessionHandle ?? string.Empty,
+                                        evt.ParticipantUri ?? string.Empty,
+                                        isModeratorMuted2,
+                                        isSpeaking2,
+                                        volume2,
+                                        energy2));
+                            }
 
                             break;
 
                         case "SessionGroupAddedEvent":
                             OnSessionGroupAddedEvent?.Invoke(this,
                                 new SessionGroupAddedEventArgs(
-                                    evt.AccountHandle,
-                                    evt.SessionGroupHandle,
-                                    evt.Type));
+                                    evt.AccountHandle ?? string.Empty,
+                                    evt.SessionGroupHandle ?? string.Empty,
+                                    evt.Type ?? string.Empty));
 
                             break;
 
                         case "SessionAddedEvent":
-                            OnSessionAddedEvent?.Invoke(this,
-                                new SessionAddedEventArgs(
-                                    evt.SessionGroupHandle,
-                                    evt.SessionHandle,
-                                    evt.Uri,
-                                    bool.Parse(evt.IsChannel),
-                                    bool.Parse(evt.Incoming)));
+                            {
+                                var isChannel = bool.TryParse(evt.IsChannel, out var ch) && ch;
+                                var incoming = bool.TryParse(evt.Incoming, out var inc) && inc;
+                                OnSessionAddedEvent?.Invoke(this,
+                                    new SessionAddedEventArgs(
+                                        evt.SessionGroupHandle ?? string.Empty,
+                                        evt.SessionHandle ?? string.Empty,
+                                        evt.Uri ?? string.Empty,
+                                        isChannel,
+                                        incoming));
+                            }
 
                             break;
 
                         case "SessionRemovedEvent":
                             OnSessionRemovedEvent?.Invoke(this,
                                 new SessionRemovedEventArgs(
-                                    evt.SessionGroupHandle,
-                                    evt.SessionHandle,
-                                    evt.Uri));
+                                    evt.SessionGroupHandle ?? string.Empty,
+                                    evt.SessionHandle ?? string.Empty,
+                                    evt.Uri ?? string.Empty));
 
                             break;
 
                         case "SessionUpdatedEvent":
-                            if (OnSessionRemovedEvent != null)
+                            // Use null-conditional invoke to avoid dereferencing a possibly-null event
+                            // and to match the nullable event declarations.
+                            if (OnSessionUpdatedEvent != null)
                             {
-                                OnSessionUpdatedEvent(this,
+                                int.TryParse(evt.IsMuted, out var isMutedVal);
+                                int.TryParse(evt.Volume, out var volumeVal);
+                                int.TryParse(evt.TransmitEnabled, out var transmitVal);
+                                int.TryParse(evt.IsFocused, out var focusedVal);
+
+                                OnSessionUpdatedEvent?.Invoke(this,
                                     new SessionUpdatedEventArgs(
-                                        evt.SessionGroupHandle,
-                                        evt.SessionHandle,
-                                        evt.Uri,
-                                        int.Parse(evt.IsMuted) != 0,
-                                        int.Parse(evt.Volume),
-                                        int.Parse(evt.TransmitEnabled) != 0,
-                                        +int.Parse(evt.IsFocused) != 0));
+                                        evt.SessionGroupHandle ?? string.Empty,
+                                        evt.SessionHandle ?? string.Empty,
+                                        evt.Uri ?? string.Empty,
+                                        isMutedVal != 0,
+                                        volumeVal,
+                                        transmitVal != 0,
+                                        focusedVal != 0));
                             }
 
                             break;
 
                         case "AuxAudioPropertiesEvent":
-                            OnAuxAudioPropertiesEvent?.Invoke(this,
-                                new AudioPropertiesEventArgs(
-                                    bool.Parse(evt.MicIsActive),
-                                    float.Parse(evt.MicEnergy),
-                                    int.Parse(evt.MicVolume),
-                                    int.Parse(evt.SpeakerVolume)));
+                            {
+                                var micIsActive = bool.TryParse(evt.MicIsActive, out var micActive) && micActive;
+                                var micEnergy = float.TryParse(evt.MicEnergy, out var micE) ? micE : 0.0f;
+                                var micVolume = int.TryParse(evt.MicVolume, out var micV) ? micV : 0;
+                                var speakerVol = int.TryParse(evt.SpeakerVolume, out var spV) ? spV : 0;
+                                OnAuxAudioPropertiesEvent?.Invoke(this,
+                                    new AudioPropertiesEventArgs(micIsActive, micEnergy, micVolume, speakerVol));
+                            }
 
                             break;
 
                         case "SessionMediaEvent":
-                            OnSessionMediaEvent?.Invoke(this,
-                                new SessionMediaEventArgs(
-                                    evt.SessionHandle,
-                                    bool.Parse(evt.HasText),
-                                    bool.Parse(evt.HasAudio),
-                                    bool.Parse(evt.HasVideo),
-                                    bool.Parse(evt.Terminated)));
+                            {
+                                var hasText = bool.TryParse(evt.HasText, out var t) && t;
+                                var hasAudio = bool.TryParse(evt.HasAudio, out var a) && a;
+                                var hasVideo = bool.TryParse(evt.HasVideo, out var v) && v;
+                                var terminated = bool.TryParse(evt.Terminated, out var term) && term;
+                                OnSessionMediaEvent?.Invoke(this,
+                                    new SessionMediaEventArgs(evt.SessionHandle ?? string.Empty, hasText, hasAudio, hasVideo, terminated));
+                            }
 
                             break;
 

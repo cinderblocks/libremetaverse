@@ -160,8 +160,6 @@ namespace LibreMetaverse.LslTools
 
         private static object StringSerialise(object o, Serialiser s)
         {
-            if (s == null)
-                return "";
             var encoding = new UnicodeEncoding();
             if (s.Encode)
             {
@@ -181,8 +179,6 @@ namespace LibreMetaverse.LslTools
 
         private static object HashtableSerialise(object o, Serialiser s)
         {
-            if (s == null)
-                return new Hashtable();
             Hashtable hashtable = (Hashtable)o;
             if (s.Encode)
             {
@@ -309,7 +305,9 @@ namespace LibreMetaverse.LslTools
                     throw new LslToolsException("unknown type " + type.FullName);
                 SerType t = (SerType)tp;
                 _Write(t);
-                object obj = ((ObjectSerialiser)srs[t])(o, this);
+                var os = srs[t] as ObjectSerialiser;
+                if (os == null) throw new LslToolsException("unknown serializer for " + t);
+                object obj = os(o, this);
             }
         }
 
@@ -324,7 +322,7 @@ namespace LibreMetaverse.LslTools
                     return obs[num2];
                 num1 = _Read();
             }
-            ObjectSerialiser sr = (ObjectSerialiser)srs[(SerType)num1];
+            var sr = srs[(SerType)num1] as ObjectSerialiser;
             if (sr == null)
                 throw new LslToolsException("unknown type " + num1);
             if (num2 <= 0)

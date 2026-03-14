@@ -76,7 +76,7 @@ namespace WebRtcTest
             }
         }
 
-        private static void WriteMiniDump(string tag, Exception ex)
+        private static void WriteMiniDump(string tag, Exception? ex)
         {
             try
             {

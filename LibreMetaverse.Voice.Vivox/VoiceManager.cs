@@ -89,32 +89,32 @@ namespace LibreMetaverse.Voice.Vivox
         public delegate void SessionCreatedCallback(int cookie, int statusCode, string statusString, string sessionHandle);
         public delegate void DevicesCallback(int cookie, int statusCode, string statusString, string currentDevice);
         public delegate void ProvisionAccountCallback(string username, string password);
-        public delegate void ParcelVoiceInfoCallback(string regionName, int localId, string channelUri);
+        public delegate void ParcelVoiceInfoCallback(string regionName, int localId, string? channelUri);
 
-        public event LoginStateChangeCallback OnLoginStateChange;
-        public event NewSessionCallback OnNewSession;
-        public event SessionStateChangeCallback OnSessionStateChange;
-        public event ParticipantStateChangeCallback OnParticipantStateChange;
-        public event ParticipantPropertiesCallback OnParticipantProperties;
-        public event AuxAudioPropertiesCallback OnAuxAudioProperties;
-        public event ConnectorCreatedCallback OnConnectorCreated;
-        public event LoginCallback OnLogin;
-        public event SessionCreatedCallback OnSessionCreated;
-        public event BasicActionCallback OnSessionConnected;
-        public event BasicActionCallback OnAccountLogout;
-        public event BasicActionCallback OnConnectorInitiateShutdown;
-        public event BasicActionCallback OnAccountChannelGetList;
-        public event BasicActionCallback OnSessionTerminated;
-        public event DevicesCallback OnCaptureDevices;
-        public event DevicesCallback OnRenderDevices;
-        public event ProvisionAccountCallback OnProvisionAccount;
-        public event ParcelVoiceInfoCallback OnParcelVoiceInfo;
+        public event LoginStateChangeCallback? OnLoginStateChange;
+        public event NewSessionCallback? OnNewSession;
+        public event SessionStateChangeCallback? OnSessionStateChange;
+        public event ParticipantStateChangeCallback? OnParticipantStateChange;
+        public event ParticipantPropertiesCallback? OnParticipantProperties;
+        public event AuxAudioPropertiesCallback? OnAuxAudioProperties;
+        public event ConnectorCreatedCallback? OnConnectorCreated;
+        public event LoginCallback? OnLogin;
+        public event SessionCreatedCallback? OnSessionCreated;
+        public event BasicActionCallback? OnSessionConnected;
+        public event BasicActionCallback? OnAccountLogout;
+        public event BasicActionCallback? OnConnectorInitiateShutdown;
+        public event BasicActionCallback? OnAccountChannelGetList;
+        public event BasicActionCallback? OnSessionTerminated;
+        public event DevicesCallback? OnCaptureDevices;
+        public event DevicesCallback? OnRenderDevices;
+        public event ProvisionAccountCallback? OnProvisionAccount;
+        public event ParcelVoiceInfoCallback? OnParcelVoiceInfo;
 
         public string VoiceServer = VOICE_RELEASE_SERVER;
         
         private readonly GridClient _client;
         private bool _enabled;
-        private TCPPipe _daemonPipe;
+        private TCPPipe? _daemonPipe;
         protected VoiceStatus Status;
         private int _commandCookie;
         private string _tuningSoundFile = string.Empty;
@@ -240,7 +240,7 @@ namespace LibreMetaverse.Voice.Vivox
 
         public int RequestCaptureDevices()
         {
-            if (_daemonPipe.Connected)
+            if (_daemonPipe != null && _daemonPipe.Connected)
             {
                 _daemonPipe.SendData(Encoding.ASCII.GetBytes(
                     $"<Request requestId=\"{_commandCookie++}\" action=\"Aux.GetCaptureDevices.1\"></Request>{REQUEST_TERMINATOR}"));
@@ -253,7 +253,7 @@ namespace LibreMetaverse.Voice.Vivox
 
         public int RequestRenderDevices()
         {
-            if (_daemonPipe.Connected)
+            if (_daemonPipe != null && _daemonPipe.Connected)
             {
                 _daemonPipe.SendData(Encoding.ASCII.GetBytes(
                     $"<Request requestId=\"{_commandCookie++}\" action=\"Aux.GetRenderDevices.1\"></Request>{REQUEST_TERMINATOR}"));
@@ -271,7 +271,7 @@ namespace LibreMetaverse.Voice.Vivox
 
         public int RequestCreateConnector(string voiceServer)
         {
-            if (_daemonPipe.Connected)
+            if (_daemonPipe != null && _daemonPipe.Connected)
             {
                 VoiceServer = voiceServer;
 
@@ -292,7 +292,7 @@ namespace LibreMetaverse.Voice.Vivox
                 request.Append("</Request>");
                 request.Append(REQUEST_TERMINATOR);
 
-                _daemonPipe.SendData(Encoding.ASCII.GetBytes(request.ToString()));
+                _daemonPipe!.SendData(Encoding.ASCII.GetBytes(request.ToString()));
 
                 return _commandCookie - 1;
             }
@@ -303,7 +303,7 @@ namespace LibreMetaverse.Voice.Vivox
             }
         }
 
-        private bool RequestVoiceInternal(string me, Func<HttpResponseMessage, byte[], Task> callbackAsync, string capsName)
+        private bool RequestVoiceInternal(string me, Func<HttpResponseMessage?, byte[]?, Task> callbackAsync, string capsName)
         {
             if (_enabled && _client.Network.Connected)
             {
@@ -367,7 +367,7 @@ namespace LibreMetaverse.Voice.Vivox
             return RequestVoiceInternal("RequestParcelVoiceInfo", ParcelVoiceInfoResponse, "ParcelVoiceInfoRequest");
         }
 
-        private async Task ProvisionCapsResponse(HttpResponseMessage httpResponse, byte[] responseData)
+        private async Task ProvisionCapsResponse(HttpResponseMessage? httpResponse, byte[]? responseData)
         {
             if (httpResponse == null || responseData == null)
             {
@@ -390,7 +390,7 @@ namespace LibreMetaverse.Voice.Vivox
             }
         }
 
-        private async Task ParcelVoiceInfoResponse(HttpResponseMessage httpResponse, byte[] responseData)
+        private async Task ParcelVoiceInfoResponse(HttpResponseMessage? httpResponse, byte[]? responseData)
         {
             if (httpResponse == null || responseData == null)
             {
@@ -406,10 +406,9 @@ namespace LibreMetaverse.Voice.Vivox
                 var regionName = respMap["region_name"].AsString();
                 var localId = respMap["parcel_local_id"].AsInteger();
 
-                string channelUri = null;
-                if (respMap["voice_credentials"] is OSDMap)
+                string? channelUri = null;
+                if (respMap["voice_credentials"] is OSDMap creds)
                 {
-                    var creds = (OSDMap)respMap["voice_credentials"];
                     channelUri = creds["channel_uri"].AsString();
                 }
 
@@ -423,7 +422,7 @@ namespace LibreMetaverse.Voice.Vivox
 
         public int RequestLogin(string accountName, string password, string connHandle)
         {
-            if (_daemonPipe.Connected)
+            if (_daemonPipe != null && _daemonPipe.Connected)
             {
                 var request = new StringBuilder();
                 request.Append($"<Request requestId=\"{_commandCookie++}\" action=\"Account.Login.1\">");
@@ -437,7 +436,7 @@ namespace LibreMetaverse.Voice.Vivox
                 request.Append("</Request>");
                 request.Append(REQUEST_TERMINATOR);
 
-                _daemonPipe.SendData(Encoding.ASCII.GetBytes(request.ToString()));
+                _daemonPipe!.SendData(Encoding.ASCII.GetBytes(request.ToString()));
 
                 return _commandCookie - 1;
             }
@@ -450,9 +449,9 @@ namespace LibreMetaverse.Voice.Vivox
 
         public int RequestSetRenderDevice(string deviceName)
         {
-            if (_daemonPipe.Connected)
+            if (_daemonPipe != null && _daemonPipe.Connected)
             {
-                _daemonPipe.SendData(Encoding.ASCII.GetBytes(
+                _daemonPipe!.SendData(Encoding.ASCII.GetBytes(
                     $"<Request requestId=\"{_commandCookie}\" action=\"Aux.SetRenderDevice.1\"><RenderDeviceSpecifier>{deviceName}</RenderDeviceSpecifier></Request>{REQUEST_TERMINATOR}"));
 
                 return _commandCookie - 1;
@@ -466,9 +465,9 @@ namespace LibreMetaverse.Voice.Vivox
 
         public int RequestStartTuningMode(int duration)
         {
-            if (_daemonPipe.Connected)
+            if (_daemonPipe != null && _daemonPipe.Connected)
             {
-                _daemonPipe.SendData(Encoding.ASCII.GetBytes(
+                _daemonPipe!.SendData(Encoding.ASCII.GetBytes(
                     $"<Request requestId=\"{_commandCookie}\" action=\"Aux.CaptureAudioStart.1\"><Duration>{duration}</Duration></Request>{REQUEST_TERMINATOR}"));
 
                 return _commandCookie - 1;
@@ -482,9 +481,9 @@ namespace LibreMetaverse.Voice.Vivox
 
         public int RequestStopTuningMode()
         {
-            if (_daemonPipe.Connected)
+            if (_daemonPipe != null && _daemonPipe.Connected)
             {
-                _daemonPipe.SendData(Encoding.ASCII.GetBytes(
+                _daemonPipe!.SendData(Encoding.ASCII.GetBytes(
                     $"<Request requestId=\"{_commandCookie}\" action=\"Aux.CaptureAudioStop.1\"></Request>{REQUEST_TERMINATOR}"));
 
                 return _commandCookie - 1;
@@ -501,9 +500,9 @@ namespace LibreMetaverse.Voice.Vivox
             if (volume < 0 || volume > 100)
                 throw new ArgumentException("volume must be between 0 and 100", nameof(volume));
 
-            if (_daemonPipe.Connected)
+            if (_daemonPipe != null && _daemonPipe.Connected)
             {
-                _daemonPipe.SendData(Encoding.ASCII.GetBytes(
+                _daemonPipe!.SendData(Encoding.ASCII.GetBytes(
                     $"<Request requestId=\"{_commandCookie}\" action=\"Aux.SetSpeakerLevel.1\"><Level>{volume}</Level></Request>{REQUEST_TERMINATOR}"));
 
                 return _commandCookie - 1;
@@ -520,9 +519,9 @@ namespace LibreMetaverse.Voice.Vivox
             if (volume < 0 || volume > 100)
                 throw new ArgumentException("volume must be between 0 and 100", nameof(volume));
 
-            if (_daemonPipe.Connected)
+            if (_daemonPipe != null && _daemonPipe.Connected)
             {
-                _daemonPipe.SendData(Encoding.ASCII.GetBytes(
+                _daemonPipe!.SendData(Encoding.ASCII.GetBytes(
                     $"<Request requestId=\"{_commandCookie}\" action=\"Aux.SetMicLevel.1\"><Level>{volume}</Level></Request>{REQUEST_TERMINATOR}"));
 
                 return _commandCookie - 1;
@@ -541,11 +540,11 @@ namespace LibreMetaverse.Voice.Vivox
         /// <param name="loop"></param>
         public int RequestRenderAudioStart(string fileName, bool loop)
         {
-            if (_daemonPipe.Connected)
+            if (_daemonPipe != null && _daemonPipe.Connected)
             {
                 _tuningSoundFile = fileName;
 
-                _daemonPipe.SendData(Encoding.ASCII.GetBytes(
+                _daemonPipe!.SendData(Encoding.ASCII.GetBytes(
                     $"<Request requestId=\"{_commandCookie++}\" action=\"Aux.RenderAudioStart.1\"><SoundFilePath>{_tuningSoundFile}</SoundFilePath><Loop>{(loop ? "1" : "0")}</Loop></Request>{REQUEST_TERMINATOR}"));
 
                 return _commandCookie - 1;
@@ -559,9 +558,9 @@ namespace LibreMetaverse.Voice.Vivox
 
         public int RequestRenderAudioStop()
         {
-            if (_daemonPipe.Connected)
+            if (_daemonPipe != null && _daemonPipe.Connected)
             {
-                _daemonPipe.SendData(Encoding.ASCII.GetBytes(
+                _daemonPipe!.SendData(Encoding.ASCII.GetBytes(
                     $"<Request requestId=\"{_commandCookie++}\" action=\"Aux.RenderAudioStop.1\"><SoundFilePath>{_tuningSoundFile}</SoundFilePath></Request>{REQUEST_TERMINATOR}"));
 
                 return _commandCookie - 1;
@@ -876,27 +875,27 @@ namespace LibreMetaverse.Voice.Vivox
             if (disposing)
             {
                 // Unregister network event callback
-                DisposalHelper.SafeAction(() => _client?.Network?.UnregisterEventCallback("RequiredVoiceVersion", RequiredVoiceVersionEventHandler), "Unregister RequiredVoiceVersion", (m, e) => Logger.Warn(m + ": " + e?.Message, e, _client));
+                DisposalHelper.SafeAction(() => _client?.Network?.UnregisterEventCallback("RequiredVoiceVersion", RequiredVoiceVersionEventHandler), "Unregister RequiredVoiceVersion", (m, e) => Logger.Warn(m + ": " + (e?.Message ?? "(no exception)"), e ?? new Exception("(no exception)"), _client));
 
                 // Unregister blocking callbacks
-                DisposalHelper.SafeAction(() => OnCaptureDevices -= VoiceManager_OnCaptureDevices, "Unsubscribe OnCaptureDevices", (m, e) => Logger.Warn(m + ": " + e?.Message, e, _client));
-                DisposalHelper.SafeAction(() => OnRenderDevices -= VoiceManager_OnRenderDevices, "Unsubscribe OnRenderDevices", (m, e) => Logger.Warn(m + ": " + e?.Message, e, _client));
-                DisposalHelper.SafeAction(() => OnConnectorCreated -= VoiceManager_OnConnectorCreated, "Unsubscribe OnConnectorCreated", (m, e) => Logger.Warn(m + ": " + e?.Message, e, _client));
-                DisposalHelper.SafeAction(() => OnLogin -= VoiceManager_OnLogin, "Unsubscribe OnLogin", (m, e) => Logger.Warn(m + ": " + e?.Message, e, _client));
+                DisposalHelper.SafeAction(() => OnCaptureDevices -= VoiceManager_OnCaptureDevices, "Unsubscribe OnCaptureDevices", (m, e) => Logger.Warn(m + ": " + (e?.Message ?? "(no exception)"), e ?? new Exception("(no exception)"), _client));
+                DisposalHelper.SafeAction(() => OnRenderDevices -= VoiceManager_OnRenderDevices, "Unsubscribe OnRenderDevices", (m, e) => Logger.Warn(m + ": " + (e?.Message ?? "(no exception)"), e ?? new Exception("(no exception)"), _client));
+                DisposalHelper.SafeAction(() => OnConnectorCreated -= VoiceManager_OnConnectorCreated, "Unsubscribe OnConnectorCreated", (m, e) => Logger.Warn(m + ": " + (e?.Message ?? "(no exception)"), e ?? new Exception("(no exception)"), _client));
+                DisposalHelper.SafeAction(() => OnLogin -= VoiceManager_OnLogin, "Unsubscribe OnLogin", (m, e) => Logger.Warn(m + ": " + (e?.Message ?? "(no exception)"), e ?? new Exception("(no exception)"), _client));
 
                 // Detach daemon pipe handlers and dispose pipe if present
                 if (_daemonPipe != null)
                 {
-                    DisposalHelper.SafeAction(() => _daemonPipe.OnDisconnected -= _DaemonPipe_OnDisconnected, "Detach daemon OnDisconnected", (m, e) => Logger.Debug(m, e));
-                    DisposalHelper.SafeAction(() => _daemonPipe.OnReceiveLine -= _DaemonPipe_OnReceiveLine, "Detach daemon OnReceiveLine", (m, e) => Logger.Debug(m, e));
-                    DisposalHelper.SafeAction(() => _daemonPipe.Disconnect(), "Disconnect daemon pipe", (m, e) => Logger.Debug(m, e));
+                    DisposalHelper.SafeAction(() => _daemonPipe.OnDisconnected -= _DaemonPipe_OnDisconnected, "Detach daemon OnDisconnected", (m, e) => Logger.Debug(m, e ?? new Exception("(no exception)")));
+                    DisposalHelper.SafeAction(() => _daemonPipe.OnReceiveLine -= _DaemonPipe_OnReceiveLine, "Detach daemon OnReceiveLine", (m, e) => Logger.Debug(m, e ?? new Exception("(no exception)")));
+                    DisposalHelper.SafeAction(() => _daemonPipe.Disconnect(), "Disconnect daemon pipe", (m, e) => Logger.Debug(m, e ?? new Exception("(no exception)")));
                     _daemonPipe = null;
                 }
 
                 // Clear internal collections
-                DisposalHelper.SafeAction(() => _channelMap.Clear(), "Clear channel map", (m, e) => Logger.Debug(m, e));
-                DisposalHelper.SafeAction(() => _captureDevices.Clear(), "Clear capture devices", (m, e) => Logger.Debug(m, e));
-                DisposalHelper.SafeAction(() => _renderDevices.Clear(), "Clear render devices", (m, e) => Logger.Debug(m, e));
+                DisposalHelper.SafeAction(() => _channelMap.Clear(), "Clear channel map", (m, e) => Logger.Debug(m, e ?? new Exception("(no exception)")));
+                DisposalHelper.SafeAction(() => _captureDevices.Clear(), "Clear capture devices", (m, e) => Logger.Debug(m, e ?? new Exception("(no exception)")));
+                DisposalHelper.SafeAction(() => _renderDevices.Clear(), "Clear render devices", (m, e) => Logger.Debug(m, e ?? new Exception("(no exception)")));
 
                 _enabled = false;
             }

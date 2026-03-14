@@ -16,19 +16,22 @@ namespace TestClient.Commands.Inventory
 		{
 		    if (args.Length == 1)
 		    {
-		        try
-		        {
-		            string treeName = args[0].Trim(new[] { ' ' });
-		            Tree tree = (Tree)Enum.Parse(typeof(Tree), treeName);
+            try
+            {
+                string treeName = args[0].Trim(new[] { ' ' });
+                Tree tree = (Tree)Enum.Parse(typeof(Tree), treeName);
 
-		            Vector3 treePosition = Client.Self.SimPosition;
-		            treePosition.Z += 3.0f;
+                Vector3 treePosition = Client.Self.SimPosition;
+                treePosition.Z += 3.0f;
 
-		            Client.Objects.AddTree(Client.Network.CurrentSim, new Vector3(0.5f, 0.5f, 0.5f),
-		                Quaternion.Identity, treePosition, tree, Client.GroupID, false);
+                var currentSim = Client.Network?.CurrentSim;
+                if (currentSim == null) return "No current simulator available";
 
-		            return "Attempted to rez a " + treeName + " tree";
-		        }
+                Client.Objects.AddTree(currentSim, new Vector3(0.5f, 0.5f, 0.5f),
+                    Quaternion.Identity, treePosition, tree, Client.GroupID, false);
+
+                return "Attempted to rez a " + treeName + " tree";
+            }
 		        catch (Exception)
 		        {
 		            return "Type !tree for usage";

@@ -20,22 +20,22 @@ namespace LibreMetaverse.Tests
         public int AttachCallCount { get; private set; }
         public int DetachCallCount { get; private set; }
         public int ReportChangeCallCount { get; private set; }
-        public List<InventoryItem> LastAddedItems { get; private set; }
-        public List<InventoryItem> LastRemovedItems { get; private set; }
+        public List<InventoryItem>? LastAddedItems { get; private set; }
+        public List<InventoryItem>? LastRemovedItems { get; private set; }
 
-        public bool CanAttach(InventoryItem item)
+        public bool CanAttach(InventoryItem? item)
         {
             AttachCallCount++;
             return AllowAttach;
         }
 
-        public bool CanDetach(InventoryItem item)
+        public bool CanDetach(InventoryItem? item)
         {
             DetachCallCount++;
             return AllowDetach;
         }
 
-        public Task ReportItemChange(List<InventoryItem> addedItems, List<InventoryItem> removedItems, CancellationToken cancellationToken = default)
+        public Task ReportItemChange(List<InventoryItem>? addedItems, List<InventoryItem>? removedItems, CancellationToken cancellationToken = default)
         {
             ReportChangeCallCount++;
             LastAddedItems = addedItems;

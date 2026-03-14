@@ -191,8 +191,8 @@ namespace LibreMetaverse.Tests
         {
             bool disposed = false;
             var throwing = new ThrowOnDispose(() => disposed = true);
-            string logged = null;
-            Action<string, Exception> logger = (m, e) => logged = m;
+            string? logged = null;
+            Action<string, Exception?> logger = (m, e) => logged = m;
 
             DisposalHelper.SafeDispose(throwing, "test", logger);
             Assert.That(disposed, Is.True);

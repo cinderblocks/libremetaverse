@@ -34,11 +34,11 @@ namespace TestClient.Commands.Prims
             }
         }
 
-        Primitive currentPrim;
+        Primitive currentPrim = new Primitive();
         Vector3 currentPosition;
-        TaskCompletionSource<bool> primDoneTcs;
-        List<Primitive> primsCreated;
-        List<uint> linkQueue;
+        TaskCompletionSource<bool>? primDoneTcs = null;
+        List<Primitive> primsCreated = new List<Primitive>();
+        List<uint> linkQueue = new List<uint>();
         uint rootLocalID;
         ImporterState state = ImporterState.Idle;
 
@@ -114,7 +114,10 @@ namespace TestClient.Commands.Prims
                     // Prepare TCS
                     primDoneTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-                    Client.Objects.AddPrim(Client.Network.CurrentSim, linkset.RootPrim.PrimData, GroupID,
+                    var currentSim = Client.Network?.CurrentSim;
+                    if (currentSim == null) return "No current simulator available";
+
+                    Client.Objects.AddPrim(currentSim, linkset.RootPrim.PrimData, GroupID,
                         linkset.RootPrim.Position, linkset.RootPrim.Scale, linkset.RootPrim.Rotation);
 
                     // wait for created prim
@@ -122,7 +125,7 @@ namespace TestClient.Commands.Prims
                     if (completed != primDoneTcs.Task || !primDoneTcs.Task.Result)
                         return "Rez failed, timed out while creating the root prim.";
 
-                    Client.Objects.SetPosition(Client.Network.CurrentSim, primsCreated[primsCreated.Count - 1].LocalID, linkset.RootPrim.Position);
+                    Client.Objects.SetPosition(currentSim, primsCreated[primsCreated.Count - 1].LocalID, linkset.RootPrim.Position);
 
                     state = ImporterState.RezzingChildren;
 
@@ -134,14 +137,14 @@ namespace TestClient.Commands.Prims
 
                         primDoneTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-                        Client.Objects.AddPrim(Client.Network.CurrentSim, prim.PrimData, GroupID, currentPosition,
+                        Client.Objects.AddPrim(currentSim, prim.PrimData, GroupID, currentPosition,
                             prim.Scale, prim.Rotation);
 
                         var childCompleted = await Task.WhenAny(primDoneTcs.Task, Task.Delay(TimeSpan.FromSeconds(10))).ConfigureAwait(false);
                         if (childCompleted != primDoneTcs.Task || !primDoneTcs.Task.Result)
                             return "Rez failed, timed out while creating child prim.";
 
-                        Client.Objects.SetPosition(Client.Network.CurrentSim, primsCreated[primsCreated.Count - 1].LocalID, currentPosition);
+                        Client.Objects.SetPosition(currentSim, primsCreated[primsCreated.Count - 1].LocalID, currentPosition);
 
                     }
 
@@ -160,12 +163,12 @@ namespace TestClient.Commands.Prims
 
                         primDoneTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-                        Client.Objects.LinkPrims(Client.Network.CurrentSim, linkQueue);
+                        Client.Objects.LinkPrims(currentSim, linkQueue);
 
                         var linkCompleted = await Task.WhenAny(primDoneTcs.Task, Task.Delay(TimeSpan.FromSeconds(linkset.Children.Count))).ConfigureAwait(false);
                         if (linkCompleted == primDoneTcs.Task && primDoneTcs.Task.Result)
                         {
-                            Client.Objects.SetRotation(Client.Network.CurrentSim, rootLocalID, rootRotation);
+                            Client.Objects.SetRotation(currentSim, rootLocalID, rootRotation);
                         }
                         else
                         {
@@ -175,11 +178,11 @@ namespace TestClient.Commands.Prims
                     }
                     else
                     {
-                        Client.Objects.SetRotation(Client.Network.CurrentSim, rootLocalID, rootRotation);
+                            Client.Objects.SetRotation(currentSim, rootLocalID, rootRotation);
                     }
 
                     // Set permissions on newly created prims
-                    Client.Objects.SetPermissions(Client.Network.CurrentSim, primIDs,
+                    Client.Objects.SetPermissions(currentSim, primIDs,
                         PermissionWho.Everyone | PermissionWho.Group | PermissionWho.NextOwner,
                         PermissionMask.All, true);
 
@@ -198,7 +201,7 @@ namespace TestClient.Commands.Prims
             return "Import complete.";
         }
 
-        void Objects_OnNewPrim(object sender, PrimEventArgs e)
+        void Objects_OnNewPrim(object? sender, PrimEventArgs e)
         {
             Primitive prim = e.Prim;
 
@@ -216,7 +219,10 @@ namespace TestClient.Commands.Prims
                         Console.WriteLine("Setting properties for " + prim.LocalID);
                         // TODO: Is there a way to set all of this at once, and update more ObjectProperties stuff?
                         Client.Objects.SetPosition(e.Simulator, prim.LocalID, currentPosition);
-                        Client.Objects.SetTextures(e.Simulator, prim.LocalID, currentPrim.Textures);
+                        if (currentPrim.Textures != null)
+                        {
+                            Client.Objects.SetTextures(e.Simulator, prim.LocalID, currentPrim.Textures);
+                        }
 
                         if (currentPrim.Light != null && currentPrim.Light.Intensity > 0)
                         {

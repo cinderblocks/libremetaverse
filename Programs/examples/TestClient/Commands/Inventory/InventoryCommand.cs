@@ -7,8 +7,8 @@ namespace TestClient.Commands.Inventory
 {
     public class InventoryCommand : Command
     {
-        private OpenMetaverse.Inventory Inventory;
-        private InventoryManager Manager;
+        private OpenMetaverse.Inventory? Inventory;
+        private InventoryManager? Manager;
 
         public InventoryCommand(TestClient testClient)
         {
@@ -25,12 +25,17 @@ namespace TestClient.Commands.Inventory
         public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
         {
             Manager = Client.Inventory;
-            Inventory = Manager.Store;
+            Inventory = Manager?.Store;
+
+            if (Manager == null || Inventory == null)
+            {
+                return "Inventory not initialized";
+            }
 
             StringBuilder result = new StringBuilder();
             var watch = Stopwatch.StartNew();
 
-            InventoryFolder rootFolder = Inventory.RootFolder;
+            InventoryFolder? rootFolder = Inventory.RootFolder;
             var itemCount = await PrintFolderAsync(rootFolder, result, 0).ConfigureAwait(false);
             watch.Stop();
 
@@ -39,9 +44,11 @@ namespace TestClient.Commands.Inventory
             return result.ToString();
         }
 
-        private async Task<int> PrintFolderAsync(InventoryFolder f, StringBuilder result, int indent)
+        private async Task<int> PrintFolderAsync(InventoryFolder? f, StringBuilder result, int indent)
         {
             var numItems = 0;
+            if (f == null || Manager == null)
+                return 0;
 
             var contents = await Manager.FolderContentsAsync(f.UUID, Client.Self.AgentID, true, true, InventorySortOrder.ByName).ConfigureAwait(false);
 

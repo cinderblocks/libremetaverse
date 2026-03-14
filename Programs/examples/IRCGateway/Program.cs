@@ -5,10 +5,10 @@ namespace IRCGateway
 {
     class Program
     {
-        static GridClient _Client;
-        static LoginParams _ClientLogin;
-        static IRCClient _IRC;
-        static string _AutoJoinChannel;
+        static GridClient? _Client;
+        static LoginParams? _ClientLogin;
+        static IRCClient? _IRC;
+        static string? _AutoJoinChannel;
         static UUID _MasterID;
 
         static void Main(string[] args)
@@ -33,36 +33,38 @@ namespace IRCGateway
 
                 _IRC.Connect();
 
-                string read = Console.ReadLine();
+                string? read = Console.ReadLine();
                 while (read != null) read = Console.ReadLine();                
             }
         }
 
-        static void Self_IM(object sender, InstantMessageEventArgs e)
+        static void Self_IM(object? sender, InstantMessageEventArgs e)
         {
             if (e.IM.Dialog == InstantMessageDialog.RequestTeleport)
             {
                 if (e.IM.FromAgentID == _MasterID)
                 {
-                    _Client.Self.TeleportLureRespond(e.IM.FromAgentID, e.IM.IMSessionID, true);
+                    if (_Client != null)
+                        _Client.Self.TeleportLureRespond(e.IM.FromAgentID, e.IM.IMSessionID, true);
                 }
             }
         }
 
-        static void Self_ChatFromSimulator(object sender, ChatEventArgs e)
+        static void Self_ChatFromSimulator(object? sender, ChatEventArgs e)
         {
-            if (e.FromName != _Client.Self.Name && e.Type == ChatType.Normal && e.AudibleLevel == ChatAudibleLevel.Fully)
+            if (_Client != null && e.FromName != _Client.Self.Name && e.Type == ChatType.Normal && e.AudibleLevel == ChatAudibleLevel.Fully)
             {
                 string str = "<" + e.FromName + "> " + e.Message;
-                _IRC.SendMessage(_AutoJoinChannel, str);
+                if (_IRC != null && !string.IsNullOrEmpty(_AutoJoinChannel))
+                    _IRC.SendMessage(_AutoJoinChannel, str);
                 Console.WriteLine("[SL->IRC] " + str);
             }
         }
 
         static void _IRC_OnConnected()
         {
-            _IRC.JoinChannel(_AutoJoinChannel);
-            _Client.Network.BeginLogin(_ClientLogin);
+            if (_IRC != null && !string.IsNullOrEmpty(_AutoJoinChannel)) _IRC.JoinChannel(_AutoJoinChannel);
+            if (_Client != null && _ClientLogin != null) _Client.Network.BeginLogin(_ClientLogin);
         }
 
         static void _IRC_OnMessage(string target, string name, string address, string message)
@@ -70,14 +72,14 @@ namespace IRCGateway
             if (target == _AutoJoinChannel)
             {
                 string str = "<" + name + "> " + message;
-                _Client.Self.Chat(str, 0, ChatType.Normal);
+                if (_Client != null) _Client.Self.Chat(str, 0, ChatType.Normal);
                 Console.WriteLine("[IRC->SL] " + str);
             }
         }
 
-        static void Network_OnLogin(object sender, LoginProgressEventArgs e)
+        static void Network_OnLogin(object? sender, LoginProgressEventArgs e)
         {
-            _IRC.SendMessage(_AutoJoinChannel, e.Message);
+            if (_IRC != null && !string.IsNullOrEmpty(_AutoJoinChannel)) _IRC.SendMessage(_AutoJoinChannel, e.Message);
         }
     }
 }

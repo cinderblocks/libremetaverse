@@ -173,7 +173,7 @@ namespace VoiceTest
             Console.ReadKey();
         }
 
-        static void client_OnEventQueueRunning(object sender, EventQueueRunningEventArgs e)
+        static void client_OnEventQueueRunning(object? sender, EventQueueRunningEventArgs e)
         {
             EventQueueRunningEvent.Set();
         }
@@ -186,11 +186,11 @@ namespace VoiceTest
             ProvisionEvent.Set();
         }
 
-        static void voice_OnParcelVoiceInfo(string regionName, int localID, string channelURI)
+        static void voice_OnParcelVoiceInfo(string regionName, int localID, string? channelURI)
         {
             VoiceRegionName = regionName;
             VoiceLocalID = localID;
-            VoiceChannelURI = channelURI;
+            VoiceChannelURI = channelURI ?? string.Empty;
 
             ParcelVoiceInfoEvent.Set();
         }

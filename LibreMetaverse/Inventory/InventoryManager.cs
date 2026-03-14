@@ -92,7 +92,7 @@ namespace OpenMetaverse
         /// <param name="client">Reference to the GridClient object</param>
         public InventoryManager(GridClient client)
         {
-            Client = client;
+            Client = client ?? throw new ArgumentNullException(nameof(client));
 
             Client.Network.RegisterCallback(PacketType.UpdateCreateInventoryItem, UpdateCreateInventoryItemHandler);
             Client.Network.RegisterCallback(PacketType.SaveAssetIntoInventory, SaveAssetIntoInventoryHandler);

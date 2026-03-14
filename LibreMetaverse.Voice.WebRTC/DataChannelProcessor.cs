@@ -192,7 +192,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
             try
             {
-                JsonData root = null;
+                JsonData? root = null;
                 try
                 {
                     root = JsonMapper.ToObject(msg);

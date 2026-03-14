@@ -75,8 +75,8 @@ namespace LibreMetaverse.Voice.WebRTC
     internal class MultiAgentVoiceProvisionRequest : IMessage
     {
         public string Sdp;
-        public string ChannelId;
-        public string ChannelCredentials;
+        public string? ChannelId;
+        public string? ChannelCredentials;
 
         public MultiAgentVoiceProvisionRequest(string sdp)
         {
@@ -92,8 +92,8 @@ namespace LibreMetaverse.Voice.WebRTC
                 { "sdp", Sdp },
             };
             map.Add("jsep", jsep);
-            map.Add("channel", ChannelId);
-            map.Add("credentials", ChannelCredentials);
+            map.Add("channel", ChannelId ?? string.Empty);
+            map.Add("credentials", ChannelCredentials ?? string.Empty);
             map.Add("channel_type", "multiagent");
             map.Add("voice_server_type", "webrtc");
 

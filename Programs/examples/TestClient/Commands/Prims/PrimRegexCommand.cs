@@ -28,10 +28,16 @@ namespace TestClient.Commands.Prims
                 // Build Regex
                 var regexPrimName = new Regex(predicatePrim.ToLower());
 
-                // Print result
-                Logger.Info($"Searching prim for [{predicatePrim}] ({Client.Network.CurrentSim.ObjectsPrimitives.Count} prims loaded in simulator)\n", Client);
+                var currentSim = Client.Network?.CurrentSim;
+                if (currentSim == null)
+                {
+                    return "No current simulator available";
+                }
 
-                foreach (var kvp in Client.Network.CurrentSim.ObjectsPrimitives)
+                // Print result
+                Logger.Info($"Searching prim for [{predicatePrim}] ({currentSim.ObjectsPrimitives.Count} prims loaded in simulator)\n", Client);
+
+                foreach (var kvp in currentSim.ObjectsPrimitives)
                 {
                     if (kvp.Value == null) { continue; }
 
@@ -43,8 +49,9 @@ namespace TestClient.Commands.Prims
 
                     if (prim.Properties != null && !match)
                     {
-                        match = regexPrimName.IsMatch(prim.Properties.Name.ToLower());
-                        if (!match)
+                        if (!string.IsNullOrEmpty(prim.Properties.Name))
+                            match = regexPrimName.IsMatch(prim.Properties.Name.ToLower());
+                        if (!match && !string.IsNullOrEmpty(prim.Properties.Description))
                             match = regexPrimName.IsMatch(prim.Properties.Description.ToLower());
                     }
 

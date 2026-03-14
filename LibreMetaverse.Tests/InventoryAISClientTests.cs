@@ -37,7 +37,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParseLinksFromEmbedded_ObjectAsset_ResultsInAttachmentInventoryTypeAndParsesFields()
         {
-            var client = new InventoryAISClient(null);
+            var client = new InventoryAISClient(new GridClient());
 
             var itemId = UUID.Random();
             var parentId = UUID.Random();
@@ -82,7 +82,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParseItemsFromEmbedded_ItemsKey_ParsesConcreteItems()
         {
-            var client = new InventoryAISClient(null);
+            var client = new InventoryAISClient(new GridClient());
 
             var itemId = UUID.Random();
             var parentId = UUID.Random();
@@ -122,7 +122,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParseLinksFromEmbedded_MeshAsset_TreatedAsAttachment()
         {
-            var client = new InventoryAISClient(null);
+            var client = new InventoryAISClient(new GridClient());
 
             var itemId = UUID.Random();
             var parentId = UUID.Random();
@@ -160,7 +160,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParseItemsFromEmbedded_TopLevelItemsKey_WorksWithoutEmbedded()
         {
-            var client = new InventoryAISClient(null);
+            var client = new InventoryAISClient(new GridClient());
 
             var itemId = UUID.Random();
             var parentId = UUID.Random();
@@ -193,7 +193,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParseLinksFromEmbedded_TopLevelLinksKey_WorksWithoutEmbedded()
         {
-            var client = new InventoryAISClient(null);
+            var client = new InventoryAISClient(new GridClient());
 
             var itemId = UUID.Random();
             var parentId = UUID.Random();
@@ -227,7 +227,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParseItemsFromEmbedded_NullOrEmpty_ReturnsEmptyList()
         {
-            var client = new InventoryAISClient(null);
+            var client = new InventoryAISClient(new GridClient());
 
             Assert.That(client.ParseItemsFromEmbedded(null), Is.Empty);
             Assert.That(client.ParseItemsFromEmbedded(new OSDMap()), Is.Empty);
@@ -236,7 +236,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ParseEmbedded_CombinesItemsAndLinks()
         {
-            var client = new InventoryAISClient(null);
+            var client = new InventoryAISClient(new GridClient());
 
             var itemId = UUID.Random();
             var linkId = UUID.Random();

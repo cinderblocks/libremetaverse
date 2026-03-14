@@ -504,52 +504,52 @@ namespace LibreMetaverse.Voice.Vivox
         /// <summary>
         /// Event for most mundane request reposnses.
         /// </summary>
-        public event EventHandler<VoiceResponseEventArgs> OnVoiceResponse;
+        public event EventHandler<VoiceResponseEventArgs>? OnVoiceResponse;
 
         #region Session Events
-        public event EventHandler<VoiceSessionEventArgs> OnSessionCreateResponse;
-        public event EventHandler<NewSessionEventArgs> OnSessionNewEvent;
-        public event EventHandler<SessionStateChangeEventArgs> OnSessionStateChangeEvent;
-        public event EventHandler<ParticipantStateChangeEventArgs> OnSessionParticipantStateChangeEvent;
-        public event EventHandler<ParticipantPropertiesEventArgs> OnSessionParticipantPropertiesEvent;
-        public event EventHandler<ParticipantUpdatedEventArgs> OnSessionParticipantUpdatedEvent;
-        public event EventHandler<ParticipantAddedEventArgs> OnSessionParticipantAddedEvent;
-        public event EventHandler<ParticipantRemovedEventArgs> OnSessionParticipantRemovedEvent;
-        public event EventHandler<SessionGroupAddedEventArgs> OnSessionGroupAddedEvent;
-        public event EventHandler<SessionAddedEventArgs> OnSessionAddedEvent;
-        public event EventHandler<SessionRemovedEventArgs> OnSessionRemovedEvent;
-        public event EventHandler<SessionUpdatedEventArgs> OnSessionUpdatedEvent;
-        public event EventHandler<SessionMediaEventArgs> OnSessionMediaEvent;
+        public event EventHandler<VoiceSessionEventArgs>? OnSessionCreateResponse;
+        public event EventHandler<NewSessionEventArgs>? OnSessionNewEvent;
+        public event EventHandler<SessionStateChangeEventArgs>? OnSessionStateChangeEvent;
+        public event EventHandler<ParticipantStateChangeEventArgs>? OnSessionParticipantStateChangeEvent;
+        public event EventHandler<ParticipantPropertiesEventArgs>? OnSessionParticipantPropertiesEvent;
+        public event EventHandler<ParticipantUpdatedEventArgs>? OnSessionParticipantUpdatedEvent;
+        public event EventHandler<ParticipantAddedEventArgs>? OnSessionParticipantAddedEvent;
+        public event EventHandler<ParticipantRemovedEventArgs>? OnSessionParticipantRemovedEvent;
+        public event EventHandler<SessionGroupAddedEventArgs>? OnSessionGroupAddedEvent;
+        public event EventHandler<SessionAddedEventArgs>? OnSessionAddedEvent;
+        public event EventHandler<SessionRemovedEventArgs>? OnSessionRemovedEvent;
+        public event EventHandler<SessionUpdatedEventArgs>? OnSessionUpdatedEvent;
+        public event EventHandler<SessionMediaEventArgs>? OnSessionMediaEvent;
         #endregion Session Events
 
         #region Connector Events
 
         /// <summary>Response to Connector.Create request</summary>
-        public event EventHandler<VoiceConnectorEventArgs> OnConnectorCreateResponse;
+        public event EventHandler<VoiceConnectorEventArgs>? OnConnectorCreateResponse;
 
         #endregion Connector Events
 
         #region Aux Events
 
         /// <summary>Response to Aux.GetCaptureDevices request</summary>
-        public event EventHandler<VoiceDevicesEventArgs> OnAuxGetCaptureDevicesResponse;
+        public event EventHandler<VoiceDevicesEventArgs>? OnAuxGetCaptureDevicesResponse;
         /// <summary>Response to Aux.GetRenderDevices request</summary>
-        public event EventHandler<VoiceDevicesEventArgs> OnAuxGetRenderDevicesResponse;
+        public event EventHandler<VoiceDevicesEventArgs>? OnAuxGetRenderDevicesResponse;
 
         /// <summary>Audio Properties Events are sent after audio capture is started.
         /// These events are used to display a microphone VU meter</summary>
-        public event EventHandler<AudioPropertiesEventArgs> OnAuxAudioPropertiesEvent;
+        public event EventHandler<AudioPropertiesEventArgs>? OnAuxAudioPropertiesEvent;
 
         #endregion Aux Events
 
         #region Account Events
 
         /// <summary>Response to Account.Login request</summary>
-        public event EventHandler<VoiceAccountEventArgs> OnAccountLoginResponse;
+        public event EventHandler<VoiceAccountEventArgs>? OnAccountLoginResponse;
 
         /// <summary>This event message is sent whenever the login state of the
         /// particular Account has transitioned from one value to another</summary>
-        public event EventHandler<AccountLoginStateChangeEventArgs> OnAccountLoginStateChangeEvent;
+        public event EventHandler<AccountLoginStateChangeEventArgs>? OnAccountLoginStateChangeEvent;
 
         #endregion Account Events
 
@@ -562,124 +562,124 @@ namespace LibreMetaverse.Voice.Vivox
         public class VoiceEvent
         {
             [XmlAttribute("type")]
-            public string Type;
-            public string AccountHandle;
-            public string Application;
-            public string StatusCode;
-            public string StatusString;
-            public string State;
-            public string SessionHandle;
-            public string SessionGroupHandle;
-            public string URI;
-            public string Uri;  // Yes, they send it with both capitalizations
-            public string IsChannel;
-            public string IsIncoming;
-            public string Incoming;
-            public string IsMuted;
-            public string Name;
-            public string AudioMedia;
-            public string ChannelName;
-            public string ParticipantUri;
-            public string AccountName;
-            public string DisplayName;
-            public string ParticipantType;
-            public string IsLocallyMuted;
-            public string IsModeratorMuted;
-            public string IsSpeaking;
-            public string Volume;
-            public string Energy;
-            public string MicIsActive;
-            public string MicEnergy;
-            public string MicVolume;
-            public string SpeakerVolume;
-            public string HasText;
-            public string HasAudio;
-            public string HasVideo;
-            public string Terminated;
-            public string Reason;
-            public string TransmitEnabled;
-            public string IsFocused;
+            public string? Type;
+            public string? AccountHandle;
+            public string? Application;
+            public string? StatusCode;
+            public string? StatusString;
+            public string? State;
+            public string? SessionHandle;
+            public string? SessionGroupHandle;
+            public string? URI;
+            public string? Uri;  // Yes, they send it with both capitalizations
+            public string? IsChannel;
+            public string? IsIncoming;
+            public string? Incoming;
+            public string? IsMuted;
+            public string? Name;
+            public string? AudioMedia;
+            public string? ChannelName;
+            public string? ParticipantUri;
+            public string? AccountName;
+            public string? DisplayName;
+            public string? ParticipantType;
+            public string? IsLocallyMuted;
+            public string? IsModeratorMuted;
+            public string? IsSpeaking;
+            public string? Volume;
+            public string? Energy;
+            public string? MicIsActive;
+            public string? MicEnergy;
+            public string? MicVolume;
+            public string? SpeakerVolume;
+            public string? HasText;
+            public string? HasAudio;
+            public string? HasVideo;
+            public string? Terminated;
+            public string? Reason;
+            public string? TransmitEnabled;
+            public string? IsFocused;
         }
 
         [XmlRoot("Response")]
         public class VoiceResponse
         {
             [XmlAttribute("requestId")]
-            public string RequestId;
+            public string? RequestId;
             [XmlAttribute("action")]
-            public string Action;
+            public string? Action;
             public int ReturnCode;
-            public VoiceResponseResults Results;
-            public VoiceInputXml InputXml;
+            public VoiceResponseResults? Results;
+            public VoiceInputXml? InputXml;
         }
 
         public class CaptureDevice
         {
-            public string Device;
+            public string? Device;
         }
 
         public class RenderDevice
         {
-            public string Device;
+            public string? Device;
         }
 
         public class VoiceResponseResults
         {
-            public string VersionID;
+            public string? VersionID;
             public int StatusCode;
-            public string StatusString;
-            public string ConnectorHandle;
-            public string AccountHandle;
-            public string SessionHandle;
-            public List<CaptureDevice> CaptureDevices;
-            public CaptureDevice CurrentCaptureDevice;
-            public List<RenderDevice> RenderDevices;
-            public RenderDevice CurrentRenderDevice;
+            public string? StatusString;
+            public string? ConnectorHandle;
+            public string? AccountHandle;
+            public string? SessionHandle;
+            public List<CaptureDevice>? CaptureDevices;
+            public CaptureDevice? CurrentCaptureDevice;
+            public List<RenderDevice>? RenderDevices;
+            public RenderDevice? CurrentRenderDevice;
         }
 
         public class VoiceInputXml
         {
-            public VoiceRequest Request;
+            public VoiceRequest? Request;
         }
 
         [XmlRoot("Request")]
         public class VoiceRequest
         {
             [XmlAttribute("requestId")]
-            public string RequestId;
+            public string? RequestId;
             [XmlAttribute("action")]
-            public string Action;
-            public string RenderDeviceSpecifier;
-            public string CaptureDeviceSpecifier;
-            public string Duration;
-            public string Level;
-            public string ClientName;
-            public string AccountManagementServer;
-            public string MinimumPort;
-            public string MaximumPort;
-            public VoiceLoggingSettings Logging;
-            public string ConnectorHandle;
-            public string Value;
-            public string AccountName;
-            public string AccountPassword;
-            public string AudioSessionAnswerMode;
-            public string AccountURI;
-            public string ParticipantPropertyFrequency;
-            public string EnableBuddiesAndPresence;
-            public string URI;
-            public string Name;
-            public string Password;
-            public string JoinAudio;
-            public string JoinText;
-            public string PasswordHashAlgorithm;
-            public string SoundFilePath;
-            public string Loop;
-            public string SessionHandle;
-            public string OrientationType;
-            public VoicePosition SpeakerPosition;
-            public VoicePosition ListenerPosition;
-            public string ParticipantURI;
-            public string Volume;
+            public string? Action;
+            public string? RenderDeviceSpecifier;
+            public string? CaptureDeviceSpecifier;
+            public string? Duration;
+            public string? Level;
+            public string? ClientName;
+            public string? AccountManagementServer;
+            public string? MinimumPort;
+            public string? MaximumPort;
+            public VoiceLoggingSettings? Logging;
+            public string? ConnectorHandle;
+            public string? Value;
+            public string? AccountName;
+            public string? AccountPassword;
+            public string? AudioSessionAnswerMode;
+            public string? AccountURI;
+            public string? ParticipantPropertyFrequency;
+            public string? EnableBuddiesAndPresence;
+            public string? URI;
+            public string? Name;
+            public string? Password;
+            public string? JoinAudio;
+            public string? JoinText;
+            public string? PasswordHashAlgorithm;
+            public string? SoundFilePath;
+            public string? Loop;
+            public string? SessionHandle;
+            public string? OrientationType;
+            public VoicePosition? SpeakerPosition;
+            public VoicePosition? ListenerPosition;
+            public string? ParticipantURI;
+            public string? Volume;
         }
 
         #endregion XML Serialization Classes

@@ -32,9 +32,9 @@ namespace TestClient.Commands.Prims
             if (args.Length > 1 && !int.TryParse(args[1], out discardLevel))
                 return "Usage: downloadtexture [texture-uuid] [discardlevel]";
 
-            var tcs = new TaskCompletionSource<(TextureRequestState state, AssetTexture asset)>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var tcs = new TaskCompletionSource<(TextureRequestState state, AssetTexture? asset)>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            void handler(TextureRequestState state, AssetTexture asset)
+            void handler(TextureRequestState state, AssetTexture? asset)
             {
                 tcs.TrySetResult((state, asset));
             }

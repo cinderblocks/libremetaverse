@@ -117,7 +117,8 @@ namespace WebRtcTest
                     throw new VoiceTestException("EventQueueRunning event did not occur", true);
                 Console.WriteLine("EventQueue running");
 
-                var cap = client.Network.CurrentSim.Caps?.CapabilityURI("ProvisionVoiceAccountRequest");
+                var currentSim = client.Network?.CurrentSim;
+                var cap = currentSim?.Caps?.CapabilityURI("ProvisionVoiceAccountRequest");
 
                 if (cap == null)
                 {
@@ -125,20 +126,20 @@ namespace WebRtcTest
                 }
 
 
-                Console.WriteLine($"Requesting a provisional account from {client.Network.CurrentSim.Name}...");
+                Console.WriteLine($"Requesting a provisional account from {currentSim?.Name ?? "(unknown)"}...");
                 bool success = await voice.ConnectPrimaryRegion();
                 if (!success)
                 {
-                    Console.WriteLine($"Failed to connect voice to '{client.Network.CurrentSim.Name}'.");
+                    Console.WriteLine($"Failed to connect voice to '{currentSim?.Name ?? "(unknown)"}'.");
                 }
                 else
                 {
-                    Console.WriteLine($"Connected to voice in '{client.Network.CurrentSim.Name}'");
+                    Console.WriteLine($"Connected to voice in '{currentSim?.Name ?? "(unknown)"}'");
                 }
                 
-                Console.WriteLine($"Connected Primary Region to voice {client.Network.CurrentSim.Name}...");
+                Console.WriteLine($"Connected Primary Region to voice {currentSim?.Name ?? "(unknown)"}...");
 
-                string wavPath = null;
+                string? wavPath = null;
 
                 // Example: play the WAV file in the WebRtcTest directory
                 try
@@ -155,7 +156,7 @@ namespace WebRtcTest
                         Console.WriteLine($"Playing WAV file as microphone: {wavPath} (48000 Hz, 16-bit, mono)\nLooping... Press any key to stop playback and disconnect.");
                         // Play at 48000 Hz, mono, loop
                         // Wait until peer connection is ready before starting playback. If already connected, start immediately.
-                        Action onReady = null;
+                        Action? onReady = null;
                         onReady = () =>
                         {
                             try
@@ -167,7 +168,7 @@ namespace WebRtcTest
                             {
                                 Console.WriteLine($"Failed to start example WAV playback on ready: {ex.Message}");
                             }
-                            try { voice.PeerConnectionReady -= onReady; } catch { }
+                            try { if (onReady != null) voice.PeerConnectionReady -= onReady; } catch { }
                         };
 
                         if (voice.connected)
@@ -235,7 +236,7 @@ namespace WebRtcTest
                             {
                                 if (!string.IsNullOrEmpty(wavPath))
                                 {
-                                    voice.PlayWavAsMic(wavPath, loop: true);
+                                    voice.PlayWavAsMic(wavPath!, loop: true);
                                     Console.WriteLine("WAV playback started as microphone.");
                                 }
                                 else Console.WriteLine("No example WAV available.");
@@ -273,21 +274,21 @@ namespace WebRtcTest
 
                 voice.Disconnect();
 
-                client.Network.Logout();
+                client.Network?.Logout();
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.Message);
-                if (e is VoiceTestException exception && exception.LoggedIn)
-                {
-                    client.Network.Logout();
-                }
+                    if (e is VoiceTestException exception && exception.LoggedIn)
+                    {
+                        client.Network?.Logout();
+                    }
             }
         }
 
         #region GridClient handlers
 
-        private static void client_OnLoginProgress(object sender, LoginProgressEventArgs args)
+        private static void client_OnLoginProgress(object? sender, LoginProgressEventArgs args)
         {
             if (args.Status == LoginStatus.Success)
             {
@@ -295,7 +296,7 @@ namespace WebRtcTest
             }
         }
 
-        private static void client_OnEventQueueRunning(object sender, EventQueueRunningEventArgs args)
+        private static void client_OnEventQueueRunning(object? sender, EventQueueRunningEventArgs args)
         {
             EventQueueRunningEvent.Set();
         }

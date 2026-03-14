@@ -229,9 +229,10 @@ namespace LibreMetaverse.Tests
         {
             OSD llsdUri = OSD.FromUri(new Uri("http://www.example.com/test"));
             byte[] protobufData = OSDParser.SerializeLLSDProtobuf(llsdUri);
-            OSD llsdUriDS = OSDParser.DeserializeLLSDProtobuf(protobufData);
-            Assert.That(llsdUriDS.Type, Is.EqualTo(OSDType.URI));
-            Assert.That(llsdUriDS.AsUri().ToString(), Is.EqualTo("http://www.example.com/test"));
+            OSD? llsdUriDS = OSDParser.DeserializeLLSDProtobuf(protobufData);
+            Assert.That(llsdUriDS, Is.Not.Null);
+            Assert.That(llsdUriDS!.Type, Is.EqualTo(OSDType.URI));
+            Assert.That(((OSDUri)llsdUriDS).AsUri().ToString(), Is.EqualTo("http://www.example.com/test"));
         }
     }
 }

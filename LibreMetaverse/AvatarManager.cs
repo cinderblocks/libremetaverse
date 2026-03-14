@@ -593,7 +593,7 @@ namespace OpenMetaverse
         /// <param name="client"></param>
         public AvatarManager(GridClient client)
         {
-            Client = client;
+            Client = client ?? throw new ArgumentNullException(nameof(client));
 
             // Avatar appearance callback
             Client.Network.RegisterCallback(PacketType.AvatarAppearance, AvatarAppearanceHandler);

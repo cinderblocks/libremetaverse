@@ -31,12 +31,18 @@ namespace TestClient.Commands.Inventory
                 return "Usage: objectinventory [objectID]";
             }
 
-            var found = Client.Network.CurrentSim.ObjectsPrimitives.FirstOrDefault(prim => prim.Value.ID == objectID);
+            var sim = Client.Network.CurrentSim;
+            if (sim == null)
+            {
+                return "No current simulator available";
+            }
+
+            var found = sim.ObjectsPrimitives.FirstOrDefault(prim => prim.Value.ID == objectID);
             if (found.Value == null)
             {
-                return $"Could not find ${objectID} object";
-            } 
-            
+                return $"Could not find {objectID} object";
+            }
+
             var objectLocalID = found.Value.LocalID;
 
             var items = await Client.Inventory.GetTaskInventoryAsync(objectID, objectLocalID).ConfigureAwait(false);

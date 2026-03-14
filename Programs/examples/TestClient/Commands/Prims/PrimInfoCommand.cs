@@ -31,8 +31,11 @@ namespace TestClient.Commands.Prims
                 return $"{args[0]} is not a valid UUID";
             }
 
-            var kvp = Client.Network.CurrentSim.ObjectsPrimitives.FirstOrDefault(
-                prim => prim.Value.ID == primID);
+            var currentSim = Client.Network?.CurrentSim;
+            if (currentSim == null) return "No current simulator available";
+
+            var kvp = currentSim.ObjectsPrimitives.FirstOrDefault(
+                prim => prim.Value != null && prim.Value.ID == primID);
 
             if (kvp.Value == null)
             {
@@ -40,7 +43,7 @@ namespace TestClient.Commands.Prims
             }
 
             var target = kvp.Value;
-            if (target.Text != string.Empty)
+            if (!string.IsNullOrEmpty(target.Text))
             {
                 Logger.Info("Text: " + target.Text, Client);
             }
@@ -89,7 +92,7 @@ namespace TestClient.Commands.Prims
             {
                 Client.Objects.ObjectProperties += propsCallback;
 
-                Client.Objects.SelectObject(Client.Network.CurrentSim, target.LocalID, true);
+                Client.Objects.SelectObject(currentSim, target.LocalID, true);
 
                 var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(10))).ConfigureAwait(false);
                 // ignore timeout case, just proceed

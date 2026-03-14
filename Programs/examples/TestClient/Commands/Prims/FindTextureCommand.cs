@@ -22,15 +22,25 @@ namespace TestClient.Commands.Prims
             if (int.TryParse(args[0], out var faceIndex) &&
                 UUID.TryParse(args[1], out var textureID))
             {
-                foreach (var kvp in Client.Network.CurrentSim.ObjectsPrimitives)
+                var currentSim = Client.Network?.CurrentSim;
+                if (currentSim == null)
+                {
+                    return "No current simulator available";
+                }
+
+                foreach (var kvp in currentSim.ObjectsPrimitives)
                 {
                     if (kvp.Value == null) { continue; }
 
                     var prim = kvp.Value;
-                    if (prim.Textures?.FaceTextures[faceIndex] == null) { continue; }
-                    if (prim.Textures.FaceTextures[faceIndex].TextureID == textureID)
+                    var tex = prim.Textures;
+                    if (tex == null || tex.FaceTextures == null) { continue; }
+                    if (faceIndex < 0 || faceIndex >= tex.FaceTextures.Length) { continue; }
+                    var face = tex.FaceTextures[faceIndex];
+                    if (face == null) { continue; }
+                    if (face.TextureID == textureID)
                     {
-                        Logger.Info($"Primitive {prim.ID.ToString()} ({prim.LocalID}) has face index {faceIndex} set to {textureID.ToString()}", Client);
+                        Logger.Info($"Primitive {prim.ID} ({prim.LocalID}) has face index {faceIndex} set to {textureID}", Client);
                     }
                 }
 

@@ -36,35 +36,43 @@ namespace LibreMetaverse.Voice.Vivox
     {
         private class SocketPacket
         {
-            public Socket TcpSocket;
+            public Socket? TcpSocket;
             public readonly byte[] DataBuffer = new byte[1];
         }
 
         public delegate void OnReceiveLineCallback(string line);
         public delegate void OnDisconnectedCallback(SocketException se);
 
-        public event OnReceiveLineCallback OnReceiveLine;
-        public event OnDisconnectedCallback OnDisconnected;
+        public event OnReceiveLineCallback? OnReceiveLine;
+        public event OnDisconnectedCallback? OnDisconnected;
 
-        private Socket _tcpSocket;
-        protected IAsyncResult _result;
-        private AsyncCallback _callback;
+        private Socket? _tcpSocket;
+        protected IAsyncResult? _result;
+        private AsyncCallback? _callback;
         private string _buffer = string.Empty;
 
         public bool Connected => _tcpSocket != null && _tcpSocket.Connected;
 
-        public SocketException Connect(string address, int port)
+        public SocketException? Connect(string address, int port)
         {
             if (_tcpSocket != null && _tcpSocket.Connected)
                 Disconnect();
 
             try
             {
-                IPAddress ip;
-                if (!IPAddress.TryParse(address, out ip))
+                IPAddress? ip = null;
+                if (!IPAddress.TryParse(address, out var parsed) || parsed == null)
                 {
                     var ips = Dns.GetHostAddresses(address);
+                    if (ips == null || ips.Length == 0)
+                    {
+                        return new SocketException(10000);
+                    }
                     ip = ips[0];
+                }
+                else
+                {
+                    ip = parsed;
                 }
                 _tcpSocket = new Socket(ip.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
                 var ipEndPoint = new IPEndPoint(ip, port);
@@ -87,13 +95,14 @@ namespace LibreMetaverse.Voice.Vivox
 
         public void Disconnect()
         {
-            _tcpSocket.Disconnect(true);
+            if (_tcpSocket != null)
+                _tcpSocket.Disconnect(true);
         }
 
         public void SendData(byte[] data)
         {
             if (Connected)
-                _tcpSocket.Send(data);
+                _tcpSocket!.Send(data);
             else
                 throw new InvalidOperationException("socket is not connected");
         }
@@ -103,7 +112,7 @@ namespace LibreMetaverse.Voice.Vivox
             if (Connected)
             {
                 var byData = System.Text.Encoding.ASCII.GetBytes(message + "\n");
-                _tcpSocket.Send(byData);
+                _tcpSocket!.Send(byData);
             }
             else
             {
@@ -115,6 +124,7 @@ namespace LibreMetaverse.Voice.Vivox
         {
             try
             {
+                if (_tcpSocket == null) return;
                 if (_callback == null) _callback = new AsyncCallback(OnDataReceived);
                 var packet = new SocketPacket
                 {
@@ -137,7 +147,8 @@ namespace LibreMetaverse.Voice.Vivox
 
             //string[] splitNull = { "\0" };
             var line = data.Split(SplitNull, StringSplitOptions.None);
-            _buffer += line[0];
+            var first = line.Length > 0 && line[0] != null ? line[0] : string.Empty;
+            _buffer += first;
             //string[] splitLines = { "\r\n", "\r", "\n" };
             var lines = _buffer.Split(SplitLines, StringSplitOptions.None);
             if (lines.Length > 1)
@@ -145,9 +156,10 @@ namespace LibreMetaverse.Voice.Vivox
                 int i;
                 for (i = 0; i < lines.Length - 1; i++)
                 {
-                    if (lines[i].Trim().Length > 0) OnReceiveLine(lines[i]);
+                    var l = lines[i] ?? string.Empty;
+                    if (l.Trim().Length > 0) OnReceiveLine?.Invoke(l);
                 }
-                _buffer = lines[i];
+                _buffer = lines[i] ?? string.Empty;
             }
         }
 
@@ -155,9 +167,11 @@ namespace LibreMetaverse.Voice.Vivox
         {
             try
             {
-                var packet = (SocketPacket)asyn.AsyncState;
-                Debug.Assert(packet != null, nameof(packet) + " != null");
-                var end = packet.TcpSocket.EndReceive(asyn);
+                var packet = asyn.AsyncState as SocketPacket;
+                if (packet == null) return;
+                var sock = packet.TcpSocket;
+                if (sock == null) return;
+                var end = sock.EndReceive(asyn);
                 var chars = new char[end + 1];
                 var d = System.Text.Encoding.UTF8.GetDecoder();
                 d.GetChars(packet.DataBuffer, 0, end, chars, 0);
@@ -171,7 +185,7 @@ namespace LibreMetaverse.Voice.Vivox
             }
             catch (SocketException se)
             {
-                if (!_tcpSocket.Connected)
+                if (_tcpSocket == null || !_tcpSocket.Connected)
                 {
                     OnDisconnected?.Invoke(se);
                 }

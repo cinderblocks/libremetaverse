@@ -197,13 +197,17 @@ namespace LibreMetaverse.LslTools
       while (PeekChar() != char.MinValue)
       {
         Matching(true);
-        if (!Match(ref tok, (Dfa) m_tokens.starts[m_state]))
+        var startDfa = m_tokens.starts[m_state] as Dfa;
+        if (startDfa == null)
         {
           if (yypos == 0)
             Console.Write("Check text encoding.. ");
           int num = PeekChar();
           m_tokens.erh.Error(new CSToolsStopException(2, this, "illegal character <" + (char) num + "> " + num));
           return null;
+        }
+        if (!Match(ref tok, startDfa))
+        {
         }
         Matching(false);
         if (tok != null)

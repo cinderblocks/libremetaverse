@@ -280,7 +280,7 @@ namespace OpenMetaverse
         /// appended ACKs</param>
         /// <param name="dest">The output byte array to decode to</param>
         /// <returns>The length of the output buffer</returns>
-        public static int ZeroDecode(byte[] src, int srclen, byte[] dest)
+        public static int ZeroDecode(byte[]? src, int srclen, byte[]? dest)
         {
             if (src == null)
                 throw new ArgumentNullException(nameof(src));
@@ -368,7 +368,7 @@ namespace OpenMetaverse
         /// <param name="srclen">The length of the byte array to encode</param>
         /// <param name="dest">The output byte array to encode to</param>
         /// <returns>The length of the output buffer</returns>
-        public static int ZeroEncode(byte[] src, int srclen, byte[] dest)
+        public static int ZeroEncode(byte[]? src, int srclen, byte[]? dest)
         {
             if (src == null)
                 throw new ArgumentNullException(nameof(src));

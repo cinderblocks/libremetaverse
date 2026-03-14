@@ -34,7 +34,7 @@ namespace LibreMetaverse.Voice.Vivox
 {
     public class VoiceParticipant
     {
-        private string AvatarName { get; set; }
+        private string? AvatarName { get; set; }
 
         private bool _muted;
         private int _volume;
@@ -97,7 +97,7 @@ namespace LibreMetaverse.Voice.Vivox
             //            return System.Text.Encoding.UTF8.GetString(decbuff);
         }
 
-        private static string nameFromsipURI(string uri)
+        private static string? nameFromsipURI(string uri)
         {
             Regex sip = new Regex("^sip:([^@]*)@.*$");
             Match m = sip.Match(uri);
@@ -110,7 +110,7 @@ namespace LibreMetaverse.Voice.Vivox
 
         public string Name
         {
-            get => AvatarName;
+            get => AvatarName ?? string.Empty;
             set => AvatarName = value;
         }
 

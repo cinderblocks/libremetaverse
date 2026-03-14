@@ -402,9 +402,9 @@ namespace OpenMetaverse
         /// Constructor
         /// </summary>
         /// <param name="client">Instance of GridClient object to associate with this GridManager instance</param>
-		public GridManager(GridClient client)
-		{
-			Client = client;
+        public GridManager(GridClient client)
+        {
+            Client = client ?? throw new ArgumentNullException(nameof(client));
 
             // Initialize read-only wrappers around the concurrent dictionaries so external callers
             // can observe the current contents without being able to replace the collections.

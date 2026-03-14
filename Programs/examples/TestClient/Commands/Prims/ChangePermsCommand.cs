@@ -67,12 +67,17 @@ namespace TestClient.Commands.Prims
             Logger.DebugLog($"Using PermissionMask: {Perms}", Client);
 
             // Find the requested prim
-            var reqkvp = Client.Network.CurrentSim.ObjectsPrimitives
+            var sim = Client.Network.CurrentSim;
+            if (sim == null)
+            {
+                return "No current simulator available";
+            }
+
+            var reqkvp = sim.ObjectsPrimitives
                 .FirstOrDefault(prim => prim.Value.ID == rootID);
             if (reqkvp.Value == null)
             {
                 return $"Cannot find requested object {rootID}";
-
             }
             var rootPrim = reqkvp.Value;
             Logger.DebugLog($"Found requested object {rootPrim.ID}", Client);
@@ -80,7 +85,7 @@ namespace TestClient.Commands.Prims
             if (rootPrim.ParentID != 0)
             {
                 // This is not actually a root prim, find the root
-                if (!Client.Network.CurrentSim.ObjectsPrimitives.TryGetValue(rootPrim.ParentID, out rootPrim))
+                if (!sim.ObjectsPrimitives.TryGetValue(rootPrim.ParentID, out rootPrim))
                 {
                     return "Cannot find root prim for requested object";
                 }
@@ -90,7 +95,7 @@ namespace TestClient.Commands.Prims
 
             // Find all the child primitives linked to the root
             var childPrims = (from kvp
-                in Client.Network.CurrentSim.ObjectsPrimitives where kvp.Value != null
+                in sim.ObjectsPrimitives where kvp.Value != null
                 select kvp.Value into child where child.ParentID == rootPrim.LocalID select child).ToList();
 
             // Build a dictionary of primitives for referencing later
@@ -107,7 +112,7 @@ namespace TestClient.Commands.Prims
 
             PermCount = 0;
             permsTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            Client.Objects.SetPermissions(Client.Network.CurrentSim, localIDs, PermissionWho.NextOwner,
+            Client.Objects.SetPermissions(sim, localIDs, PermissionWho.NextOwner,
                 PermissionMask.Modify, (Perms & PermissionMask.Modify) == PermissionMask.Modify);
             PermsSent = true;
 
@@ -117,7 +122,7 @@ namespace TestClient.Commands.Prims
 
             PermCount = 0;
             permsTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            Client.Objects.SetPermissions(Client.Network.CurrentSim, localIDs, PermissionWho.NextOwner,
+            Client.Objects.SetPermissions(sim, localIDs, PermissionWho.NextOwner,
                 PermissionMask.Copy, (Perms & PermissionMask.Copy) == PermissionMask.Copy);
             PermsSent = true;
 
@@ -127,7 +132,7 @@ namespace TestClient.Commands.Prims
 
             PermCount = 0;
             permsTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            Client.Objects.SetPermissions(Client.Network.CurrentSim, localIDs, PermissionWho.NextOwner,
+            Client.Objects.SetPermissions(sim, localIDs, PermissionWho.NextOwner,
                 PermissionMask.Transfer, (Perms & PermissionMask.Transfer) == PermissionMask.Transfer);
             PermsSent = true;
 

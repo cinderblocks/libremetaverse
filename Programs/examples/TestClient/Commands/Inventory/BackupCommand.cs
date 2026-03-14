@@ -228,7 +228,10 @@ namespace TestClient.Commands.Inventory
             DirectoryInfo di = new DirectoryInfo(args[1]);
 
             // recurse on the root folder into the entire inventory
-            await Task.Run(() => BackupFolder(Client.Inventory.Store.RootNode, di.FullName, token), token).ConfigureAwait(false);
+            var store = Client.Inventory?.Store;
+            if (store == null) return;
+
+            await Task.Run(() => BackupFolder(store.RootNode, di.FullName, token), token).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -286,19 +289,23 @@ namespace TestClient.Commands.Inventory
             return FileHelper.SafeFileName(path.Trim());
         }
 
-        private void Assets_OnAssetReceived(AssetDownload asset, Asset blah)
+        private void Assets_OnAssetReceived(AssetDownload asset, Asset? blah)
         {
             lock (CurrentDownloads)
             {
                 // see if we have this in our transfer list
-                QueuedDownloadInfo r = CurrentDownloads.Find(q => q.AssetID == asset.AssetID);
+                QueuedDownloadInfo? r = CurrentDownloads.Find(q => q.AssetID == asset.AssetID);
 
                 if (r != null && r.AssetID == asset.AssetID)
                 {
                     if (asset.Success)
                     {
-                        // create the directory to put this in
-                        global::System.IO.Directory.CreateDirectory(Path.GetDirectoryName(r.FileName));
+                            // create the directory to put this in
+                            var dir = Path.GetDirectoryName(r.FileName);
+                            if (!string.IsNullOrEmpty(dir))
+                            {
+                                global::System.IO.Directory.CreateDirectory(dir);
+                            }
 
                         // write out the file
                         File.WriteAllBytes(r.FileName, asset.AssetData);

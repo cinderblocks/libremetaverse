@@ -51,11 +51,11 @@ namespace LibreMetaverse.Voice.WebRTC
         private const int SAMPLE_RATE = 48000;
 
         private int _channels = 1;
-        private short[] _shortBuffer;
-        private byte[] _byteBuffer;
+        private short[]? _shortBuffer;
+        private byte[]? _byteBuffer;
 
-        private IOpusEncoder _opusEncoder;
-        private IOpusDecoder _opusDecoder;
+        private IOpusEncoder? _opusEncoder;
+        private IOpusDecoder? _opusDecoder;
 
         public List<AudioFormat> SupportedFormats { get; }
 
@@ -82,13 +82,13 @@ namespace LibreMetaverse.Voice.WebRTC
 
             try
             {
-                var numSamplesDecoded = _opusDecoder.Decode(
-                        encodedSample.AsSpan(), _shortBuffer.AsSpan(), GetFrameSize());
+                var numSamplesDecoded = _opusDecoder!.Decode(
+                        encodedSample.AsSpan(), _shortBuffer!.AsSpan(), GetFrameSize());
 
                 if (numSamplesDecoded >= 1)
                 {
                     var buffer = new short[numSamplesDecoded];
-                    Array.Copy(_shortBuffer, 0, 
+                    Array.Copy(_shortBuffer!, 0,
                         buffer, 0, numSamplesDecoded);
 
                     return buffer;
@@ -114,13 +114,13 @@ namespace LibreMetaverse.Voice.WebRTC
 
             try
             {
-                var size = _opusEncoder.Encode(
-                    in_pcm.AsSpan(), GetFrameSize(), _byteBuffer.AsSpan(), MAX_PACKET_SIZE);
+                var size = _opusEncoder!.Encode(
+                    in_pcm.AsSpan(), GetFrameSize(), _byteBuffer!.AsSpan(), MAX_PACKET_SIZE);
 
                 if (size > 1)
                 {
                     var result = new byte[size];
-                    Array.Copy(_byteBuffer, 0, 
+                    Array.Copy(_byteBuffer!, 0,
                         result, 0, size);
 
                     return result;

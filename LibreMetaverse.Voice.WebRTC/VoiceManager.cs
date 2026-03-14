@@ -45,7 +45,7 @@ namespace LibreMetaverse.Voice.WebRTC
         private class RegionVoiceSession
         {
             public ulong RegionHandle { get; set; }
-            public VoiceSession Session { get; set; }
+            public VoiceSession? Session { get; set; }
             public bool IsPrimary { get; set; }
             public DateTime LastActivity { get; set; }
         }
@@ -54,9 +54,9 @@ namespace LibreMetaverse.Voice.WebRTC
         private class GroupVoiceSession
         {
             public UUID GroupId { get; set; }
-            public VoiceSession Session { get; set; }
-            public string ChannelId { get; set; }
-            public string ChannelCredentials { get; set; }
+            public VoiceSession? Session { get; set; }
+            public string? ChannelId { get; set; }
+            public string? ChannelCredentials { get; set; }
             public DateTime JoinedAt { get; set; }
             public DateTime LastActivity { get; set; }
         }
@@ -65,9 +65,9 @@ namespace LibreMetaverse.Voice.WebRTC
         private class P2PVoiceSession
         {
             public UUID AgentId { get; set; }
-            public VoiceSession Session { get; set; }
-            public string ChannelId { get; set; }
-            public string ChannelCredentials { get; set; }
+            public VoiceSession? Session { get; set; }
+            public string? ChannelId { get; set; }
+            public string? ChannelCredentials { get; set; }
             public DateTime CallStarted { get; set; }
             public DateTime LastActivity { get; set; }
             public bool IsOutgoing { get; set; }
@@ -78,7 +78,7 @@ namespace LibreMetaverse.Voice.WebRTC
         private readonly IVoiceLogger _log;
         
         // Track primary and adjacent region sessions
-        private RegionVoiceSession _primarySession;
+        private RegionVoiceSession? _primarySession;
         private readonly ConcurrentDictionary<ulong, RegionVoiceSession> _adjacentSessions = new ConcurrentDictionary<ulong, RegionVoiceSession>();
         
         // Track group voice sessions
@@ -90,8 +90,8 @@ namespace LibreMetaverse.Voice.WebRTC
         private bool _enabled = true;
 
         // Store channel info from parcel voice info
-        private string _channelId;
-        private string _channelCredentials;
+        private string? _channelId;
+        private string? _channelCredentials;
 
         // Track current region to detect changes
         private ulong _currentRegionHandle = 0;
@@ -99,58 +99,58 @@ namespace LibreMetaverse.Voice.WebRTC
         private bool _isTransitioning = false;
 
         // Background task for managing adjacent regions
-        private CancellationTokenSource _adjacentRegionCts;
-        private Task _adjacentRegionTask;
+        private CancellationTokenSource? _adjacentRegionCts;
+        private Task? _adjacentRegionTask;
 
         // Expose session/channel info for primary session
         public UUID SessionId => _primarySession?.Session?.SessionId ?? UUID.Zero;
-        public string ChannelId => _primarySession?.Session?.ChannelId ?? _channelId;
-        public string ChannelCredentials => _primarySession?.Session?.ChannelCredentials ?? _channelCredentials;
+        public string ChannelId => _primarySession?.Session?.ChannelId ?? _channelId ?? string.Empty;
+        public string ChannelCredentials => _primarySession?.Session?.ChannelCredentials ?? _channelCredentials ?? string.Empty;
         
         // Expose SDP and connection state for primary session
-        public string sdpLocal => _primarySession?.Session?.SdpLocal;
-        public string sdpRemote => _primarySession?.Session?.SdpRemote;
+        public string sdpLocal => _primarySession?.Session?.SdpLocal ?? string.Empty;
+        public string sdpRemote => _primarySession?.Session?.SdpRemote ?? string.Empty;
         public bool connected => _primarySession?.Session?.Connected ?? false;
 
         // Cross-region events
-        public event Action OnRegionChangeDetected;
-        public event Action OnRegionTransitionCompleted;
-        public event Action<Exception> OnRegionTransitionFailed;
+        public event Action? OnRegionChangeDetected;
+        public event Action? OnRegionTransitionCompleted;
+        public event Action<Exception>? OnRegionTransitionFailed;
 
         // Adjacent region events
-        public event Action<ulong> OnAdjacentRegionConnected;
-        public event Action<ulong> OnAdjacentRegionDisconnected;
+        public event Action<ulong>? OnAdjacentRegionConnected;
+        public event Action<ulong>? OnAdjacentRegionDisconnected;
 
         // Group voice events
-        public event Action<UUID> OnGroupVoiceJoined;
-        public event Action<UUID> OnGroupVoiceLeft;
-        public event Action<UUID, Exception> OnGroupVoiceJoinFailed;
+        public event Action<UUID>? OnGroupVoiceJoined;
+        public event Action<UUID>? OnGroupVoiceLeft;
+        public event Action<UUID, Exception>? OnGroupVoiceJoinFailed;
 
         // P2P voice call events
-        public event Action<UUID> OnP2PCallStarted;
-        public event Action<UUID> OnP2PCallEnded;
-        public event Action<UUID, Exception> OnP2PCallFailed;
-        public event Action<UUID> OnP2PCallIncoming;
-        public event Action<UUID> OnP2PCallAccepted;
-        public event Action<UUID> OnP2PCallDeclined;
+        public event Action<UUID>? OnP2PCallStarted;
+        public event Action<UUID>? OnP2PCallEnded;
+        public event Action<UUID, Exception>? OnP2PCallFailed;
+        public event Action<UUID>? OnP2PCallIncoming;
+        public event Action<UUID>? OnP2PCallAccepted;
+        public event Action<UUID>? OnP2PCallDeclined;
 
         // Expose data-channel / voice events to clients (raw)
-        public event Action<UUID> PeerJoined;
-        public event Action<UUID> PeerLeft;
-        public event Action<UUID, OSDMap> PeerPositionUpdated;
-        public event Action<List<UUID>> PeerListUpdated;
+        public event Action<UUID>? PeerJoined;
+        public event Action<UUID>? PeerLeft;
+        public event Action<UUID, OSDMap>? PeerPositionUpdated;
+        public event Action<List<UUID>>? PeerListUpdated;
         // Expose connection events to clients
-        public event Action PeerConnectionReady;
-        public event Action PeerConnectionClosed;
+        public event Action? PeerConnectionReady;
+        public event Action? PeerConnectionClosed;
 
         // Expose typed events per PDF
-        public event Action<UUID, VoiceSession.PeerAudioState> PeerAudioUpdated;
-        public event Action<UUID, VoiceSession.AvatarPosition> PeerPositionUpdatedTyped;
-        public event Action<Dictionary<UUID, bool>> MuteMapReceived;
-        public event Action<Dictionary<UUID, int>> GainMapReceived;
-        public event Action<string, int, string> OnParcelVoiceInfo;
+        public event Action<UUID, VoiceSession.PeerAudioState>? PeerAudioUpdated;
+        public event Action<UUID, VoiceSession.AvatarPosition>? PeerPositionUpdatedTyped;
+        public event Action<Dictionary<UUID, bool>>? MuteMapReceived;
+        public event Action<Dictionary<UUID, int>>? GainMapReceived;
+        public event Action<string, int, string>? OnParcelVoiceInfo;
 
-        public VoiceManager(GridClient client, IVoiceLogger logger = null)
+        public VoiceManager(GridClient client, IVoiceLogger? logger = null)
         {
             Client = client;
             AudioDevice = new Sdl3Audio();
@@ -166,12 +166,12 @@ namespace LibreMetaverse.Voice.WebRTC
             Client.Network.SimDisconnected += OnSimDisconnected;
         }
 
-        private void OnSimChanged(object sender, SimChangedEventArgs e)
+        private void OnSimChanged(object? sender, SimChangedEventArgs e)
         {
             _ = HandleRegionChange(e.PreviousSimulator);
         }
 
-        private void OnTeleport(object sender, TeleportEventArgs e)
+        private void OnTeleport(object? sender, TeleportEventArgs e)
         {
             if (e.Status == TeleportStatus.Finished)
             {
@@ -179,7 +179,7 @@ namespace LibreMetaverse.Voice.WebRTC
             }
         }
 
-        private async Task HandleRegionChange(Simulator previousSim)
+        private async Task HandleRegionChange(Simulator? previousSim)
         {
             if (!_enabled || _primarySession == null) return;
 
@@ -222,9 +222,9 @@ namespace LibreMetaverse.Voice.WebRTC
                 }
 
                 // Store current session type and channel info before reprovisioning
-                var wasMultiAgent = !string.IsNullOrEmpty(_primarySession.Session.ChannelId);
-                var preservedChannelId = _primarySession.Session.ChannelId;
-                var preservedCredentials = _primarySession.Session.ChannelCredentials;
+                var preservedChannelId = _primarySession?.Session?.ChannelId;
+                var preservedCredentials = _primarySession?.Session?.ChannelCredentials;
+                var wasMultiAgent = !string.IsNullOrEmpty(preservedChannelId);
 
                 // Request new parcel voice info for the new region
                 var parcelInfoSuccess = await RequestParcelVoiceInfo();
@@ -294,19 +294,19 @@ namespace LibreMetaverse.Voice.WebRTC
                 {
                     try
                     {
-                        await kvp.Value.Session.CloseSession().ConfigureAwait(false);
-                        kvp.Value.Session.Dispose();
+                        _ = kvp.Value.Session?.CloseSession();
+                        try { kvp.Value.Session?.Dispose(); } catch { }
                     }
                     catch { }
                 }
                 _adjacentSessions.Clear();
 
                 // Close the current primary session
-                if (_primarySession != null)
+                if (_primarySession?.Session != null)
                 {
                     try
                     {
-                        _primarySession.Session.OnDataChannelReady -= CurrentSessionOnOnDataChannelReady;
+                        try { _primarySession.Session.OnDataChannelReady -= CurrentSessionOnOnDataChannelReady; } catch { }
                         await _primarySession.Session.CloseSession().ConfigureAwait(false);
                     }
                     catch (Exception ex)
@@ -328,7 +328,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 }
 
                 // Create new primary session
-                var session = new VoiceSession(AudioDevice, sessionType, Client, _log);
+                var session = new VoiceSession(AudioDevice!, sessionType, Client, _log);
 
                 // Set preserved or new channel info
                 if (!string.IsNullOrEmpty(ChannelId))
@@ -394,7 +394,7 @@ namespace LibreMetaverse.Voice.WebRTC
             }
         }
 
-        private void OnSimConnected(object sender, SimConnectedEventArgs e)
+        private void OnSimConnected(object? sender, SimConnectedEventArgs e)
         {
             // Check if this is an adjacent region (not the current sim)
             if (e.Simulator != Client.Network.CurrentSim && _primarySession != null)
@@ -403,7 +403,7 @@ namespace LibreMetaverse.Voice.WebRTC
             }
         }
 
-        private void OnSimDisconnected(object sender, SimDisconnectedEventArgs e)
+        private void OnSimDisconnected(object? sender, SimDisconnectedEventArgs e)
         {
             // Clean up voice session for disconnected adjacent region
             if (e.Simulator != null && _adjacentSessions.TryRemove(e.Simulator.Handle, out var session))
@@ -411,8 +411,8 @@ namespace LibreMetaverse.Voice.WebRTC
                 _log.Info($"Cleaning up voice session for disconnected adjacent region {e.Simulator.Handle:X}", Client);
                 try
                 {
-                    _ = session.Session.CloseSession();
-                    session.Session.Dispose();
+                    _ = session.Session?.CloseSession();
+                    try { session.Session?.Dispose(); } catch { }
                 }
                 catch (Exception ex)
                 {
@@ -599,11 +599,14 @@ namespace LibreMetaverse.Voice.WebRTC
                 if (_adjacentSessions.TryRemove(handle, out var session))
                 {
                     _log.Info($"Removing voice session for no-longer-adjacent region {handle:X}", Client);
-                    try
-                    {
-                        await session.Session.CloseSession().ConfigureAwait(false);
-                        session.Session.Dispose();
-                    }
+                        try
+                        {
+                            if (session?.Session != null)
+                            {
+                                await session.Session.CloseSession().ConfigureAwait(false);
+                                try { session.Session.Dispose(); } catch { }
+                            }
+                        }
                     catch (Exception ex)
                     {
                         _log.Warn($"Error disposing stale adjacent session: {ex.Message}", Client);
@@ -649,8 +652,8 @@ namespace LibreMetaverse.Voice.WebRTC
             {
                 try
                 {
-                    _ = kvp.Value.Session.CloseSession();
-                    kvp.Value.Session.Dispose();
+                    _ = kvp.Value.Session?.CloseSession();
+                    try { kvp.Value.Session?.Dispose(); } catch { }
                 }
                 catch { }
             }
@@ -661,8 +664,8 @@ namespace LibreMetaverse.Voice.WebRTC
             {
                 try
                 {
-                    _ = kvp.Value.Session.CloseSession();
-                    kvp.Value.Session.Dispose();
+                    _ = kvp.Value.Session?.CloseSession();
+                    try { kvp.Value.Session?.Dispose(); } catch { }
                 }
                 catch { }
             }
@@ -673,8 +676,8 @@ namespace LibreMetaverse.Voice.WebRTC
             {
                 try
                 {
-                    _ = kvp.Value.Session.CloseSession();
-                    kvp.Value.Session.Dispose();
+                    _ = kvp.Value.Session?.CloseSession();
+                    try { kvp.Value.Session?.Dispose(); } catch { }
                 }
                 catch { }
             }
@@ -685,9 +688,12 @@ namespace LibreMetaverse.Voice.WebRTC
             {
                 try
                 {
-                    _primarySession.Session.OnDataChannelReady -= CurrentSessionOnOnDataChannelReady;
-                    _ = _primarySession.Session.CloseSession();
-                    _primarySession.Session.Dispose();
+                    if (_primarySession.Session != null)
+                    {
+                        try { _primarySession.Session.OnDataChannelReady -= CurrentSessionOnOnDataChannelReady; } catch { }
+                        _ = _primarySession.Session.CloseSession();
+                        try { _primarySession.Session.Dispose(); } catch { }
+                    }
                 }
                 catch { }
                 _primarySession = null;
@@ -753,7 +759,7 @@ namespace LibreMetaverse.Voice.WebRTC
             jw.WriteObjectEnd();
             jw.WriteObjectEnd();
 
-            if (_primarySession != null)
+            if (_primarySession?.Session != null)
             {
                 _ = _primarySession.Session.TrySendDataChannelString(jw.ToString());
             }
@@ -762,7 +768,7 @@ namespace LibreMetaverse.Voice.WebRTC
         private void CurrentSessionOnOnDataChannelReady()
         {
             Console.WriteLine("[WebRTC] data channel ready");
-            if (_primarySession == null) return;
+            if (_primarySession?.Session == null) return;
 
             _primarySession.Session.OnDataChannelReady -= CurrentSessionOnOnDataChannelReady;
             JsonWriter jw = new JsonWriter();
@@ -781,8 +787,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
         public bool SendDataChannelMessage(string message)
         {
-            if (_primarySession == null) return false;
-            return _primarySession.Session.TrySendDataChannelString(message);
+            return _primarySession?.Session?.TrySendDataChannelString(message) ?? false;
         }
 
         public void SetPeerMute(UUID peerId, bool mute)
@@ -797,8 +802,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
         public List<UUID> GetKnownPeers()
         {
-            if (_primarySession == null) return new List<UUID>();
-            try { return _primarySession.Session.GetKnownPeers(); } catch { return new List<UUID>(); }
+            try { return _primarySession?.Session?.GetKnownPeers() ?? new List<UUID>(); } catch { return new List<UUID>(); }
         }
 
         // Get aggregated peer list from all sessions (primary + adjacent + groups + P2P)
@@ -810,7 +814,7 @@ namespace LibreMetaverse.Voice.WebRTC
             {
                 try
                 {
-                    foreach (var peer in _primarySession.Session.GetKnownPeers())
+                    foreach (var peer in _primarySession?.Session?.GetKnownPeers() ?? new List<UUID>())
                     {
                         peers.Add(peer);
                     }
@@ -822,7 +826,7 @@ namespace LibreMetaverse.Voice.WebRTC
             {
                 try
                 {
-                    foreach (var peer in session.Session.GetKnownPeers())
+                    foreach (var peer in session.Session?.GetKnownPeers() ?? new List<UUID>())
                     {
                         peers.Add(peer);
                     }
@@ -834,7 +838,7 @@ namespace LibreMetaverse.Voice.WebRTC
             {
                 try
                 {
-                    foreach (var peer in session.Session.GetKnownPeers())
+                    foreach (var peer in session.Session?.GetKnownPeers() ?? new List<UUID>())
                     {
                         peers.Add(peer);
                     }
@@ -846,7 +850,7 @@ namespace LibreMetaverse.Voice.WebRTC
             {
                 try
                 {
-                    foreach (var peer in session.Session.GetKnownPeers())
+                    foreach (var peer in session.Session?.GetKnownPeers() ?? new List<UUID>())
                     {
                         peers.Add(peer);
                     }
@@ -859,14 +863,14 @@ namespace LibreMetaverse.Voice.WebRTC
 
         public async Task<bool> RequestParcelVoiceInfo()
         {
-            var cap = Client.Network.CurrentSim.Caps?.CapabilityURI("ParcelVoiceInfoRequest");
+            var cap = Client.Network?.CurrentSim?.Caps?.CapabilityURI("ParcelVoiceInfoRequest");
             if (cap == null)
             {
-                _log.Warn("ParcelVoiceInfoRequest capability not available", Client);
+                _log.Warn("ParcelVoiceInfoRequest capability not available", Client!);
                 return false;
             }
 
-            var tcs = new TaskCompletionSource<OSD>();
+            var tcs = new TaskCompletionSource<OSD?>();
             _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(), CancellationToken.None, (response, data, error) =>
             {
                 if (error != null)
@@ -875,7 +879,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 }
                 else
                 {
-                    var osd = OSDParser.Deserialize(data);
+                    var osd = data != null ? OSDParser.Deserialize(data) : null;
                     tcs.TrySetResult(osd);
                 }
             });
@@ -897,7 +901,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     }
 
                     // Set on current session if exists
-                    if (_primarySession != null)
+                    if (_primarySession?.Session != null)
                     {
                         _primarySession.Session.ChannelId = channelURI;
                         _primarySession.Session.ChannelCredentials = credentials;
@@ -959,7 +963,7 @@ namespace LibreMetaverse.Voice.WebRTC
         }
 
         // Fields to track a raw file stream opened by the manager
-        private FileStream _rawFileStream;
+        private FileStream? _rawFileStream;
         private bool _rawFileStreamActive = false;
 
         /// <summary>
@@ -1131,8 +1135,11 @@ namespace LibreMetaverse.Voice.WebRTC
                 _log.Info($"Leaving group voice for {groupId}", Client);
 
                 // Close and dispose the session
-                await groupSession.Session.CloseSession().ConfigureAwait(false);
-                groupSession.Session.Dispose();
+                if (groupSession?.Session != null)
+                {
+                    await groupSession.Session.CloseSession().ConfigureAwait(false);
+                    groupSession.Session.Dispose();
+                }
 
                 try { OnGroupVoiceLeft?.Invoke(groupId); } catch { }
             }
@@ -1164,12 +1171,12 @@ namespace LibreMetaverse.Voice.WebRTC
         /// <summary>
         /// Request group voice channel information from the simulator.
         /// </summary>
-        private async Task<(string channelUri, string credentials)> RequestGroupVoiceInfo(UUID groupId)
+        private async Task<(string? channelUri, string? credentials)> RequestGroupVoiceInfo(UUID groupId)
         {
-            var cap = Client.Network.CurrentSim.Caps?.CapabilityURI("ChatSessionRequest");
+            var cap = Client.Network?.CurrentSim?.Caps?.CapabilityURI("ChatSessionRequest");
             if (cap == null)
             {
-                _log.Warn("ChatSessionRequest capability not available for group voice", Client);
+                _log.Warn("ChatSessionRequest capability not available for group voice", Client!);
                 return (null, null);
             }
 
@@ -1179,7 +1186,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 ["session-id"] = groupId
             };
 
-            var tcs = new TaskCompletionSource<OSD>();
+            var tcs = new TaskCompletionSource<OSD?>();
             _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, CancellationToken.None, (response, data, error) =>
             {
                 if (error != null)
@@ -1188,7 +1195,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 }
                 else
                 {
-                    var osd = OSDParser.Deserialize(data);
+                    var osd = data != null ? OSDParser.Deserialize(data) : null;
                     tcs.TrySetResult(osd);
                 }
             });
@@ -1207,13 +1214,13 @@ namespace LibreMetaverse.Voice.WebRTC
                         credentials = credMap.ContainsKey("channel_credentials") ? credMap["channel_credentials"].AsString() : "";
                     }
 
-                    _log.Debug($"Group voice credentials received for {groupId}: {channelUri}", Client);
+                    _log.Debug($"Group voice credentials received for {groupId}: {channelUri}", Client!);
                     return (channelUri, credentials);
                 }
             }
             catch (Exception ex)
             {
-                _log.Warn($"Failed to request group voice info for {groupId}: {ex.Message}", Client);
+                _log.Warn($"Failed to request group voice info for {groupId}: {ex.Message}", Client!);
             }
 
             return (null, null);
@@ -1230,7 +1237,7 @@ namespace LibreMetaverse.Voice.WebRTC
             {
                 try
                 {
-                    return groupSession.Session.GetKnownPeers();
+                    return groupSession.Session?.GetKnownPeers() ?? new List<UUID>();
                 }
                 catch { }
             }
@@ -1248,7 +1255,7 @@ namespace LibreMetaverse.Voice.WebRTC
         {
             if (_groupSessions.TryGetValue(groupId, out var groupSession))
             {
-                return groupSession.Session.SetPeerMute(peerId, mute);
+                return groupSession.Session?.SetPeerMute(peerId, mute) ?? false;
             }
             return false;
         }
@@ -1264,7 +1271,7 @@ namespace LibreMetaverse.Voice.WebRTC
         {
             if (_groupSessions.TryGetValue(groupId, out var groupSession))
             {
-                return groupSession.Session.SetPeerGain(peerId, gain);
+                return groupSession.Session?.SetPeerGain(peerId, gain) ?? false;
             }
             return false;
         }
@@ -1397,8 +1404,11 @@ namespace LibreMetaverse.Voice.WebRTC
                 _log.Info($"Ending P2P voice call with {agentId}", Client);
 
                 // Close and dispose the session
-                await p2pSession.Session.CloseSession().ConfigureAwait(false);
-                p2pSession.Session.Dispose();
+                if (p2pSession?.Session != null)
+                {
+                    await p2pSession.Session.CloseSession().ConfigureAwait(false);
+                    p2pSession.Session.Dispose();
+                }
 
                 try { OnP2PCallEnded?.Invoke(agentId); } catch { }
             }
@@ -1552,7 +1562,7 @@ namespace LibreMetaverse.Voice.WebRTC
         {
             if (_p2pSessions.TryGetValue(agentId, out var p2pSession))
             {
-                return p2pSession.Session.SetPeerMute(agentId, mute);
+                return p2pSession?.Session?.SetPeerMute(agentId, mute) ?? false;
             }
             return false;
         }
@@ -1567,7 +1577,7 @@ namespace LibreMetaverse.Voice.WebRTC
         {
             if (_p2pSessions.TryGetValue(agentId, out var p2pSession))
             {
-                return p2pSession.Session.SetPeerGain(agentId, gain);
+                return p2pSession?.Session?.SetPeerGain(agentId, gain) ?? false;
             }
             return false;
         }
@@ -1575,9 +1585,9 @@ namespace LibreMetaverse.Voice.WebRTC
         /// <summary>
         /// Request P2P voice channel information from the simulator.
         /// </summary>
-        private async Task<(string channelUri, string credentials)> RequestP2PVoiceInfo(UUID agentId)
+        private async Task<(string? channelUri, string? credentials)> RequestP2PVoiceInfo(UUID agentId)
         {
-            var cap = Client.Network.CurrentSim.Caps?.CapabilityURI("ChatSessionRequest");
+            var cap = Client.Network?.CurrentSim?.Caps?.CapabilityURI("ChatSessionRequest");
             if (cap == null)
             {
                 _log.Warn("ChatSessionRequest capability not available for P2P voice", Client);
@@ -1599,8 +1609,8 @@ namespace LibreMetaverse.Voice.WebRTC
                 }
                 else
                 {
-                    var osd = OSDParser.Deserialize(data);
-                    tcs.TrySetResult(osd);
+                    var osd = data != null ? OSDParser.Deserialize(data) : null;
+                    tcs.TrySetResult(osd!);
                 }
             });
 

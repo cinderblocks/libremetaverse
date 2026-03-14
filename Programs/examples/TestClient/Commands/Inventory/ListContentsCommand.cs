@@ -26,11 +26,24 @@ namespace TestClient.Commands.Inventory
                 return "Usage: ls [-l]";
             bool longDisplay = args.Length > 0 && args[0] == "-l";
 
-            Manager = Client.Inventory;
-            Inventory = Manager.Store;
+            var manager = Client.Inventory;
+            if (manager == null)
+            {
+                return "Inventory manager not available";
+            }
+
+            var inventory = manager.Store;
+            if (inventory == null)
+            {
+                return "Inventory store not available";
+            }
 
             // Use async folder contents
-            List<InventoryBase> contents = await Manager.FolderContentsAsync(Client.CurrentDirectory.UUID, Client.Self.AgentID, true, true, InventorySortOrder.ByName).ConfigureAwait(false);
+            List<InventoryBase> contents = await manager.FolderContentsAsync(Client.CurrentDirectory.UUID, Client.Self.AgentID, true, true, InventorySortOrder.ByName).ConfigureAwait(false);
+            if (contents == null)
+            {
+                return string.Empty;
+            }
 
             StringBuilder display = new StringBuilder();
             // Pretty simple, just print out the contents.

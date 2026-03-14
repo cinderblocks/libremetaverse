@@ -641,7 +641,7 @@ namespace OpenMetaverse
         /// <param name="client">A reference to the <see cref="GridClient"/> instance</param>
         public ObjectManager(GridClient client)
         {
-            Client = client;
+            Client = client ?? throw new ArgumentNullException(nameof(client));
 
             Client.Network.RegisterCallback(PacketType.ObjectUpdate, ObjectUpdateHandler, false);
             Client.Network.RegisterCallback(PacketType.ImprovedTerseObjectUpdate, ImprovedTerseObjectUpdateHandler, false);

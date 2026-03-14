@@ -33,7 +33,7 @@ namespace LibreMetaverse.Voice.WebRTC
     {
         private const string _prefix = "[Voice.WebRTC] ";
 
-        private string FormatMessage(string message, GridClient client)
+        private string FormatMessage(string message, GridClient? client)
         {
             if (client != null && client.Settings.LOG_NAMES && client.Self?.Name != null)
             {
@@ -42,29 +42,29 @@ namespace LibreMetaverse.Voice.WebRTC
             return _prefix + message;
         }
 
-        public void Log(string message, LogLevel level, GridClient client = null)
+        public void Log(string message, LogLevel level, GridClient? client = null)
         {
-            Logger.Log(FormatMessage(message, client), level, (GridClient)null, (System.Exception)null);
+            Logger.Log(FormatMessage(message, client), level, client, (System.Exception?)null);
         }
 
-        public void Info(string message, GridClient client = null)
+        public void Info(string message, GridClient? client = null)
         {
-            Logger.Info(FormatMessage(message, client), (GridClient)null);
+            Logger.Info(FormatMessage(message, client), client);
         }
 
-        public void Warn(string message, GridClient client = null)
+        public void Warn(string message, GridClient? client = null)
         {
-            Logger.Warn(FormatMessage(message, client), (GridClient)null);
+            Logger.Warn(FormatMessage(message, client), client);
         }
 
-        public void Debug(string message, GridClient client = null)
+        public void Debug(string message, GridClient? client = null)
         {
-            Logger.Debug(FormatMessage(message, client), (GridClient)null);
+            Logger.Debug(FormatMessage(message, client), client);
         }
 
-        public void Error(string message, GridClient client = null)
+        public void Error(string message, GridClient? client = null)
         {
-            Logger.Error(FormatMessage(message, client), (GridClient)null);
+            Logger.Error(FormatMessage(message, client), client);
         }
     }
 }

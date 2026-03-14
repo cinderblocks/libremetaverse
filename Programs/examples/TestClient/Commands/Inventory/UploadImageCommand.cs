@@ -80,7 +80,7 @@ namespace TestClient.Commands.Inventory
             }
         }
 
-        private Task<UUID> UploadAsync(byte[] uploadData, string fileName, int timeoutMs)
+        private Task<UUID> UploadAsync(byte[]? uploadData, string fileName, int timeoutMs)
         {
             var tcs = new TaskCompletionSource<UUID>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -121,11 +121,11 @@ namespace TestClient.Commands.Inventory
             }, TaskScheduler.Default);
         }
 
-        private byte[] LoadImage(string fileName)
+        private byte[]? LoadImage(string fileName)
         {
             byte[] uploadData;
             string lowfilename = fileName.ToLower();
-            SKBitmap bitmap = null;
+            SKBitmap? bitmap = null;
             try
             {
                 if (lowfilename.EndsWith(".jp2") || lowfilename.EndsWith(".j2c"))
@@ -145,7 +145,7 @@ namespace TestClient.Commands.Inventory
                         bitmap = SKBitmap.FromImage(img);
                     }
 
-                    int oldwidth = bitmap.Width;
+                    int oldwidth = bitmap!.Width;
                     int oldheight = bitmap.Height;
 
                     if (!IsPowerOfTwo((uint)oldwidth) || !IsPowerOfTwo((uint)oldheight))

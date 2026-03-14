@@ -56,21 +56,21 @@ namespace LibreMetaverse.Voice.WebRTC
         private readonly GridClient Client;
         private readonly Sdl3Audio AudioDevice;
         private readonly IVoiceLogger _log;
-        private RTCPeerConnection PeerConnection;
+        private RTCPeerConnection? PeerConnection;
 
-        public event Action OnPeerConnectionClosed;
-        public event Action OnPeerConnectionReady;
-        public event Action OnDataChannelReady;
+        public event Action? OnPeerConnectionClosed;
+        public event Action? OnPeerConnectionReady;
+        public event Action? OnDataChannelReady;
 
         // Reprovision events
-        public event Action OnReprovisionSucceeded;
-        public event Action<Exception> OnReprovisionFailed;
+        public event Action? OnReprovisionSucceeded;
+        public event Action<Exception>? OnReprovisionFailed;
 
         // New events for data-channel protocol
-        public event Action<UUID> OnPeerJoined;
-        public event Action<UUID> OnPeerLeft;
-        public event Action<UUID, OSDMap> OnPeerPositionUpdated;
-        public event Action<List<UUID>> OnPeerListUpdated;
+        public event Action<UUID>? OnPeerJoined;
+        public event Action<UUID>? OnPeerLeft;
+        public event Action<UUID, OSDMap>? OnPeerPositionUpdated;
+        public event Action<List<UUID>>? OnPeerListUpdated;
 
         public class PeerAudioState
         {
@@ -79,7 +79,7 @@ namespace LibreMetaverse.Voice.WebRTC
             public bool? JoinedPrimary { get; set; }
             public bool Left { get; set; }
         }
-        public event Action<UUID, PeerAudioState> OnPeerAudioUpdated;
+        public event Action<UUID, PeerAudioState>? OnPeerAudioUpdated;
         private bool answerReceived = false;
         // Typed position/heading structures according to PDF (integers)
         public struct Int3 { public int X; public int Y; public int Z; }
@@ -92,16 +92,16 @@ namespace LibreMetaverse.Voice.WebRTC
             public Int3? ListenerPosition { get; set; }
             public Int4? ListenerHeading { get; set; }
         }
-        public event Action<UUID, AvatarPosition> OnPeerPositionUpdatedTyped;
-        public event Action<Dictionary<UUID, bool>> OnMuteMapReceived;
-        public event Action<Dictionary<UUID, int>> OnGainMapReceived;
+        public event Action<UUID, AvatarPosition>? OnPeerPositionUpdatedTyped;
+        public event Action<Dictionary<UUID, bool>>? OnMuteMapReceived;
+        public event Action<Dictionary<UUID, int>>? OnGainMapReceived;
 
         public UUID SessionId { get; private set; }
-        public string SdpLocal => PeerConnection?.localDescription.sdp.ToString();
-        public string SdpRemote => PeerConnection?.remoteDescription.sdp.ToString();
+        public string SdpLocal => PeerConnection?.localDescription?.sdp?.ToString() ?? string.Empty;
+        public string SdpRemote => PeerConnection?.remoteDescription?.sdp?.ToString() ?? string.Empty;
 
         public bool Connected => PeerConnection?.connectionState == RTCPeerConnectionState.connected;
-        public RTCDataChannel DataChannel => PeerConnection?.DataChannels?.FirstOrDefault();
+        public RTCDataChannel? DataChannel => PeerConnection?.DataChannels?.FirstOrDefault();
         private ESessionType SessionType { get; }
         private readonly ConcurrentQueue<RTCIceCandidate> PendingCandidates = new ConcurrentQueue<RTCIceCandidate>();
         // Fast approximate count to avoid expensive ConcurrentQueue.Count in hot paths
@@ -110,15 +110,15 @@ namespace LibreMetaverse.Voice.WebRTC
         private readonly object _candidateLock = new object();
         private readonly CancellationTokenSource Cts = new CancellationTokenSource();
 
-        private CancellationTokenSource iceTrickleCts;
-        private Task iceTrickleTask;
+        private CancellationTokenSource? iceTrickleCts;
+        private Task? iceTrickleTask;
         // Prevent concurrent reprovision attempts
         private readonly SemaphoreSlim reprovisionLock = new SemaphoreSlim(1, 1);
         private volatile bool reprovisionScheduled = false;
 
         // Multi-agent channel fields
-        public string ChannelId { get; set; }
-        public string ChannelCredentials { get; set; }
+        public string? ChannelId { get; set; }
+        public string? ChannelCredentials { get; set; }
 
         // Centralized peer and SSRC management helper
         private readonly PeerManager peerManager;
@@ -138,10 +138,10 @@ namespace LibreMetaverse.Voice.WebRTC
         }
 
         // Position and keepalive loop cancellation/tasks
-        private CancellationTokenSource positionLoopCts;
-        private Task positionLoopTask;
-        private CancellationTokenSource keepAliveLoopCts;
-        private Task keepAliveLoopTask;
+        private CancellationTokenSource? positionLoopCts;
+        private Task? positionLoopTask;
+        private CancellationTokenSource? keepAliveLoopCts;
+        private Task? keepAliveLoopTask;
 
         // Whether spatial coords changed since last send — only send updates when this is true
         private volatile bool mSpatialCoordsDirty = true;
@@ -159,9 +159,9 @@ namespace LibreMetaverse.Voice.WebRTC
         private readonly long lastRtpReceivedTicks = 0;
         private readonly long lastRtcpReceivedTicks = 0;
         private readonly long lastRtcpSentTicks = 0;
-        private readonly MediaStreamTrack _remoteAudioTrack;
+        private readonly MediaStreamTrack? _remoteAudioTrack;
 
-        internal VoiceSession(Sdl3Audio audioDevice, ESessionType type, GridClient client, IVoiceLogger logger = null)
+        internal VoiceSession(Sdl3Audio audioDevice, ESessionType type, GridClient client, IVoiceLogger? logger = null)
         {
             Client = client;
             AudioDevice = audioDevice;
@@ -202,11 +202,11 @@ namespace LibreMetaverse.Voice.WebRTC
             if (timeout == null) timeout = TimeSpan.FromSeconds(10);
 
             int attempt = 0;
-            Exception lastEx = null;
+            Exception? lastEx = null;
             while (attempt < maxAttempts)
             {
                 attempt++;
-                var tcs = new TaskCompletionSource<(object response, byte[] data, Exception err)>();
+                var tcs = new TaskCompletionSource<(object? response, byte[]? data, Exception? err)>();
                 try
                 {
                     var token = ct == CancellationToken.None ? Cts.Token : ct;
@@ -233,17 +233,17 @@ namespace LibreMetaverse.Voice.WebRTC
                             try
                             {
                                 // Attempt to deserialize LLSD/OSD. If parsing fails, capture raw response for diagnostics.
-                                var osd = OSDParser.Deserialize(data);
+                                var osd = OSDParser.Deserialize(data ?? Array.Empty<byte>());
                                 return osd;
                             }
                             catch (Exception parseEx)
                             {
                                 string respText = string.Empty;
-                                try { respText = Encoding.UTF8.GetString(data); } catch { }
+                                try { respText = data != null ? Encoding.UTF8.GetString(data) : string.Empty; } catch { }
 
                                 // Try to infer HTTP status code or status text from the response object if available
                                 int? statusCode = null;
-                                string statusText = null;
+                                string? statusText = null;
                                 try
                                 {
                                     if (response != null)
@@ -626,38 +626,38 @@ namespace LibreMetaverse.Voice.WebRTC
                         {
                             _log.Debug($"Failed to start playback via AudioDevice: {ex.Message}", Client);
                             // Fallback: attempt to start endpoint directly
-                            try { await AudioDevice.EndPoint.StartAudioSink().ConfigureAwait(false); } catch { }
+                            try { if (AudioDevice.EndPoint != null) await AudioDevice.EndPoint.StartAudioSink().ConfigureAwait(false); } catch { }
                         }
                         _log.Debug("Playback started", Client);
                     }
                     else
                     {
                         // Attempt to recreate endpoint if possible
-                        var got = AudioDevice?.EnsureEndpoint() ?? false;
+                        var got = AudioDevice!.EnsureEndpoint();
                         if (got)
                         {
                             try
                             {
-                                await AudioDevice.StartPlaybackAsync().ConfigureAwait(false);
-                                _log.Debug("Playback started after EnsureEndpoint", Client);
+                                await AudioDevice!.StartPlaybackAsync().ConfigureAwait(false);
+                                _log.Debug("Playback started after EnsureEndpoint", Client!);
                             }
                             catch (Exception ex)
                             {
-                                _log.Debug($"Failed to start playback after EnsureEndpoint: {ex.Message}", Client);
+                                _log.Debug($"Failed to start playback after EnsureEndpoint: {ex.Message}", Client!);
                             }
                         }
                         else
                         {
-                            _log.Debug("Playback not started: SDL3 EndPoint is null (SDL3 not initialized or no devices found)", Client);
+                            _log.Debug("Playback not started: SDL3 EndPoint is null (SDL3 not initialized or no devices found)", Client!);
                         }
                     }
                     // Start recording only when the connection is fully established
                     try
                     {
-                        if (AudioDevice?.Source != null)
+                            if (AudioDevice?.Source != null)
                         {
-                            AudioDevice.StartRecording();
-                            _log.Debug("Recording started on connection", Client);
+                            try { AudioDevice.StartRecording(); } catch { }
+                            _log.Debug("Recording started on connection", Client!);
                         }
                     }
                     catch (Exception ex)
@@ -688,12 +688,12 @@ namespace LibreMetaverse.Voice.WebRTC
             if (AudioDevice?.Source != null)
             {
                 try { AudioDevice.Source.OnAudioSourceEncodedSample -= pc.SendAudio; } catch { }
-            }
 
-            AudioDevice.Source.OnAudioSourceEncodedSample += (duration, sample) =>
-            {
-                pc.SendAudio(duration, sample);
-            };
+                AudioDevice.Source.OnAudioSourceEncodedSample += (duration, sample) =>
+                {
+                    pc.SendAudio(duration, sample);
+                };
+            }
 
             // Also wire the AudioDevice level event for file playback and other non-source audio
             if (AudioDevice != null)
@@ -849,7 +849,7 @@ namespace LibreMetaverse.Voice.WebRTC
         {
             if (!answerReceived || GetPendingCandidateCount() == 0) { return; }
 
-            var cap = Client.Network.CurrentSim.Caps?.CapabilityURI(VOICE_SIGNALING_CAP);
+            var cap = Client.Network?.CurrentSim?.Caps?.CapabilityURI(VOICE_SIGNALING_CAP);
             if (cap == null) { return; }
 
             var dequeued = DequeueAllCandidates();
@@ -876,7 +876,8 @@ namespace LibreMetaverse.Voice.WebRTC
 
             try
             {
-                await PostCapsWithRetries(cap, payload).ConfigureAwait(false);
+                if (cap != null)
+                    await PostCapsWithRetries(cap, payload).ConfigureAwait(false);
                 _log.Debug($"Sent {candidatesArray.Count} ICE candidates", Client);
             }
             catch (Exception ex)
@@ -894,7 +895,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 return;
             }
 
-            var cap = Client.Network.CurrentSim.Caps?.CapabilityURI(VOICE_SIGNALING_CAP);
+            var cap = Client.Network?.CurrentSim?.Caps?.CapabilityURI(VOICE_SIGNALING_CAP);
             if (cap == null)
             {
                 _log.Debug("Voice signaling cap not available", Client);
@@ -941,7 +942,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
         private async Task SendVoiceSignalingCompleteRequest()
         {
-            var cap = Client.Network.CurrentSim.Caps?.CapabilityURI(VOICE_SIGNALING_CAP);
+            var cap = Client.Network?.CurrentSim?.Caps?.CapabilityURI(VOICE_SIGNALING_CAP);
 
             var payload = new OSDMap
              {
@@ -1196,7 +1197,7 @@ namespace LibreMetaverse.Voice.WebRTC
         {
             var lines = sdp.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
             var output = new List<string>();
-            string opusPayload = null;
+            string? opusPayload = null;
             bool inAudioSection = false;
 
             foreach (var line in lines)
@@ -1295,7 +1296,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 try { peerManager.ClearAllPeers(); } catch { }
 
                 // Create a new peer connection
-                RTCPeerConnection newPc = null;
+                RTCPeerConnection? newPc = null;
                 try
                 {
                     newPc = await CreatePeerConnection();
@@ -1366,11 +1367,11 @@ namespace LibreMetaverse.Voice.WebRTC
         private OSDMap GetWorldPosition()
         {
             var pos = Client?.Self?.GlobalPosition ?? Vector3.Zero;
-            var heading = Client?.Self?.RelativeRotation * 100;
+            var heading = (Client?.Self?.RelativeRotation ?? Quaternion.Identity) * 100;
 
             if (pos == Vector3.Zero)
             {
-                _log.Warn("Global position unavailable — returning zeroed map", Client);
+                _log.Warn("Global position unavailable — returning zeroed map", Client!);
                 var zero = new OSDMap
                 {
                     ["x"] = 0,
@@ -1396,9 +1397,9 @@ namespace LibreMetaverse.Voice.WebRTC
 
             var sh = new OSDMap
             {
-                ["x"] = heading.Value.X,
-                ["y"] = heading.Value.Y,
-                ["z"] = heading.Value.Z
+                ["x"] = heading.X,
+                ["y"] = heading.Y,
+                ["z"] = heading.Z
             };
 
             return new OSDMap
@@ -1540,7 +1541,7 @@ namespace LibreMetaverse.Voice.WebRTC
             if (Client?.Network == null || !Client.Network.Connected) { return false; }
             _log.Debug("Requesting voice capability...", Client);
 
-            var cap = Client.Network.CurrentSim.Caps?.CapabilityURI(PROVISION_VOICE_ACCOUNT_CAP);
+            var cap = Client.Network?.CurrentSim?.Caps?.CapabilityURI(PROVISION_VOICE_ACCOUNT_CAP);
             if (cap == null)
             {
                 throw new VoiceException($"No {PROVISION_VOICE_ACCOUNT_CAP} capability available.");
@@ -1563,19 +1564,20 @@ namespace LibreMetaverse.Voice.WebRTC
         {
             var parcelId = Client.Parcels.CurrentParcel?.LocalID ?? -1;
             var payload = new LocalVoiceProvisionRequest(SdpLocal, parcelId).Serialize();
-            _log.Debug("==> Attempting to POST for voice provision...", Client);
+            _log.Debug("==> Attempting to POST for voice provision...", Client!);
             if (Client?.HttpCapsClient == null)
             {
-                _log.Error("HttpCapsClient is null; cannot post provisioning request", Client);
+                _log.Error("HttpCapsClient is null; cannot post provisioning request", Client!);
                 throw new VoiceException("Internal error: HttpCapsClient is null.");
             }
             var osd = await PostCapsWithRetries(cap, payload).ConfigureAwait(false);
-            _log.Debug("Received provisioning response", Client);
+            _log.Debug("Received provisioning response", Client!);
             if (osd is OSDMap osdMap)
             {
                 if (!osdMap.TryGetValue("jsep", out var j))
                 {
-                    throw new VoiceException($"Region '{Client.Network.CurrentSim.Name}' does not support WebRtc.");
+                    var simName = Client.Network?.CurrentSim?.Name ?? "(unknown)";
+                    throw new VoiceException($"Region '{simName}' does not support WebRtc.");
                 }
 
                 var jsep = (OSDMap)j;
@@ -1587,7 +1589,7 @@ namespace LibreMetaverse.Voice.WebRTC
                         var emsg = osdMap.ContainsKey("error") ? osdMap["error"].AsString() : osdMap.ContainsKey("errmsg") ? osdMap["errmsg"].AsString() : osdMap.ContainsKey("message") ? osdMap["message"].AsString() : null;
                         if (!string.IsNullOrEmpty(emsg))
                         {
-                            var lower = emsg.ToLowerInvariant();
+                            var lower = emsg!.ToLowerInvariant();
                             if (lower.Contains("credential") || lower.Contains("credentials") || lower.Contains("expired") || lower.Contains("invalid") || lower.Contains("channel") || lower.Contains("denied"))
                             {
                                 _log.Warn($"Provisioning response indicated credential/channel problem: {emsg}", Client);
@@ -1651,8 +1653,8 @@ namespace LibreMetaverse.Voice.WebRTC
                 });
 
                 // Store channel info if present
-                if (osdMap.ContainsKey("channel")) ChannelId = osdMap["channel"].AsString();
-                if (osdMap.ContainsKey("credentials")) ChannelCredentials = osdMap["credentials"].AsString();
+                if (osdMap.ContainsKey("channel")) ChannelId = osdMap["channel"].AsString() ?? string.Empty;
+                if (osdMap.ContainsKey("credentials")) ChannelCredentials = osdMap["credentials"].AsString() ?? string.Empty;
 
                 _log.Debug($"Local voice provisioned: session={sessionId}", Client);
             }
@@ -1662,8 +1664,8 @@ namespace LibreMetaverse.Voice.WebRTC
         {
             var req = new MultiAgentVoiceProvisionRequest(SdpLocal);
             // include channel/credentials if present on this session
-            if (!string.IsNullOrEmpty(ChannelId)) req.ChannelId = ChannelId;
-            if (!string.IsNullOrEmpty(ChannelCredentials)) req.ChannelCredentials = ChannelCredentials;
+                if (!string.IsNullOrEmpty(ChannelId)) req.ChannelId = ChannelId!;
+            if (!string.IsNullOrEmpty(ChannelCredentials)) req.ChannelCredentials = ChannelCredentials!;
 
             var payload = req.Serialize();
             var osd = await PostCapsWithRetries(cap, payload).ConfigureAwait(false);
@@ -1671,17 +1673,24 @@ namespace LibreMetaverse.Voice.WebRTC
             {
                 if (!osdMap.ContainsKey("jsep"))
                 {
-                    throw new VoiceException($"Region '{Client.Network.CurrentSim.Name}' does not support WebRtc.");
+                    var simName = Client.Network?.CurrentSim?.Name ?? "(unknown)";
+                    throw new VoiceException($"Region '{simName}' does not support WebRtc.");
                 }
                 var jsep = (OSDMap)osdMap["jsep"];
                 if (jsep.ContainsKey("type") && jsep["type"].AsString() != "answer")
                 {
-                    throw new VoiceException($"jsep returned from '{Client.Network.CurrentSim.Name}' is not an answer.");
+                    var simName = Client.Network?.CurrentSim?.Name ?? "(unknown)";
+                    throw new VoiceException($"jsep returned from '{simName}' is not an answer.");
                 }
                 var sdpString = jsep["sdp"].AsString();
                 sdpString = SanitizeRemoteSdp(sdpString);
                 var sessionId = osdMap.ContainsKey("viewer_session") ? osdMap["viewer_session"].AsUUID() : UUID.Zero;
 
+                if (PeerConnection == null)
+                {
+                    _log.Error("PeerConnection unexpectedly null during RequestMultiAgentVoiceProvision", Client);
+                    throw new VoiceException("Internal error: PeerConnection was null.");
+                }
                 var desc = SDP.ParseSDPDescription(sdpString);
                 var set = PeerConnection.SetRemoteDescription(SdpType.answer, desc);
                 if (set != SetDescriptionResultEnum.OK)
@@ -1722,7 +1731,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
         private async Task SendCloseSessionRequest()
         {
-            var cap = Client.Network.CurrentSim.Caps?.CapabilityURI(PROVISION_VOICE_ACCOUNT_CAP);
+            var cap = Client.Network?.CurrentSim?.Caps?.CapabilityURI(PROVISION_VOICE_ACCOUNT_CAP);
 
             _log.Debug($"Closing voice session {SessionId}", Client);
             var payload = new OSDMap
@@ -1738,11 +1747,14 @@ namespace LibreMetaverse.Voice.WebRTC
             {
                 if (!string.IsNullOrEmpty(ChannelId))
                 {
-                    payload["channel"] = ChannelId;
-                    if (!string.IsNullOrEmpty(ChannelCredentials)) payload["credentials"] = ChannelCredentials;
+                    payload["channel"] = ChannelId!;
+                    if (!string.IsNullOrEmpty(ChannelCredentials)) payload["credentials"] = ChannelCredentials!;
                 }
 
-                await PostCapsWithRetries(cap, payload).ConfigureAwait(false);
+                if (cap != null)
+                {
+                    await PostCapsWithRetries(cap, payload).ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {
@@ -1807,11 +1819,11 @@ namespace LibreMetaverse.Voice.WebRTC
                 // Detach audio handlers
                 try
                 {
-                    if (AudioDevice?.Source != null)
+                    if (AudioDevice?.Source != null && PeerConnection != null)
                     {
                         try { AudioDevice.Source.OnAudioSourceEncodedSample -= PeerConnection.SendAudio; } catch { }
                     }
-                    if (AudioDevice != null)
+                    if (AudioDevice != null && PeerConnection != null)
                     {
                         try { AudioDevice.OnAudioSourceEncodedSample -= PeerConnection.SendAudio; } catch { }
                     }

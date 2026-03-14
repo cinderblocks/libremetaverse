@@ -32,7 +32,13 @@ namespace TestClient.Commands.Inventory
                 return "Usage: taskrunning objectID [[scriptName] true|false]";
             }
 
-            var found = Client.Network.CurrentSim.ObjectsPrimitives.FirstOrDefault(prim => prim.Value.ID == objectID);
+            var currentSim = Client.Network?.CurrentSim;
+            if (currentSim == null)
+            {
+                return "No current simulator available";
+            }
+
+            var found = currentSim.ObjectsPrimitives.FirstOrDefault(prim => prim.Value != null && prim.Value.ID == objectID);
             if (found.Value == null)
             {
                 return $"Couldn't find object {objectID}";
@@ -113,7 +119,7 @@ namespace TestClient.Commands.Inventory
         {
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            EventHandler<ScriptRunningReplyEventArgs> callback = null;
+            EventHandler<ScriptRunningReplyEventArgs>? callback = null;
             callback = (sender, e) =>
             {
                 if (e.ObjectID == objectID && e.ScriptID == scriptID)
