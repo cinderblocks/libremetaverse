@@ -98,6 +98,33 @@ namespace OpenMetaverse.Messages.Linden
             return map;
         }
 
+    /// <summary>
+    /// Minimal handler for NavMeshStatusUpdate capability events.
+    /// Captures raw OSD and a few optional fields commonly present in server implementations.
+    /// </summary>
+    public class NavMeshStatusUpdateMessage : IMessage
+    {
+        public OSDMap RawData;
+        public string? Status;
+        public string? Message;
+        public UUID? AgentID;
+
+        public void Deserialize(OSDMap map)
+        {
+            RawData = map;
+            try { if (map.TryGetValue("status", out var s)) Status = s.AsString(); } catch { }
+            try { if (map.TryGetValue("message", out var m)) Message = m.AsString(); } catch { }
+            try { if (map.TryGetValue("agent_id", out var a)) AgentID = a.AsUUID(); } catch { }
+        }
+
+        public OSDMap Serialize()
+        {
+            return RawData ?? new OSDMap();
+        }
+    }
+
+    
+
         /// <summary>
         /// Deserialize the message
         /// </summary>

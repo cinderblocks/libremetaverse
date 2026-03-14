@@ -85,6 +85,7 @@ namespace OpenMetaverse.Messages
                 case "SearchStatRequest": message = new SearchStatRequestMessage(); break;
                 case "AgentDropGroup": message = new AgentDropGroupMessage(); break;
                 case "AgentStateUpdate": message = new AgentStateUpdateMessage(); break;
+                case "NavMeshStatusUpdate": message = CreateMessageInstance("OpenMetaverse.Messages.Linden.NavMeshStatusUpdateMessage"); break;
                 case "ForceCloseChatterBoxSession": message = new ForceCloseChatterBoxSessionMessage(); break;
                 case "UploadBakedTexture": message = new UploadBakedTextureMessage(); break;
                 case "RegionInfo": message = new RegionInfoMessage(); break;
@@ -133,6 +134,21 @@ namespace OpenMetaverse.Messages
             }
 
             return null;
+        }
+
+        private static IMessage? CreateMessageInstance(string typeName)
+        {
+            try
+            {
+                var t = Type.GetType(typeName);
+                if (t == null) return null;
+                var obj = Activator.CreateInstance(t) as IMessage;
+                return obj;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }
