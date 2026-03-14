@@ -1,0 +1,158 @@
+name: Release
+
+on:
+  push:
+    # Run this workflow when a tag is pushed (e.g. `v1.2.3`).
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: windows-latest
+    env:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '10.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Pack LibreMetaverse libraries
+        env:
+          # derive a version from the tag (strip leading 'v' if present)
+          GIT_TAG: ${{ github.ref_name }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Path ./artifacts -Force | Out-Null
+          # Resolve version from tag (strip leading 'v')
+          $VERSION = $env:GIT_TAG -replace '^v',''
+          Write-Host "Using package version: $VERSION"
+
+          # Pack all top-level projects whose directory name begins with "LibreMetaverse"
+          # Exclude test projects (paths containing 'test' or 'tests')
+          $files = git ls-files '*.csproj' | Where-Object { $_ -match '^LibreMetaverse' -and $_ -notmatch '(?i)test' }
+          if (-not $files) {
+            Write-Host "No LibreMetaverse csproj files found"
+            exit 1
+          }
+
+          foreach ($proj in $files) {
+            Write-Host "Packing $proj"
+            dotnet pack $proj --configuration Release --no-build --output ./artifacts /p:PackageVersion="$VERSION" /p:IncludeSymbols=true /p:SymbolPackageFormat=snupkg
+          }
+
+      - name: List artifacts
+        run: |
+          if (Test-Path ./artifacts) {
+            Get-ChildItem -Path ./artifacts -Force
+          } else {
+            Write-Host "No artifacts found"
+          }
+
+      - name: Create zipped archives
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Path ./release_artifacts -Force | Out-Null
+          # nuget nupkg
+          $nupkgs = Get-ChildItem -Path ./artifacts -Filter *.nupkg -File -ErrorAction SilentlyContinue
+          if ($nupkgs) {
+            Compress-Archive -Path ($nupkgs | ForEach-Object { $_.FullName }) -DestinationPath ./release_artifacts/nuget_libraries.zip -Force
+          }
+          # symbol packages (snupkg)
+          $snupkgs = Get-ChildItem -Path ./artifacts -Filter *.snupkg -File -ErrorAction SilentlyContinue
+          if ($snupkgs) {
+            Compress-Archive -Path ($snupkgs | ForEach-Object { $_.FullName }) -DestinationPath ./release_artifacts/nuget_libraries_symbols.zip -Force
+          }
+
+      - name: Publish to NuGet.org
+        if: ${{ env.NUGET_API_KEY != '' }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $packages = Get-ChildItem -Path ./artifacts -Include *.nupkg,*.snupkg -File -ErrorAction SilentlyContinue
+          if ($packages) {
+            foreach ($p in $packages) {
+              $pkg = $p.FullName
+              Write-Host "Publishing $pkg to nuget.org"
+              try {
+                dotnet nuget push $pkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
+              } catch {
+                Write-Host "Failed to push $pkg: $($_)"
+              }
+            }
+          } else {
+            Write-Host "No packages to publish"
+          }
+
+      - name: Create GitHub release and upload packages
+        uses: ncipollo/release-action@v1
+        id: create_release
+        with:
+          files: |
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg
+            ./release_artifacts/nuget_libraries.zip
+            ./release_artifacts/nuget_libraries_symbols.zip
+          body: ${{ steps.gen_notes.outputs.body }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate release notes
+        id: gen_notes
+        env:
+          GIT_TAG: ${{ github.ref_name }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git fetch --tags --prune
+          $GIT_TAG = $env:GIT_TAG -replace '^v',''
+          $CURRENT_TAG = "v$GIT_TAG"
+
+          # Find previous tag by creation date excluding the current tag
+          $PREV_TAG = git for-each-ref --sort=-creatordate --format '%(refname:short)' refs/tags | Where-Object { $_ -ne $CURRENT_TAG } | Select-Object -First 1
+
+          Write-Host "Generating release notes for $CURRENT_TAG (previous: $PREV_TAG)"
+
+          $NOTES_FILE = 'release_notes.md'
+          "# Release $CURRENT_TAG" | Out-File -FilePath $NOTES_FILE -Encoding utf8
+          "" | Out-File -FilePath $NOTES_FILE -Append
+
+          if ($PREV_TAG) {
+            "## Changes since $PREV_TAG" | Out-File -FilePath $NOTES_FILE -Append
+            "" | Out-File -FilePath $NOTES_FILE -Append
+            git log --no-merges --pretty=format:'- %s (%an)' $PREV_TAG..$CURRENT_TAG | Out-File -FilePath $NOTES_FILE -Append
+          } else {
+            "## Changes" | Out-File -FilePath $NOTES_FILE -Append
+            "" | Out-File -FilePath $NOTES_FILE -Append
+            git log --no-merges --pretty=format:'- %s (%an)' $CURRENT_TAG | Out-File -FilePath $NOTES_FILE -Append
+          }
+
+          "" | Out-File -FilePath $NOTES_FILE -Append
+          "### Packages" | Out-File -FilePath $NOTES_FILE -Append
+          "" | Out-File -FilePath $NOTES_FILE -Append
+          Get-ChildItem -Path ./artifacts -Filter *.nupkg -File -ErrorAction SilentlyContinue | ForEach-Object { "- $($_.Name)" | Out-File -FilePath $NOTES_FILE -Append }
+
+          # Expose as step output
+          Add-Content -Path $env:GITHUB_OUTPUT -Value 'body<<EOF'
+          Get-Content $NOTES_FILE | ForEach-Object { Add-Content -Path $env:GITHUB_OUTPUT -Value $_ }
+          Add-Content -Path $env:GITHUB_OUTPUT -Value 'EOF'
