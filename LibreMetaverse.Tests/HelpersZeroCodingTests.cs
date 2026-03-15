@@ -116,18 +116,22 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        public void ZeroDecode_ReadingZeroCountOutOfBounds_ThrowsIndexOutOfRangeException()
+        public void ZeroDecode_ReadingZeroCountOutOfBounds_IsToleratedAsSingleZero()
         {
             // Create packet where zero marker is at the end with no count byte
+            // New behavior: treat trailing 0x00 as a single zero instead of throwing
             byte[] src = new byte[] 
             { 
                 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, // header
                 0x00 // zero marker but no count byte
             };
             byte[] dest = new byte[100];
-            
-            Assert.Throws<IndexOutOfRangeException>(() => 
-                Helpers.ZeroDecode(src, src.Length, dest));
+
+            int len = Helpers.ZeroDecode(src, src.Length, dest);
+
+            // Expect header (6 bytes) + one zero = 7 bytes
+            Assert.That(len, Is.EqualTo(7));
+            Assert.That(dest[6], Is.EqualTo(0x00));
         }
 
         [Test]

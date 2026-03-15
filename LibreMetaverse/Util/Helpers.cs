@@ -308,22 +308,35 @@ namespace OpenMetaverse
                 {
                     if (src[i] == 0x00)
                     {
-                        // Bounds check: ensure we can read the count byte and won't overflow dest
+                        // If the zero marker is the last byte in the source this is technically
+                        // malformed zerocoding (no count byte). Instead of throwing and failing
+                        // callers, be tolerant: treat a trailing 0x00 as a single zero (count=1)
+                        // and continue processing. This prevents intermittent malformed packets
+                        // from bringing down the client or CI runs while still preserving
+                        // reasonable decoding behavior.
+                        byte zeroCount;
                         if (i + 1 >= srclen)
-                            throw new IndexOutOfRangeException($"ZeroDecode: Cannot read zero count at position {i + 1}, srclen={srclen}");
-                        
-                        byte zeroCount = src[i + 1];
-                        
+                        {
+                            // Log a warning but continue with a count of 1
+                            try { Logger.Warn($"ZeroDecode: trailing zero marker at end of buffer at position {i}, srclen={srclen}"); } catch { }
+                            zeroCount = 1;
+                        }
+                        else
+                        {
+                            zeroCount = src[i + 1];
+                        }
+
                         // Check if destination buffer has enough space
                         if (zerolen + zeroCount > dest.Length)
                             throw new IndexOutOfRangeException($"ZeroDecode: Destination buffer overflow, need {zerolen + zeroCount} bytes but dest.Length={dest.Length}");
-                        
+
                         for (byte j = 0; j < zeroCount; j++)
                         {
                             dest[zerolen++] = 0x00;
                         }
 
-                        i++;
+                        // If we consumed a count byte advance the source index
+                        if (i + 1 < srclen) i++;
                     }
                     else
                     {
