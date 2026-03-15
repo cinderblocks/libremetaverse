@@ -38,6 +38,9 @@ jobs:
         run: dotnet build --configuration Release --no-restore
 
       - name: Test
+        env:
+          LMVTESTAGENTUSERNAME: ${{ secrets.LMVTESTAGENTUSERNAME }}
+          LMVTESTAGENTPASSWORD: ${{ secrets.LMVTESTAGENTPASSWORD }}
         run: dotnet test --configuration Release --no-build --verbosity normal
 
       - name: Pack LibreMetaverse libraries
