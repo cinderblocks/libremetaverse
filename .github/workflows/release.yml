@@ -41,7 +41,28 @@ jobs:
         env:
           LMVTESTAGENTUSERNAME: ${{ secrets.LMVTESTAGENTUSERNAME }}
           LMVTESTAGENTPASSWORD: ${{ secrets.LMVTESTAGENTPASSWORD }}
-        run: dotnet test --configuration Release --no-build --verbosity normal
+        run: |
+          # Run tests but skip integration/network tests on GitHub hosted runners
+          dotnet test LibreMetaverse.sln --configuration Release --no-build --logger "trx;LogFileName=TestResults.trx" --filter "Category!=Network" --verbosity normal
+
+      - name: Publish test results (annotations)
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Tests
+          reporter: dotnet-trx
+          path: '**/*.trx'
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            **/TestResults
+            **/*.trx
+            **/coverage*.xml
 
       - name: Pack LibreMetaverse libraries
         env:
