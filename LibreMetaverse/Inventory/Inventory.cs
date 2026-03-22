@@ -217,7 +217,7 @@ namespace OpenMetaverse
         {
             if (node.Data is InventoryItem item && item.AssetType == AssetType.Link)
             {
-                return item.ActualUUID == assetId;
+                return item.ResolvedItemID == assetId;
             }
 
             return false;
@@ -300,7 +300,7 @@ namespace OpenMetaverse
                 var newItem = item as InventoryItem;
                 if (newItem != null && newItem.AssetType == AssetType.Link)
                 {
-                    try { AddToLinksIndex(newItem.ActualUUID, itemNode); } catch { }
+                    try { AddToLinksIndex(newItem.ResolvedItemID, itemNode); } catch { }
                 }
 
                 var oldParent = itemNode.Parent;
@@ -367,7 +367,7 @@ namespace OpenMetaverse
                 // Add to link index for new item if it's a link
                 if (newItem != null && newItem.AssetType == AssetType.Link)
                 {
-                    try { AddToLinksIndex(newItem.ActualUUID, itemNode); } catch { }
+                    try { AddToLinksIndex(newItem.ResolvedItemID, itemNode); } catch { }
                 }
             }
             else // We're adding.
@@ -423,7 +423,7 @@ namespace OpenMetaverse
                     // Maintain links index for the new node if it's a link
                     if (item is InventoryItem newIt && newIt.AssetType == AssetType.Link)
                     {
-                        try { AddToLinksIndex(newIt.ActualUUID, itemNode); } catch { }
+                        try { AddToLinksIndex(newIt.ResolvedItemID, itemNode); } catch { }
                     }
 
                     if (m_InventoryObjectAdded != null)
@@ -765,7 +765,7 @@ namespace OpenMetaverse
                 {
                     if (n.Data is InventoryItem li && li.AssetType == AssetType.Link)
                     {
-                        RemoveFromLinksIndex(li.ActualUUID, n.Data!.UUID);
+                        RemoveFromLinksIndex(li.ResolvedItemID, n.Data!.UUID);
                     }
                 }
                 catch { }

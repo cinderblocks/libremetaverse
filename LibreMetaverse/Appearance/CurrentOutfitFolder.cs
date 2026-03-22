@@ -488,7 +488,7 @@ namespace LibreMetaverse.Appearance
 
             var cofLinks = await GetCurrentOutfitLinks(cancellationToken);
             var linkIdsToRemove = cofLinks
-                .Where(n => n.IsLink() && actualItemIdsSet.Contains(n.ActualUUID))
+                .Where(n => n.IsLink() && actualItemIdsSet.Contains(n.ResolvedItemID))
                 .Select(n => n.UUID)
                 .Distinct()
                 .ToList();
@@ -510,10 +510,10 @@ namespace LibreMetaverse.Appearance
             var cofLinks = await GetCurrentOutfitLinks(cancellationToken);
 
             var actualItemIDsToRemoveLinksTo = actualItemsToRemoveLinksTo
-                .Select(n => n.ActualUUID);
+                .Select(n => n.ResolvedItemID);
 
             var linkIdsToRemove = cofLinks
-                .Where(n => n.IsLink() && actualItemIDsToRemoveLinksTo.Contains(n.ActualUUID))
+                .Where(n => n.IsLink() && actualItemIDsToRemoveLinksTo.Contains(n.ResolvedItemID))
                 .Select(n => n.UUID)
                 .Distinct()
                 .ToList();
@@ -567,7 +567,7 @@ namespace LibreMetaverse.Appearance
 
             var cofLinks = await GetCurrentOutfitLinks(cancellationToken);
 
-            if (cofLinks.FirstOrDefault(n => n.ActualUUID == item.ActualUUID) != null)
+            if (cofLinks.FirstOrDefault(n => n.ResolvedItemID == item.ResolvedItemID) != null)
             {
                 return false;
             }
@@ -624,7 +624,7 @@ namespace LibreMetaverse.Appearance
             }
 
             var cofLinks = await GetCurrentOutfitLinks(cancellationToken);
-            if (cofLinks.FirstOrDefault(n => n.ActualUUID == realItem.UUID) == null)
+            if (cofLinks.FirstOrDefault(n => n.ResolvedItemID == realItem.UUID) == null)
             {
                 return false;
             }

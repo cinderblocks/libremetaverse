@@ -648,11 +648,11 @@ namespace OpenMetaverse
                     case InventoryWearable wearable:
                     {
                         var w = wearable;
-                        if (wearable.IsLink() && Client.Inventory?.Store != null && Client.Inventory.Store.Contains(wearable.ActualUUID))
+                        if (wearable.IsLink() && Client.Inventory?.Store != null && Client.Inventory.Store.Contains(wearable.ResolvedItemID))
                         {
-                            w = Client.Inventory.Store[wearable.ActualUUID] as InventoryWearable;
+                            w = Client.Inventory.Store[wearable.ResolvedItemID] as InventoryWearable;
                         }
-                        if (w != null)
+                        if (w != null && !w.IsLink())
                         {
                             wearables.Add(w.WearableType, new WearableData()
                             {
@@ -667,26 +667,26 @@ namespace OpenMetaverse
                     case InventoryAttachment attachment:
                     {
                         var a = attachment;
-                        if (attachment.IsLink() && Client.Inventory?.Store != null && Client.Inventory.Store.Contains(attachment.ActualUUID))
+                        if (attachment.IsLink() && Client.Inventory?.Store != null && Client.Inventory.Store.Contains(attachment.ResolvedItemID))
                         {
-                            a = Client.Inventory.Store[attachment.ActualUUID] as InventoryAttachment;
+                            a = Client.Inventory.Store[attachment.ResolvedItemID] as InventoryAttachment;
                         }
                         if (a != null)
                         {
-                            Attachments.AddOrUpdate(a.ActualUUID, a.AttachmentPoint, (id, point) => a.AttachmentPoint);
+                            Attachments.AddOrUpdate(a.ResolvedItemID, a.AttachmentPoint, (id, point) => a.AttachmentPoint);
                         }
                         break;
                     }
                     case InventoryObject attachedObject:
                     {
                         var a = attachedObject;
-                        if (attachedObject.IsLink() && Client.Inventory?.Store != null && Client.Inventory.Store.Contains(attachedObject.ActualUUID))
+                        if (attachedObject.IsLink() && Client.Inventory?.Store != null && Client.Inventory.Store.Contains(attachedObject.ResolvedItemID))
                         {
-                            a = Client.Inventory.Store[attachedObject.ActualUUID] as InventoryObject;
+                            a = Client.Inventory.Store[attachedObject.ResolvedItemID] as InventoryObject;
                         }
                         if (a != null)
                         {
-                            Attachments.AddOrUpdate(a.ActualUUID, a.AttachPoint, (id, point) => a.AttachPoint);
+                            Attachments.AddOrUpdate(a.ResolvedItemID, a.AttachPoint, (id, point) => a.AttachPoint);
                         }
                         break;
                     }
@@ -1115,14 +1115,14 @@ namespace OpenMetaverse
                         EveryoneMask = (uint)attachment.Permissions.EveryoneMask,
                         GroupMask = (uint)attachment.Permissions.GroupMask,
                         ItemFlags = attachment.Flags,
-                        ItemID = attachment.ActualUUID,
+                        ItemID = attachment.ResolvedItemID,
                         Name = Utils.StringToBytes(attachment.Name),
                         Description = Utils.StringToBytes(attachment.Description),
                         NextOwnerMask = (uint)attachment.Permissions.NextOwnerMask,
                         OwnerID = attachment.OwnerID
                     };
 
-                    Attachments.AddOrUpdate(attachments[i].UUID,
+                    Attachments.AddOrUpdate(attachments[i].ResolvedItemID,
                         attachment.AttachmentPoint,
                         (id, point) => attachment.AttachmentPoint);
                 }
@@ -1135,14 +1135,14 @@ namespace OpenMetaverse
                         EveryoneMask = (uint)attachment.Permissions.EveryoneMask,
                         GroupMask = (uint)attachment.Permissions.GroupMask,
                         ItemFlags = attachment.Flags,
-                        ItemID = attachment.ActualUUID,
+                        ItemID = attachment.ResolvedItemID,
                         Name = Utils.StringToBytes(attachment.Name),
                         Description = Utils.StringToBytes(attachment.Description),
                         NextOwnerMask = (uint)attachment.Permissions.NextOwnerMask,
                         OwnerID = attachment.OwnerID
                     };
 
-                    Attachments.AddOrUpdate(attachments[i].UUID,
+                    Attachments.AddOrUpdate(attachments[i].ResolvedItemID,
                         attachment.AttachPoint,
                         (id, point) => attachment.AttachPoint);
                 }
@@ -1163,7 +1163,7 @@ namespace OpenMetaverse
         /// <param name="replace">If true replace existing attachment on this attachment point, otherwise add to it (multi-attachments)</param>
         public void Attach(InventoryItem item, AttachmentPoint attachPoint, bool replace = true)
         {
-            Attach(item.ActualUUID, item.OwnerID, item.Name, item.Description, item.Permissions, item.Flags,
+            Attach(item.ResolvedItemID, item.OwnerID, item.Name, item.Description, item.Permissions, item.Flags,
                 attachPoint, replace);
         }
 
@@ -1289,7 +1289,7 @@ namespace OpenMetaverse
 
         public bool isItemAttached(InventoryItem item)
         {
-            return isItemAttached(item.ActualUUID);
+            return isItemAttached(item.ResolvedItemID);
         }
 
         public bool isItemAttached(UUID key)
@@ -2248,7 +2248,7 @@ namespace OpenMetaverse
                                 EveryoneMask = (uint)attachment.Permissions.EveryoneMask,
                                 GroupMask = (uint)attachment.Permissions.GroupMask,
                                 ItemFlags = attachment.Flags,
-                                ItemID = attachment.ActualUUID,
+                                ItemID = attachment.ResolvedItemID,
                                 Name = Utils.StringToBytes(attachment.Name),
                                 Description = Utils.StringToBytes(attachment.Description),
                                 NextOwnerMask = (uint)attachment.Permissions.NextOwnerMask,
@@ -2268,7 +2268,7 @@ namespace OpenMetaverse
                                 EveryoneMask = (uint)attachmentIO.Permissions.EveryoneMask,
                                 GroupMask = (uint)attachmentIO.Permissions.GroupMask,
                                 ItemFlags = attachmentIO.Flags,
-                                ItemID = attachmentIO.ActualUUID,
+                                ItemID = attachmentIO.ResolvedItemID,
                                 Name = Utils.StringToBytes(attachmentIO.Name),
                                 Description = Utils.StringToBytes(attachmentIO.Description),
                                 NextOwnerMask = (uint)attachmentIO.Permissions.NextOwnerMask,

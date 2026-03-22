@@ -173,9 +173,25 @@ namespace OpenMetaverse
         [Key("LastOwnerID")]
         public UUID LastOwnerID;
 
+        /// <summary>
+        /// For a link: the inventory UUID of the item this link points to.
+        /// For a non-link: this item's own inventory UUID.
+        /// </summary>
+        [IgnoreMember]
+        public UUID ResolvedItemID => IsLink() ? AssetUUID : UUID;
+
+        /// <summary>
+        /// For a non-link: this item's underlying asset UUID.
+        /// For a link: <see cref="UUID.Zero"/> — the asset UUID cannot be determined without
+        /// resolving the link through the inventory store first.
+        /// </summary>
+        [IgnoreMember]
+        public UUID ResolvedAssetID => IsLink() ? UUID.Zero : AssetUUID;
+
         /// <summary>inventoryID that this item points to, else this item's inventoryID</summary>
         [IgnoreMember]
-        public UUID ActualUUID => IsLink() ? AssetUUID : UUID;
+        [Obsolete("Use ResolvedItemID to get the target inventory UUID, or ResolvedAssetID for the underlying asset UUID.")]
+        public UUID ActualUUID => ResolvedItemID;
 
         /// <summary>
         ///  Construct a new InventoryItem object
