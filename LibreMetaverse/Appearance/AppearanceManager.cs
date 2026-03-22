@@ -657,7 +657,7 @@ namespace OpenMetaverse
                             wearables.Add(w.WearableType, new WearableData()
                             {
                                 ItemID = w.UUID,
-                                AssetID = w.ActualUUID,
+                                AssetID = w.AssetUUID,
                                 AssetType = w.AssetType,
                                 WearableType = w.WearableType
                             });
@@ -2800,28 +2800,46 @@ namespace OpenMetaverse
                     "Failed to retrieve a list of current agent attachments, appearance cannot be set");
             }
 
-            if (ServerBakingRegion())
+            var useClientSideBaking = !ServerBakingRegion();
+
+            if (!useClientSideBaking)
             {
-                if (!Wearables.Any())
+                // Check whether the server actually provides the SSB capability.
+                // Second Life always does; some OpenSim grids set the SSB protocol
+                // flag but never register the capability.
+                var hasSsbCap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("UpdateAvatarAppearance") != null;
+
+                if (!hasSsbCap)
                 {
-                    await GatherAgentWearablesAsync(cancellationToken).ConfigureAwait(false);
+                    // Region advertises SSB but doesn't provide the capability
+                    // (common on OpenSim). Fall back to client-side baking.
+                    Logger.Warn("Region advertises server-side baking but no UpdateAvatarAppearance capability found, falling back to client-side baking", Client);
+                    useClientSideBaking = true;
                 }
-
-                cancellationToken.ThrowIfCancellationRequested();
-
-                if (!ServerBakingDone || forceRebake)
+                else
                 {
-                    if (await UpdateAvatarAppearanceAsync(cancellationToken).ConfigureAwait(false))
+                    if (!Wearables.Any())
                     {
-                        ServerBakingDone = true;
+                        await GatherAgentWearablesAsync(cancellationToken).ConfigureAwait(false);
                     }
-                    else
+
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    if (!ServerBakingDone || forceRebake)
                     {
-                        success = false;
+                        if (await UpdateAvatarAppearanceAsync(cancellationToken).ConfigureAwait(false))
+                        {
+                            ServerBakingDone = true;
+                        }
+                        else
+                        {
+                            success = false;
+                        }
                     }
                 }
             }
-            else
+
+            if (useClientSideBaking)
             {
                 if (!Wearables.Any())
                 {
