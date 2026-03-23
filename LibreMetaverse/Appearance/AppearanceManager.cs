@@ -905,7 +905,7 @@ namespace OpenMetaverse
 
             foreach (var attachment in attachments)
             {
-                Detach(attachment.UUID);
+                Detach(attachment.ResolvedItemID);
             }
 
             if (needSetAppearance)
@@ -1213,7 +1213,7 @@ namespace OpenMetaverse
         /// <param name="item"><see cref="OpenMetaverse.InventoryItem"/> to detach</param>
         public void Detach(InventoryItem item)
         {
-            Detach(item.UUID);
+            Detach(item.ResolvedItemID);
         }
 
         /// <summary>
@@ -1560,7 +1560,7 @@ namespace OpenMetaverse
 
                     // How far is our value from Index A on the 
                     // line from Index A to Index B
-                    var distance = p.Value - indexa * step;
+                    var distance = p.Value - (p.VisualParam.MinValue + indexa * step);
 
                     // We are at Index A (allowing for some floating point math fuzz),
                     // use the color on that index
