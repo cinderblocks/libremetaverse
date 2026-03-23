@@ -177,7 +177,9 @@ namespace OpenMetaverse
         /// <param name="key">Key to use for lookup</param>
         /// <param name="value">Value returned</param>
         /// <returns><see langword="true"/> if specified key exists,  <see langword="false"/> if not found</returns>
+        #pragma warning disable CS8767
         public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
+#pragma warning restore CS8767
         {
             lock (Dictionary)
             {

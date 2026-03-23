@@ -315,7 +315,7 @@ namespace OpenMetaverse
                 return other.AttachmentPoint == AttachmentPoint && other.AttachmentID == AttachmentID;
             }
 
-            public override bool Equals(object obj)
+            public override bool Equals(object? obj)
             {
                 return obj is Attachment objA && Equals(objA);
             }

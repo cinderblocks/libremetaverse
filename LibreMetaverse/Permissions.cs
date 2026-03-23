@@ -139,7 +139,7 @@ namespace OpenMetaverse
                 NextOwnerMask.GetHashCode() ^ OwnerMask.GetHashCode();
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return (obj is Permissions permissions) && this == permissions;
         }

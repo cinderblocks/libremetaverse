@@ -122,7 +122,9 @@ namespace LibreMetaverse
             return result;
         }
 
-        public bool TryGetValue(TKey key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out TValue value)
+        #pragma warning disable CS8767
+                public bool TryGetValue(TKey key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out TValue value)
+        #pragma warning restore CS8767
         {
             bool result = _data.TryGetValue(key, out value);
             if (result)

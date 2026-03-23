@@ -178,7 +178,7 @@ namespace OpenMetaverse
                    && ListInProfile == other.ListInProfile;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj is Group other && Equals(other);
         }
@@ -371,7 +371,7 @@ namespace OpenMetaverse
                    && MuteVoice == other.MuteVoice;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj is ChatSessionMember other && Equals(other);
         }

@@ -1404,7 +1404,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             Simulator? sim = obj as Simulator;
             if (sim is null) return false;

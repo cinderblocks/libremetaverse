@@ -811,7 +811,9 @@ namespace LibreMetaverse
         /// <typeparamref name="TKey"/>; otherwise, <c>false</c>.
         /// </returns>
         /// <exception cref="ArgumentNullException"><paramref name="key"/> must be non-null</exception>
-        public bool TryGetValue(TKey key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out IReadOnlyCollection<TValue> value)
+        #pragma warning disable CS8767
+                public bool TryGetValue(TKey key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out IReadOnlyCollection<TValue> value)
+        #pragma warning restore CS8767
         {
             if (key == null)
                 throw new ArgumentNullException(nameof(key));

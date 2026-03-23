@@ -459,9 +459,9 @@ namespace OpenMetaverse
         /// </returns> 
         /// <param name="obj">Another object to compare to.  
         ///                 </param><filterpriority>2</filterpriority> 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            if (ReferenceEquals(null, obj)) return false;
+            if (obj is null) return false;
             return obj.GetType() == typeof(binBVHJoint) && Equals((binBVHJoint)obj);
         }
 

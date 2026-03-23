@@ -93,7 +93,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="obj">InventoryBase object to compare against</param>
         /// <returns>true if objects are the same</returns>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj is InventoryBase inv && Equals(inv);
         }
@@ -235,7 +235,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="obj">The object to compare</param>
         /// <returns>true if comparison object matches</returns>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj is InventoryItem item && Equals(item);
         }
@@ -837,7 +837,7 @@ namespace OpenMetaverse
             return PreferredType.GetHashCode() ^ Version.GetHashCode() ^ DescendentCount.GetHashCode();
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj is InventoryFolder folder && Equals(folder);
         }

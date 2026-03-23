@@ -119,7 +119,7 @@ namespace OpenMetaverse
             return X.GetHashCode() ^ Y.GetHashCode();
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return (obj is GridRegion region) && Equals(region);
         }

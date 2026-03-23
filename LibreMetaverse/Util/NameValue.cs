@@ -345,7 +345,7 @@ namespace OpenMetaverse
                    && Equals(Value, other.Value);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj is NameValue other && Equals(other);
         }
