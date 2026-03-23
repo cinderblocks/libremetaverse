@@ -587,8 +587,6 @@ namespace LibreMetaverse.Appearance
                 var numClothingLayers = cofLinks
                     .Count(n => n is InventoryWearable);
 
-                numClothingLayers++;
-
                 if (numClothingLayers + 1 >= MaxClothingLayers)
                 {
                     return false;
