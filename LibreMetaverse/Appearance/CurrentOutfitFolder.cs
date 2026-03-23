@@ -1248,10 +1248,15 @@ namespace LibreMetaverse.Appearance
                 }
             }
 
-            await RemoveLinksTo(itemsToRemove, cancellationToken);
-            await policy.ReportItemChange(new List<InventoryItem>(), itemsToRemove, cancellationToken);
-
-            client.Appearance.RemoveFromOutfit(itemsToRemove);
+            try
+            {
+                await RemoveLinksTo(itemsToRemove, cancellationToken);
+                await policy.ReportItemChange(new List<InventoryItem>(), itemsToRemove, cancellationToken);
+            }
+            finally
+            {
+                client.Appearance.RemoveFromOutfit(itemsToRemove);
+            }
         }
 
         /// <summary>
