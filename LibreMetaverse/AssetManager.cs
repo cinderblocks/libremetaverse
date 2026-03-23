@@ -2001,13 +2001,50 @@ namespace OpenMetaverse
                     }
                 }
 
-                // Check if we downloaded the full asset
-                if (download.Transferred >= download.Size)
+                // Assemble the received packet data, handling out-of-order delivery
+                bool transferCompleted = false;
+                if (asset.TransferData.Data != null && asset.TransferData.Data.Length > 0)
+                {
+                    try
+                    {
+                        lock (download)
+                        {
+                            if (download.nextPacket == asset.TransferData.Packet)
+                            {
+                                byte[] data = asset.TransferData.Data;
+                                do
+                                {
+                                    Buffer.BlockCopy(data, 0, download.AssetData, download.Transferred, data.Length);
+                                    download.Transferred += data.Length;
+                                    download.nextPacket++;
+                                } while (download.outOfOrderPackets.TryGetValue(download.nextPacket, out data));
+                            }
+                            else
+                            {
+                                download.outOfOrderPackets[asset.TransferData.Packet] = asset.TransferData.Data;
+                            }
+
+                            // Mark completion inside the lock so only one concurrent task fires the callback
+                            if (!download.Success && download.Transferred >= download.Size)
+                            {
+                                download.Success = true;
+                                Transfers.TryRemove(download.ID, out _);
+                                transferCompleted = true;
+                            }
+                        }
+                    }
+                    catch (ArgumentException)
+                    {
+                        Logger.Error(
+                            $"TransferPacket handling failed. Data.Length={asset.TransferData.Data.Length}, AssetData.Length={download.AssetData?.Length}, Packet={asset.TransferData.Packet}",
+                            Client);
+                        return;
+                    }
+                }
+
+                if (transferCompleted)
                 {
                     Logger.DebugLog($"Transfer for asset {download.AssetID} completed", Client);
-
-                    download.Success = true;
-                    Transfers.TryRemove(download.ID, out _);
 
                     // Cache successful asset download
                     await Cache.SaveAssetToCacheAsync(download.AssetID, download.AssetData);
