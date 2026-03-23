@@ -42,7 +42,7 @@ namespace OpenMetaverse
         /// <returns>Returns transaction id</returns>
         /// <remarks>For items with copy permissions a copy of the item is placed in the tasks inventory,
         /// for no-copy items the object is moved to the tasks inventory</remarks>
-        public UUID UpdateTaskInventory(uint objectLocalID, InventoryItem item)
+        public UUID UpdateTaskInventory(uint objectLocalID, InventoryItem item, Simulator? simulator = null)
         {
             var transactionID = UUID.Random();
 
@@ -85,7 +85,7 @@ namespace OpenMetaverse
             };
 
 
-            Client.Network.SendPacket(update);
+            Client.Network.SendPacket(update, simulator ?? Client.Network.CurrentSim);
 
             return transactionID;
         }
@@ -275,7 +275,7 @@ namespace OpenMetaverse
         ///    Client.Inventory.RezScript(primID, (InventoryItem)Client.Inventory.Store[scriptID]);
         /// </code>
         /// </example>
-        public UUID CopyScriptToTask(uint objectLocalID, InventoryItem item, bool enableScript)
+        public UUID CopyScriptToTask(uint objectLocalID, InventoryItem item, bool enableScript, Simulator? simulator = null)
         {
             var transactionID = UUID.Random();
 
@@ -317,7 +317,7 @@ namespace OpenMetaverse
                 }
             };
 
-            Client.Network.SendPacket(ScriptPacket);
+            Client.Network.SendPacket(ScriptPacket, simulator ?? Client.Network.CurrentSim);
 
             return transactionID;
         }
