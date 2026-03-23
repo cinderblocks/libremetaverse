@@ -294,14 +294,10 @@ namespace OpenMetaverse
 
             if (Items.TryGetValue(item.UUID, out var itemNode)) // We're updating.
             {
-                // Update link index: remove old mapping if necessary, add new mapping after update
+                // Update link index: remove old mapping, add new mapping after data is updated below
                 try { RemoveNodeFromAllLinks(item.UUID); } catch { }
 
                 var newItem = item as InventoryItem;
-                if (newItem != null && newItem.AssetType == AssetType.Link)
-                {
-                    try { AddToLinksIndex(newItem.ResolvedItemID, itemNode); } catch { }
-                }
 
                 var oldParent = itemNode.Parent;
 
@@ -602,6 +598,8 @@ namespace OpenMetaverse
         public void Clear()
         {
             Items.Clear();
+            ChildrenIndex.Clear();
+            LinksByAssetId.Clear();
         }
 
 
@@ -689,19 +687,19 @@ namespace OpenMetaverse
             int count = 0;
             var stack = new Stack<InventoryNode>();
             var visited = new HashSet<UUID>();
-            int depth = 0;
-            const int maxDepth = 512;
-            
+            int iterations = 0;
+            const int maxIterations = 100000;
+
             stack.Push(node);
-            
+
             while (stack.Count > 0)
             {
-                depth++;
-                
-                // Defensive depth limit
-                if (depth > maxDepth)
+                iterations++;
+
+                // Defensive iteration limit
+                if (iterations > maxIterations)
                 {
-                    Logger.Warn($"Inventory item count exceeded maximum iterations ({maxDepth}). Possible circular reference in inventory hierarchy.", Client);
+                    Logger.Warn($"Inventory item count exceeded maximum iterations ({maxIterations}). Possible circular reference in inventory hierarchy.", Client);
                     break;
                 }
                 

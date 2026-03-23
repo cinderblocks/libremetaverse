@@ -302,7 +302,6 @@ namespace OpenMetaverse
             item.Name = descItem["name"];
             item.Description = descItem["desc"];
             item.OwnerID = descItem["agent_id"];
-            item.ParentUUID = descItem["parent_id"];
             item.AssetUUID = descItem["asset_id"];
             item.AssetType = (AssetType)descItem["type"].AsInteger();
             item.CreationDate = Utils.UnixTimeToDateTime(descItem["created_at"]);
