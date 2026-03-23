@@ -935,6 +935,7 @@ namespace OpenMetaverse
                     {
                         transfer.Success = false;
                         transfer.Status = StatusCode.Error;
+                        callback(transfer, null);
                     }
                 }
             }
@@ -945,6 +946,7 @@ namespace OpenMetaverse
                 {
                     transfer.Success = false;
                     transfer.Status = StatusCode.Error;
+                    callback(transfer, null);
                 }
             }
         }
@@ -1894,8 +1896,6 @@ namespace OpenMetaverse
                     catch (Exception ex) { Logger.Error(ex.Message, ex, Client); }
                 }
                 else
-                    try { download.Callback(download, null); }
-                    catch (Exception ex) { Logger.Error(ex.Message, ex, Client); }
                 {
                     download.AssetData = new byte[download.Size];
 
