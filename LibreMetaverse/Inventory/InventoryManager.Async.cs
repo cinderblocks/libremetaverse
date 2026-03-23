@@ -545,8 +545,8 @@ namespace OpenMetaverse
             }
         }
 
-        public async Task<List<InventoryBase>> GetTaskInventoryAsync(UUID objectID, uint objectLocalID, 
-            CancellationToken cancellationToken = default)
+        public async Task<List<InventoryBase>> GetTaskInventoryAsync(UUID objectID, uint objectLocalID,
+            Simulator? simulator = null, CancellationToken cancellationToken = default)
         {
             var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -560,7 +560,7 @@ namespace OpenMetaverse
 
             try
             {
-                RequestTaskInventory(objectLocalID);
+                RequestTaskInventory(objectLocalID, simulator ?? Client.Network.CurrentSim);
 
                 string filename;
                 try

@@ -153,7 +153,7 @@ namespace OpenMetaverse
                     if (timeout != TimeSpan.Zero)
                         cts.CancelAfter(timeout);
 
-                    var task = GetTaskInventoryAsync(objectID, objectLocalID, cts.Token);
+                    var task = GetTaskInventoryAsync(objectID, objectLocalID, cancellationToken: cts.Token);
                     return task.GetAwaiter().GetResult();
                 }
             }
