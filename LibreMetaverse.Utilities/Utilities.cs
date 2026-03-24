@@ -181,54 +181,55 @@ namespace OpenMetaverse.Utilities
             _timerFrequency = timerFrequency;
         }
 
-        public static bool PersistentLogin(GridClient client, string firstName, string lastName, string password,
+        public static async Task<bool> PersistentLogin(GridClient client, string firstName, string lastName, string password,
             string userAgent, string start, string author)
         {
             int unknownLogins = 0;
 
-        Start:
-
-            if (client.Network.Login(firstName, lastName, password, userAgent, start, author))
+            while (true)
             {
-                Logger.Info("Logged in to " + client.Network.CurrentSim, client);
-                return true;
-            }
-            switch (client.Network.LoginErrorKey)
-            {
-                case "god":
-                    Logger.Warn("Grid is down, waiting 10 minutes", client);
-                    LoginWait(10);
-                    goto Start;
-                case "key":
-                    Logger.Error("Bad username or password, giving up on login", client);
-                    return false;
-                case "presence":
-                    Logger.Warn("Server is still logging us out, waiting 1 minute", client);
-                    LoginWait(1);
-                    goto Start;
-                case "disabled":
-                    Logger.Error("This account has been banned! Giving up on login", client);
-                    return false;
-                case "timed out":
-                case "no connection":
-                    Logger.Warn("Login request timed out, waiting 1 minute", client);
-                    LoginWait(1);
-                    goto Start;
-                case "bad response":
-                    Logger.Warn("Login server returned unparsable result", client);
-                    LoginWait(1);
-                    goto Start;
-                default:
-                    ++unknownLogins;
+                if (await client.Network.LoginAsync(firstName, lastName, password, userAgent, start, author))
+                {
+                    Logger.Info("Logged in to " + client.Network.CurrentSim, client);
+                    return true;
+                }
+                switch (client.Network.LoginErrorKey)
+                {
+                    case "god":
+                        Logger.Warn("Grid is down, waiting 10 minutes", client);
+                        LoginWait(10);
+                        break;
+                    case "key":
+                        Logger.Error("Bad username or password, giving up on login", client);
+                        return false;
+                    case "presence":
+                        Logger.Warn("Server is still logging us out, waiting 1 minute", client);
+                        LoginWait(1);
+                        break;
+                    case "disabled":
+                        Logger.Error("This account has been banned! Giving up on login", client);
+                        return false;
+                    case "timed out":
+                    case "no connection":
+                        Logger.Warn("Login request timed out, waiting 1 minute", client);
+                        LoginWait(1);
+                        break;
+                    case "bad response":
+                        Logger.Warn("Login server returned unparsable result", client);
+                        LoginWait(1);
+                        break;
+                    default:
+                        ++unknownLogins;
 
-                    if (unknownLogins < 5)
-                    {
-                        Logger.Warn("Unknown login error, waiting 2 minutes: " + client.Network.LoginErrorKey, client);
-                        LoginWait(2);
-                        goto Start;
-                    }
-                    Logger.Error("Too many unknown login error codes, giving up", client);
-                    return false;
+                        if (unknownLogins < 5)
+                        {
+                            Logger.Warn("Unknown login error, waiting 2 minutes: " + client.Network.LoginErrorKey, client);
+                            LoginWait(2);
+                            break;
+                        }
+                        Logger.Error("Too many unknown login error codes, giving up", client);
+                        return false;
+                }
             }
         }
 

@@ -26,6 +26,7 @@
  */
 
 using System;
+using System.Threading.Tasks;
 using OpenMetaverse;
 using OpenMetaverse.Packets;
 #nullable enable
@@ -59,8 +60,8 @@ namespace LibreMetaverse.Tests
         }
 
         [OneTimeSetUp]
-        [Timeout(45000)] // 45 second timeout for setup
-        public void Init()
+        [CancelAfter(45000)] // 45 second timeout for setup
+        public async Task Init()
         {
             var fullusername = Environment.GetEnvironmentVariable("LMVTestAgentUsername");
             var password = Environment.GetEnvironmentVariable("LMVTestAgentPassword");
@@ -82,7 +83,7 @@ namespace LibreMetaverse.Tests
             bool loginSuccess = false;
             try
             {
-                loginSuccess = Client.Network.Login(username[0], username[1], password, 
+                loginSuccess = await Client.Network.LoginAsync(username[0], username[1], password, 
                     "Unit Test Framework", startLoc, "admin@radegast.life");
             }
             catch (Exception ex)
@@ -119,7 +120,7 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        [Timeout(25000)] // 25 second timeout for the test
+        [CancelAfter(25000)] // 25 second timeout for the test
         public void DetectObjects()
         {
             int start = Environment.TickCount;

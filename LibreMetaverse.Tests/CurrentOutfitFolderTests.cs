@@ -291,7 +291,6 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        [Ignore("Requires fully initialized GridClient with inventory capabilities")]
         public async Task GetCurrentOutfitLinks_WithNullCOF_ReturnsEmptyList()
         {
             var client = new GridClient();
