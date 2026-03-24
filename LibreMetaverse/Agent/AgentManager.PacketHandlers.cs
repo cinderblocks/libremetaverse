@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2006-2016, openmetaverse.co
  * Copyright (c) 2019-2025, Sjofn LLC
  * All rights reserved.

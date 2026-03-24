@@ -42,7 +42,7 @@ namespace OpenMetaverse.Packets
         private static readonly ConcurrentDictionary<Type, PropertyInfo[]> _propertiesCache = new ConcurrentDictionary<Type, PropertyInfo[]>();
 
         // @todo: expensive - we need it for each packet decode!! - Lazy Dict is contra productive here
-        /**
+        /*
          * better:
             private static readonly Dictionary<string, Func<string, object, string>> Callbacks = 
                 new Dictionary<string, Func<string, object, string>> 

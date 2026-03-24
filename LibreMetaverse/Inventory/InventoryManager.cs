@@ -700,6 +700,7 @@ namespace OpenMetaverse
         /// <param name="baseFolder">The folder to begin the search in</param>
         /// <param name="inventoryOwner">The object owners <see cref="UUID"/></param>
         /// <param name="path">A string path to search, folders/objects separated by a '/'</param>
+        /// <param name="cancellationToken">Cancellation token for the operation</param>
         /// <remarks>Results are sent to the <see cref="InventoryManager.OnFindObjectByPath"/> event</remarks>
         public async Task RequestFindObjectByPath(UUID baseFolder, UUID inventoryOwner, string path, CancellationToken cancellationToken = default)
         {
@@ -901,6 +902,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="folderID">The source folders <see cref="UUID"/></param>
         /// <param name="newParentID">The destination folders <see cref="UUID"/></param>
+        /// <param name="cancellationToken">Cancellation token for the operation</param>
         public void MoveFolder(UUID folderID, UUID newParentID, CancellationToken cancellationToken = default)
         {
             using (var writeLock = _storeLock.WriteLock())
@@ -948,6 +950,7 @@ namespace OpenMetaverse
         /// <param name="foldersNewParents">A Dictionary containing the 
         /// <see cref="UUID"/> of the source as the key, and the 
         /// <see cref="UUID"/> of the destination as the value</param>
+        /// <param name="cancellationToken">Cancellation token for the operation</param>
         public void MoveFolders(Dictionary<UUID, UUID> foldersNewParents, CancellationToken cancellationToken = default)
         {
             using (var writeLock = _storeLock.WriteLock())
@@ -1016,6 +1019,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="itemID">The <see cref="UUID"/> of the source item to move</param>
         /// <param name="folderID">The <see cref="UUID"/> of the destination folder</param>
+        /// <param name="cancellationToken">Cancellation token for the operation</param>
         public void MoveItem(UUID itemID, UUID folderID, CancellationToken cancellationToken = default)
         {
             MoveItem(itemID, folderID, string.Empty, cancellationToken);
@@ -1027,6 +1031,7 @@ namespace OpenMetaverse
         /// <param name="itemID">The <see cref="UUID"/> of the source item to move</param>
         /// <param name="folderID">The <see cref="UUID"/> of the destination folder</param>
         /// <param name="newName">Optional new name for the item</param>
+        /// <param name="cancellationToken">Cancellation token for the operation</param>
         public void MoveItem(UUID itemID, UUID folderID, string newName, CancellationToken cancellationToken = default)
         {
             // Update local store under write lock
@@ -1084,6 +1089,7 @@ namespace OpenMetaverse
         /// <param name="itemsNewFolders">A Dictionary containing the 
         /// <see cref="UUID"/> of the source as the key, and the 
         /// <see cref="UUID"/> of the destination as the value</param>
+        /// <param name="cancellationToken">Cancellation token for the operation</param>
         public void MoveItems(Dictionary<UUID, UUID> itemsNewFolders, CancellationToken cancellationToken = default)
         {
             using (var writeLock = _storeLock.WriteLock())

@@ -270,7 +270,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Get the legacy start location URI (uri:Region&X&Y&Z)
+        /// Get the legacy start location URI (uri:Region&amp;X&amp;Y&amp;Z)
         /// </summary>
         public string GetStartLocationUri()
         {

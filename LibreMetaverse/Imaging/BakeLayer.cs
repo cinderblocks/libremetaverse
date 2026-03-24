@@ -545,12 +545,6 @@ namespace OpenMetaverse.Imaging
         /// <param name="dest">Destination image</param>
         /// <param name="src">Source image</param>
         /// <returns>Sanitization was successful</returns>
-        /// <summary>
-        /// Make sure images exist, resize source if needed to match the destination
-        /// </summary>
-        /// <param name="dest">Destination image</param>
-        /// <param name="src">Source image</param>
-        /// <returns>Sanitization was successful</returns>
         private bool SanitizeLayers(ManagedImage? dest, ManagedImage? src)
         {
             if (dest == null || src == null) return false;

@@ -1323,7 +1323,7 @@ namespace OpenMetaverse
             return requestID;
         }
 
-        /// <summary>Begin to get the group account summary
+        /// <summary>Begin to get the group account summary</summary>
         /// <remarks>Subscribe to the <code>OnGroupAccountSummary</code> event to receive the results.</remarks>
         /// <param name="group">group ID (UUID)</param>
         /// <param name="intervalDays">How long of an interval</param>
