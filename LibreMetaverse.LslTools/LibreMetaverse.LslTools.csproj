@@ -7,8 +7,6 @@
     <Description>Lexer and parser tools for the Linden Scripting Language (LSL), enabling tokenization and syntax analysis of LSL scripts within the LibreMetaverse ecosystem.</Description>
     <RootNamespace>Tools</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <NoWarn>$(NoWarn);SYSLIB0001;CS0419;CS1591;CS1574</NoWarn>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <OutputPath>..\bin\</OutputPath>
@@ -17,14 +15,6 @@
     <DefineConstants>TRACE;DEBUG</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <DebugType>pdbonly</DebugType>
     <DefineConstants>TRACE</DefineConstants>
-    <Optimize>True</Optimize>
   </PropertyGroup>
-  <ItemGroup>
-    <None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
-    <None Include="..\README.md" Pack="true" PackagePath="\" />
-    <None Include="..\data\logo.png" Pack="true" PackagePath="\" />
-  </ItemGroup>
-</Project>
+  </Project>

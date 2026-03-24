@@ -7,8 +7,6 @@
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse.Rendering.Simple</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <NoWarn>$(NoWarn);CS0419;CS1591;CS1574</NoWarn>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <OutputPath>..\bin\</OutputPath>
@@ -18,10 +16,7 @@
     <Optimize>False</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <DebugType>pdbonly</DebugType>
     <DefineConstants>TRACE</DefineConstants>
-    <Optimize>True</Optimize>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
@@ -30,9 +25,4 @@
   <ItemGroup>
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
-    <None Include="..\README.md" Pack="true" PackagePath="\" />
-    <None Include="..\data\logo.png" Pack="true" PackagePath="\" />
-  </ItemGroup>
-</Project>
+  </Project>

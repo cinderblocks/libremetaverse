@@ -4,7 +4,7 @@
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 	<PropertyGroup>
-		<Version>2.5.0.0</Version>
+		<Version>2.5.0</Version>
 		<Product>LibreMetaverse</Product>
 		<Authors>Sjofn LLC, OpenMetaverse Developers</Authors>
 		<Copyright>Copyright © OpenMetaverse Developers 2008, 2017. Copyright © Sjofn LLC 2018-2026. All rights reserved.</Copyright>
@@ -12,7 +12,7 @@
 		<Company>Sjofn LLC</Company>
 	</PropertyGroup>
 	<PropertyGroup>
-		<PackageVersion>2.5.0.0</PackageVersion>
+		<PackageVersion>2.5.0</PackageVersion>
 		<PackageIcon>logo.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
@@ -21,6 +21,25 @@
 		<PackageTags>LMV OMV OpenMetaverse OpenSim Halcyon OpenMetaverseFoundation VirtualWorld VirtualReality 3D Radegast MEGAbolt SecondLife</PackageTags>
 		<RepositoryUrl>https://github.com/cinderblocks/libremetaverse</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-		<RepositoryBranch>master</RepositoryBranch>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
 	</PropertyGroup>
+	<PropertyGroup>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<DebugType>pdbonly</DebugType>
+		<Optimize>true</Optimize>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Include="$(MSBuildThisFileDirectory)LICENSE.txt" Pack="true" PackagePath="\" />
+		<None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" />
+		<None Include="$(MSBuildThisFileDirectory)data\logo.png" Pack="true" PackagePath="\" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
+	</ItemGroup>
 </Project>
