@@ -2012,12 +2012,15 @@ namespace OpenMetaverse
                             if (download.nextPacket == asset.TransferData.Packet)
                             {
                                 byte[] data = asset.TransferData.Data;
-                                do
+                                while (true)
                                 {
                                     Buffer.BlockCopy(data, 0, download.AssetData, download.Transferred, data.Length);
                                     download.Transferred += data.Length;
                                     download.nextPacket++;
-                                } while (download.outOfOrderPackets.TryGetValue(download.nextPacket, out data));
+                                    if (!download.outOfOrderPackets.TryGetValue(download.nextPacket, out byte[]? nextData))
+                                        break;
+                                    data = nextData;
+                                }
                             }
                             else
                             {
