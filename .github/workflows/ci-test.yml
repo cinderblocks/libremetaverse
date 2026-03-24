@@ -56,12 +56,12 @@ jobs:
         if: ${{ matrix.os == 'windows-2022' }}
         shell: bash
         run: |
-          dotnet test LibreMetaverse.sln -c Release --no-build --framework $TEST_FRAMEWORK --logger "trx;LogFileName=TestResults.trx" --verbosity normal
+          dotnet test LibreMetaverse.sln -c Release --no-build --framework $TEST_FRAMEWORK --logger "trx;LogFileName=TestResults.trx" --filter "Category!=RequiresLiveServer" --verbosity normal
 
       - name: Run tests (Linux/macOS)
         if: ${{ matrix.os != 'windows-2022' }}
         run: |
-          dotnet test LibreMetaverse.sln -c Release --no-build --framework $TEST_FRAMEWORK --logger "trx;LogFileName=TestResults.trx" --verbosity normal
+          dotnet test LibreMetaverse.sln -c Release --no-build --framework $TEST_FRAMEWORK --logger "trx;LogFileName=TestResults.trx" --filter "Category!=RequiresLiveServer" --verbosity normal
 
       - name: Publish test results (annotations)
         if: always()
@@ -108,7 +108,7 @@ jobs:
 
       - name: Run .NET Framework tests (net481)
         run: |
-          dotnet test LibreMetaverse.sln -c Release --no-build --framework net481 --logger "trx;LogFileName=TestResults.trx" --verbosity normal
+          dotnet test LibreMetaverse.sln -c Release --no-build --framework net481 --logger "trx;LogFileName=TestResults.trx" --filter "Category!=RequiresLiveServer" --verbosity normal
 
       - name: Publish net48 test results (annotations)
         if: always()

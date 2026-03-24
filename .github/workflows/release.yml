@@ -61,7 +61,7 @@ jobs:
           LMVTESTAGENTPASSWORD: ${{ secrets.LMVTESTAGENTPASSWORD }}
         run: |
           # Run tests but skip integration/network tests on GitHub hosted runners
-          dotnet test LibreMetaverse.sln --configuration Release --no-build --logger "trx;LogFileName=TestResults.trx" --filter "Category!=Network" --verbosity normal
+          dotnet test LibreMetaverse.sln --configuration Release --no-build --logger "trx;LogFileName=TestResults.trx" --filter "Category!=RequiresLiveServer" --verbosity normal
 
       - name: Publish test results (annotations)
         if: always()
