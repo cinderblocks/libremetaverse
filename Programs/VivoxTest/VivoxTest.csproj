@@ -10,9 +10,6 @@
     <RootNamespace>VoiceTest</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\..\LibreMetaverse\LibreMetaverse.csproj" />
     <ProjectReference Include="..\..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
     <ProjectReference Include="..\..\LibreMetaverse.Voice.Vivox\LibreMetaverse.Voice.Vivox.csproj" />

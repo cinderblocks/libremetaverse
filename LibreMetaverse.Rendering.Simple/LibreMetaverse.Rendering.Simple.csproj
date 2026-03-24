@@ -22,7 +22,4 @@
     <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
     <ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
-  </ItemGroup>
-  </Project>
+</Project>
