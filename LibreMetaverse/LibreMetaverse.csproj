@@ -2,15 +2,13 @@
   <PropertyGroup>
     <AssemblyName>LibreMetaverse</AssemblyName>
     <PackageId>LibreMetaverse</PackageId>
-    <Description>LibreMetaverse allows your code to read and work with data send across a SecondLife, Halcyon, OpenSimulator, or related connection.</Description>
+    <Description>LibreMetaverse is a .NET client library for connecting to and interacting with Second Life, OpenSimulator, and compatible virtual world servers. Provides networking, inventory, avatar, asset, and world management APIs.</Description>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <Nullable>enable</Nullable>
     <NoWarn>$(NoWarn);CS0419;CS8981;CS1591;CS1574</NoWarn>
     <TargetFrameworks>netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
@@ -21,10 +19,7 @@
     <DefineConstants>TRACE;DEBUG</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <DebugType>pdbonly</DebugType>
     <DefineConstants>TRACE</DefineConstants>
-    <Optimize>True</Optimize>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CoreJ2K.Skia" Version="2.1.2.38" />
@@ -35,7 +30,6 @@
     <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.11" />
     <PackageReference Include="OggVorbisEncoder" Version="1.2.2" />
     <PackageReference Include="Pfim" Version="0.11.4" />
-    <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
     <PackageReference Include="System.Threading.Channels" Version="9.0.11" />
     <PackageReference Include="zlib.net-mutliplatform" Version="1.1.0" />
   </ItemGroup>
@@ -57,9 +51,4 @@
     <AdditionalFiles Include="..\data\message_template.msg" />
     <AdditionalFiles Include="linden\character\avatar_lad.xml" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
-    <None Include="..\README.md" Pack="true" PackagePath="\" />
-    <None Include="..\data\logo.png" Pack="true" PackagePath="\" />
-  </ItemGroup>
-</Project>
+  </Project>

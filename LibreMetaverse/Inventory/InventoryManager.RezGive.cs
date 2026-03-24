@@ -67,6 +67,7 @@ namespace OpenMetaverse
         /// Rez an object from inventory
         /// </summary>
         /// <param name="simulator">Simulator to place object in</param>
+        /// <param name="taskID">TaskID (or UUID.Zero if not from a task)</param>
         /// <param name="rotation">Rotation of the object when rezzed</param>
         /// <param name="position">Vector of where to place object</param>
         /// <param name="item">InventoryItem object containing item details</param>

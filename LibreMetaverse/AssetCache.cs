@@ -670,7 +670,7 @@ namespace OpenMetaverse
         /// </summary>
         private class SortFilesByAccessTimeHelper : IComparer<FileInfo>
         {
-            int IComparer<FileInfo>.Compare(FileInfo f1, FileInfo f2)
+            int IComparer<FileInfo>.Compare(FileInfo? f1, FileInfo? f2)
             {
                 if (f2 != null && f1 != null && f1.LastAccessTime > f2.LastAccessTime)
                     return 1;

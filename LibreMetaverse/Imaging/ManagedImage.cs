@@ -133,7 +133,7 @@ namespace OpenMetaverse.Imaging
         }
 
         /// <summary>
-        /// Constructs ManagedImage class from <see cref=InterleavedImage"/>
+        /// Constructs ManagedImage class from <see cref="InterleavedImage"/>
         /// Currently only supporting 8-bit channels;
         /// </summary>
         /// <param name="image">Input <see cref="InterleavedImage"/></param>

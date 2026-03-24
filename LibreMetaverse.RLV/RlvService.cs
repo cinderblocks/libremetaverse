@@ -264,6 +264,7 @@ namespace LibreMetaverse.RLV
         /// Report that the user has detached an item
         /// </summary>
         /// <param name="itemId">ID of the item being detached</param>
+        /// <param name="primId">ID of the prim the item is attached to</param>
         /// <param name="objectFolderId">ID of the folder containing the item being detached</param>
         /// <param name="isShared">True if the folder is a shared folder</param>
         /// <param name="attachmentPoint">Attachment point where the item was detached from</param>

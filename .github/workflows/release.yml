@@ -5,18 +5,24 @@ on:
     # Run this workflow when a tag is pushed (e.g. `v1.2.3`).
     tags:
       - 'v*'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version to release (e.g. 2.5.0)'
+        required: true
 
 concurrency:
   group: release-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: write
+  checks: write
+  actions: read
 
 jobs:
   build-and-publish:
-    runs-on: windows-latest
+    runs-on: windows-2022
     env:
       NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
 
@@ -26,24 +32,36 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Determine version
+        id: version
+        shell: pwsh
+        run: |
+          $raw = if ('${{ inputs.version }}') { '${{ inputs.version }}' } else { '${{ github.ref_name }}' }
+          $v = $raw -replace '^v',''
+          Write-Host "Package version: $v"
+          "version=$v" >> $env:GITHUB_OUTPUT
+
       - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.x'
+          dotnet-version: '10.0.x'
 
       - name: Restore
+        shell: pwsh
         run: dotnet restore
 
       - name: Build
+        shell: pwsh
         run: dotnet build --configuration Release --no-restore
 
       - name: Test
+        shell: pwsh
         env:
           LMVTESTAGENTUSERNAME: ${{ secrets.LMVTESTAGENTUSERNAME }}
           LMVTESTAGENTPASSWORD: ${{ secrets.LMVTESTAGENTPASSWORD }}
         run: |
           # Run tests but skip integration/network tests on GitHub hosted runners
-          dotnet test LibreMetaverse.sln --configuration Release --no-build --logger "trx;LogFileName=TestResults.trx" --filter "Category!=Network" --verbosity normal
+          dotnet test LibreMetaverse.sln --configuration Release --no-build --logger "trx;LogFileName=TestResults.trx" --filter "Category!=RequiresLiveServer" --verbosity normal
 
       - name: Publish test results (annotations)
         if: always()
@@ -52,6 +70,7 @@ jobs:
           name: Tests
           reporter: dotnet-trx
           path: '**/*.trx'
+          fail-on-error: false
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload test results
@@ -65,30 +84,14 @@ jobs:
             **/coverage*.xml
 
       - name: Pack LibreMetaverse libraries
-        env:
-          # derive a version from the tag (strip leading 'v' if present)
-          GIT_TAG: ${{ github.ref_name }}
+        shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Path ./artifacts -Force | Out-Null
-          # Resolve version from tag (strip leading 'v')
-          $VERSION = $env:GIT_TAG -replace '^v',''
-          Write-Host "Using package version: $VERSION"
-
-          # Pack all top-level projects whose directory name begins with "LibreMetaverse"
-          # Exclude test projects (paths containing 'test' or 'tests')
-          $files = git ls-files '*.csproj' | Where-Object { $_ -match '^LibreMetaverse' -and $_ -notmatch '(?i)test' }
-          if (-not $files) {
-            Write-Host "No LibreMetaverse csproj files found"
-            exit 1
-          }
-
-          foreach ($proj in $files) {
-            Write-Host "Packing $proj"
-            dotnet pack $proj --configuration Release --no-build --output ./artifacts /p:PackageVersion="$VERSION" /p:IncludeSymbols=true /p:SymbolPackageFormat=snupkg
-          }
+          dotnet pack LibreMetaverse.sln --configuration Release --no-build --output ./artifacts /p:PackageVersion="${{ steps.version.outputs.version }}"
 
       - name: List artifacts
+        shell: pwsh
         run: |
           if (Test-Path ./artifacts) {
             Get-ChildItem -Path ./artifacts -Force
@@ -97,6 +100,7 @@ jobs:
           }
 
       - name: Create zipped archives
+        shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Path ./release_artifacts -Force | Out-Null
@@ -112,10 +116,11 @@ jobs:
           }
 
       - name: Publish to NuGet.org
-        if: ${{ env.NUGET_API_KEY != '' }}
+        if: env.NUGET_API_KEY != ''
+        shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $packages = Get-ChildItem -Path ./artifacts -Include *.nupkg,*.snupkg -File -ErrorAction SilentlyContinue
+          $packages = Get-ChildItem -Path ./artifacts\* -Include *.nupkg,*.snupkg -File -ErrorAction SilentlyContinue
           if ($packages) {
             foreach ($p in $packages) {
               $pkg = $p.FullName
@@ -123,34 +128,19 @@ jobs:
               try {
                 dotnet nuget push $pkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
               } catch {
-                Write-Host "Failed to push $pkg: $($_)"
+                Write-Host "Failed to push ${pkg}: $($_)"
               }
             }
           } else {
             Write-Host "No packages to publish"
           }
 
-      - name: Create GitHub release and upload packages
-        uses: ncipollo/release-action@v1
-        id: create_release
-        with:
-          files: |
-            ./artifacts/*.nupkg
-            ./artifacts/*.snupkg
-            ./release_artifacts/nuget_libraries.zip
-            ./release_artifacts/nuget_libraries_symbols.zip
-          body: ${{ steps.gen_notes.outputs.body }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Generate release notes
         id: gen_notes
-        env:
-          GIT_TAG: ${{ github.ref_name }}
+        shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          git fetch --tags --prune
-          $GIT_TAG = $env:GIT_TAG -replace '^v',''
-          $CURRENT_TAG = "v$GIT_TAG"
+          $CURRENT_TAG = "v${{ steps.version.outputs.version }}"
 
           # Find previous tag by creation date excluding the current tag
           $PREV_TAG = git for-each-ref --sort=-creatordate --format '%(refname:short)' refs/tags | Where-Object { $_ -ne $CURRENT_TAG } | Select-Object -First 1
@@ -180,3 +170,17 @@ jobs:
           Add-Content -Path $env:GITHUB_OUTPUT -Value 'body<<EOF'
           Get-Content $NOTES_FILE | ForEach-Object { Add-Content -Path $env:GITHUB_OUTPUT -Value $_ }
           Add-Content -Path $env:GITHUB_OUTPUT -Value 'EOF'
+
+      - name: Create GitHub release and upload packages
+        uses: ncipollo/release-action@v1
+        id: create_release
+        with:
+          tag: v${{ steps.version.outputs.version }}
+          allowUpdates: true
+          files: |
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg
+            ./release_artifacts/nuget_libraries.zip
+            ./release_artifacts/nuget_libraries_symbols.zip
+          body: ${{ steps.gen_notes.outputs.body }}
+          token: ${{ secrets.GITHUB_TOKEN }}

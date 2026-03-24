@@ -1243,6 +1243,7 @@ namespace OpenMetaverse
         /// <param name="simulator">Simulator to request parcels from (must be connected)</param>
         /// <param name="refresh">If TRUE, will force a full refresh</param>
         /// <param name="delay">Pause time in between each request</param>
+        /// <param name="cancellationToken">Cancellation token for the operation</param>
         public async Task RequestAllSimParcelsAsync(Simulator simulator, bool refresh, TimeSpan delay, 
             CancellationToken cancellationToken = default)
         {
@@ -1723,7 +1724,6 @@ namespace OpenMetaverse
         /// <param name="location">Location of the parcel in the remote region</param>
         /// <param name="regionHandle">Remote region handle</param>
         /// <param name="regionID">Remote region UUID</param>
-        /// <param name="cancellationToken">Cancellation token to cancel the request</param>
         /// <returns>If successful UUID of the remote parcel, UUID.Zero otherwise</returns>
         public UUID RequestRemoteParcelID(Vector3 location, ulong regionHandle, UUID regionID)
         {

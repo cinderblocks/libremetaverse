@@ -2,14 +2,12 @@
   <PropertyGroup>
     <AssemblyName>LibreMetaverse.Types</AssemblyName>
     <PackageId>LibreMetaverse.Types</PackageId>
-    <Description>LibreMetaverse type library</Description>
+    <Description>Core type library for LibreMetaverse, providing foundational data types such as UUID, Vector2/3/4, Quaternion, Color4, and other primitives used across the LibreMetaverse ecosystem.</Description>
     <TargetFrameworks>netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <NoWarn>$(NoWarn);CS0419;CS1591;CS1574</NoWarn>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <OutputPath>..\bin\</OutputPath>
@@ -19,18 +17,10 @@
     <Optimize>False</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <DebugType>pdbonly</DebugType>
     <DefineConstants>TRACE</DefineConstants>
-    <Optimize>True</Optimize>
   </PropertyGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="System.Buffers" Version="4.6.1" />
     <PackageReference Include="System.Memory" Version="4.6.3" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
-    <None Include="..\README.md" Pack="true" PackagePath="\" />
-    <None Include="..\data\logo.png" Pack="true" PackagePath="\" />
-  </ItemGroup>
-</Project>
+  </Project>

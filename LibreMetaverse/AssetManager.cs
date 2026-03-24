@@ -669,6 +669,7 @@ namespace OpenMetaverse
         /// <param name="assetID"></param>
         /// <param name="transfer"></param>
         /// <param name="callback"></param>
+        /// <param name="cancellationToken">Cancellation token for the request</param>
         private async Task RequestAssetHTTP(UUID assetID, AssetDownload transfer, AssetReceivedCallback? callback, CancellationToken cancellationToken = default)
         {
             var req = new DownloadRequest(
@@ -729,6 +730,7 @@ namespace OpenMetaverse
         /// <param name="transfer"></param>
         /// <param name="callback">The callback to fire when the simulator responds with the asset data</param>
         /// <param name="itemID">Item ID</param>
+        /// <param name="cancellationToken">Cancellation token for the request</param>
         private void RequestAssetUDP(UUID assetID, UUID itemID, UUID taskID, 
             AssetDownload transfer, AssetReceivedCallback? callback, CancellationToken cancellationToken = default)
         {
@@ -1322,6 +1324,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="meshID">UUID of the mesh asset</param>
         /// <param name="callback">Callback when the request completes</param>
+        /// <param name="cancellationToken">Cancellation token for the request</param>
         public void RequestMesh(UUID meshID, MeshDownloadCallback callback, CancellationToken cancellationToken = default)
         {
             if (meshID == UUID.Zero || callback == null)
@@ -1518,6 +1521,7 @@ namespace OpenMetaverse
         /// <param name="textureID">ID of the texture</param>
         /// <param name="bakeName">Name of the part of the avatar texture applies to</param>
         /// <param name="callback">Callback invoked on operation completion</param>
+        /// <param name="cancellationToken">Cancellation token for the request</param>
         public void RequestServerBakedImage(UUID avatarID, UUID textureID, string bakeName, TextureDownloadCallback callback, CancellationToken cancellationToken = default)
         {
             if (avatarID == UUID.Zero || textureID == UUID.Zero || callback == null)
@@ -2012,12 +2016,15 @@ namespace OpenMetaverse
                             if (download.nextPacket == asset.TransferData.Packet)
                             {
                                 byte[] data = asset.TransferData.Data;
-                                do
+                                while (true)
                                 {
                                     Buffer.BlockCopy(data, 0, download.AssetData, download.Transferred, data.Length);
                                     download.Transferred += data.Length;
                                     download.nextPacket++;
-                                } while (download.outOfOrderPackets.TryGetValue(download.nextPacket, out data));
+                                    if (!download.outOfOrderPackets.TryGetValue(download.nextPacket, out byte[]? nextData))
+                                        break;
+                                    data = nextData;
+                                }
                             }
                             else
                             {

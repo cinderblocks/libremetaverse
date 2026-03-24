@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse.Threading;
@@ -14,6 +15,11 @@ namespace LibreMetaverse.Tests
             var rw = new OptimisticReaderWriterLock();
             const int readerCount = 5;
 
+            // readersReady: all tasks signal once they are actually running
+            var readersReady = new CountdownEvent(readerCount);
+            // startGate: released by main thread once all tasks are live, so they all
+            // compete for the read lock simultaneously rather than one-at-a-time
+            var startGate = new ManualResetEventSlim(false);
             var readersEntered = new CountdownEvent(readerCount);
             var readersExited = new CountdownEvent(readerCount);
             var startRelease = new ManualResetEventSlim(false);
@@ -21,16 +27,17 @@ namespace LibreMetaverse.Tests
             int currentReaders = 0;
             int maxConcurrentReaders = 0;
 
-            // Start readers
             var readerTasks = new Task[readerCount];
             for (int i = 0; i < readerCount; i++)
             {
                 readerTasks[i] = Task.Run(() =>
                 {
+                    readersReady.Signal(); // task is alive and scheduled
+                    startGate.Wait();      // wait until all tasks are ready to go
+
                     using (rw.ReadLock())
                     {
                         var cr = Interlocked.Increment(ref currentReaders);
-                        // update max
                         int prevMax;
                         do
                         {
@@ -40,10 +47,8 @@ namespace LibreMetaverse.Tests
 
                         readersEntered.Signal();
 
-                        // wait until main thread allows readers to exit
                         startRelease.Wait();
 
-                        // small work to keep lock held briefly
                         Thread.Sleep(20);
 
                         Interlocked.Decrement(ref currentReaders);
@@ -52,10 +57,18 @@ namespace LibreMetaverse.Tests
                 });
             }
 
-            // Wait until all readers have entered (increased timeout for CI)
-            Assert.That(readersEntered.Wait(5000), Is.True, "All readers should enter the read lock within 5s");
+            // Wait until every task is actually running before measuring anything
+            Assert.That(readersReady.Wait(TimeSpan.FromSeconds(30)), Is.True,
+                "All reader tasks should be scheduled within 30s");
 
-            // Start writer which should block until readers release
+            // Release all readers at once so they compete for the read lock simultaneously
+            startGate.Set();
+
+            // Wait until all readers have entered the read lock
+            Assert.That(readersEntered.Wait(TimeSpan.FromSeconds(30)), Is.True,
+                "All readers should enter the read lock within 30s");
+
+            // Start writer — all readers are still inside (blocked on startRelease)
             var writerAcquired = new ManualResetEventSlim(false);
             var writerTask = Task.Run(() =>
             {
@@ -65,22 +78,20 @@ namespace LibreMetaverse.Tests
                 }
             });
 
-            // Writer should not be able to acquire while readers haven't been released
-            Assert.That(writerAcquired.Wait(100), Is.False, "Writer should not acquire write lock while readers are active");
+            Assert.That(writerAcquired.Wait(100), Is.False,
+                "Writer should not acquire write lock while readers are active");
 
-            // Allow readers to exit
             startRelease.Set();
 
-            // Wait for readers to fully exit (increased timeout for CI)
-            Assert.That(readersExited.Wait(5000), Is.True, "Readers should exit within 5s after release");
+            Assert.That(readersExited.Wait(TimeSpan.FromSeconds(30)), Is.True,
+                "Readers should exit within 30s after release");
 
-            // Now writer should be able to acquire (increased timeout for CI)
-            Assert.That(writerAcquired.Wait(5000), Is.True, "Writer should acquire write lock after readers exit");
+            Assert.That(writerAcquired.Wait(TimeSpan.FromSeconds(30)), Is.True,
+                "Writer should acquire write lock after readers exit");
 
-            // Ensure we had concurrent readers
-            Assert.That(maxConcurrentReaders, Is.GreaterThanOrEqualTo(2), "At least two readers should have been concurrent");
+            Assert.That(maxConcurrentReaders, Is.GreaterThanOrEqualTo(2),
+                "At least two readers should have been concurrent");
 
-            // Cleanup
             Task.WaitAll(readerTasks);
             writerTask.Wait(5000);
         }

@@ -32,6 +32,7 @@ namespace LibreMetaverse.Tests
 {
     [TestFixture]
     [Category("GridClient")]
+    [Category("RequiresLiveServer")]
     class GridClientTests : Assert
     {
         readonly GridClient Client;

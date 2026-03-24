@@ -39,6 +39,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="objectLocalID">The target object</param>
         /// <param name="item">The item to copy or move from inventory</param>
+        /// <param name="simulator">Simulator containing the target object, or null for the current simulator</param>
         /// <returns>Returns transaction id</returns>
         /// <remarks>For items with copy permissions a copy of the item is placed in the tasks inventory,
         /// for no-copy items the object is moved to the tasks inventory</remarks>
@@ -261,6 +262,7 @@ namespace OpenMetaverse
         /// <param name="objectLocalID">An unsigned integer representing a primitive being simulated</param>
         /// <param name="item">An <see cref="InventoryItem"/> which represents a script object from the agents inventory</param>
         /// <param name="enableScript">true to set the scripts running state to enabled</param>
+        /// <param name="simulator">Simulator containing the target object, or null for the current simulator</param>
         /// <returns>A Unique Transaction ID</returns>
         /// <example>
         /// The following example shows the basic steps necessary to copy a script from the agents inventory into a tasks inventory

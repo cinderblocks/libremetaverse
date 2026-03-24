@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <PackageId>LibreMetaverse.RLV</PackageId>
-    <Description>RestrainedLove Viewer (RLV) protocol library</Description>
+    <Description>RestrainedLove Viewer (RLV) protocol implementation for LibreMetaverse, providing parsing and handling of RLV commands and avatar restriction rules.</Description>
   </PropertyGroup>
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
@@ -10,8 +10,6 @@
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <Nullable>enable</Nullable>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <OutputPath>..\bin\</OutputPath>
   </PropertyGroup>
@@ -21,9 +19,4 @@
     <PackageReference Include="System.Collections.Immutable" Version="9.0.10" />
   </ItemGroup>
   
-  <ItemGroup>
-    <None Include="..\LICENSE.txt" Pack="true" PackagePath="\" />
-    <None Include="..\README.md" Pack="true" PackagePath="\" />
-    <None Include="..\data\logo.png" Pack="true" PackagePath="\" />
-  </ItemGroup>
-</Project>
+  </Project>

@@ -2137,6 +2137,7 @@ namespace OpenMetaverse
         /// <param name="newURL">Set current URL to this</param>
         /// <param name="face">Prim face number</param>
         /// <param name="sim">Simulator in which prim is located</param>
+        /// <param name="cancellationToken">Cancellation token for the request</param>
         public void NavigateObjectMedia(UUID primID, int face, string newURL, Simulator sim, CancellationToken cancellationToken = default)
         {
             Uri? cap = sim?.Caps?.CapabilityURI("ObjectMediaNavigate");
@@ -2172,6 +2173,7 @@ namespace OpenMetaverse
         /// <param name="faceMedia">Array the length of prims number of faces. Null on face indexes where there is
         /// no media, <see cref="MediaEntry"/> on faces which contain the media</param>
         /// <param name="sim">Simulator in which prim is located</param>
+        /// <param name="cancellationToken">Cancellation token for the request</param>
         public void UpdateObjectMedia(UUID primID, MediaEntry[] faceMedia, Simulator sim, CancellationToken cancellationToken = default)
         {
             Uri? cap = sim?.Caps?.CapabilityURI("ObjectMedia");
@@ -2203,6 +2205,7 @@ namespace OpenMetaverse
         /// <param name="primID">UUID of the primitive</param>
         /// <param name="sim">Simulator where prim is located</param>
         /// <param name="callback">Call this callback when done</param>
+        /// <param name="cancellationToken">Cancellation token for the request</param>
         public void RequestObjectMedia(UUID primID, Simulator sim, ObjectMediaCallback? callback, CancellationToken cancellationToken = default)
         {
             Uri? cap = sim?.Caps?.CapabilityURI("ObjectMedia");

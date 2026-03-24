@@ -239,6 +239,7 @@ namespace TestClient.Commands.Inventory
         /// </summary>
         /// <param name="folder">The current leaf in the inventory tree</param>
         /// <param name="sPathSoFar">path so far, in the form @"c:\here" -- this needs to be "clean" for the current filesystem</param>
+        /// <param name="token">Cancellation token for the operation</param>
         private void BackupFolder(InventoryNode folder, string sPathSoFar, CancellationToken token)
         {
             // first scan this folder for text
