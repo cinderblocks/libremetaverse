@@ -2,7 +2,7 @@
   <PropertyGroup>
     <AssemblyName>LibreMetaverse</AssemblyName>
     <PackageId>LibreMetaverse</PackageId>
-    <Description>LibreMetaverse allows your code to read and work with data send across a SecondLife, Halcyon, OpenSimulator, or related connection.</Description>
+    <Description>LibreMetaverse is a .NET client library for connecting to and interacting with Second Life, OpenSimulator, and compatible virtual world servers. Provides networking, inventory, avatar, asset, and world management APIs.</Description>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>

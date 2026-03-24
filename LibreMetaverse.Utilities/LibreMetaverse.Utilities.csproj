@@ -2,7 +2,7 @@
   <PropertyGroup>
     <AssemblyName>LibreMetaverse.Utilities</AssemblyName>
     <PackageId>LibreMetaverse.Utilities</PackageId>
-    <Description>LibreMetaverse utility library</Description>
+    <Description>Utility library for LibreMetaverse providing helper classes for assets, appearance, and common virtual world operations such as asset uploading and texture baking.</Description>
     <TargetFrameworks>netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse.Utilities</RootNamespace>

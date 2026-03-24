@@ -6,6 +6,7 @@
     <OutputType>Library</OutputType>
     <TargetFrameworks>netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
     <Nullable>disable</Nullable>
+    <Description>Prim meshing library for LibreMetaverse that generates 3D geometry from Second Life primitive object parameters, supporting box, cylinder, torus, sphere, ring, tube, and sculpt prim types.</Description>
     <Authors>Dhalia Trimble, Sjofn LLC, OpenMetaverse Developers</Authors>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <IncludeSymbols>true</IncludeSymbols>

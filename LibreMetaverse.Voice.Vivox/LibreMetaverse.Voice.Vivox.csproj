@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <PackageId>LibreMetaverse.Voice.Vivox</PackageId>
-    <Description>Library interface for Vivox voice client</Description>
+    <Description>Vivox voice chat integration library for LibreMetaverse, enabling connection and communication with the Vivox voice service used by Second Life and other virtual worlds.</Description>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse</RootNamespace>
     <TargetFrameworks>netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>

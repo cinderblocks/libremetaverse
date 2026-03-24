@@ -4,7 +4,7 @@
     <Nullable>disable</Nullable>
     <AssemblyName>LibreMetaverse.LslTools</AssemblyName>
     <PackageId>LibreMetaverse.LslTools</PackageId>
-    <Description>Lexer for LSL scrripting language</Description>
+    <Description>Lexer and parser tools for the Linden Scripting Language (LSL), enabling tokenization and syntax analysis of LSL scripts within the LibreMetaverse ecosystem.</Description>
     <RootNamespace>Tools</RootNamespace>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <IncludeSymbols>true</IncludeSymbols>
