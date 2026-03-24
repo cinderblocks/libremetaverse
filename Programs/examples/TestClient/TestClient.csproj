@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>TestClient</AssemblyName>
     <OutputType>Exe</OutputType>
@@ -33,10 +33,5 @@
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.1" />
     <PackageReference Include="SkiaSharp.NativeAssets.macOS" Version="3.119.1" />
     <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="3.119.1" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\LICENSE.txt" Pack="true" PackagePath="\" />
-    <None Include="..\..\..\README.md" Pack="true" PackagePath="\" />
-    <None Include="..\..\..\data\logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>
