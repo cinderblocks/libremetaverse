@@ -9,7 +9,8 @@
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <Nullable>disable</Nullable>
-      <NoWarn>$(NoWarn);CS1591;CS8632</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;CS8632</NoWarn>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>TRACE;DEBUG</DefineConstants>
