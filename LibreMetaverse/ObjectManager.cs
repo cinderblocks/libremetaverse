@@ -2203,6 +2203,7 @@ namespace OpenMetaverse
         /// <param name="primID">UUID of the primitive</param>
         /// <param name="sim">Simulator where prim is located</param>
         /// <param name="callback">Call this callback when done</param>
+        /// <param name="cancellationToken">Cancellation token for the request</param>
         public void RequestObjectMedia(UUID primID, Simulator sim, ObjectMediaCallback? callback, CancellationToken cancellationToken = default)
         {
             Uri? cap = sim?.Caps?.CapabilityURI("ObjectMedia");

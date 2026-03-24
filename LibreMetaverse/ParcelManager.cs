@@ -1243,6 +1243,7 @@ namespace OpenMetaverse
         /// <param name="simulator">Simulator to request parcels from (must be connected)</param>
         /// <param name="refresh">If TRUE, will force a full refresh</param>
         /// <param name="delay">Pause time in between each request</param>
+        /// <param name="cancellationToken">Cancellation token for the operation</param>
         public async Task RequestAllSimParcelsAsync(Simulator simulator, bool refresh, TimeSpan delay, 
             CancellationToken cancellationToken = default)
         {
