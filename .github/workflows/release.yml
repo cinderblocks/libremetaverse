@@ -154,11 +154,11 @@ jobs:
           if ($PREV_TAG) {
             "## Changes since $PREV_TAG" | Out-File -FilePath $NOTES_FILE -Append
             "" | Out-File -FilePath $NOTES_FILE -Append
-            git log --no-merges --pretty=format:'- %s (%an)' $PREV_TAG..$CURRENT_TAG | Out-File -FilePath $NOTES_FILE -Append
+            git log --no-merges --pretty=format:'- %s (%an)' "$PREV_TAG..$CURRENT_TAG" | Out-File -FilePath $NOTES_FILE -Append
           } else {
             "## Changes" | Out-File -FilePath $NOTES_FILE -Append
             "" | Out-File -FilePath $NOTES_FILE -Append
-            git log --no-merges --pretty=format:'- %s (%an)' $CURRENT_TAG | Out-File -FilePath $NOTES_FILE -Append
+            git log --no-merges --pretty=format:'- %s (%an)' "$CURRENT_TAG" | Out-File -FilePath $NOTES_FILE -Append
           }
 
           "" | Out-File -FilePath $NOTES_FILE -Append
@@ -166,21 +166,15 @@ jobs:
           "" | Out-File -FilePath $NOTES_FILE -Append
           Get-ChildItem -Path ./artifacts -Filter *.nupkg -File -ErrorAction SilentlyContinue | ForEach-Object { "- $($_.Name)" | Out-File -FilePath $NOTES_FILE -Append }
 
-          # Expose as step output
-          Add-Content -Path $env:GITHUB_OUTPUT -Value 'body<<EOF'
-          Get-Content $NOTES_FILE | ForEach-Object { Add-Content -Path $env:GITHUB_OUTPUT -Value $_ }
-          Add-Content -Path $env:GITHUB_OUTPUT -Value 'EOF'
-
       - name: Create GitHub release and upload packages
         uses: ncipollo/release-action@v1
         id: create_release
         with:
           tag: v${{ steps.version.outputs.version }}
           allowUpdates: true
-          files: |
+          artifacts: |
             ./artifacts/*.nupkg
             ./artifacts/*.snupkg
-            ./release_artifacts/nuget_libraries.zip
-            ./release_artifacts/nuget_libraries_symbols.zip
-          body: ${{ steps.gen_notes.outputs.body }}
+            ./release_artifacts/*.zip
+          bodyFile: release_notes.md
           token: ${{ secrets.GITHUB_TOKEN }}
