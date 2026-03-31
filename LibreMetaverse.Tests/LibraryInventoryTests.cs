@@ -280,8 +280,8 @@ namespace LibreMetaverse.Tests
                     continue;
                 }
 
-                var items = contents?.OfType<InventoryItem>().ToList();
-                if (items != null && items.Count > 0)
+                var items = contents.OfType<InventoryItem>().ToList();
+                if (items.Count > 0)
                 {
                     folderWithItems = subFolder;
                     foundItems = items;
