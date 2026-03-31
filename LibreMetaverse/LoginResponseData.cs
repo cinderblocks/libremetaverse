@@ -1009,6 +1009,7 @@ namespace OpenMetaverse
 
             if (!reply.TryGetValue(key, out var skeleton) || skeleton.Type != OSDType.Array) { return folders.ToArray(); }
             var array = (OSDArray)skeleton;
+            var ownerID = key.Equals(Keys.InventorySkelLib) ? LibraryOwner : AgentID;
             folders.AddRange(from t in array
                 where t.Type == OSDType.Map
                 select (OSDMap)t
@@ -1018,7 +1019,8 @@ namespace OpenMetaverse
                     Name = map["name"].AsString(),
                     ParentUUID = map["parent_id"].AsUUID(),
                     PreferredType = (FolderType)map["type_default"].AsInteger(),
-                    Version = map["version"].AsInteger()
+                    Version = map["version"].AsInteger(),
+                    OwnerID = ownerID
                 });
             return folders.ToArray();
         }

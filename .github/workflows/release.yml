@@ -25,6 +25,8 @@ jobs:
     runs-on: windows-2022
     env:
       NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      LMVTESTAGENTUSERNAME: ${{ secrets.LMVTESTAGENTUSERNAME }}
+      LMVTESTAGENTPASSWORD: ${{ secrets.LMVTESTAGENTPASSWORD }}
 
     steps:
       - name: Checkout
@@ -56,12 +58,18 @@ jobs:
 
       - name: Test
         shell: pwsh
-        env:
-          LMVTESTAGENTUSERNAME: ${{ secrets.LMVTESTAGENTUSERNAME }}
-          LMVTESTAGENTPASSWORD: ${{ secrets.LMVTESTAGENTPASSWORD }}
         run: |
           # Run tests but skip integration/network tests on GitHub hosted runners
           dotnet test LibreMetaverse.sln --configuration Release --no-build --logger "trx;LogFileName=TestResults.trx" --filter "Category!=RequiresLiveServer" --verbosity normal
+
+      - name: Test (Live Server)
+        if: env.LMVTESTAGENTUSERNAME != ''
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          # Run live-server tests (RequiresLiveServer) when agent credentials are available.
+          # continue-on-error is set so transient grid issues do not block the release.
+          dotnet test LibreMetaverse.sln --configuration Release --no-build --logger "trx;LogFileName=TestResults.LiveServer.trx" --filter "Category=RequiresLiveServer" --verbosity normal
 
       - name: Publish test results (annotations)
         if: always()
