@@ -982,31 +982,23 @@ namespace OpenMetaverse
         /// <summary>
         /// Start a request for details of a specific profile classified
         /// </summary>
-        /// <param name="avatarid">UUID of the avatar</param>
         /// <param name="classifiedid">UUID of the profile classified</param>
-        public void RequestClassifiedInfo(UUID avatarid, UUID classifiedid)
+        public void RequestClassifiedInfo(UUID classifiedid)
         {
-            GenericMessagePacket gmp = new GenericMessagePacket
+            ClassifiedInfoRequestPacket req = new ClassifiedInfoRequestPacket
             {
                 AgentData =
                 {
                     AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID,
-                    TransactionID = UUID.Zero
+                    SessionID = Client.Self.SessionID
                 },
-                MethodData =
+                Data =
                 {
-                    Method = Utils.StringToBytes("classifiedinforequest"),
-                    Invoice = UUID.Zero
-                },
-                ParamList = new GenericMessagePacket.ParamListBlock[2]
+                    ClassifiedID = classifiedid
+                }
             };
-            gmp.ParamList[0] =
-                new GenericMessagePacket.ParamListBlock {Parameter = Utils.StringToBytes(avatarid.ToString())};
-            gmp.ParamList[1] =
-                new GenericMessagePacket.ParamListBlock {Parameter = Utils.StringToBytes(classifiedid.ToString())};
 
-            Client.Network.SendPacket(gmp);
+            Client.Network.SendPacket(req);
         }
 
         #region Packet Handlers
