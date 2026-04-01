@@ -76,6 +76,8 @@ namespace OpenMetaverse
         public string Description;
         /// <summary>Abilities Associated with Role</summary>
         public GroupPowers Powers;
+        /// <summary>Number of members assigned to this role</summary>
+        public uint Members;
         /// <summary>Returns the role's title</summary>
         /// <returns>The role's title</returns>
         public override string ToString()
@@ -2155,7 +2157,8 @@ namespace OpenMetaverse
                         Description = Utils.BytesToString(block.Description),
                         Name = Utils.BytesToString(block.Name),
                         Powers = (GroupPowers) block.Powers,
-                        Title = Utils.BytesToString(block.Title)
+                        Title = Utils.BytesToString(block.Title),
+                        Members = block.Members
                     };
 
                     groupRoleCache[block.RoleID] = groupRole;
