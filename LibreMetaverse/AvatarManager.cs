@@ -167,11 +167,16 @@ namespace OpenMetaverse
     public struct ClassifiedAd
     {
         public UUID ClassifiedID;
+        public UUID CreatorID;
+        public uint CreationDate;
+        public uint ExpirationDate;
         public uint Category;
         public UUID ParcelID;
         public uint ParentEstate;
         public UUID SnapShotID;
         public Vector3d Position;
+        public string SimName;
+        public string ParcelName;
         public byte ClassifiedFlags;
         public int Price;
         public string Name;
@@ -1535,16 +1540,21 @@ namespace OpenMetaverse
 
             ClassifiedAd ret = new ClassifiedAd
             {
-                Desc = Utils.BytesToString(p.Data.Desc),
-                Name = Utils.BytesToString(p.Data.Name),
-                ParcelID = p.Data.ParcelID,
                 ClassifiedID = p.Data.ClassifiedID,
-                Position = p.Data.PosGlobal,
-                SnapShotID = p.Data.SnapshotID,
-                Price = p.Data.PriceForListing,
+                CreatorID = p.Data.CreatorID,
+                CreationDate = p.Data.CreationDate,
+                ExpirationDate = p.Data.ExpirationDate,
+                Category = p.Data.Category,
+                Name = Utils.BytesToString(p.Data.Name),
+                Desc = Utils.BytesToString(p.Data.Desc),
+                ParcelID = p.Data.ParcelID,
                 ParentEstate = p.Data.ParentEstate,
+                SnapShotID = p.Data.SnapshotID,
+                SimName = Utils.BytesToString(p.Data.SimName),
+                Position = p.Data.PosGlobal,
+                ParcelName = Utils.BytesToString(p.Data.ParcelName),
                 ClassifiedFlags = p.Data.ClassifiedFlags,
-                Category = p.Data.Category
+                Price = p.Data.PriceForListing
             };
 
             OnClassifiedInfoReply(new ClassifiedInfoReplyEventArgs(ret.ClassifiedID, ret));
