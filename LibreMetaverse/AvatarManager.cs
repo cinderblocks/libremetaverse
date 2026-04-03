@@ -821,6 +821,13 @@ namespace OpenMetaverse
                         throw error;
                     }
 
+                    if (response == null || !response.IsSuccessStatusCode)
+                    {
+                        Logger.Warn($"AgentProfile capability returned non-success status: {response?.StatusCode}", Client);
+                        callback(false, null);
+                        return;
+                    }
+
                     if (data == null)
                     {
                         callback(false, null);
@@ -833,6 +840,10 @@ namespace OpenMetaverse
                     {
                         msg.Deserialize(respMap);
                         callback(true, msg);
+                    }
+                    else
+                    {
+                        callback(false, null);
                     }
                 }
                 catch (Exception ex)
