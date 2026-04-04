@@ -66,15 +66,15 @@ namespace LibreMetaverse.Materials
                 NormalMapOffsetX = map["NormOffsetX"].AsInteger() / MaterialsMultiplier;
                 NormalMapOffsetY = map["NormOffsetY"].AsInteger() / MaterialsMultiplier;
                 NormalMapRepeatX = map["NormRepeatX"].AsInteger() / MaterialsMultiplier;
-                NormalMapRepeatY = map["NormRepeatX"].AsInteger() / MaterialsMultiplier;
+                NormalMapRepeatY = map["NormRepeatY"].AsInteger() / MaterialsMultiplier;
                 NormalMapRotation = map["NormRotation"].AsInteger() / MaterialsMultiplier;
 
-                SpecularMap = map["NormMap"].AsUUID();
-                SpecularMapOffsetX = map["NormOffsetX"].AsInteger() / MaterialsMultiplier;
-                SpecularMapOffsetY = map["NormOffsetY"].AsInteger() / MaterialsMultiplier;
-                SpecularMapRepeatX = map["NormRepeatX"].AsInteger() / MaterialsMultiplier;
-                SpecularMapRepeatY = map["NormRepeatX"].AsInteger() / MaterialsMultiplier;
-                SpecularMapRotation = map["NormRotation"].AsInteger() / MaterialsMultiplier;
+                SpecularMap = map["SpecMap"].AsUUID();
+                SpecularMapOffsetX = map["SpecOffsetX"].AsInteger() / MaterialsMultiplier;
+                SpecularMapOffsetY = map["SpecOffsetY"].AsInteger() / MaterialsMultiplier;
+                SpecularMapRepeatX = map["SpecRepeatX"].AsInteger() / MaterialsMultiplier;
+                SpecularMapRepeatY = map["SpecRepeatY"].AsInteger() / MaterialsMultiplier;
+                SpecularMapRotation = map["SpecRotation"].AsInteger() / MaterialsMultiplier;
 
                 SpecularColor = map["SpecColor"].AsColor4();
                 SpecularExponent = (byte)map["SpecExp"].AsInteger();
