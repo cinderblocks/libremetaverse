@@ -252,12 +252,12 @@ namespace OpenMetaverse.Rendering
         }
         #endregion lod mesh
 
-        public float MinPixelWidth;                                             //!< Width of redered avatar, before moving to a coarser LOD
+        public float MinPixelWidth;                                             //!< Width of rendered avatar, before moving to a coarser LOD
 
         public string Name { get; protected set; } = string.Empty;                              //!< The name of this mesh
         public string Header { get; protected set; } = string.Empty;                            //!< The header marker contained in the .llm file
         public bool HasWeights { get; protected set; }                          //!< Does the file contain skin weights?
-        public bool HasDetailTexCoords { get; protected set; }                  //!< Does the file contain detailed UV mapings
+        public bool HasDetailTexCoords { get; protected set; }                  //!< Does the file contain detailed UV mappings
         public Vector3 Position { get; protected set; } = default;                         //!< Origin of this mesh
         public Vector3 RotationAngles { get; protected set; } = default;                   //!< Rotation - This is a compressed quaternion
         //public byte RotationOrder
@@ -265,7 +265,7 @@ namespace OpenMetaverse.Rendering
         public ushort NumVertices { get; protected set; }                       //!< # of vertices in the file
         public Vertex[] Vertices { get; protected set; } = Array.Empty<Vertex>();                        //!< The actual vertices defining the 3d shape
         public ushort NumFaces { get; protected set; }                          //!< # of polygons in the file
-        public Face[] Faces { get; protected set; } = Array.Empty<Face>();                             //!< The polgon defintion
+        public Face[] Faces { get; protected set; } = Array.Empty<Face>();                             //!< The polygon definition
         public ushort NumSkinJoints { get; protected set; }                     //!< # of joints influencing the mesh
         public string[] SkinJoints { get; protected set; } = Array.Empty<string>();                      //!< Named list of joints
         public int NumRemaps { get; protected set; }                            //!< # of vertex remaps
@@ -534,7 +534,7 @@ namespace OpenMetaverse.Rendering
 
             ReferenceMesh reference = new ReferenceMesh();
             reference.LoadMesh(filename);
-            LodMeshes[lodLevel] = lodLevel;
+            LodMeshes[lodLevel] = reference;
             return reference;
         }
 
