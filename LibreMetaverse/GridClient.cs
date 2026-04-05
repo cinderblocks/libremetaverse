@@ -122,6 +122,8 @@ namespace OpenMetaverse
         public Stats.UtilizationStatistics Stats;
         /// <summary>HttpClient chiefly used for Caps</summary>
         public HttpCapsClient HttpCapsClient;
+        /// <summary>Second Life Marketplace subsystem</summary>
+        public Marketplace.MarketplaceManager Marketplace;
 
         /// <summary>
         /// Default constructor
@@ -150,6 +152,7 @@ namespace OpenMetaverse
 
             HttpCapsClient = SetupHttpCapsClient();
             AisClient = new InventoryAISClient(this);
+            Marketplace = new Marketplace.MarketplaceManager(this);
         }
 
         private HttpCapsClient SetupHttpCapsClient()
@@ -173,7 +176,7 @@ namespace OpenMetaverse
             HttpCapsClient client = new HttpCapsClient(handler);
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Add("User-Agent", $"{Settings.USER_AGENT}");
-            client.Timeout = System.TimeSpan.FromMilliseconds(Settings.CAPS_TIMEOUT);
+            client.Timeout = TimeSpan.FromMilliseconds(Settings.CAPS_TIMEOUT);
             return client;
         }
 
@@ -210,6 +213,7 @@ namespace OpenMetaverse
                 if (Appearance is IDisposable appearanceDisposable) DisposalHelper.SafeDispose(appearanceDisposable);
                 if (Inventory is IDisposable inventoryDisposable) DisposalHelper.SafeDispose(inventoryDisposable);
                 if (Assets is IDisposable assetsDisposable) DisposalHelper.SafeDispose(assetsDisposable);
+                if (Marketplace is IDisposable marketplaceDisposable) DisposalHelper.SafeDispose(marketplaceDisposable);
                 if (Parcels is IDisposable parcelsDisposable) DisposalHelper.SafeDispose(parcelsDisposable);
                 if (Objects is IDisposable objectsDisposable) DisposalHelper.SafeDispose(objectsDisposable);
 
