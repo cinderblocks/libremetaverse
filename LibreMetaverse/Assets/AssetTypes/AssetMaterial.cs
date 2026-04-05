@@ -60,7 +60,7 @@ namespace OpenMetaverse.Assets
             Offset.X == other.Offset.X && Offset.Y == other.Offset.Y &&
             Scale.X == other.Scale.X && Scale.Y == other.Scale.Y;
 
-        public override bool Equals(object obj) =>
+        public override bool Equals(object? obj) =>
             obj is GltfTextureTransform other && Equals(other);
 
         public override int GetHashCode()
@@ -97,10 +97,10 @@ namespace OpenMetaverse.Assets
         public string Name { get; set; } = string.Empty;
 
         /// <summary>Texture UUIDs indexed by TEXTURE_BASE_COLOR, TEXTURE_NORMAL, TEXTURE_METALLIC_ROUGHNESS, TEXTURE_EMISSIVE</summary>
-        public UUID[] TextureIds { get; set; }
+        public UUID[] TextureIds { get; set; } = null!;
 
         /// <summary>UV transforms indexed by TEXTURE_BASE_COLOR, TEXTURE_NORMAL, TEXTURE_METALLIC_ROUGHNESS, TEXTURE_EMISSIVE</summary>
-        public GltfTextureTransform[] TextureTransforms { get; set; }
+        public GltfTextureTransform[] TextureTransforms { get; set; } = null!;
 
         public Color4 BaseColorFactor { get; set; } = Color4.White;
         public Vector3 EmissiveFactor { get; set; } = Vector3.Zero;
@@ -368,7 +368,7 @@ namespace OpenMetaverse.Assets
         }
 
         private static (UUID id, GltfTextureTransform transform) ReadTextureSlot(
-            OSDMap texInfo, UUID[] imageUuids, int[] texSources)
+            OSDMap? texInfo, UUID[] imageUuids, int[] texSources)
         {
             if (texInfo == null) { return (UUID.Zero, GltfTextureTransform.Default); }
 
@@ -381,7 +381,7 @@ namespace OpenMetaverse.Assets
             return (imageUuids[srcIdx], ReadTransform(texInfo));
         }
 
-        private static GltfTextureTransform ReadTransform(OSDMap texInfo)
+        private static GltfTextureTransform ReadTransform(OSDMap? texInfo)
         {
             var transform = GltfTextureTransform.Default;
             if (texInfo == null || !texInfo.ContainsKey("extensions")) { return transform; }
