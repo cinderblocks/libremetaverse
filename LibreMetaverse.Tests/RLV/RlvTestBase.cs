@@ -13,14 +13,15 @@ namespace LibreMetaverse.Tests.RLV
     {
         public record RlvObject(string Name, Guid Id);
 
-        protected readonly RlvObject _sender;
-        protected readonly Mock<IRlvQueryCallbacks> _queryCallbacks;
-        protected readonly Mock<IRlvActionCallbacks> _actionCallbacks;
-        protected readonly RlvService _rlv;
+        protected RlvObject _sender;
+        protected Mock<IRlvQueryCallbacks> _queryCallbacks;
+        protected Mock<IRlvActionCallbacks> _actionCallbacks;
+        protected RlvService _rlv;
 
         public const float FloatTolerance = 0.00001f;
 
-        public RlvTestBase()
+        [SetUp]
+        public void SetUpBase()
         {
             _sender = new RlvObject("Sender 1", new Guid("ffffffff-ffff-4fff-8fff-ffffffffffff"));
             _queryCallbacks = new Mock<IRlvQueryCallbacks>();
