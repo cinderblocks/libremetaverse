@@ -106,9 +106,12 @@ namespace OpenMetaverse.Marketplace
         public string ApiBase { get; set; } = DefaultApiBase;
 
         public MarketplaceManager(GridClient client)
+            : this(client, new HttpClient()) { }
+
+        internal MarketplaceManager(GridClient client, HttpClient httpClient)
         {
             _client = client ?? throw new ArgumentNullException(nameof(client));
-            _http = new HttpClient();
+            _http = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _http.DefaultRequestHeaders.Accept.Add(
                 new MediaTypeWithQualityHeaderValue("application/json"));
         }
