@@ -904,6 +904,15 @@ namespace OpenMetaverse
             }
         }
 
+        protected void NavMeshStatusUpdateEventHandler(string capsKey, IMessage message, Simulator simulator)
+        {
+            if (message is NavMeshStatusUpdateMessage msg)
+            {
+                LastNavMeshStatus = msg;
+                OnNavMeshStatusUpdate(new NavMeshStatusUpdateEventArgs(msg, simulator));
+            }
+        }
+
         protected void EstablishAgentCommunicationEventHandler(string capsKey, IMessage message, Simulator simulator)
         {
             EstablishAgentCommunicationMessage msg = (EstablishAgentCommunicationMessage)message;

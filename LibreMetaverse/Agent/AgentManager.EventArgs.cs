@@ -397,4 +397,18 @@ namespace OpenMetaverse
         public AvatarRenderInfoMessage RenderInfo { get; }
         public AvatarRenderInfoEventArgs(AvatarRenderInfoMessage renderInfo) { RenderInfo = renderInfo; }
     }
+
+    /// <summary>Event args for a NavMesh status update received via the EventQueue NavMeshStatusUpdate event</summary>
+    public class NavMeshStatusUpdateEventArgs : EventArgs
+    {
+        /// <summary>The deserialized NavMesh status message</summary>
+        public NavMeshStatusUpdateMessage Message { get; }
+        /// <summary>The simulator that sent the update</summary>
+        public Simulator Simulator { get; }
+        public NavMeshStatusUpdateEventArgs(NavMeshStatusUpdateMessage message, Simulator simulator)
+        {
+            Message = message;
+            Simulator = simulator;
+        }
+    }
 }
