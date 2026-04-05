@@ -427,4 +427,39 @@ namespace OpenMetaverse
         public ProductInfoRequestMessage ProductInfo { get; }
         public ProductInfoEventArgs(ProductInfoRequestMessage productInfo) { ProductInfo = productInfo; }
     }
+
+    /// <summary>Event args for when a list of experience UUIDs is returned by the AgentExperiences,
+    /// GetAdminExperiences, GetCreatorExperiences, or GroupExperiences capability</summary>
+    public class AgentExperiencesEventArgs : EventArgs
+    {
+        /// <summary>The experience list message returned by the capability</summary>
+        public ExperienceListMessage AgentExperiences { get; }
+        public AgentExperiencesEventArgs(ExperienceListMessage agentExperiences) { AgentExperiences = agentExperiences; }
+    }
+
+    /// <summary>Event args for when experience allow/block preferences are returned by the
+    /// GetExperiences or ExperiencePreferences capability</summary>
+    public class ExperiencePreferencesEventArgs : EventArgs
+    {
+        /// <summary>The experience preferences message returned by the capability</summary>
+        public ExperiencePreferencesMessage Preferences { get; }
+        public ExperiencePreferencesEventArgs(ExperiencePreferencesMessage preferences) { Preferences = preferences; }
+    }
+
+    /// <summary>Event args for when the region experience list is returned by the RegionExperiences capability</summary>
+    public class RegionExperiencesEventArgs : EventArgs
+    {
+        /// <summary>The region experiences message returned by the capability</summary>
+        public RegionExperiencesMessage RegionExperiences { get; }
+        public RegionExperiencesEventArgs(RegionExperiencesMessage regionExperiences) { RegionExperiences = regionExperiences; }
+    }
+
+    /// <summary>Event args for when experience details are returned by the GetExperienceInfo,
+    /// FindExperienceByName, or ExperienceQuery capability</summary>
+    public class ExperienceInfoEventArgs : EventArgs
+    {
+        /// <summary>The experience info message returned by the capability</summary>
+        public ExperienceInfoMessage ExperienceInfo { get; }
+        public ExperienceInfoEventArgs(ExperienceInfoMessage experienceInfo) { ExperienceInfo = experienceInfo; }
+    }
 }

@@ -6299,5 +6299,238 @@ namespace OpenMetaverse.Messages.Linden
     }
 
     #endregion
+
+    #region Experience Messages
+
+    /// <summary>Experience property flags (from llexperienceutils.h XP_PROPERTY_* constants)</summary>
+    [Flags]
+    public enum ExperienceFlags
+    {
+        /// <summary>No special flags</summary>
+        None = 0,
+        /// <summary>Experience is a grid-wide (Linden Lab) experience</summary>
+        Grid = 1,
+        /// <summary>Experience is private and not publicly listed</summary>
+        Private = 2,
+        /// <summary>Experience is disabled</summary>
+        Disabled = 4,
+        /// <summary>Experience has been suspended by the grid operator</summary>
+        Suspended = 8
+    }
+
+    /// <summary>Detailed information about a single Second Life Experience</summary>
+    public class ExperienceInfo
+    {
+        /// <summary>The experience's internal UUID</summary>
+        public UUID ExperienceID;
+        /// <summary>The experience's public-facing UUID</summary>
+        public UUID PublicID;
+        /// <summary>Display name of the experience</summary>
+        public string Name = string.Empty;
+        /// <summary>Human-readable description of the experience</summary>
+        public string Description = string.Empty;
+        /// <summary>Experience property flags</summary>
+        public ExperienceFlags Flags;
+        /// <summary>UUID of the group associated with this experience</summary>
+        public UUID GroupID;
+        /// <summary>UUID of the agent who owns this experience</summary>
+        public UUID AgentID;
+        /// <summary>Script execution quota</summary>
+        public int Quota;
+        /// <summary>Maturity rating (0=PG/General, 1=Mature, 2=Adult)</summary>
+        public int Maturity;
+        /// <summary>UUID of the experience's profile image</summary>
+        public UUID ImageID;
+        /// <summary>Marketplace listing URL for the experience</summary>
+        public string Marketplace = string.Empty;
+        /// <summary>Application-defined extended metadata string</summary>
+        public string ExtendedMetadata = string.Empty;
+        /// <summary>SL URL for the experience's home location</summary>
+        public string SLURL = string.Empty;
+
+        /// <summary>Deserialize an ExperienceInfo from an OSDMap</summary>
+        public static ExperienceInfo FromOSD(OSDMap map)
+        {
+            return new ExperienceInfo
+            {
+                ExperienceID = map["experience_id"].AsUUID(),
+                PublicID = map["public_id"].AsUUID(),
+                Name = map["name"].AsString(),
+                Description = map["description"].AsString(),
+                Flags = (ExperienceFlags)map["properties"].AsInteger(),
+                GroupID = map["group_id"].AsUUID(),
+                AgentID = map["agent_id"].AsUUID(),
+                Quota = map["quota"].AsInteger(),
+                Maturity = map["maturity"].AsInteger(),
+                ImageID = map["image_id"].AsUUID(),
+                Marketplace = map["marketplace"].AsString(),
+                ExtendedMetadata = map["extended_metadata"].AsString(),
+                SLURL = map["slurl"].AsString()
+            };
+        }
+
+        /// <summary>Serialize this ExperienceInfo to an OSDMap</summary>
+        public OSDMap Serialize()
+        {
+            return new OSDMap
+            {
+                ["experience_id"] = OSD.FromUUID(ExperienceID),
+                ["public_id"] = OSD.FromUUID(PublicID),
+                ["name"] = OSD.FromString(Name),
+                ["description"] = OSD.FromString(Description),
+                ["properties"] = OSD.FromInteger((int)Flags),
+                ["group_id"] = OSD.FromUUID(GroupID),
+                ["agent_id"] = OSD.FromUUID(AgentID),
+                ["quota"] = OSD.FromInteger(Quota),
+                ["maturity"] = OSD.FromInteger(Maturity),
+                ["image_id"] = OSD.FromUUID(ImageID),
+                ["marketplace"] = OSD.FromString(Marketplace),
+                ["extended_metadata"] = OSD.FromString(ExtendedMetadata),
+                ["slurl"] = OSD.FromString(SLURL)
+            };
+        }
+    }
+
+    /// <summary>
+    /// Message containing detailed information for one or more experiences.
+    /// Returned by the GetExperienceInfo, FindExperienceByName, and ExperienceQuery capabilities.
+    /// </summary>
+    public class ExperienceInfoMessage : IMessage
+    {
+        /// <summary>The list of experience details returned by the capability</summary>
+        public List<ExperienceInfo> Experiences = new List<ExperienceInfo>();
+
+        public OSDMap Serialize()
+        {
+            OSDArray arr = new OSDArray(Experiences.Count);
+            foreach (var exp in Experiences)
+                arr.Add(exp.Serialize());
+            return new OSDMap { ["experience_keys"] = arr };
+        }
+
+        public void Deserialize(OSDMap map)
+        {
+            Experiences.Clear();
+            if (map["experience_keys"] is OSDArray arr)
+            {
+                foreach (OSD entry in arr)
+                {
+                    if (entry is OSDMap expMap)
+                        Experiences.Add(ExperienceInfo.FromOSD(expMap));
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Message containing a list of experience UUIDs.
+    /// Returned by the AgentExperiences, GetAdminExperiences, GetCreatorExperiences,
+    /// and GroupExperiences capabilities.
+    /// </summary>
+    public class ExperienceListMessage : IMessage
+    {
+        /// <summary>The list of experience UUIDs returned by the capability</summary>
+        public List<UUID> ExperienceIDs = new List<UUID>();
+
+        public OSDMap Serialize()
+        {
+            OSDArray arr = new OSDArray(ExperienceIDs.Count);
+            foreach (var id in ExperienceIDs)
+                arr.Add(OSD.FromUUID(id));
+            return new OSDMap { ["experience_keys"] = arr };
+        }
+
+        public void Deserialize(OSDMap map)
+        {
+            ExperienceIDs.Clear();
+            if (map["experience_keys"] is OSDArray arr)
+            {
+                foreach (OSD entry in arr)
+                    ExperienceIDs.Add(entry.AsUUID());
+            }
+        }
+    }
+
+    /// <summary>
+    /// Message representing an agent's experience allow/block preferences.
+    /// Used by the GetExperiences and ExperiencePreferences capabilities (GET and POST).
+    /// </summary>
+    public class ExperiencePreferencesMessage : IMessage
+    {
+        /// <summary>UUIDs of experiences the agent has explicitly allowed</summary>
+        public List<UUID> Allowed = new List<UUID>();
+        /// <summary>UUIDs of experiences the agent has blocked</summary>
+        public List<UUID> Blocked = new List<UUID>();
+
+        public OSDMap Serialize()
+        {
+            OSDArray allowed = new OSDArray(Allowed.Count);
+            foreach (var id in Allowed) allowed.Add(OSD.FromUUID(id));
+            OSDArray blocked = new OSDArray(Blocked.Count);
+            foreach (var id in Blocked) blocked.Add(OSD.FromUUID(id));
+            return new OSDMap
+            {
+                ["allowed"] = allowed,
+                ["blocked"] = blocked
+            };
+        }
+
+        public void Deserialize(OSDMap map)
+        {
+            Allowed.Clear();
+            Blocked.Clear();
+            if (map["allowed"] is OSDArray allowedArr)
+                foreach (OSD entry in allowedArr)
+                    Allowed.Add(entry.AsUUID());
+            if (map["blocked"] is OSDArray blockedArr)
+                foreach (OSD entry in blockedArr)
+                    Blocked.Add(entry.AsUUID());
+        }
+    }
+
+    /// <summary>
+    /// Message containing the experiences trusted, blocked, and contributed in the current region.
+    /// Returned by the RegionExperiences capability.
+    /// </summary>
+    public class RegionExperiencesMessage : IMessage
+    {
+        /// <summary>UUIDs of experiences blocked in this region</summary>
+        public List<UUID> Blocked = new List<UUID>();
+        /// <summary>UUIDs of experiences trusted (allowed) in this region by the estate/region owner</summary>
+        public List<UUID> Trusted = new List<UUID>();
+        /// <summary>UUIDs of experiences contributed to (running scripts in) this region</summary>
+        public List<UUID> Contrib = new List<UUID>();
+
+        public OSDMap Serialize()
+        {
+            OSDArray blocked = new OSDArray(Blocked.Count);
+            foreach (var id in Blocked) blocked.Add(OSD.FromUUID(id));
+            OSDArray trusted = new OSDArray(Trusted.Count);
+            foreach (var id in Trusted) trusted.Add(OSD.FromUUID(id));
+            OSDArray contrib = new OSDArray(Contrib.Count);
+            foreach (var id in Contrib) contrib.Add(OSD.FromUUID(id));
+            return new OSDMap
+            {
+                ["blocked"] = blocked,
+                ["trusted"] = trusted,
+                ["contrib"] = contrib
+            };
+        }
+
+        public void Deserialize(OSDMap map)
+        {
+            Blocked.Clear();
+            Trusted.Clear();
+            Contrib.Clear();
+            if (map["blocked"] is OSDArray blockedArr)
+                foreach (OSD entry in blockedArr) Blocked.Add(entry.AsUUID());
+            if (map["trusted"] is OSDArray trustedArr)
+                foreach (OSD entry in trustedArr) Trusted.Add(entry.AsUUID());
+            if (map["contrib"] is OSDArray contribArr)
+                foreach (OSD entry in contribArr) Contrib.Add(entry.AsUUID());
+        }
+    }
+
+    #endregion Experience Messages
 }
 
