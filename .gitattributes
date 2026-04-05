@@ -1,0 +1,18 @@
+# Normalise all text files to LF on commit
+* text=auto eol=lf
+
+# Explicitly binary – never touch line endings
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.bmp binary
+*.tga binary
+*.j2c binary
+*.dll binary
+*.exe binary
+*.pdb binary
+*.zip binary
+*.nupkg binary
+*.snupkg binary
