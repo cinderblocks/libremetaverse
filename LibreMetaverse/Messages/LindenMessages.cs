@@ -6532,5 +6532,167 @@ namespace OpenMetaverse.Messages.Linden
     }
 
     #endregion Experience Messages
+
+    #region Environment Messages
+
+    /// <summary>Flags for EEP (Extended Environment Protocol) environment settings (from llenvironment.h)</summary>
+    [Flags]
+    public enum EnvironmentFlags : uint
+    {
+        /// <summary>No flags set</summary>
+        None = 0,
+        /// <summary>This environment setting overrides a parent setting (e.g. parcel overrides region)</summary>
+        Override = 0x04
+    }
+
+    /// <summary>
+    /// The environment payload embedded in an <see cref="ExtEnvironmentMessage"/> response or request.
+    /// Contains the EEP sky/water/day-cycle settings and their associated metadata.
+    /// Corresponds to the inner "environment" map in the SL C++ viewer llenvironment.cpp.
+    /// </summary>
+    public class EnvironmentData : IMessage
+    {
+        /// <summary>
+        /// Active sky altitude track index.
+        /// 0 = water, 1 = ground-level sky, 2-4 = increasing altitude bands.
+        /// Corresponds to ETrackType in llenvironment.h.
+        /// </summary>
+        public int SkyTrack { get; set; } = 4;
+
+        /// <summary>Duration of one full day/night cycle in seconds (default 14400 = 4 hours)</summary>
+        public int DayLength { get; set; } = 14400;
+
+        /// <summary>Time offset from the start of the day cycle in seconds (default 57600)</summary>
+        public int DayOffset { get; set; } = 57600;
+
+        /// <summary>Environment property flags</summary>
+        public EnvironmentFlags Flags { get; set; } = EnvironmentFlags.None;
+
+        /// <summary>Whether this environment is the region or grid default (populated by server responses; not serialized in requests)</summary>
+        public bool IsDefault { get; set; }
+
+        /// <summary>
+        /// Raw LLSD data for the day cycle, sky, or water settings.
+        /// Null indicates no custom environment (inherits from parent scope).
+        /// The LLSD "type" key discriminates the payload:
+        ///   "daycycle" = full EEP day cycle, "sky" = single sky layer, "water" = water settings.
+        /// </summary>
+        public OSD? DayCycle { get; set; }
+
+        /// <inheritdoc/>
+        public OSDMap Serialize()
+        {
+            var map = new OSDMap(5)
+            {
+                ["sky_track"] = OSD.FromInteger(SkyTrack),
+                ["day_length"] = OSD.FromInteger(DayLength),
+                ["day_offset"] = OSD.FromInteger(DayOffset),
+                ["flags"] = OSD.FromInteger((int)Flags)
+            };
+            if (DayCycle != null)
+                map["day_cycle"] = DayCycle;
+            return map;
+        }
+
+        /// <inheritdoc/>
+        public void Deserialize(OSDMap map)
+        {
+            SkyTrack = map.ContainsKey("sky_track") ? map["sky_track"].AsInteger() : 4;
+            DayLength = map.ContainsKey("day_length") ? map["day_length"].AsInteger() : 14400;
+            DayOffset = map.ContainsKey("day_offset") ? map["day_offset"].AsInteger() : 57600;
+            Flags = (EnvironmentFlags)(uint)(map.ContainsKey("flags") ? map["flags"].AsInteger() : 0);
+            IsDefault = map.ContainsKey("is_default") && map["is_default"].AsBoolean();
+            DayCycle = map.ContainsKey("day_cycle") && map["day_cycle"].Type != OSDType.Unknown
+                ? map["day_cycle"]
+                : null;
+        }
+    }
+
+    /// <summary>
+    /// Message for the ExtEnvironment capability.
+    /// Used for GET (reading current EEP environment) and POST (writing a new EEP environment).
+    /// Corresponds to getEnvironmentCapabilityCoros / updateEnvironmentCapabilityCoros in the SL C++ viewer.
+    /// </summary>
+    public class ExtEnvironmentMessage : IMessage
+    {
+        /// <summary>Whether the request succeeded (populated by server in responses)</summary>
+        public bool Success { get; set; }
+
+        /// <summary>
+        /// The EEP environment data.
+        /// Null in a GET response indicates no custom environment is set; the scope inherits from its parent.
+        /// Pass null in a POST request body to reset the scope to the parent default.
+        /// </summary>
+        public EnvironmentData? Environment { get; set; }
+
+        /// <summary>
+        /// Parcel ID this environment applies to.
+        /// -1 indicates region-level environment; use a local parcel integer ID for parcel-level.
+        /// </summary>
+        public int ParcelId { get; set; } = -1;
+
+        /// <summary>Server-assigned version number of the environment settings (populated in responses)</summary>
+        public int Version { get; set; }
+
+        /// <summary>Optional error or status message from the server</summary>
+        public string Message { get; set; } = string.Empty;
+
+        /// <inheritdoc/>
+        public OSDMap Serialize()
+        {
+            var map = new OSDMap(3) { ["parcel_id"] = OSD.FromInteger(ParcelId) };
+            if (Environment != null)
+                map["environment"] = Environment.Serialize();
+            if (Version != 0)
+                map["version"] = OSD.FromInteger(Version);
+            return map;
+        }
+
+        /// <inheritdoc/>
+        public void Deserialize(OSDMap map)
+        {
+            Success = map.ContainsKey("success") && map["success"].AsBoolean();
+            ParcelId = map.ContainsKey("parcel_id") ? map["parcel_id"].AsInteger() : -1;
+            Version = map.ContainsKey("version") ? map["version"].AsInteger() : 0;
+            Message = map.ContainsKey("message") ? map["message"].AsString() : string.Empty;
+            if (map["environment"] is OSDMap envMap)
+            {
+                Environment = new EnvironmentData();
+                Environment.Deserialize(envMap);
+            }
+            else
+            {
+                Environment = null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Message for the legacy EnvironmentSettings capability (pre-EEP WindLight settings).
+    /// The settings payload is stored as raw LLSD to accommodate the varying WindLight
+    /// formats used by different simulator versions.
+    /// </summary>
+    public class LegacyEnvironmentMessage : IMessage
+    {
+        /// <summary>
+        /// Raw LLSD settings data. May be a WindLight sky/water map or a day cycle structure
+        /// depending on the simulator version.
+        /// </summary>
+        public OSD? Settings { get; set; }
+
+        /// <inheritdoc/>
+        public OSDMap Serialize()
+        {
+            return Settings is OSDMap settingsMap ? settingsMap : new OSDMap();
+        }
+
+        /// <inheritdoc/>
+        public void Deserialize(OSDMap map)
+        {
+            Settings = map;
+        }
+    }
+
+    #endregion Environment Messages
 }
 

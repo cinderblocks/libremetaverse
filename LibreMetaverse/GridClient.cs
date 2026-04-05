@@ -124,6 +124,8 @@ namespace OpenMetaverse
         public HttpCapsClient HttpCapsClient;
         /// <summary>Second Life Marketplace subsystem</summary>
         public Marketplace.MarketplaceManager Marketplace;
+        /// <summary>EEP (Extended Environment Protocol) and legacy WindLight environment subsystem</summary>
+        public EnvironmentManager Environment;
 
         /// <summary>
         /// Default constructor
@@ -153,6 +155,7 @@ namespace OpenMetaverse
             HttpCapsClient = SetupHttpCapsClient();
             AisClient = new InventoryAISClient(this);
             Marketplace = new Marketplace.MarketplaceManager(this);
+            Environment = new EnvironmentManager(this);
         }
 
         private HttpCapsClient SetupHttpCapsClient()
