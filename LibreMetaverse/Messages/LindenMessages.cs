@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2021-2022, Sjofn LLC
+ * Copyright (c) 2021-2026, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -1521,7 +1521,67 @@ namespace OpenMetaverse.Messages.Linden
 
         public OSDMap Serialize()
         {
-            throw new NotImplementedException();
+            var agentData = new OSDArray(1);
+            agentData.Add(new OSDMap(2)
+            {
+                ["AgentID"] = OSD.FromUUID(AgentID),
+                ["TransactionID"] = OSD.FromUUID(TransactionID)
+            });
+
+            var folderData = new OSDArray(FolderData?.Length ?? 0);
+            if (FolderData != null)
+            {
+                foreach (var folder in FolderData)
+                {
+                    folderData.Add(new OSDMap(4)
+                    {
+                        ["FolderID"] = OSD.FromUUID(folder.FolderID),
+                        ["ParentID"] = OSD.FromUUID(folder.ParentID),
+                        ["Name"] = OSD.FromString(folder.Name),
+                        ["Type"] = OSD.FromInteger((int)folder.Type)
+                    });
+                }
+            }
+
+            var itemData = new OSDArray(ItemData?.Length ?? 0);
+            if (ItemData != null)
+            {
+                foreach (var item in ItemData)
+                {
+                    itemData.Add(new OSDMap(22)
+                    {
+                        ["ItemID"] = OSD.FromUUID(item.ItemID),
+                        ["CallbackID"] = OSD.FromUInteger(item.CallbackID),
+                        ["FolderID"] = OSD.FromUUID(item.FolderID),
+                        ["CreatorID"] = OSD.FromUUID(item.CreatorID),
+                        ["OwnerID"] = OSD.FromUUID(item.OwnerID),
+                        ["GroupID"] = OSD.FromUUID(item.GroupID),
+                        ["BaseMask"] = OSD.FromUInteger((uint)item.BaseMask),
+                        ["OwnerMask"] = OSD.FromUInteger((uint)item.OwnerMask),
+                        ["GroupMask"] = OSD.FromUInteger((uint)item.GroupMask),
+                        ["EveryoneMask"] = OSD.FromUInteger((uint)item.EveryoneMask),
+                        ["NextOwnerMask"] = OSD.FromUInteger((uint)item.NextOwnerMask),
+                        ["GroupOwned"] = OSD.FromBoolean(item.GroupOwned),
+                        ["AssetID"] = OSD.FromUUID(item.AssetID),
+                        ["Type"] = OSD.FromInteger((int)item.Type),
+                        ["InvType"] = OSD.FromInteger((int)item.InvType),
+                        ["Flags"] = OSD.FromUInteger(item.Flags),
+                        ["SaleType"] = OSD.FromInteger((int)item.SaleType),
+                        ["SalePrice"] = OSD.FromInteger(item.SalePrice),
+                        ["Name"] = OSD.FromString(item.Name),
+                        ["Description"] = OSD.FromString(item.Description),
+                        ["CreationDate"] = OSD.FromUInteger(Utils.DateTimeToUnixTime(item.CreationDate)),
+                        ["CRC"] = OSD.FromUInteger(item.CRC)
+                    });
+                }
+            }
+
+            return new OSDMap(3)
+            {
+                ["AgentData"] = agentData,
+                ["FolderData"] = folderData,
+                ["ItemData"] = itemData
+            };
         }
 
         public void Deserialize(OSDMap map)
@@ -2884,7 +2944,7 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            throw new NotImplementedException();
+            return new OSDMap();
         }
 
         /// <summary>
@@ -2893,7 +2953,6 @@ namespace OpenMetaverse.Messages.Linden
         /// <param name="map">An <see cref="OSDMap"/> containing the data</param>
         public void Deserialize(OSDMap map)
         {
-            throw new NotImplementedException();
         }
     }
 
@@ -5133,7 +5192,40 @@ namespace OpenMetaverse.Messages.Linden
         /// <returns><see cref="OSDMap"/> serialized data</returns>
         public virtual OSDMap Serialize()
         {
-            throw new NotImplementedException();
+            var available = new OSDArray(SummaryAvailable?.Count ?? 0);
+            if (SummaryAvailable != null)
+            {
+                foreach (var kvp in SummaryAvailable)
+                {
+                    available.Add(new OSDMap(2)
+                    {
+                        ["type"] = OSD.FromString(kvp.Key),
+                        ["amount"] = OSD.FromInteger(kvp.Value)
+                    });
+                }
+            }
+
+            var used = new OSDArray(SummaryUsed?.Count ?? 0);
+            if (SummaryUsed != null)
+            {
+                foreach (var kvp in SummaryUsed)
+                {
+                    used.Add(new OSDMap(2)
+                    {
+                        ["type"] = OSD.FromString(kvp.Key),
+                        ["amount"] = OSD.FromInteger(kvp.Value)
+                    });
+                }
+            }
+
+            return new OSDMap(1)
+            {
+                ["summary"] = new OSDMap(2)
+                {
+                    ["available"] = available,
+                    ["used"] = used
+                }
+            };
         }
 
         /// <summary>
