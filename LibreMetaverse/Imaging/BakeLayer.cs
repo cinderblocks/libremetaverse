@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2007-2008, openmetaverse.co
- * Copyright (c) 2024-2025, Sjofn LLC.
+ * Copyright (c) 2024-2026, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -215,12 +215,18 @@ namespace OpenMetaverse.Imaging
                 ManagedImage texture = texAsset.Image.Clone();
                 //File.WriteAllBytes(bakeType + "-texture-layer-" + textures[i].TextureIndex + "-" + i + ".tga", texture.ExportTGA());
 
-                // Resize texture to the size of baked layer
-                // FIXME: if texture is smaller than the layer, don't stretch it, tile it
+                // Resize texture to the size of baked layer; tile if smaller to avoid stretching
                 if (texture.Width != bakeWidth || texture.Height != bakeHeight)
                 {
-                    try { texture.ResizeNearestNeighbor(bakeWidth, bakeHeight); }
-                    catch (Exception) { continue; }
+                    if (texture.Width < bakeWidth || texture.Height < bakeHeight)
+                    {
+                        texture = TileTexture(texture, bakeWidth, bakeHeight);
+                    }
+                    else
+                    {
+                        try { texture.ResizeNearestNeighbor(bakeWidth, bakeHeight); }
+                        catch (Exception) { continue; }
+                    }
                 }
 
                 // Special case for hair layer for the head bake
@@ -436,6 +442,43 @@ namespace OpenMetaverse.Imaging
             return (bakeType != BakeType.LowerBody || !mask.Contains("upper"))
                    && (bakeType != BakeType.LowerBody || !mask.Contains("shirt"))
                    && (bakeType != BakeType.UpperBody || !mask.Contains("lower"));
+        }
+
+        /// <summary>
+        /// Creates a tiled copy of <paramref name="src"/> at
+        /// <paramref name="targetWidth"/> x <paramref name="targetHeight"/>.
+        /// Pixels outside the source bounds repeat by wrap-around (modulo).
+        /// </summary>
+        private static ManagedImage TileTexture(ManagedImage src, int targetWidth, int targetHeight)
+        {
+            var tiled = new ManagedImage(targetWidth, targetHeight, src.Channels);
+            int srcWidth = src.Width;
+            int srcHeight = src.Height;
+            if (srcWidth == 0 || srcHeight == 0) return tiled;
+
+            bool hasColor = (src.Channels & ManagedImage.ImageChannels.Color) != 0;
+            bool hasAlpha = (src.Channels & ManagedImage.ImageChannels.Alpha) != 0;
+            bool hasBump  = (src.Channels & ManagedImage.ImageChannels.Bump)  != 0;
+
+            for (int y = 0; y < targetHeight; y++)
+            {
+                int srcY = y % srcHeight;
+                for (int x = 0; x < targetWidth; x++)
+                {
+                    int srcX   = x % srcWidth;
+                    int dstIdx = y * targetWidth + x;
+                    int srcIdx = srcY * srcWidth + srcX;
+                    if (hasColor)
+                    {
+                        tiled.Red[dstIdx]   = src.Red[srcIdx];
+                        tiled.Green[dstIdx] = src.Green[srcIdx];
+                        tiled.Blue[dstIdx]  = src.Blue[srcIdx];
+                    }
+                    if (hasAlpha) tiled.Alpha[dstIdx] = src.Alpha[srcIdx];
+                    if (hasBump)  tiled.Bump[dstIdx]  = src.Bump[srcIdx];
+                }
+            }
+            return tiled;
         }
 
         private bool DrawLayer(ManagedImage? source, bool addSourceAlpha)
