@@ -73,7 +73,7 @@ namespace LibreMetaverse.Tests
             Assert.That(parsed.Name, Is.EqualTo("TestObject"));
             Assert.That(parsed.ParentUUID, Is.EqualTo(parentId));
             Assert.That(parsed.AssetUUID, Is.EqualTo(linkedId));
-            // Inventory type correction results in created InventoryItem of expected type — we cannot directly assert the enum used
+            // Inventory type correction results in created InventoryItem of expected type ï¿½ we cannot directly assert the enum used
             // but ensure basic fields are parsed and not left default
             Assert.That(parsed.OwnerID, Is.EqualTo(agentId));
             Assert.That(parsed.CreationDate, Is.Not.EqualTo(default(DateTime)));

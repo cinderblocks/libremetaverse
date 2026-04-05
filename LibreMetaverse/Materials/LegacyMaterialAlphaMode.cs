@@ -1,4 +1,4 @@
-﻿namespace LibreMetaverse.Materials
+namespace LibreMetaverse.Materials
 {
     public enum LegacyMaterialAlphaMode : byte
     {

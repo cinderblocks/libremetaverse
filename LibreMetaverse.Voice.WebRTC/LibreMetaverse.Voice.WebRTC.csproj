@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <PackageId>LibreMetaverse.Voice.WebRTC</PackageId>
     <Description>WebRTC-based voice client library for LibreMetaverse, enabling real-time audio communication with Second Life's WebRTC voice service via SIPSorcery.</Description>

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2014 Stephen Cleary
  * Copyright (c) 2025, Sjofn LLC.
  * All rights reserved.

@@ -1,4 +1,4 @@
-﻿namespace LibreMetaverse.RLV
+namespace LibreMetaverse.RLV
 {
     public class CameraSettings
     {

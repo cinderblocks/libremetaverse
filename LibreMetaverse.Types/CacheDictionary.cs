@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2022-2025, Sjofn LLC
  * All rights reserved.
  *

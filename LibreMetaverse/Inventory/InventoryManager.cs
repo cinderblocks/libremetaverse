@@ -2167,7 +2167,7 @@ namespace OpenMetaverse
                             update["hash_id"] = item.TransactionID;
                         }
                     }
-                    // Fire-and-forget AIS update — wrap callback to merge into local store
+                    // Fire-and-forget AIS update ï¿½ wrap callback to merge into local store
                     Action<bool> aisCallback = success => { if (success) MergeUpdateIntoStore(update, item.UUID); };
 
                     _ = Client.AisClient.UpdateItem(item.UUID, update, aisCallback);

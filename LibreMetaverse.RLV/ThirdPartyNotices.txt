@@ -1,4 +1,4 @@
-﻿THIRD-PARTY NOTICES
+THIRD-PARTY NOTICES
 
 LibreMetaverse.RLV incorporates material from third-party sources. The following notices are provided to comply with attribution and licensing requirements.
 

@@ -1,19 +1,9 @@
 # editorconfig.org
+# Inherits root settings (end_of_line = lf, charset = utf-8, etc.)
+# Contains only project-specific overrides.
 
-# top-most EditorConfig file
-root = true
-
-# Default settings:
-# A newline ending every file
-# Use 4 spaces as indentation
 [*]
-insert_final_newline = true
-indent_style = space
-indent_size = 4
-trim_trailing_whitespace = true
 dotnet_style_operator_placement_when_wrapping = end_of_line
-tab_width = 4
-end_of_line = crlf
 dotnet_style_coalesce_expression = true:suggestion
 dotnet_style_null_propagation = true:suggestion
 dotnet_style_prefer_is_null_check_over_reference_equality_method = true:suggestion

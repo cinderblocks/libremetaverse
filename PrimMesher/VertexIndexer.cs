@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) Contributors
  * See CONTRIBUTORS.TXT for a full list of copyright holders.
  *

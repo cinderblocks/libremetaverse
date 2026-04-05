@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>LibreMetaverse.StructuredData</AssemblyName>
     <Description>Structured data serialization library for LibreMetaverse, providing parsers and writers for LLSD (Linden Lab Structured Data) in binary, XML, and JSON formats.</Description>
