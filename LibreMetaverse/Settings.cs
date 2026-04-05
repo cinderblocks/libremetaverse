@@ -297,8 +297,8 @@ namespace OpenMetaverse
         public Color4 DEFAULT_EFFECT_COLOR = new Color4(255, 0, 0, 255);
 
         /// <summary>Cost of uploading an asset</summary>
-        /// <remarks>Read-only since this value is dynamically fetched at login</remarks>
-        public int UPLOAD_COST { get; private set; } = 0;
+        /// <remarks>Dynamically updated from EconomyData and ViewerBenefits</remarks>
+        public int UPLOAD_COST { get; internal set; } = 0;
 
         /// <summary>Maximum number of times to resend a failed packet</summary>
         public int MAX_RESEND_COUNT = 3;

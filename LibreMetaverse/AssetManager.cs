@@ -1194,6 +1194,51 @@ namespace OpenMetaverse
             throw new TimeoutException("Timeout waiting for previous asset upload to begin");
         }
 
+        /// <summary>
+        /// Returns the upload cost in L$ for a texture of the specified width, selecting the
+        /// correct large-texture pricing tier from <see cref="AgentManager.Benefits"/> when
+        /// available, and falling back to <see cref="Settings.UPLOAD_COST"/> otherwise.
+        /// </summary>
+        /// <param name="widthPixels">Texture width in pixels (e.g. 512, 1024, 2048, 4096)</param>
+        /// <returns>Upload cost in L$</returns>
+        public int GetTextureUploadCost(int widthPixels)
+        {
+            if (widthPixels > 1024)
+            {
+                var largeCosts = Client.Self.Benefits?.LargeTextureUploadCost;
+                if (largeCosts != null && largeCosts.Count > 0)
+                {
+                    int tier = 0;
+                    int w = widthPixels;
+                    while (w > 2048 && tier < largeCosts.Count - 1)
+                    {
+                        w /= 2;
+                        tier++;
+                    }
+                    return largeCosts[tier];
+                }
+            }
+            return Client.Settings.UPLOAD_COST;
+        }
+
+        /// <summary>
+        /// Uploads a texture asset, automatically selecting and paying the correct tiered
+        /// upload fee for large textures using <see cref="AgentManager.Benefits"/>.
+        /// Textures wider than 1024 pixels are charged at the appropriate large-texture tier;
+        /// smaller textures are charged at the standard <see cref="Settings.UPLOAD_COST"/>.
+        /// </summary>
+        /// <param name="data">Raw texture asset data</param>
+        /// <param name="widthPixels">Texture width in pixels; determines the upload cost tier</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Transaction UUID of the completed upload</returns>
+        public async Task<UUID> RequestUploadLargeTextureAsync(byte[] data, int widthPixels,
+            CancellationToken cancellationToken = default)
+        {
+            Client.Self.PayUploadFee(GetTextureUploadCost(widthPixels));
+            return await RequestUploadAsync(AssetType.Texture, data, false, UUID.Random(), cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         public void RequestUploadBakedTexture(byte[] textureData, BakedTextureUploadedCallback callback, CancellationToken cancellationToken = default)
         {
             Uri? cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("UploadBakedTexture");

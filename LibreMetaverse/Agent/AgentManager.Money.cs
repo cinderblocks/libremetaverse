@@ -128,6 +128,16 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Pay a specific upload fee amount
+        /// </summary>
+        /// <param name="amount">Fee in L$ to pay</param>
+        public void PayUploadFee(int amount)
+        {
+            GiveMoney(UUID.Zero, amount, string.Empty, MoneyTransactionType.UploadCharge,
+                TransactionFlags.None);
+        }
+
+        /// <summary>
         /// Give Money to destination Object or Avatar
         /// </summary>
         /// <param name="target">UUID of the Target Object/Avatar</param>

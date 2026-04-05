@@ -27,6 +27,7 @@
 
 using System;
 using System.Collections.Generic;
+using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.StructuredData;
 
 namespace OpenMetaverse
@@ -371,5 +372,29 @@ namespace OpenMetaverse
             Direction = direction;
             TimeUntilCrossing = timeUntilCrossing;
         }
+    }
+
+    /// <summary>Event args for when the ViewerBenefits capability returns updated agent benefit information</summary>
+    public class ViewerBenefitsEventArgs : EventArgs
+    {
+        /// <summary>The full benefits message returned by the capability</summary>
+        public ViewerBenefitsMessage Benefits { get; }
+        public ViewerBenefitsEventArgs(ViewerBenefitsMessage benefits) { Benefits = benefits; }
+    }
+
+    /// <summary>Event args for when the AgentPreferences capability returns current agent preferences</summary>
+    public class AgentPreferencesEventArgs : EventArgs
+    {
+        /// <summary>The preferences message returned by the capability</summary>
+        public AgentPreferencesMessage Preferences { get; }
+        public AgentPreferencesEventArgs(AgentPreferencesMessage preferences) { Preferences = preferences; }
+    }
+
+    /// <summary>Event args for when the AvatarRenderInfo capability returns render info for nearby avatars</summary>
+    public class AvatarRenderInfoEventArgs : EventArgs
+    {
+        /// <summary>The render info message returned by the capability</summary>
+        public AvatarRenderInfoMessage RenderInfo { get; }
+        public AvatarRenderInfoEventArgs(AvatarRenderInfoMessage renderInfo) { RenderInfo = renderInfo; }
     }
 }

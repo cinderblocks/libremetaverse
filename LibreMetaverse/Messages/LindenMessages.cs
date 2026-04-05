@@ -98,33 +98,6 @@ namespace OpenMetaverse.Messages.Linden
             return map;
         }
 
-    /// <summary>
-    /// Minimal handler for NavMeshStatusUpdate capability events.
-    /// Captures raw OSD and a few optional fields commonly present in server implementations.
-    /// </summary>
-    public class NavMeshStatusUpdateMessage : IMessage
-    {
-        public OSDMap RawData;
-        public string? Status;
-        public string? Message;
-        public UUID? AgentID;
-
-        public void Deserialize(OSDMap map)
-        {
-            RawData = map;
-            try { if (map.TryGetValue("status", out var s)) Status = s.AsString(); } catch { }
-            try { if (map.TryGetValue("message", out var m)) Message = m.AsString(); } catch { }
-            try { if (map.TryGetValue("agent_id", out var a)) AgentID = a.AsUUID(); } catch { }
-        }
-
-        public OSDMap Serialize()
-        {
-            return RawData ?? new OSDMap();
-        }
-    }
-
-    
-
         /// <summary>
         /// Deserialize the message
         /// </summary>
@@ -144,6 +117,41 @@ namespace OpenMetaverse.Messages.Linden
             Flags = (TeleportFlags)blockMap["TeleportFlags"].AsUInteger();
             RegionSizeX = blockMap.ContainsKey("RegionSizeX") ? blockMap["RegionSizeX"].AsUInteger() : Simulator.DefaultRegionSizeX;
             RegionSizeY = blockMap.ContainsKey("RegionSizeY") ? blockMap["RegionSizeY"].AsUInteger() : Simulator.DefaultRegionSizeY;
+        }
+    }
+
+    /// <summary>
+    /// Sent from the simulator to the viewer when the region's navmesh status changes.
+    /// Delivered via the NavMeshStatusUpdate event queue event.
+    /// Fields: region_id, status ("pending"|"building"|"complete"|"repending"), version.
+    /// </summary>
+    public class NavMeshStatusUpdateMessage : IMessage
+    {
+        /// <summary>Raw OSD data from the server (for forward-compatibility)</summary>
+        public OSDMap RawData;
+        /// <summary>UUID of the region whose navmesh status changed</summary>
+        public UUID RegionID;
+        /// <summary>Navmesh build status string: "pending", "building", "complete", or "repending"</summary>
+        public string Status;
+        /// <summary>Navmesh version number</summary>
+        public uint Version;
+
+        public void Deserialize(OSDMap map)
+        {
+            RawData = map;
+            RegionID = map["region_id"].AsUUID();
+            Status = map["status"].AsString();
+            Version = map["version"].AsUInteger();
+        }
+
+        public OSDMap Serialize()
+        {
+            return new OSDMap(3)
+            {
+                ["region_id"] = OSD.FromUUID(RegionID),
+                ["status"] = OSD.FromString(Status),
+                ["version"] = OSD.FromUInteger(Version)
+            };
         }
     }
 
@@ -5922,6 +5930,229 @@ namespace OpenMetaverse.Messages.Linden
             }
         }
     }
-    #endregion
-}
+
+                        /// <summary>
+                        /// Message for the AvatarRenderInfo capability.
+                        /// GET response contains per-avatar render weight and complexity info.
+                        /// POST sends local render weight and too-complex flag to the simulator.
+                        /// </summary>
+                        public class AvatarRenderInfoMessage : IMessage
+                        {
+                            /// <summary>Per-avatar render info reported by or sent to the simulator</summary>
+                            public class AvatarInfo
+                            {
+                                /// <summary>Render weight of the avatar</summary>
+                                public int Weight;
+                                /// <summary>True if the avatar is considered too complex to render</summary>
+                                public bool TooComplex;
+                            }
+
+                            /// <summary>Map of agent UUID to render info, keyed by UUID string</summary>
+                            public Dictionary<UUID, AvatarInfo> Agents = new Dictionary<UUID, AvatarInfo>();
+                            /// <summary>Region-wide count of avatars currently over the complexity limit (GET response only)</summary>
+                            public int OverLimit;
+                            /// <summary>Complexity threshold at which the region begins reporting (GET response only)</summary>
+                            public int ReportingLimit;
+
+                            /// <summary>
+                            /// Serialize the object (POST form: weight and tooComplex only)
+                            /// </summary>
+                            /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
+                            public OSDMap Serialize()
+                            {
+                                OSDMap agentsMap = new OSDMap(Agents.Count);
+                                foreach (KeyValuePair<UUID, AvatarInfo> kvp in Agents)
+                                {
+                                    OSDMap infoMap = new OSDMap(2)
+                                    {
+                                        ["weight"] = OSD.FromInteger(kvp.Value.Weight),
+                                        ["tooComplex"] = OSD.FromBoolean(kvp.Value.TooComplex)
+                                    };
+                                    agentsMap[kvp.Key.ToString()] = infoMap;
+                                }
+                                return new OSDMap(1) { ["agents"] = agentsMap };
+                            }
+
+                            /// <summary>
+                            /// Deserialize the message (GET response form)
+                            /// </summary>
+                            /// <param name="map">An <see cref="OSDMap"/> containing the data</param>
+                            public void Deserialize(OSDMap map)
+                            {
+                                Agents = new Dictionary<UUID, AvatarInfo>();
+                                if (map["agents"] is OSDMap agentsMap)
+                                {
+                                    foreach (KeyValuePair<string, OSD> kvp in agentsMap)
+                                    {
+                                        if (!UUID.TryParse(kvp.Key, out UUID agentID)) continue;
+                                        if (!(kvp.Value is OSDMap infoMap)) continue;
+                                        Agents[agentID] = new AvatarInfo
+                                        {
+                                            Weight = infoMap["weight"].AsInteger(),
+                                            TooComplex = infoMap["tooComplex"].AsBoolean()
+                                        };
+                                    }
+                                }
+                                OverLimit = map["overlimit"].AsInteger();
+                                ReportingLimit = map["reportinglimit"].AsInteger();
+                            }
+                        }
+
+                        /// <summary>
+                        /// Message for the ViewerBenefits capability.
+                        /// Contains the account type and benefit package details for the current agent.
+                        /// </summary>
+                        public class ViewerBenefitsMessage : IMessage
+                        {
+                            /// <summary>A set of benefit values associated with a membership package</summary>
+                            public class BenefitPackage
+                            {
+                                /// <summary>Maximum number of animated objects the agent may have attached</summary>
+                                public int AnimatedObjectLimit;
+                                /// <summary>Cost in L$ to upload an animation</summary>
+                                public int AnimationUploadCost;
+                                /// <summary>Maximum number of attachments the agent may wear</summary>
+                                public int AttachmentLimit;
+                                /// <summary>Cost in L$ to create a group</summary>
+                                public int CreateGroupCost;
+                                /// <summary>Maximum number of groups the agent may join</summary>
+                                public int GroupMembershipLimit;
+                                /// <summary>Maximum number of picks the agent may have in their profile</summary>
+                                public int PicksLimit;
+                                /// <summary>Cost in L$ to upload a sound</summary>
+                                public int SoundUploadCost;
+                                /// <summary>Cost in L$ to upload a texture</summary>
+                                public int TextureUploadCost;
+                                /// <summary>Tiered upload costs for large textures, sorted ascending. May be empty.</summary>
+                                public int[] LargeTextureUploadCost = Array.Empty<int>();
+                            }
+
+                            /// <summary>Account type string (e.g. "Base", "Premium", "PremiumPlus")</summary>
+                            public string AccountType = string.Empty;
+                            /// <summary>Benefits that apply to the agent's current account level</summary>
+                            public BenefitPackage AccountLevelBenefits = new BenefitPackage();
+                            /// <summary>All available premium packages, keyed by package name</summary>
+                            public Dictionary<string, BenefitPackage> PremiumPackages = new Dictionary<string, BenefitPackage>();
+
+                            private static BenefitPackage DeserializePackage(OSDMap map)
+                            {
+                                BenefitPackage pkg = new BenefitPackage
+                                {
+                                    AnimatedObjectLimit = map["animated_object_limit"].AsInteger(),
+                                    AnimationUploadCost = map["animation_upload_cost"].AsInteger(),
+                                    AttachmentLimit = map["attachment_limit"].AsInteger(),
+                                    CreateGroupCost = map["create_group_cost"].AsInteger(),
+                                    GroupMembershipLimit = map["group_membership_limit"].AsInteger(),
+                                    PicksLimit = map["picks_limit"].AsInteger(),
+                                    SoundUploadCost = map["sound_upload_cost"].AsInteger(),
+                                    TextureUploadCost = map["texture_upload_cost"].AsInteger()
+                                };
+                                if (map["large_texture_upload_cost"] is OSDArray costArray)
+                                {
+                                    pkg.LargeTextureUploadCost = new int[costArray.Count];
+                                    for (int i = 0; i < costArray.Count; i++)
+                                        pkg.LargeTextureUploadCost[i] = costArray[i].AsInteger();
+                                }
+                                return pkg;
+                            }
+
+                            private static OSDMap SerializePackage(BenefitPackage pkg)
+                            {
+                                OSDMap map = new OSDMap(9)
+                                {
+                                    ["animated_object_limit"] = OSD.FromInteger(pkg.AnimatedObjectLimit),
+                                    ["animation_upload_cost"] = OSD.FromInteger(pkg.AnimationUploadCost),
+                                    ["attachment_limit"] = OSD.FromInteger(pkg.AttachmentLimit),
+                                    ["create_group_cost"] = OSD.FromInteger(pkg.CreateGroupCost),
+                                    ["group_membership_limit"] = OSD.FromInteger(pkg.GroupMembershipLimit),
+                                    ["picks_limit"] = OSD.FromInteger(pkg.PicksLimit),
+                                    ["sound_upload_cost"] = OSD.FromInteger(pkg.SoundUploadCost),
+                                    ["texture_upload_cost"] = OSD.FromInteger(pkg.TextureUploadCost)
+                                };
+                                if (pkg.LargeTextureUploadCost.Length > 0)
+                                {
+                                    OSDArray costArray = new OSDArray(pkg.LargeTextureUploadCost.Length);
+                                    foreach (int cost in pkg.LargeTextureUploadCost)
+                                        costArray.Add(OSD.FromInteger(cost));
+                                    map["large_texture_upload_cost"] = costArray;
+                                }
+                                return map;
+                            }
+
+                            /// <summary>
+                            /// Serialize the object
+                            /// </summary>
+                            /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
+                            public OSDMap Serialize()
+                            {
+                                OSDMap packagesMap = new OSDMap(PremiumPackages.Count);
+                                foreach (KeyValuePair<string, BenefitPackage> kvp in PremiumPackages)
+                                {
+                                    packagesMap[kvp.Key] = new OSDMap(1) { ["benefits"] = SerializePackage(kvp.Value) };
+                                }
+                                return new OSDMap(3)
+                                {
+                                    ["account_type"] = OSD.FromString(AccountType),
+                                    ["account_level_benefits"] = SerializePackage(AccountLevelBenefits),
+                                    ["premium_packages"] = packagesMap
+                                };
+                            }
+
+                            /// <summary>
+                            /// Deserialize the message
+                            /// </summary>
+                            /// <param name="map">An <see cref="OSDMap"/> containing the data</param>
+                            public void Deserialize(OSDMap map)
+                            {
+                                AccountType = map["account_type"].AsString();
+                                if (map["account_level_benefits"] is OSDMap levelMap)
+                                    AccountLevelBenefits = DeserializePackage(levelMap);
+                                PremiumPackages = new Dictionary<string, BenefitPackage>();
+                                if (!(map["premium_packages"] is OSDMap packagesMap)) return;
+                                foreach (KeyValuePair<string, OSD> kvp in packagesMap)
+                                {
+                                    if (!(kvp.Value is OSDMap packageEntry)) continue;
+                                    if (!(packageEntry["benefits"] is OSDMap benefitsMap)) continue;
+                                    PremiumPackages[kvp.Key] = DeserializePackage(benefitsMap);
+                                }
+                            }
+                        }
+
+                        /// <summary>
+                        /// Message for the AgentPreferences capability.
+                        /// POST body sets the agent's hover height adjustment.
+                        /// GET response is stored as raw OSD in addition to known fields.
+                        /// </summary>
+                        public class AgentPreferencesMessage : IMessage
+                        {
+                            /// <summary>Raw OSD data from the server response</summary>
+                            public OSDMap RawData = new OSDMap();
+                            /// <summary>
+                            /// Vertical offset applied to the agent's avatar position, in meters.
+                            /// Valid range is approximately -2.0 to +2.0.
+                            /// </summary>
+                            public float HoverHeight;
+
+                            /// <summary>
+                            /// Serialize the object (POST form)
+                            /// </summary>
+                            /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
+                            public OSDMap Serialize()
+                            {
+                                return new OSDMap(1) { ["hover_height"] = OSD.FromReal(HoverHeight) };
+                            }
+
+                            /// <summary>
+                            /// Deserialize the message
+                            /// </summary>
+                            /// <param name="map">An <see cref="OSDMap"/> containing the data</param>
+                            public void Deserialize(OSDMap map)
+                            {
+                                RawData = map;
+                                HoverHeight = (float)map["hover_height"].AsReal();
+                            }
+                        }
+
+                        #endregion
+                    }
 

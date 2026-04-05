@@ -538,6 +538,69 @@ namespace OpenMetaverse
             add { lock (m_MuteListUpdatedLock) { m_MuteListUpdated += value; } }
             remove { lock (m_MuteListUpdatedLock) { m_MuteListUpdated -= value; } }
         }
+
+        /// <summary>The event subscribers. null if no subscribers</summary>
+        private EventHandler<ViewerBenefitsEventArgs>? m_ViewerBenefitsUpdated;
+
+        /// <summary>Raises the ViewerBenefitsUpdated event</summary>
+        /// <param name="e">A ViewerBenefitsEventArgs object containing the data returned from the capability</param>
+        protected virtual void OnViewerBenefitsUpdated(ViewerBenefitsEventArgs e)
+        {
+            EventHandler<ViewerBenefitsEventArgs>? handler = m_ViewerBenefitsUpdated;
+            handler?.Invoke(this, e);
+        }
+
+        /// <summary>Thread sync lock object</summary>
+        private readonly object m_ViewerBenefitsUpdatedLock = new object();
+
+        /// <summary>Raised when agent benefits are refreshed via the ViewerBenefits capability</summary>
+        public event EventHandler<ViewerBenefitsEventArgs> ViewerBenefitsUpdated
+        {
+            add { lock (m_ViewerBenefitsUpdatedLock) { m_ViewerBenefitsUpdated += value; } }
+            remove { lock (m_ViewerBenefitsUpdatedLock) { m_ViewerBenefitsUpdated -= value; } }
+        }
+
+        /// <summary>The event subscribers. null if no subscribers</summary>
+        private EventHandler<AgentPreferencesEventArgs>? m_AgentPreferencesUpdated;
+
+        /// <summary>Raises the AgentPreferencesUpdated event</summary>
+        /// <param name="e">An AgentPreferencesEventArgs object containing the data returned from the capability</param>
+        protected virtual void OnAgentPreferencesUpdated(AgentPreferencesEventArgs e)
+        {
+            EventHandler<AgentPreferencesEventArgs>? handler = m_AgentPreferencesUpdated;
+            handler?.Invoke(this, e);
+        }
+
+        /// <summary>Thread sync lock object</summary>
+        private readonly object m_AgentPreferencesUpdatedLock = new object();
+
+        /// <summary>Raised when agent preferences are refreshed via the AgentPreferences capability</summary>
+        public event EventHandler<AgentPreferencesEventArgs> AgentPreferencesUpdated
+        {
+            add { lock (m_AgentPreferencesUpdatedLock) { m_AgentPreferencesUpdated += value; } }
+            remove { lock (m_AgentPreferencesUpdatedLock) { m_AgentPreferencesUpdated -= value; } }
+        }
+
+        /// <summary>The event subscribers. null if no subscribers</summary>
+        private EventHandler<AvatarRenderInfoEventArgs>? m_AvatarRenderInfoUpdated;
+
+        /// <summary>Raises the AvatarRenderInfoUpdated event</summary>
+        /// <param name="e">An AvatarRenderInfoEventArgs object containing the data returned from the capability</param>
+        protected virtual void OnAvatarRenderInfoUpdated(AvatarRenderInfoEventArgs e)
+        {
+            EventHandler<AvatarRenderInfoEventArgs>? handler = m_AvatarRenderInfoUpdated;
+            handler?.Invoke(this, e);
+        }
+
+        /// <summary>Thread sync lock object</summary>
+        private readonly object m_AvatarRenderInfoUpdatedLock = new object();
+
+        /// <summary>Raised when avatar render info is refreshed via the AvatarRenderInfo capability</summary>
+        public event EventHandler<AvatarRenderInfoEventArgs> AvatarRenderInfoUpdated
+        {
+            add { lock (m_AvatarRenderInfoUpdatedLock) { m_AvatarRenderInfoUpdated += value; } }
+            remove { lock (m_AvatarRenderInfoUpdatedLock) { m_AvatarRenderInfoUpdated -= value; } }
+        }
         #endregion Callbacks
 
         private const string AGENT_PROFILE_CAP = "AgentProfile";
@@ -795,6 +858,18 @@ namespace OpenMetaverse
         public AgentStateUpdateMessage? AgentStateStatus;
 
         public AccountLevelBenefits Benefits { get; protected set; } = new AccountLevelBenefits(new Hashtable());
+
+        /// <summary>Full benefits package last retrieved from the ViewerBenefits capability,
+        /// including all premium package tiers. Null until <see cref="GetViewerBenefitsAsync"/> is called.</summary>
+        public ViewerBenefitsMessage? ViewerBenefits { get; private set; }
+
+        /// <summary>The agent's hover height offset in meters, last retrieved via the AgentPreferences capability.
+        /// Valid range is approximately -2.0 to +2.0. Use <see cref="GetAgentPreferencesAsync"/> to refresh.</summary>
+        public float HoverHeight { get; private set; }
+
+        /// <summary>The most recently retrieved avatar render info for the region.
+        /// Null until <see cref="GetAvatarRenderInfoAsync"/> is called.</summary>
+        public AvatarRenderInfoMessage? AvatarRenderInfo { get; private set; }
         #endregion Properties
 
         internal uint localID;
@@ -1865,6 +1940,78 @@ namespace OpenMetaverse
             SetHoverHeightAsync(hoverHeight, cancellationToken).GetAwaiter().GetResult();
         }
 
+        /// <summary>
+        /// Fetches the agent's current benefit entitlements from the ViewerBenefits capability.
+        /// Updates <see cref="Benefits"/> and <see cref="ViewerBenefits"/> and raises <see cref="ViewerBenefitsUpdated"/>.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>The deserialized message, or null if the capability is unavailable or the request fails</returns>
+        public async Task<ViewerBenefitsMessage?> GetViewerBenefitsAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                Uri? cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("ViewerBenefits");
+                if (cap == null)
+                {
+                    Logger.Warn("ViewerBenefits capability not available.", Client);
+                    return null;
+                }
+
+                var http = Client?.HttpCapsClient;
+                if (http == null) { return null; }
+
+                ViewerBenefitsMessage? result = null;
+#pragma warning disable CS0618
+                await http.GetRequestAsync(cap, cancellationToken,
+                    (response, data, error) =>
+                    {
+                        if (error != null)
+                        {
+                            Logger.Warn($"ViewerBenefits request failed: {error.Message}", Client);
+                            return;
+                        }
+                        if (response == null || !response.IsSuccessStatusCode)
+                        {
+                            Logger.Warn($"ViewerBenefits non-success status: {response?.StatusCode}", Client);
+                            return;
+                        }
+                        if (data == null)
+                        {
+                            Logger.Warn("ViewerBenefits returned no data.", Client);
+                            return;
+                        }
+                        try
+                        {
+                            OSD osd = OSDParser.Deserialize(data);
+                            if (!(osd is OSDMap map)) { return; }
+                            ViewerBenefitsMessage msg = new ViewerBenefitsMessage();
+                            msg.Deserialize(map);
+                            result = msg;
+                            ViewerBenefits = msg;
+                            if (map["account_level_benefits"] is OSDMap alb)
+                            {
+                                Benefits = new AccountLevelBenefits(alb);
+                                if (Benefits.TextureUploadCost > 0)
+                                    Client.Settings.UPLOAD_COST = Benefits.TextureUploadCost;
+                            }
+                            OnViewerBenefitsUpdated(new ViewerBenefitsEventArgs(msg));
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error("Failed to parse ViewerBenefits response", ex, Client);
+                        }
+                    }).ConfigureAwait(false);
+#pragma warning restore CS0618
+                return result;
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error("Failed fetching ViewerBenefits", ex, Client);
+                return null;
+            }
+        }
+
         public async Task SetHoverHeightAsync(double hoverHeight, CancellationToken cancellationToken = default)
          {
              if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim?.Caps == null) { return; }
@@ -1914,19 +2061,183 @@ namespace OpenMetaverse
                           return;
                       }
 
-                 if (!(result is OSDMap resultMap))
-                 {
-                     Logger.Warn($"Failed to set hover height: Expected {nameof(OSDMap)} response, but got {result.Type}", Client);
-                 }
-                 else
-                 {
-                     var confirmedHeight = resultMap["hover_height"];
-                     Logger.Debug($"Hover height set to {confirmedHeight}", Client);
-                 }
-             }).ConfigureAwait(false);
-         }
+                                   if (!(result is OSDMap resultMap))
+                                  {
+                                      Logger.Warn($"Failed to set hover height: Expected {nameof(OSDMap)} response, but got {result.Type}", Client);
+                                  }
+                                  else
+                                  {
+                                      var confirmedHeight = resultMap["hover_height"];
+                                      Logger.Debug($"Hover height set to {confirmedHeight}", Client);
+                                  }
+                              }).ConfigureAwait(false);
+                          }
 
-        #endregion Misc
+                         /// <summary>
+                         /// Retrieves the agent's current preferences from the AgentPreferences capability,
+                         /// including hover height. Updates <see cref="HoverHeight"/> and raises <see cref="AgentPreferencesUpdated"/>.
+                         /// </summary>
+                         /// <param name="cancellationToken">Cancellation token</param>
+                         /// <returns>The deserialized message, or null if the capability is unavailable or the request fails</returns>
+                         public async Task<AgentPreferencesMessage?> GetAgentPreferencesAsync(CancellationToken cancellationToken = default)
+                         {
+                             cancellationToken.ThrowIfCancellationRequested();
+                             try
+                             {
+                                 Uri? cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("AgentPreferences");
+                                 if (cap == null)
+                                 {
+                                     Logger.Warn("AgentPreferences capability not available.", Client);
+                                     return null;
+                                 }
+
+                                 var http = Client?.HttpCapsClient;
+                                 if (http == null) { return null; }
+
+                                 AgentPreferencesMessage? result = null;
+                 #pragma warning disable CS0618
+                                 await http.GetRequestAsync(cap, cancellationToken,
+                                     (response, data, error) =>
+                                     {
+                                         if (error != null)
+                                         {
+                                             Logger.Warn($"AgentPreferences request failed: {error.Message}", Client);
+                                             return;
+                                         }
+                                         if (response == null || !response.IsSuccessStatusCode)
+                                         {
+                                             Logger.Warn($"AgentPreferences non-success status: {response?.StatusCode}", Client);
+                                             return;
+                                         }
+                                         if (data == null)
+                                         {
+                                             Logger.Warn("AgentPreferences returned no data.", Client);
+                                             return;
+                                         }
+                                         try
+                                         {
+                                             OSD osd = OSDParser.Deserialize(data);
+                                             if (!(osd is OSDMap map)) { return; }
+                                             AgentPreferencesMessage msg = new AgentPreferencesMessage();
+                                             msg.Deserialize(map);
+                                             result = msg;
+                                             HoverHeight = msg.HoverHeight;
+                                             OnAgentPreferencesUpdated(new AgentPreferencesEventArgs(msg));
+                                         }
+                                         catch (Exception ex)
+                                         {
+                                             Logger.Error("Failed to parse AgentPreferences response", ex, Client);
+                                         }
+                                     }).ConfigureAwait(false);
+                 #pragma warning restore CS0618
+                                 return result;
+                             }
+                             catch (Exception ex) when (!(ex is OperationCanceledException))
+                             {
+                                 Logger.Error("Failed fetching AgentPreferences", ex, Client);
+                                 return null;
+                             }
+                         }
+
+                         /// <summary>
+                         /// Retrieves per-avatar render info for the current region from the AvatarRenderInfo capability.
+                         /// Updates <see cref="AvatarRenderInfo"/> and raises <see cref="AvatarRenderInfoUpdated"/>.
+                         /// </summary>
+                         /// <param name="cancellationToken">Cancellation token</param>
+                         /// <returns>The deserialized message, or null if the capability is unavailable or the request fails</returns>
+                         public async Task<AvatarRenderInfoMessage?> GetAvatarRenderInfoAsync(CancellationToken cancellationToken = default)
+                         {
+                             cancellationToken.ThrowIfCancellationRequested();
+                             try
+                             {
+                                 Uri? cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("AvatarRenderInfo");
+                                 if (cap == null)
+                                 {
+                                     Logger.Warn("AvatarRenderInfo capability not available.", Client);
+                                     return null;
+                                 }
+
+                                 var http = Client?.HttpCapsClient;
+                                 if (http == null) { return null; }
+
+                                 AvatarRenderInfoMessage? result = null;
+                 #pragma warning disable CS0618
+                                 await http.GetRequestAsync(cap, cancellationToken,
+                                     (response, data, error) =>
+                                     {
+                                         if (error != null)
+                                         {
+                                             Logger.Warn($"AvatarRenderInfo request failed: {error.Message}", Client);
+                                             return;
+                                         }
+                                         if (response == null || !response.IsSuccessStatusCode)
+                                         {
+                                             Logger.Warn($"AvatarRenderInfo non-success status: {response?.StatusCode}", Client);
+                                             return;
+                                         }
+                                         if (data == null)
+                                         {
+                                             Logger.Warn("AvatarRenderInfo returned no data.", Client);
+                                             return;
+                                         }
+                                         try
+                                         {
+                                             OSD osd = OSDParser.Deserialize(data);
+                                             if (!(osd is OSDMap map)) { return; }
+                                             AvatarRenderInfoMessage msg = new AvatarRenderInfoMessage();
+                                             msg.Deserialize(map);
+                                             result = msg;
+                                             AvatarRenderInfo = msg;
+                                             OnAvatarRenderInfoUpdated(new AvatarRenderInfoEventArgs(msg));
+                                         }
+                                         catch (Exception ex)
+                                         {
+                                             Logger.Error("Failed to parse AvatarRenderInfo response", ex, Client);
+                                         }
+                                     }).ConfigureAwait(false);
+                 #pragma warning restore CS0618
+                                 return result;
+                             }
+                             catch (Exception ex) when (!(ex is OperationCanceledException))
+                             {
+                                 Logger.Error("Failed fetching AvatarRenderInfo", ex, Client);
+                                 return null;
+                             }
+                         }
+
+                         /// <summary>
+                         /// Posts the local agent's render weight and complexity flag to the AvatarRenderInfo capability.
+                         /// </summary>
+                         /// <param name="weight">Render weight of the local avatar</param>
+                         /// <param name="tooComplex">True if the local avatar is considered too complex to render</param>
+                         /// <param name="cancellationToken">Cancellation token</param>
+                         public async Task PostAvatarRenderInfoAsync(int weight, bool tooComplex, CancellationToken cancellationToken = default)
+                         {
+                             cancellationToken.ThrowIfCancellationRequested();
+                             try
+                             {
+                                 Uri? cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("AvatarRenderInfo");
+                                 if (cap == null) { return; }
+
+                                 var http = Client?.HttpCapsClient;
+                                 if (http == null) { return; }
+
+                                 AvatarRenderInfoMessage msg = new AvatarRenderInfoMessage();
+                                 msg.Agents[AgentID] = new AvatarRenderInfoMessage.AvatarInfo
+                                 {
+                                     Weight = weight,
+                                     TooComplex = tooComplex
+                                 };
+                                 await http.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken)
+                                     .ConfigureAwait(false);
+                             }
+                             catch (Exception ex) when (!(ex is OperationCanceledException))
+                             {
+                                 Logger.Error("Failed posting AvatarRenderInfo", ex, Client);
+                             }
+                         }
+
+                         #endregion Misc
 
         /// <summary>
         /// Dispose AgentManager and unregister all network callbacks/events.
