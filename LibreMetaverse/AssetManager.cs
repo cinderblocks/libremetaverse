@@ -1929,8 +1929,6 @@ namespace OpenMetaverse
                 download.Target = (TargetType)info.TransferInfo.TargetType;
                 download.Size = info.TransferInfo.Size;
 
-                // TODO: Once we support mid-transfer status checking and aborting this
-                // will need to become smarter
                 if (download.Status != StatusCode.OK)
                 {
                     Logger.Warn("Transfer failed with status code " + download.Status, Client);
@@ -1958,18 +1956,18 @@ namespace OpenMetaverse
                     }
                     else if (download.Source == SourceType.SimInventoryItem && info.TransferInfo.Params.Length == 100)
                     {
-                        // TODO: Can we use these?
-                        //UUID agentID = new UUID(info.TransferInfo.Params, 0);
-                        //UUID sessionID = new UUID(info.TransferInfo.Params, 16);
-                        //UUID ownerID = new UUID(info.TransferInfo.Params, 32);
-                        //UUID taskID = new UUID(info.TransferInfo.Params, 48);
-                        //UUID itemID = new UUID(info.TransferInfo.Params, 64);
-                        download.AssetID = new UUID(info.TransferInfo.Params, 80);
+                        UUID agentID   = new UUID(info.TransferInfo.Params, 0);
+                        UUID sessionID = new UUID(info.TransferInfo.Params, 16);
+                        UUID ownerID   = new UUID(info.TransferInfo.Params, 32);
+                        UUID taskID    = new UUID(info.TransferInfo.Params, 48);
+                        UUID itemID    = new UUID(info.TransferInfo.Params, 64);
+                        download.AssetID   = new UUID(info.TransferInfo.Params, 80);
                         download.AssetType = (AssetType)(sbyte)info.TransferInfo.Params[96];
 
-                        //Client.DebugLog(String.Format("TransferInfo packet received. AgentID: {0} SessionID: {1} " + 
-                        //    "OwnerID: {2} TaskID: {3} ItemID: {4} AssetID: {5} Type: {6}", agentID, sessionID, 
-                        //    ownerID, taskID, itemID, transfer.AssetID, type));
+                        Logger.DebugLog(
+                            $"TransferInfo: AgentID={agentID} SessionID={sessionID} OwnerID={ownerID} " +
+                            $"TaskID={taskID} ItemID={itemID} AssetID={download.AssetID} Type={download.AssetType}",
+                            Client);
                     }
                     else
                     {

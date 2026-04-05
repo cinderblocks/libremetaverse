@@ -1083,16 +1083,7 @@ namespace OpenMetaverse
                 NameValues = Array.Empty<NameValue>();
             PrimData = prim.PrimData != null ? new ConstructionData(prim.PrimData) : new ConstructionData();
             Properties = prim.Properties;
-            // FIXME: Get a real copy constructor for TextureEntry instead of serializing to bytes and back
-            if (prim.Textures != null)
-            {
-                byte[] textureBytes = prim.Textures.GetBytes();
-                Textures = new TextureEntry(textureBytes, 0, textureBytes.Length);
-            }
-            else
-            {
-                Textures = null;
-            }
+            Textures = prim.Textures != null ? new TextureEntry(prim.Textures) : null;
             TextureAnim = prim.TextureAnim;
             ParticleSys = prim.ParticleSys;
         }

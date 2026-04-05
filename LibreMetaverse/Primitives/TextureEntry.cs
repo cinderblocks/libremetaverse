@@ -613,6 +613,24 @@ namespace OpenMetaverse
             }
 
             /// <summary>
+            /// Copy constructor — performs a deep clone of an existing TextureEntry
+            /// </summary>
+            /// <param name="source">TextureEntry to copy</param>
+            public TextureEntry(TextureEntry source)
+            {
+                DefaultTexture = source.DefaultTexture != null
+                    ? (TextureEntryFace)source.DefaultTexture.Clone()
+                    : null;
+
+                for (int i = 0; i < MAX_FACES; i++)
+                {
+                    FaceTextures[i] = source.FaceTextures[i] != null
+                        ? (TextureEntryFace)source.FaceTextures[i].Clone()
+                        : null;
+                }
+            }
+
+            /// <summary>
             /// Constructor that creates the TextureEntry class from a byte array
             /// </summary>
             /// <param name="data">Byte array containing the TextureEntry field</param>

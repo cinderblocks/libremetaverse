@@ -461,14 +461,14 @@ namespace OpenMetaverse.Packets
                 i += 86;
             }
 
-            // Extra parameters TODO:
+            // Extra parameters
             Primitive prim = new Primitive();
             int bytes = prim.SetExtraParamsFromBytes(block, i);
             i += bytes;
-            result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
-                "ExtraParams[]",
-                bytes,
-                "byte[]");
+            if (bytes > 0)
+                result.AppendLine(DecodeObjectExtraParams("ExtraParams", prim.GetExtraParamsBytes()));
+            else
+                result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine, "ExtraParams[]", "(none)", "byte[]");
 
             //Sound data
             if ((flags & CompressedFlags.HasSound) != 0)
@@ -669,8 +669,6 @@ namespace OpenMetaverse.Packets
             }
             else if (data.Length == 76)
             {
-                /* TODO: these are likely useful packed fields,
-                 * need to unpack them */
                 Vector4 col = Vector4.Zero;
                 Vector3 offset = Vector3.Zero;
                 Vector3 vel = Vector3.Zero;
@@ -714,7 +712,6 @@ namespace OpenMetaverse.Packets
             }
             else if (data.Length == 60)
             {
-                /* TODO: these are likely useful packed fields, need to unpack them */
                 Vector3 offset = Vector3.Zero;
                 Vector3 vel = Vector3.Zero;
                 Vector3 acc = Vector3.Zero;

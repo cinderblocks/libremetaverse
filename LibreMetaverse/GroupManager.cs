@@ -235,12 +235,32 @@ namespace OpenMetaverse
         public string VoteText;
         /// <summary>The minimum number of members that must vote before proposal passes or failes</summary>
         public int Quorum;
-        /// <summary>The required ration of yes/no votes required for vote to pass</summary>
-        /// <remarks>The three options are Simple Majority, 2/3 Majority, and Unanimous</remarks>
-        /// TODO: this should be an enum
+        /// <summary>The required ratio of yes/no votes required for vote to pass</summary>
+        /// <remarks>Use constants from <see cref="GroupVoteMajority"/> for the standard thresholds:
+        /// Simple Majority (0.5), Two-Thirds Majority (0.667), or Unanimous (1.0)</remarks>
         public float Majority;
         /// <summary>The duration in days votes are accepted</summary>
         public int Duration;
+    }
+
+    /// <summary>Named constants for the standard vote majority thresholds used in <see cref="GroupProposal.Majority"/></summary>
+    public static class GroupVoteMajority
+    {
+        /// <summary>Simple majority: more than half (50%)</summary>
+        public const float SimpleMajority = 0.5f;
+        /// <summary>Two-thirds majority: approximately 66.7%</summary>
+        public const float TwoThirdsMajority = 0.667f;
+        /// <summary>Unanimous: all members must vote yes (100%)</summary>
+        public const float Unanimous = 1.0f;
+    }
+
+    /// <summary>Role membership change action used with <see cref="GroupManager.AddToRole"/> and <see cref="GroupManager.RemoveFromRole"/></summary>
+    public enum GroupRoleChangeType : uint
+    {
+        /// <summary>Add the member to the role</summary>
+        AddToRole = 0,
+        /// <summary>Remove the member from the role</summary>
+        RemoveFromRole = 1,
     }
 
     /// <summary>
@@ -1669,7 +1689,7 @@ namespace OpenMetaverse
             {
                 MemberID = member,
                 RoleID = role,
-                Change = 1 //1 = Remove From Role TODO: this should be in an enum
+                Change = (uint)GroupRoleChangeType.RemoveFromRole
             };
 
             Client.Network.SendPacket(grc);
@@ -1696,7 +1716,7 @@ namespace OpenMetaverse
             {
                 MemberID = member,
                 RoleID = role,
-                Change = 0 //0 = Add to Role TODO: this should be in an enum
+                Change = (uint)GroupRoleChangeType.AddToRole
             };
 
             Client.Network.SendPacket(grc);
@@ -2344,7 +2364,8 @@ namespace OpenMetaverse
             Packet packet = e.Packet;
             EjectGroupMemberReplyPacket reply = (EjectGroupMemberReplyPacket)packet;
 
-            // TODO: On Success remove the member from the cache(s)
+            // EjectGroupMemberReply does not include the ejected member's UUID,
+            // so targeted cache removal is not possible from this packet alone.
 
             if (m_GroupMemberEjected != null)
             {
