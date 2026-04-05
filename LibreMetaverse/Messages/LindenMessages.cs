@@ -6694,5 +6694,64 @@ namespace OpenMetaverse.Messages.Linden
     }
 
     #endregion Environment Messages
+
+    #region Interest List Messages
+
+    /// <summary>
+    /// Interest list mode for the InterestList capability (from llviewerregion.h).
+    /// Controls how the simulator culls object updates sent to the viewer.
+    /// </summary>
+    public enum InterestListMode
+    {
+        /// <summary>
+        /// Default frustum-based interest list: the server only sends object updates
+        /// for objects within the viewer's view frustum.
+        /// Corresponds to IL_MODE_DEFAULT ("default") in the SL C++ viewer.
+        /// </summary>
+        Default,
+        /// <summary>
+        /// 360-degree panoramic mode: the server sends object updates for ALL objects
+        /// in the region regardless of view direction.
+        /// Used for panoramic capture. Corresponds to IL_MODE_360 ("360") in the SL C++ viewer.
+        /// </summary>
+        Panoramic360
+    }
+
+    /// <summary>
+    /// LLSD message body for the InterestList capability POST request.
+    /// Corresponds to the body built in LLViewerRegion::setInterestListMode in the SL C++ viewer.
+    /// </summary>
+    public class InterestListMessage : IMessage
+    {
+        internal const string ModeDefault = "default";
+        internal const string ModePanoramic360 = "360";
+
+        /// <summary>The raw mode string to send to the simulator ("default" or "360")</summary>
+        public string Mode { get; set; } = ModeDefault;
+
+        /// <summary>
+        /// Gets or sets the mode as the typed <see cref="InterestListMode"/> enum.
+        /// Unknown mode strings are treated as <see cref="InterestListMode.Default"/>.
+        /// </summary>
+        public InterestListMode InterestListMode
+        {
+            get => Mode == ModePanoramic360 ? InterestListMode.Panoramic360 : InterestListMode.Default;
+            set => Mode = value == InterestListMode.Panoramic360 ? ModePanoramic360 : ModeDefault;
+        }
+
+        /// <inheritdoc/>
+        public OSDMap Serialize()
+        {
+            return new OSDMap(1) { ["mode"] = OSD.FromString(Mode) };
+        }
+
+        /// <inheritdoc/>
+        public void Deserialize(OSDMap map)
+        {
+            Mode = map.ContainsKey("mode") ? map["mode"].AsString() : ModeDefault;
+        }
+    }
+
+    #endregion Interest List Messages
 }
 

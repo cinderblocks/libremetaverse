@@ -27,7 +27,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using LibreMetaverse;
 using OpenMetaverse.Messages.Linden;
 using OpenMetaverse.StructuredData;
 

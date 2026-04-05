@@ -126,6 +126,8 @@ namespace OpenMetaverse
         public Marketplace.MarketplaceManager Marketplace;
         /// <summary>EEP (Extended Environment Protocol) and legacy WindLight environment subsystem</summary>
         public EnvironmentManager Environment;
+        /// <summary>Interest list mode subsystem (controls simulator object update culling)</summary>
+        public InterestListManager InterestList;
 
         /// <summary>
         /// Default constructor
@@ -156,6 +158,7 @@ namespace OpenMetaverse
             AisClient = new InventoryAISClient(this);
             Marketplace = new Marketplace.MarketplaceManager(this);
             Environment = new EnvironmentManager(this);
+            InterestList = new InterestListManager(this);
         }
 
         private HttpCapsClient SetupHttpCapsClient()
