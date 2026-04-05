@@ -411,4 +411,20 @@ namespace OpenMetaverse
             Simulator = simulator;
         }
     }
+
+    /// <summary>Event args for when the UpdateNotificationPreferences capability returns the agent's notification preferences</summary>
+    public class NotificationPreferencesEventArgs : EventArgs
+    {
+        /// <summary>The notification preferences message returned by the capability</summary>
+        public NotificationPreferencesMessage Preferences { get; }
+        public NotificationPreferencesEventArgs(NotificationPreferencesMessage preferences) { Preferences = preferences; }
+    }
+
+    /// <summary>Event args for when the ProductInfoRequest capability returns the grid's product/SKU list</summary>
+    public class ProductInfoEventArgs : EventArgs
+    {
+        /// <summary>The product info message returned by the capability</summary>
+        public ProductInfoRequestMessage ProductInfo { get; }
+        public ProductInfoEventArgs(ProductInfoRequestMessage productInfo) { ProductInfo = productInfo; }
+    }
 }

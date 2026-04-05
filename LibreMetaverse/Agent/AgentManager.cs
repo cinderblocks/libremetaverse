@@ -622,6 +622,48 @@ namespace OpenMetaverse
             add { lock (m_NavMeshStatusUpdateLock) { m_NavMeshStatusUpdate += value; } }
             remove { lock (m_NavMeshStatusUpdateLock) { m_NavMeshStatusUpdate -= value; } }
         }
+
+        /// <summary>The event subscribers. null if no subscribers</summary>
+        private EventHandler<NotificationPreferencesEventArgs>? m_NotificationPreferencesUpdated;
+
+        /// <summary>Raises the NotificationPreferencesUpdated event</summary>
+        /// <param name="e">A NotificationPreferencesEventArgs object containing the data returned from the capability</param>
+        protected virtual void OnNotificationPreferencesUpdated(NotificationPreferencesEventArgs e)
+        {
+            EventHandler<NotificationPreferencesEventArgs>? handler = m_NotificationPreferencesUpdated;
+            handler?.Invoke(this, e);
+        }
+
+        /// <summary>Thread sync lock object</summary>
+        private readonly object m_NotificationPreferencesUpdatedLock = new object();
+
+        /// <summary>Raised when notification preferences are refreshed via the UpdateNotificationPreferences capability</summary>
+        public event EventHandler<NotificationPreferencesEventArgs> NotificationPreferencesUpdated
+        {
+            add { lock (m_NotificationPreferencesUpdatedLock) { m_NotificationPreferencesUpdated += value; } }
+            remove { lock (m_NotificationPreferencesUpdatedLock) { m_NotificationPreferencesUpdated -= value; } }
+        }
+
+        /// <summary>The event subscribers. null if no subscribers</summary>
+        private EventHandler<ProductInfoEventArgs>? m_ProductInfoUpdated;
+
+        /// <summary>Raises the ProductInfoUpdated event</summary>
+        /// <param name="e">A ProductInfoEventArgs object containing the data returned from the capability</param>
+        protected virtual void OnProductInfoUpdated(ProductInfoEventArgs e)
+        {
+            EventHandler<ProductInfoEventArgs>? handler = m_ProductInfoUpdated;
+            handler?.Invoke(this, e);
+        }
+
+        /// <summary>Thread sync lock object</summary>
+        private readonly object m_ProductInfoUpdatedLock = new object();
+
+        /// <summary>Raised when the product/SKU list is refreshed via the ProductInfoRequest capability</summary>
+        public event EventHandler<ProductInfoEventArgs> ProductInfoUpdated
+        {
+            add { lock (m_ProductInfoUpdatedLock) { m_ProductInfoUpdated += value; } }
+            remove { lock (m_ProductInfoUpdatedLock) { m_ProductInfoUpdated -= value; } }
+        }
         #endregion Callbacks
 
         private const string AGENT_PROFILE_CAP = "AgentProfile";
@@ -899,6 +941,14 @@ namespace OpenMetaverse
         /// <summary>The most recent NavMesh status update received from the simulator via the EventQueue.
         /// Null until a NavMeshStatusUpdate event is received.</summary>
         public NavMeshStatusUpdateMessage? LastNavMeshStatus { get; private set; }
+
+        /// <summary>The agent's notification preferences last retrieved via the UpdateNotificationPreferences capability.
+        /// Null until <see cref="GetNotificationPreferencesAsync"/> is called.</summary>
+        public NotificationPreferencesMessage? NotificationPreferences { get; private set; }
+
+        /// <summary>The grid's product/SKU list last retrieved via the ProductInfoRequest capability.
+        /// Null until <see cref="GetProductInfoAsync"/> is called.</summary>
+        public ProductInfoRequestMessage? ProductInfo { get; private set; }
         #endregion Properties
 
         internal uint localID;
@@ -2411,6 +2461,190 @@ namespace OpenMetaverse
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
                 Logger.Error("Failed sending ViewerStats", ex, Client);
+            }
+        }
+
+        /// <summary>
+        /// Retrieves the agent's notification channel preferences from the UpdateNotificationPreferences capability.
+        /// Updates <see cref="NotificationPreferences"/> and raises <see cref="NotificationPreferencesUpdated"/>.
+        /// Corresponds to llviewernotificationpreferences.cpp in the SL viewer.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>The deserialized message, or null if the capability is unavailable or the request fails</returns>
+        public async Task<NotificationPreferencesMessage?> GetNotificationPreferencesAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                Uri? cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("UpdateNotificationPreferences");
+                if (cap == null)
+                {
+                    Logger.Warn("UpdateNotificationPreferences capability not available.", Client);
+                    return null;
+                }
+
+                var http = Client?.HttpCapsClient;
+                if (http == null) { return null; }
+
+                NotificationPreferencesMessage? result = null;
+#pragma warning disable CS0618
+                await http.GetRequestAsync(cap, cancellationToken,
+                    (response, data, error) =>
+                    {
+                        if (error != null)
+                        {
+                            Logger.Warn($"UpdateNotificationPreferences GET failed: {error.Message}", Client);
+                            return;
+                        }
+                        if (response == null || !response.IsSuccessStatusCode)
+                        {
+                            Logger.Warn($"UpdateNotificationPreferences non-success status: {response?.StatusCode}", Client);
+                            return;
+                        }
+                        if (data == null)
+                        {
+                            Logger.Warn("UpdateNotificationPreferences returned no data.", Client);
+                            return;
+                        }
+                        try
+                        {
+                            OSD osd = OSDParser.Deserialize(data);
+                            if (!(osd is OSDMap map)) { return; }
+                            NotificationPreferencesMessage msg = new NotificationPreferencesMessage();
+                            msg.Deserialize(map);
+                            result = msg;
+                            NotificationPreferences = msg;
+                            OnNotificationPreferencesUpdated(new NotificationPreferencesEventArgs(msg));
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error("Failed to parse UpdateNotificationPreferences response", ex, Client);
+                        }
+                    }).ConfigureAwait(false);
+#pragma warning restore CS0618
+                return result;
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error("Failed fetching UpdateNotificationPreferences", ex, Client);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Updates the agent's notification channel preferences via the UpdateNotificationPreferences capability.
+        /// Corresponds to llviewernotificationpreferences.cpp in the SL viewer.
+        /// </summary>
+        /// <param name="preferences">The preferences to post; each entry sets a channel name and enabled state</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        public async Task SetNotificationPreferencesAsync(NotificationPreferencesMessage preferences, CancellationToken cancellationToken = default)
+        {
+            if (preferences == null) throw new ArgumentNullException(nameof(preferences));
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                Uri? cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("UpdateNotificationPreferences");
+                if (cap == null)
+                {
+                    Logger.Warn("UpdateNotificationPreferences capability not available.", Client);
+                    return;
+                }
+
+                var http = Client?.HttpCapsClient;
+                if (http == null) { return; }
+
+                await http.PostRequestAsync(cap, OSDFormat.Xml, preferences.Serialize(), cancellationToken,
+                    (response, data, error) =>
+                    {
+                        if (error != null)
+                        {
+                            Logger.Warn($"UpdateNotificationPreferences POST failed: {error.Message}", Client);
+                            return;
+                        }
+                        if (response == null || !response.IsSuccessStatusCode)
+                        {
+                            Logger.Warn($"UpdateNotificationPreferences POST non-success status: {response?.StatusCode}", Client);
+                        }
+                    }).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error("Failed setting UpdateNotificationPreferences", ex, Client);
+            }
+        }
+
+        /// <summary>
+        /// Retrieves the grid's product/SKU list from the ProductInfoRequest capability.
+        /// Updates <see cref="ProductInfo"/> and raises <see cref="ProductInfoUpdated"/>.
+        /// Corresponds to llproductinforequest.cpp in the SL viewer.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>The deserialized message, or null if the capability is unavailable or the request fails</returns>
+        public async Task<ProductInfoRequestMessage?> GetProductInfoAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                Uri? cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("ProductInfoRequest");
+                if (cap == null)
+                {
+                    Logger.Warn("ProductInfoRequest capability not available.", Client);
+                    return null;
+                }
+
+                var http = Client?.HttpCapsClient;
+                if (http == null) { return null; }
+
+                ProductInfoRequestMessage? result = null;
+#pragma warning disable CS0618
+                await http.GetRequestAsync(cap, cancellationToken,
+                    (response, data, error) =>
+                    {
+                        if (error != null)
+                        {
+                            Logger.Warn($"ProductInfoRequest failed: {error.Message}", Client);
+                            return;
+                        }
+                        if (response == null || !response.IsSuccessStatusCode)
+                        {
+                            Logger.Warn($"ProductInfoRequest non-success status: {response?.StatusCode}", Client);
+                            return;
+                        }
+                        if (data == null)
+                        {
+                            Logger.Warn("ProductInfoRequest returned no data.", Client);
+                            return;
+                        }
+                        try
+                        {
+                            OSD osd = OSDParser.Deserialize(data);
+                            ProductInfoRequestMessage msg = new ProductInfoRequestMessage();
+                            if (osd is OSDArray arr)
+                            {
+                                // Server may return a bare array rather than a wrapped map
+                                msg.Deserialize(new OSDMap(1) { ["products"] = arr });
+                            }
+                            else if (osd is OSDMap map)
+                            {
+                                msg.Deserialize(map);
+                            }
+                            else { return; }
+                            result = msg;
+                            ProductInfo = msg;
+                            OnProductInfoUpdated(new ProductInfoEventArgs(msg));
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error("Failed to parse ProductInfoRequest response", ex, Client);
+                        }
+                    }).ConfigureAwait(false);
+#pragma warning restore CS0618
+                return result;
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error("Failed fetching ProductInfoRequest", ex, Client);
+                return null;
             }
         }
 

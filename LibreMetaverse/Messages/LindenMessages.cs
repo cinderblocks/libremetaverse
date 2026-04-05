@@ -2942,17 +2942,46 @@ namespace OpenMetaverse.Messages.Linden
     #region Session/Communication
 
     /// <summary>
-    /// New as of 1.23 RC1, no details yet.
+    /// Message for the ProductInfoRequest capability.
+    /// HTTP GET returns a list of available products/SKUs from the grid.
+    /// Corresponds to llproductinforequest.cpp in the SL viewer.
     /// </summary>
     public class ProductInfoRequestMessage : IMessage
     {
+        /// <summary>Represents a single grid product/SKU entry</summary>
+        public class ProductInfo
+        {
+            /// <summary>The internal SKU identifier for this product</summary>
+            public string Sku;
+            /// <summary>Human-readable product name</summary>
+            public string Name;
+            /// <summary>Description shown on the sale/purchase UI</summary>
+            public string DescriptionSale;
+            /// <summary>Description shown on the renewal UI</summary>
+            public string DescriptionRenewal;
+        }
+
+        /// <summary>The list of products returned by the capability</summary>
+        public List<ProductInfo> Products = new List<ProductInfo>();
+
         /// <summary>
         /// Serialize the object
         /// </summary>
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            return new OSDMap();
+            OSDArray arr = new OSDArray(Products.Count);
+            foreach (ProductInfo p in Products)
+            {
+                arr.Add(new OSDMap(4)
+                {
+                    ["sku"] = OSD.FromString(p.Sku),
+                    ["name"] = OSD.FromString(p.Name),
+                    ["description_sale"] = OSD.FromString(p.DescriptionSale),
+                    ["description_renewal"] = OSD.FromString(p.DescriptionRenewal)
+                });
+            }
+            return new OSDMap(1) { ["products"] = arr };
         }
 
         /// <summary>
@@ -2961,6 +2990,20 @@ namespace OpenMetaverse.Messages.Linden
         /// <param name="map">An <see cref="OSDMap"/> containing the data</param>
         public void Deserialize(OSDMap map)
         {
+            Products = new List<ProductInfo>();
+            OSD raw = map.ContainsKey("products") ? map["products"] : (OSD)map;
+            if (!(raw is OSDArray arr)) return;
+            foreach (OSD item in arr)
+            {
+                if (!(item is OSDMap entry)) continue;
+                Products.Add(new ProductInfo
+                {
+                    Sku = entry["sku"].AsString(),
+                    Name = entry["name"].AsString(),
+                    DescriptionSale = entry["description_sale"].AsString(),
+                    DescriptionRenewal = entry["description_renewal"].AsString()
+                });
+            }
         }
     }
 
@@ -6150,6 +6193,108 @@ namespace OpenMetaverse.Messages.Linden
         {
             RawData = map;
             HoverHeight = (float)map["hover_height"].AsReal();
+        }
+    }
+
+    #endregion
+
+    #region Notification and Auction Messages
+
+    /// <summary>
+    /// Message for the UpdateNotificationPreferences capability.
+    /// HTTP GET retrieves the agent's notification preferences; HTTP POST updates them.
+    /// Corresponds to llviewernotificationpreferences.cpp in the SL viewer.
+    /// Each entry maps a notification channel name to an enabled/disabled boolean.
+    /// </summary>
+    public class NotificationPreferencesMessage : IMessage
+    {
+        /// <summary>Represents a single notification channel preference entry</summary>
+        public class NotificationEntry
+        {
+            /// <summary>Name of the notification channel</summary>
+            public string Name;
+            /// <summary>Whether the notification channel is enabled</summary>
+            public bool Value;
+        }
+
+        /// <summary>The list of notification channel preferences</summary>
+        public List<NotificationEntry> Notifications = new List<NotificationEntry>();
+
+        /// <summary>
+        /// Serialize the object (POST body format)
+        /// </summary>
+        /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
+        public OSDMap Serialize()
+        {
+            OSDArray arr = new OSDArray(Notifications.Count);
+            foreach (NotificationEntry entry in Notifications)
+            {
+                arr.Add(new OSDMap(2)
+                {
+                    ["name"] = OSD.FromString(entry.Name),
+                    ["value"] = OSD.FromBoolean(entry.Value)
+                });
+            }
+            return new OSDMap(1) { ["notifications"] = arr };
+        }
+
+        /// <summary>
+        /// Deserialize the message
+        /// </summary>
+        /// <param name="map">An <see cref="OSDMap"/> containing the data</param>
+        public void Deserialize(OSDMap map)
+        {
+            Notifications = new List<NotificationEntry>();
+            if (!(map["notifications"] is OSDArray arr)) return;
+            foreach (OSD item in arr)
+            {
+                if (!(item is OSDMap entry)) continue;
+                Notifications.Add(new NotificationEntry
+                {
+                    Name = entry["name"].AsString(),
+                    Value = entry["value"].AsBoolean()
+                });
+            }
+        }
+    }
+
+    /// <summary>
+    /// Message for the ViewerStartAuction capability (HTTP POST).
+    /// Initiates a land auction for a parcel.
+    /// Corresponds to llfloaterauction.cpp sendStartAuction in the SL viewer.
+    /// </summary>
+    public class ViewerStartAuctionMessage : IMessage
+    {
+        /// <summary>The global UUID of the parcel being auctioned</summary>
+        public UUID ParcelID;
+        /// <summary>UUID of the snapshot image to use for the auction listing</summary>
+        public UUID SnapshotID;
+        /// <summary>Starting bid amount in L$</summary>
+        public int StartingBid;
+
+        /// <summary>
+        /// Serialize the object (POST body format)
+        /// </summary>
+        /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
+        public OSDMap Serialize()
+        {
+            return new OSDMap(3)
+            {
+                ["parcel_id"] = OSD.FromUUID(ParcelID),
+                ["snapshot_id"] = OSD.FromUUID(SnapshotID),
+                ["starting_bid"] = OSD.FromInteger(StartingBid)
+            };
+        }
+
+        /// <summary>
+        /// Deserialize the message
+        /// </summary>
+        /// <param name="map">An <see cref="OSDMap"/> containing the data</param>
+        public void Deserialize(OSDMap map)
+        {
+            ParcelID = map["parcel_id"].AsUUID();
+            SnapshotID = map["snapshot_id"].AsUUID();
+            StartingBid = map["starting_bid"].AsInteger();
         }
     }
 

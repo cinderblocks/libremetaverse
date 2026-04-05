@@ -1719,6 +1719,57 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Initiates a land auction for a parcel via the ViewerStartAuction capability.
+        /// Corresponds to llfloaterauction.cpp in the SL viewer.
+        /// </summary>
+        /// <param name="simulator">Simulator the parcel is in</param>
+        /// <param name="parcelID">Global UUID of the parcel to auction</param>
+        /// <param name="snapshotID">UUID of the snapshot image for the auction listing</param>
+        /// <param name="startingBid">Starting bid amount in L$</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        public async Task StartAuctionAsync(Simulator simulator, UUID parcelID, UUID snapshotID, int startingBid,
+            CancellationToken cancellationToken = default)
+        {
+            if (simulator == null) throw new ArgumentNullException(nameof(simulator));
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Uri? cap = simulator.Caps?.CapabilityURI("ViewerStartAuction");
+            if (cap == null)
+            {
+                Logger.Warn("ViewerStartAuction capability not available.", Client);
+                return;
+            }
+
+            ViewerStartAuctionMessage msg = new ViewerStartAuctionMessage
+            {
+                ParcelID = parcelID,
+                SnapshotID = snapshotID,
+                StartingBid = startingBid
+            };
+
+            try
+            {
+                await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken,
+                    (response, data, error) =>
+                    {
+                        if (error != null)
+                        {
+                            Logger.Warn($"ViewerStartAuction POST failed: {error.Message}", Client);
+                            return;
+                        }
+                        if (response == null || !response.IsSuccessStatusCode)
+                        {
+                            Logger.Warn($"ViewerStartAuction non-success status: {response?.StatusCode}", Client);
+                        }
+                    }).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error("Failed starting auction", ex, Client);
+            }
+        }
+
+        /// <summary>
         /// Requests the UUID of the parcel in a remote region at a specified location
         /// </summary>
         /// <param name="location">Location of the parcel in the remote region</param>
