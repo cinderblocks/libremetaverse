@@ -855,7 +855,14 @@ namespace OpenMetaverse
         public LightImage LightMap;
         /// <summary></summary>
         public SculptData? Sculpt;
+        /// <summary>Extended mesh parameter flags (PARAMS_EXTENDED_MESH = 0x70)</summary>
         public UInt32 ExtendedMeshFlags;
+        /// <summary>
+        /// Current signaled animations for this object, or null if no ObjectAnimation packet has been received.
+        /// Fully replaced on each ObjectAnimation update (not a delta).
+        /// Corresponds to signaled_animation_map_t in LLObjectSignaledAnimationMap in the SL C++ viewer.
+        /// </summary>
+        public List<Animation>? SignaledAnimations;
         /// <summary></summary>
         public ClickAction ClickAction;
         /// <summary></summary>
@@ -987,6 +994,12 @@ namespace OpenMetaverse
                 }
             }
         }
+
+        /// <summary>
+        /// True if this is an animated object (PARAMS_EXTENDED_MESH with ANIMATED_MESH_ENABLED_FLAG set).
+        /// Corresponds to LLVOVolume::isAnimatedObject() in the SL C++ viewer.
+        /// </summary>
+        public bool IsAnimatedObject => (ExtendedMeshFlags & 0x1u) != 0;
 
         #endregion Properties
 

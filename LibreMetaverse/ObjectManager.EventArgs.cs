@@ -165,21 +165,31 @@ namespace OpenMetaverse
         }
     }
 
+    /// <summary>Provides data for the <see cref="ObjectManager.ObjectAnimation"/> event</summary>
     public class ObjectAnimationEventArgs : EventArgs
     {
-        /// <summary>Get the ID of the agent</summary>
+        /// <summary>Get the simulator the animation packet originated from</summary>
+        public Simulator Simulator { get; }
+
+        /// <summary>Get the full UUID of the animated object</summary>
         public UUID ObjectID { get; }
 
-        /// <summary>Get the list of animations to start</summary>
+        /// <summary>
+        /// Get the current signaled animation state for this object.
+        /// This is the complete replacement state sent by the server, not a delta.
+        /// Corresponds to signaled_animation_map_t in LLObjectSignaledAnimationMap in the SL C++ viewer.
+        /// </summary>
         public List<Animation> Animations { get; }
 
         /// <summary>
-        /// Construct a new instance of the AvatarAnimationEventArgs class
+        /// Construct a new instance of the ObjectAnimationEventArgs class
         /// </summary>
-        /// <param name="objectID">The ID of the agent</param>
-        /// <param name="anims">The list of animations to start</param>
-        public ObjectAnimationEventArgs(UUID objectID, List<Animation> anims)
+        /// <param name="simulator">The simulator the packet originated from</param>
+        /// <param name="objectID">The full UUID of the animated object</param>
+        /// <param name="anims">The complete signaled animation state</param>
+        public ObjectAnimationEventArgs(Simulator simulator, UUID objectID, List<Animation> anims)
         {
+            this.Simulator = simulator;
             this.ObjectID = objectID;
             this.Animations = anims;
         }

@@ -40,24 +40,29 @@ namespace OpenMetaverse
         {
             if (!(e.Packet is ObjectAnimationPacket data)) { return; }
 
+            var objectID = data.Sender.ID;
             var signaledAnimations = new List<Animation>(data.AnimationList.Length);
 
             for (var i = 0; i < data.AnimationList.Length; i++)
             {
-                var animation = new Animation
+                signaledAnimations.Add(new Animation
                 {
                     AnimationID = data.AnimationList[i].AnimID,
-                    AnimationSequence = data.AnimationList[i].AnimSequenceID
-                };
-                if (i < data.AnimationList.Length)
-                {
-                    animation.AnimationSourceObjectID = data.Sender.ID;
-                }
-
-                signaledAnimations.Add(animation);
+                    AnimationSequence = data.AnimationList[i].AnimSequenceID,
+                    AnimationSourceObjectID = objectID
+                });
             }
 
-            OnObjectAnimation(new ObjectAnimationEventArgs(data.Sender.ID, signaledAnimations));
+            // Update the primitive's signaled animation state if object tracking is enabled.
+            // Corresponds to LLObjectSignaledAnimationMap::instance().getMap()[uuid] in the SL C++ viewer.
+            if (Client.Settings.OBJECT_TRACKING
+                && e.Simulator.GlobalToLocalID.TryGetValue(objectID, out uint localID)
+                && e.Simulator.ObjectsPrimitives.TryGetValue(localID, out Primitive? prim))
+            {
+                prim.SignaledAnimations = signaledAnimations;
+            }
+
+            OnObjectAnimation(new ObjectAnimationEventArgs(e.Simulator, objectID, signaledAnimations));
         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
