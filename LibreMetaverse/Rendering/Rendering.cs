@@ -199,7 +199,7 @@ namespace OpenMetaverse.Rendering
         /// second texture coordinate for vertex <c>i</c>.  Null when the
         /// submesh has no <c>TexCoord1</c> data.
         /// </summary>
-        public List<Vector2> TexCoords1;
+        public List<Vector2>? TexCoords1;
 
         /// <summary>
         /// Normalized scale for this face, used for mesh normalization.
@@ -328,7 +328,7 @@ namespace OpenMetaverse.Rendering
         /// Skinning data for rigged meshes.  Null when the mesh asset does
         /// not contain a <c>skin</c> section (i.e. the mesh is not rigged).
         /// </summary>
-        public MeshSkinData SkinData;
+        public MeshSkinData? SkinData;
 
         /// <summary>
         /// Decodes mesh asset into FacetedMesh

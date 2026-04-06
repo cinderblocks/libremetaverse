@@ -624,9 +624,8 @@ namespace OpenMetaverse
 
                 for (int i = 0; i < MAX_FACES; i++)
                 {
-                    FaceTextures[i] = source.FaceTextures[i] != null
-                        ? (TextureEntryFace)source.FaceTextures[i].Clone()
-                        : null;
+                    if (source.FaceTextures[i] != null)
+                        FaceTextures[i] = (TextureEntryFace)source.FaceTextures[i].Clone();
                 }
             }
 

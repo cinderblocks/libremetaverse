@@ -2073,7 +2073,7 @@ namespace OpenMetaverse
                             {
                                 Benefits = new AccountLevelBenefits(alb);
                                 if (Benefits.TextureUploadCost > 0)
-                                    Client.Settings.UPLOAD_COST = Benefits.TextureUploadCost;
+                                    Client!.Settings.UPLOAD_COST = Benefits.TextureUploadCost;
                             }
                             OnViewerBenefitsUpdated(new ViewerBenefitsEventArgs(msg));
                         }
