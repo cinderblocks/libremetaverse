@@ -6753,5 +6753,40 @@ namespace OpenMetaverse.Messages.Linden
     }
 
     #endregion Interest List Messages
+
+    #region Estate / Sim Console Messages
+
+    /// <summary>
+    /// Message for the SimConsoleAsync capability.
+    /// HTTP POST sends a console command to the simulator and returns the text output.
+    /// Available only to estate owners/managers and Linden Lab staff (god mode).
+    /// Corresponds to LLSimConsole in the SL C++ viewer (llsimconsole.cpp).
+    /// </summary>
+    public class SimConsoleAsyncMessage : IMessage
+    {
+        /// <summary>The console command to execute on the simulator</summary>
+        public string Command = string.Empty;
+
+        /// <summary>
+        /// The simulator's text output in response to the command.
+        /// Empty string when used as a request.
+        /// </summary>
+        public string Output = string.Empty;
+
+        /// <inheritdoc/>
+        public OSDMap Serialize()
+        {
+            return new OSDMap(1) { ["console"] = OSD.FromString(Command) };
+        }
+
+        /// <inheritdoc/>
+        public void Deserialize(OSDMap map)
+        {
+            Command = map.ContainsKey("console") ? map["console"].AsString() : string.Empty;
+            Output  = map.ContainsKey("output")  ? map["output"].AsString()  : string.Empty;
+        }
+    }
+
+    #endregion Estate / Sim Console Messages
 }
 

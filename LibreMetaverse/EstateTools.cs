@@ -1257,6 +1257,60 @@ namespace OpenMetaverse
         }
         #endregion
 
+        #region SimConsoleAsync
+
+        /// <summary>
+        /// Sends a console command to the simulator via the SimConsoleAsync capability and
+        /// returns the simulator's text output.
+        /// Requires estate owner/manager privileges or god mode.
+        /// Corresponds to LLSimConsole::sendInput in the SL C++ viewer (llsimconsole.cpp).
+        /// </summary>
+        /// <param name="command">The console command to execute</param>
+        /// <param name="cancellationToken"></param>
+        /// <returns>The simulator's text response, or null if the capability is unavailable or the request fails</returns>
+        public async Task<string?> SendSimConsoleCommandAsync(string command, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Uri? cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("SimConsoleAsync");
+            if (cap == null)
+            {
+                Logger.Warn("SimConsoleAsync capability not available.", Client);
+                return null;
+            }
+
+            var msg = new SimConsoleAsyncMessage { Command = command };
+            string? output = null;
+
+            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken,
+                (response, data, error) =>
+                {
+                    if (error != null)
+                    {
+                        Logger.Warn($"SimConsoleAsync failed: {error.Message}", Client);
+                        return;
+                    }
+                    if (!(response?.IsSuccessStatusCode ?? false) || data == null) { return; }
+                    try
+                    {
+                        if (OSDParser.Deserialize(data) is OSDMap map)
+                        {
+                            var reply = new SimConsoleAsyncMessage();
+                            reply.Deserialize(map);
+                            output = reply.Output;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse SimConsoleAsync response", ex, Client);
+                    }
+                }).ConfigureAwait(false);
+
+            return output;
+        }
+
+        #endregion
+
         #region IDisposable
 
         /// <summary>
