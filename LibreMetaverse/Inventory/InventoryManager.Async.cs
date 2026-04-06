@@ -487,7 +487,7 @@ namespace OpenMetaverse
                 inventory = _Store?.GetContents(folder) ?? new List<InventoryBase>();
             }
 
-            if (inventory != null && followLinks)
+            if (followLinks)
             {
                 for (var i = 0; i < inventory.Count; ++i)
                 {
@@ -495,13 +495,13 @@ namespace OpenMetaverse
 
                     if (item.IsLink())
                     {
-                    var store = Store;
-                    if (!(store?.Contains(item.AssetUUID) ?? false))
-                    {
-                        var fetched = await FetchItemAsync(item.AssetUUID, owner, cancellationToken).ConfigureAwait(false);
-                        if (fetched != null)
-                            inventory[i] = fetched;
-                    }
+                        var store = Store;
+                        if (!(store?.Contains(item.AssetUUID) ?? false))
+                        {
+                            var fetched = await FetchItemAsync(item.AssetUUID, owner, cancellationToken).ConfigureAwait(false);
+                            if (fetched != null)
+                                inventory[i] = fetched;
+                        }
                     }
                 }
             }
@@ -668,16 +668,16 @@ namespace OpenMetaverse
                 offset += 16;
             }
 
-                    Client.Self.InstantMessage(
-                    Client.Self.Name,
-                    recipient,
-                    folderName,
-                    UUID.Random(),
-                    InstantMessageDialog.InventoryOffered,
-                    InstantMessageOnline.Online,
-                    Client.Self.SimPosition,
-                    Client.Network.CurrentSim?.ID ?? UUID.Zero,
-                    bucket);
+            Client.Self.InstantMessage(
+                Client.Self.Name,
+                recipient,
+                folderName,
+                UUID.Random(),
+                InstantMessageDialog.InventoryOffered,
+                InstantMessageOnline.Online,
+                Client.Self.SimPosition,
+                Client.Network.CurrentSim?.ID ?? UUID.Zero,
+                bucket);
 
             if (doEffect)
             {
