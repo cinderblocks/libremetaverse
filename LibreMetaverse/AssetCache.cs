@@ -429,10 +429,17 @@ namespace OpenMetaverse
                     Directory.CreateDirectory(Client.Settings.ASSET_CACHE_DIR);
                 }
 
-                using (var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 4096, true))
+                var tempPath = path + ".tmp";
+                using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, true))
                 {
                     await fs.WriteAsync(assetData, 0, assetData.Length, cancellationToken).ConfigureAwait(false);
                 }
+#if NET5_0_OR_GREATER
+                File.Move(tempPath, path, overwrite: true);
+#else
+                if (File.Exists(path)) File.Delete(path);
+                File.Move(tempPath, path);
+#endif
             }
             catch (OperationCanceledException)
             {
