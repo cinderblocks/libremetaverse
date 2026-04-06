@@ -2092,6 +2092,57 @@ namespace OpenMetaverse
             }
         }
 
+        /// <summary>
+        /// Sends a postcard from the agent's current in-world position via the SendPostcard capability.
+        /// </summary>
+        /// <param name="fromEmail">Sender's e-mail address</param>
+        /// <param name="fromName">Sender's display name</param>
+        /// <param name="toEmail">Recipient e-mail address</param>
+        /// <param name="subject">Subject line of the postcard</param>
+        /// <param name="message">Body text of the postcard</param>
+        /// <param name="globalPosition">In-world global position shown on the postcard</param>
+        /// <param name="cancellationToken"></param>
+        /// <returns>True if the server accepted the postcard, false otherwise</returns>
+        public async Task<bool> SendPostcardAsync(string fromEmail, string fromName, string toEmail,
+            string subject, string message, Vector3 globalPosition,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Uri? cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("SendPostcard");
+            if (cap == null)
+            {
+                Logger.Warn("SendPostcard capability not available.", Client);
+                return false;
+            }
+
+            var msg = new SendPostcardMessage
+            {
+                FromEmail = fromEmail,
+                FromName = fromName,
+                ToEmail = toEmail,
+                Subject = subject,
+                Message = message,
+                GlobalPosition = globalPosition
+            };
+
+            bool success = false;
+            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken,
+                (response, data, error) =>
+                {
+                    if (error != null)
+                    {
+                        Logger.Warn($"SendPostcard failed: {error.Message}", Client);
+                        return;
+                    }
+                    success = response?.IsSuccessStatusCode ?? false;
+                    if (!success)
+                        Logger.Warn($"SendPostcard non-success status: {response?.StatusCode}", Client);
+                }).ConfigureAwait(false);
+
+            return success;
+        }
+
         public async Task SetHoverHeightAsync(double hoverHeight, CancellationToken cancellationToken = default)
         {
             if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim?.Caps == null) { return; }
