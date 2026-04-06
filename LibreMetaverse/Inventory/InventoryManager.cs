@@ -916,14 +916,6 @@ namespace OpenMetaverse
                 }
             }
 
-            if (Client.AisClient.IsAvailable)
-            {
-                // Fire-and-forget AIS move using Task-based API. Log failures and run onSuccess on success
-                var moveTask = Client.AisClient.MoveCategoryAsync(folderID, newParentID, CancellationToken.None);
-                ContinueWithLog(moveTask, $"MoveCategory {folderID} -> {newParentID}");
-                return;
-            }
-
             var move = new MoveInventoryFolderPacket
             {
                 AgentData =
@@ -1052,15 +1044,6 @@ namespace OpenMetaverse
                 Logger.Warn($"MoveItem local update failed: {ex.Message}", Client);
             }
 
-            // Prefer AISv3 when available
-            if (Client?.AisClient?.IsAvailable == true)
-            {
-                var task = Client.AisClient.MoveItemAsync(itemID, folderID, CancellationToken.None);
-                ContinueWithLog(task, $"MoveItem {itemID} -> {folderID}");
-                return;
-            }
-
-            // Fallback to LLUDP packet
             var move = new MoveInventoryItemPacket
             {
                     AgentData =

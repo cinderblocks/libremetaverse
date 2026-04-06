@@ -45,7 +45,8 @@ namespace OpenMetaverse
             var result = await Client.HttpCapsClient.PostAsync(uri, OSDFormat.Xml, payload, cancellationToken, progress, connectedHandler: null).ConfigureAwait(false);
             var responseData = result.data ?? throw new InvalidOperationException("Empty response from capability POST");
 
-            return OSDParser.Deserialize(responseData);
+            try { return OSDParser.Deserialize(responseData); }
+            catch (Exception ex) { throw new InvalidOperationException($"Failed to parse capability response: {ex.Message}", ex); }
         }
 
         private async Task<OSD> PostCapAsync(string capName, OSD payload, CancellationToken cancellationToken = default, IProgress<LibreMetaverse.HttpCapsClient.ProgressReport>? progress = null)
@@ -64,7 +65,8 @@ namespace OpenMetaverse
             var result = await Client.HttpCapsClient.PostAsync(uri, contentType, data, cancellationToken, progress, connectedHandler: null).ConfigureAwait(false);
             var responseData = result.data ?? throw new InvalidOperationException("Empty response from capability POST");
 
-            return OSDParser.Deserialize(responseData);
+            try { return OSDParser.Deserialize(responseData); }
+            catch (Exception ex) { throw new InvalidOperationException($"Failed to parse capability response: {ex.Message}", ex); }
         }
 
         private async Task<OSD> PostBytesAsync(string capName, string contentType, byte[] data,
@@ -86,7 +88,8 @@ namespace OpenMetaverse
             var result = await Client.HttpCapsClient.PostAsync(uri, LibreMetaverse.HttpCapsClient.LLSD_XML, payload, cancellationToken, progress, connectedHandler: null).ConfigureAwait(false);
             var responseData = result.data ?? throw new InvalidOperationException("Empty response from capability POST");
 
-            return OSDParser.Deserialize(responseData);
+            try { return OSDParser.Deserialize(responseData); }
+            catch (Exception ex) { throw new InvalidOperationException($"Failed to parse capability response: {ex.Message}", ex); }
         }
 
         private void Self_IM(object? sender, InstantMessageEventArgs e)
@@ -227,6 +230,7 @@ namespace OpenMetaverse
                 {
                     Logger.Error(e.Message, e, Client);
                 }
+                return;
             }
 
             var contents = (OSDMap)result;
