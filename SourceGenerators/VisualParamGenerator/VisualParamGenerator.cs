@@ -125,6 +125,34 @@ namespace OpenMetaverse
         }
     }
     /// <summary>
+    /// Describes a single driven-param relationship for a driver visual parameter.
+    /// Min1/Max1/Max2/Min2 are in the driver parameter's own value range.
+    /// </summary>
+    public struct DrivenParamInfo
+    {
+        /// <summary>ParamID of the driven parameter.</summary>
+        public int ParamID;
+        /// <summary>Piecewise-linear range start on the driver axis.</summary>
+        public float Min1;
+        /// <summary>Piecewise-linear range peak-start on the driver axis.</summary>
+        public float Max1;
+        /// <summary>Piecewise-linear range peak-end on the driver axis.</summary>
+        public float Max2;
+        /// <summary>Piecewise-linear range end on the driver axis.</summary>
+        public float Min2;
+        /// <summary>True when Min1/Max1/Max2/Min2 define a custom mapping; false means pass-through.</summary>
+        public bool HasRange;
+        public DrivenParamInfo(int paramID, float min1, float max1, float max2, float min2, bool hasRange)
+        {
+            ParamID = paramID;
+            Min1 = min1;
+            Max1 = max1;
+            Max2 = max2;
+            Min2 = min2;
+            HasRange = hasRange;
+        }
+    }
+    /// <summary>
     /// A single visual characteristic of an avatar mesh, such as eyebrow height
     /// </summary>
     public struct VisualParam
@@ -155,8 +183,10 @@ namespace OpenMetaverse
         public VisualAlphaParam? AlphaParams;
         /// <summary>Color information</summary>
         public VisualColorParam? ColorParams;
-        /// <summary>Array of param IDs that are drivers for this parameter</summary>
+        /// <summary>Array of param IDs driven by this parameter (for driver params).</summary>
         public int[] Drivers;
+        /// <summary>Full driven-param info including piecewise-linear mapping (non-null for driver params).</summary>
+        public DrivenParamInfo[]? DrivenParams;
         /// <summary>
         /// Set all the values through the constructor
         /// </summary>
@@ -171,10 +201,11 @@ namespace OpenMetaverse
         /// <param name="min">Minimum value</param>
         /// <param name="max">Maximum value</param>
         /// <param name="isBumpAttribute">Is this param used for creation of bump layer?</param>
-        /// <param name="drivers">Array of param IDs that are drivers for this parameter</param>
+        /// <param name="drivers">Array of param IDs driven by this parameter</param>
         /// <param name="alpha">Alpha blending/bump info</param>
         /// <param name="colorParams">Color information</param>
-        public VisualParam(int paramID, string name, int group, string wearable, string label, string labelMin, string labelMax, float def, float min, float max, bool isBumpAttribute, int[] drivers, VisualAlphaParam? alpha, VisualColorParam? colorParams)
+        /// <param name="drivenParams">Full driven-param info for driver params</param>
+        public VisualParam(int paramID, string name, int group, string wearable, string label, string labelMin, string labelMax, float def, float min, float max, bool isBumpAttribute, int[] drivers, VisualAlphaParam? alpha, VisualColorParam? colorParams, DrivenParamInfo[]? drivenParams = null)
         {
             ParamID = paramID;
             Name = name;
@@ -190,6 +221,7 @@ namespace OpenMetaverse
             Drivers = drivers;
             AlphaParams = alpha;
             ColorParams = colorParams;
+            DrivenParams = drivenParams;
         }
     }
 
@@ -276,6 +308,7 @@ namespace OpenMetaverse
             var ids = new SortedList<int, string>();
             var alphas = new Dictionary<int, string>();
             var colors = new Dictionary<int, string>();
+            var drivenParamInfoMap = new Dictionary<int, string>();
 
             var sb = new StringBuilder();
 
@@ -290,9 +323,6 @@ namespace OpenMetaverse
                     continue;
 
                 if (node.Attributes["shared"]?.Value == "1")
-                    continue;
-
-                if (node.Attributes["edit_group"] == null)
                     continue;
 
                 if (node.Attributes["id"] == null || node.Attributes["name"] == null)
@@ -404,6 +434,7 @@ namespace OpenMetaverse
                         : min;
 
                     var drivers = "null";
+                    var drivenInfos = "null";
                     if (node.HasChildNodes)
                     {
                         for (var nodeNr = 0; nodeNr < node.ChildNodes.Count; nodeNr++)
@@ -412,16 +443,36 @@ namespace OpenMetaverse
                             if (cnode.Name != "param_driver" || !cnode.HasChildNodes) continue;
 
                             var driverIDs = new List<string>();
+                            var drivenInfoList = new List<string>();
                             foreach (XmlNode dnode in cnode.ChildNodes)
                             {
-                                if (dnode.Name == "driven" && dnode.Attributes?["id"] != null)
-                                    driverIDs.Add(dnode.Attributes["id"].Value);
+                                if (dnode.Name != "driven" || dnode.Attributes?["id"] == null) continue;
+                                var drivenId = dnode.Attributes["id"].Value;
+                                driverIDs.Add(drivenId);
+                                var min1Attr = dnode.Attributes["min1"];
+                                if (min1Attr != null)
+                                {
+                                    var dMin1 = float.Parse(min1Attr.Value, NumberStyles.Float, EnUsCulture.NumberFormat);
+                                    var dMax1 = float.Parse(dnode.Attributes["max1"].Value, NumberStyles.Float, EnUsCulture.NumberFormat);
+                                    var dMax2 = float.Parse(dnode.Attributes["max2"].Value, NumberStyles.Float, EnUsCulture.NumberFormat);
+                                    var dMin2 = float.Parse(dnode.Attributes["min2"].Value, NumberStyles.Float, EnUsCulture.NumberFormat);
+                                    drivenInfoList.Add($"new DrivenParamInfo({drivenId}, {FormatFloat(dMin1)}, {FormatFloat(dMax1)}, {FormatFloat(dMax2)}, {FormatFloat(dMin2)}, true)");
+                                }
+                                else
+                                {
+                                    drivenInfoList.Add($"new DrivenParamInfo({drivenId}, 0f, 0f, 0f, 0f, false)");
+                                }
                             }
 
                             if (driverIDs.Count > 0)
+                            {
                                 drivers = $"new int[] {{ {string.Join(", ", driverIDs)} }}";
+                                drivenInfos = $"new DrivenParamInfo[] {{ {string.Join(", ", drivenInfoList)} }}";
+                            }
                         }
                     }
+                    if (drivenInfos != "null")
+                        drivenParamInfoMap[id] = drivenInfos;
 
                     ids.Add(id,
                         string.Format("            Params[{0}] = new VisualParam({0}, \"{1}\", {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, ",
@@ -452,7 +503,8 @@ namespace OpenMetaverse
                 else
                     sb.Append("null, ");
 
-                sb.Append(colors.TryGetValue(kv.Key, out var color) ? color : "null");
+                sb.Append((colors.TryGetValue(kv.Key, out var color) ? color : "null") + ", ");
+                sb.Append(drivenParamInfoMap.TryGetValue(kv.Key, out var dpi) ? dpi : "null");
                 sb.AppendLine(");");
             }
 
