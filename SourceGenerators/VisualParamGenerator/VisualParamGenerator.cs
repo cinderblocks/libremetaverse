@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Sjofn LLC.
+ * Copyright (c) 2025-2026, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without 
@@ -429,9 +429,10 @@ namespace OpenMetaverse
                     var min = float.Parse(node.Attributes["value_min"].Value, NumberStyles.Float, EnUsCulture.NumberFormat);
                     var max = float.Parse(node.Attributes["value_max"].Value, NumberStyles.Float, EnUsCulture.NumberFormat);
 
-                    var def = node.Attributes["value_default"] != null
-                        ? float.Parse(node.Attributes["value_default"].Value, NumberStyles.Float, EnUsCulture.NumberFormat)
-                        : min;
+                    var defAttr = node.Attributes["value_default"];
+                    var def = defAttr != null && !string.IsNullOrEmpty(defAttr.Value)
+                        ? float.Parse(defAttr.Value, NumberStyles.Float, EnUsCulture.NumberFormat)
+                        : 0f;
 
                     var drivers = "null";
                     var drivenInfos = "null";
