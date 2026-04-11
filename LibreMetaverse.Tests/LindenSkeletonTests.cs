@@ -1,0 +1,214 @@
+/*
+ * Copyright (c) 2026, Sjofn LLC
+ * All rights reserved.
+ *
+ * - Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions are met:
+ *
+ * - Redistributions of source code must retain the above copyright notice, this
+ *   list of conditions and the following disclaimer.
+ * - Neither the name of the openmetaverse.co nor the names
+ *   of its contributors may be used to endorse or promote products derived from
+ *   this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+using System.Collections.Generic;
+using NUnit.Framework;
+using OpenMetaverse.Rendering;
+
+namespace LibreMetaverse.Tests
+{
+    /// <summary>
+    /// Unit tests for <see cref="LindenSkeleton.BuildExpandedJointList"/>.
+    /// These exercise the effective-parent tracking fix: intermediate bones that are
+    /// NOT present in the skin-joints filter must not appear as placeholder entries in
+    /// the expanded list, which would shift all downstream joint indices.
+    /// </summary>
+    [TestFixture]
+    [Category("LindenSkeleton")]
+    public class LindenSkeletonTests
+    {
+        // ── Helpers ────────────────────────────────────────────────────────────
+
+        private static Joint MakeJoint(string name, params Joint[] children)
+        {
+            return new Joint { name = name, bone = children };
+        }
+
+        private static LindenSkeleton MakeSkeleton(string rootName, params Joint[] rootChildren)
+        {
+            return new LindenSkeleton { bone = MakeJoint(rootName, rootChildren) };
+        }
+
+        // ── Tests ──────────────────────────────────────────────────────────────
+
+        [Test]
+        public void BuildExpandedJointList_EmptyFilter_ReturnsEmptyList()
+        {
+            var skeleton = MakeSkeleton("mPelvis",
+                MakeJoint("mTorso",
+                    MakeJoint("mChest")));
+
+            var result = skeleton.BuildExpandedJointList(new string[0]);
+
+            Assert.That(result, Is.Empty);
+        }
+
+        [Test]
+        public void BuildExpandedJointList_NoBoneChildren_ReturnsEmptyList()
+        {
+            var skeleton = new LindenSkeleton { bone = new Joint { name = "mPelvis", bone = null } };
+
+            var result = skeleton.BuildExpandedJointList(new[] { "mPelvis" });
+
+            Assert.That(result, Is.Empty);
+        }
+
+        [Test]
+        public void BuildExpandedJointList_LinearChain_AllInFilter_ProducesCorrectSequence()
+        {
+            // root -> A -> B -> C, all three in filter
+            var skeleton = MakeSkeleton("root",
+                MakeJoint("A",
+                    MakeJoint("B",
+                        MakeJoint("C"))));
+
+            var result = skeleton.BuildExpandedJointList(new[] { "A", "B", "C" });
+
+            // root is the initial effective parent, then each bone chains onto the tail
+            Assert.That(result, Is.EqualTo(new List<string> { "root", "A", "B", "C" }));
+        }
+
+        [Test]
+        public void BuildExpandedJointList_IntermediateBoneNotInFilter_IsSkippedAsPlaceholder()
+        {
+            // root -> A -> B(not in filter) -> C
+            // Before the fix, "B" appeared as C's placeholder, corrupting all subsequent
+            // joint indices in the skin-weight lookup table.
+            var skeleton = MakeSkeleton("root",
+                MakeJoint("A",
+                    MakeJoint("B",
+                        MakeJoint("C"))));
+
+            var result = skeleton.BuildExpandedJointList(new[] { "A", "C" });
+
+            Assert.That(result, Does.Not.Contain("B"),
+                "Intermediate bone absent from filter must not appear as a placeholder");
+            Assert.That(result, Is.EqualTo(new List<string> { "root", "A", "C" }));
+        }
+
+        [Test]
+        public void BuildExpandedJointList_MultipleConsecutiveIntermediates_AllSkipped()
+        {
+            // root -> A -> inter1 -> inter2 -> B
+            var skeleton = MakeSkeleton("root",
+                MakeJoint("A",
+                    MakeJoint("inter1",
+                        MakeJoint("inter2",
+                            MakeJoint("B")))));
+
+            var result = skeleton.BuildExpandedJointList(new[] { "A", "B" });
+
+            Assert.That(result, Does.Not.Contain("inter1"));
+            Assert.That(result, Does.Not.Contain("inter2"));
+            Assert.That(result, Is.EqualTo(new List<string> { "root", "A", "B" }));
+        }
+
+        [Test]
+        public void BuildExpandedJointList_BranchingHierarchy_BranchPointRepeatedPerChild()
+        {
+            // root -> A -> [B -> C, D]
+            // A has two children; its name must be re-emitted before D's subtree.
+            var skeleton = MakeSkeleton("root",
+                MakeJoint("A",
+                    MakeJoint("B",
+                        MakeJoint("C")),
+                    MakeJoint("D")));
+
+            var result = skeleton.BuildExpandedJointList(new[] { "A", "B", "C", "D" });
+
+            // First child branch:  root, A, B, C
+            // Second child branch: A (repeated placeholder), D
+            Assert.That(result, Is.EqualTo(new List<string> { "root", "A", "B", "C", "A", "D" }));
+        }
+
+        [Test]
+        public void BuildExpandedJointList_BranchingWithIntermediates_EffectiveParentUsedForAllBranches()
+        {
+            // root -> A -> [B(not in filter) -> C, D]
+            // The effective parent for both C and D is A (B is absent from filter).
+            var skeleton = MakeSkeleton("root",
+                MakeJoint("A",
+                    MakeJoint("B",
+                        MakeJoint("C")),
+                    MakeJoint("D")));
+
+            var result = skeleton.BuildExpandedJointList(new[] { "A", "C", "D" });
+
+            Assert.That(result, Does.Not.Contain("B"),
+                "Intermediate bone absent from filter must not appear in the expanded list");
+            Assert.That(result, Is.EqualTo(new List<string> { "root", "A", "C", "A", "D" }));
+        }
+
+        [Test]
+        public void BuildExpandedJointList_OnlyLeafInFilter_ReachableViaRootPlaceholder()
+        {
+            // root -> inter1 -> inter2 -> leaf (only leaf is in filter)
+            var skeleton = MakeSkeleton("root",
+                MakeJoint("inter1",
+                    MakeJoint("inter2",
+                        MakeJoint("leaf"))));
+
+            var result = skeleton.BuildExpandedJointList(new[] { "leaf" });
+
+            Assert.That(result, Is.EqualTo(new List<string> { "root", "leaf" }));
+        }
+
+        [Test]
+        public void BuildExpandedJointList_SingleFilteredDirectChild_ProducesTwoEntries()
+        {
+            // root -> A (A is the only child and the only filter entry)
+            var skeleton = MakeSkeleton("root",
+                MakeJoint("A"));
+
+            var result = skeleton.BuildExpandedJointList(new[] { "A" });
+
+            Assert.That(result, Is.EqualTo(new List<string> { "root", "A" }));
+        }
+
+        [Test]
+        public void BuildExpandedJointList_SpineBonesSkipped_DownstreamIndicesNotShifted()
+        {
+            // Mirrors the real-world avatar_skeleton.xml case that motivated the fix:
+            // mPelvis -> mTorso -> mSpine1(intermediate) -> mChest -> mNeck -> mHead
+            // Only mTorso, mChest, and mHead are referenced by a hypothetical mesh.
+            var skeleton = MakeSkeleton("mPelvis",
+                MakeJoint("mTorso",
+                    MakeJoint("mSpine1",
+                        MakeJoint("mChest",
+                            MakeJoint("mNeck",
+                                MakeJoint("mHead"))))));
+
+            var result = skeleton.BuildExpandedJointList(new[] { "mTorso", "mChest", "mHead" });
+
+            Assert.That(result, Does.Not.Contain("mSpine1"),
+                "mSpine1 is not in the filter and must not appear as a placeholder");
+            Assert.That(result, Does.Not.Contain("mNeck"),
+                "mNeck is not in the filter and must not appear as a placeholder");
+            Assert.That(result, Is.EqualTo(
+                new List<string> { "mPelvis", "mTorso", "mChest", "mHead" }));
+        }
+    }
+}

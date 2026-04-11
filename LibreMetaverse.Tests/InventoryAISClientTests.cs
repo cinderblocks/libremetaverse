@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using OpenMetaverse;
 using OpenMetaverse.StructuredData;
@@ -254,6 +255,33 @@ namespace LibreMetaverse.Tests
             Assert.That(items, Is.Not.Null.And.Count.EqualTo(1));
             Assert.That(links, Is.Not.Null.And.Count.EqualTo(1));
             Assert.That(folders, Is.Not.Null);
+        }
+
+        [Test]
+        public async Task MoveCategoryLinks_AlwaysInvokesCallbackWithFalse()
+        {
+            var client = new InventoryAISClient(new GridClient());
+            bool? result = null;
+            await client.MoveCategoryLinks("outfit", UUID.Random(), b => result = b);
+            Assert.That(result, Is.False,
+                "MoveCategoryLinks has no AIS v3 equivalent and must always report failure");
+        }
+
+        [Test]
+        public async Task MoveCategoryLinks_NullCallback_DoesNotThrow()
+        {
+            var client = new InventoryAISClient(new GridClient());
+            Assert.DoesNotThrowAsync(() => client.MoveCategoryLinks("outfit", UUID.Random(), null));
+            await Task.CompletedTask;
+        }
+
+        [Test]
+        public void MoveCategoryLinks_ReturnsCompletedTask()
+        {
+            var client = new InventoryAISClient(new GridClient());
+            var task = client.MoveCategoryLinks("outfit", UUID.Random(), _ => { });
+            Assert.That(task.IsCompleted, Is.True,
+                "MoveCategoryLinks should return an already-completed task");
         }
     }
 }

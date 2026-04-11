@@ -159,5 +159,78 @@ namespace LibreMetaverse.Tests
                 Assert.That(teBytes[i], Is.EqualTo(teBytes2[i]), "Byte " + i + " is not equal");
             }
         }
+
+        [Test]
+        public void TextureEntry_RenderMaterialID_DefaultFace_Roundtrips()
+        {
+            var renderMat = UUID.Random();
+
+            var te = new Primitive.TextureEntry(UUID.Random());
+            te.DefaultTexture.RenderMaterialID = renderMat;
+
+            byte[] bytes = te.GetBytes();
+            var te2 = new Primitive.TextureEntry(bytes, 0, bytes.Length);
+
+            Assert.That(te2.DefaultTexture.RenderMaterialID, Is.EqualTo(renderMat));
+        }
+
+        [Test]
+        public void TextureEntry_RenderMaterialID_PerFace_Roundtrips()
+        {
+            var defaultTex = UUID.Random();
+            var faceRenderMat = UUID.Random();
+
+            var te = new Primitive.TextureEntry(defaultTex);
+            // Face 0 gets a unique RenderMaterialID; face 1 inherits the default (UUID.Zero)
+            te.CreateFace(0).RenderMaterialID = faceRenderMat;
+
+            byte[] bytes = te.GetBytes();
+            var te2 = new Primitive.TextureEntry(bytes, 0, bytes.Length);
+
+            Assert.That(te2.FaceTextures[0].RenderMaterialID, Is.EqualTo(faceRenderMat),
+                "Face 0 RenderMaterialID should survive the serialization roundtrip");
+            Assert.That(te2.DefaultTexture.RenderMaterialID, Is.EqualTo(UUID.Zero),
+                "Default RenderMaterialID should be UUID.Zero when not explicitly set");
+        }
+
+        [Test]
+        public void TextureEntry_RenderMaterialID_MultipleFaces_Roundtrips()
+        {
+            var mat0 = UUID.Random();
+            var mat1 = UUID.Random();
+            var defaultMat = UUID.Random();
+
+            var te = new Primitive.TextureEntry(UUID.Random());
+            te.DefaultTexture.RenderMaterialID = defaultMat;
+            te.CreateFace(0).RenderMaterialID = mat0;
+            te.CreateFace(1).RenderMaterialID = mat1;
+            // Face 2 intentionally left at default
+
+            byte[] bytes = te.GetBytes();
+            var te2 = new Primitive.TextureEntry(bytes, 0, bytes.Length);
+
+            Assert.That(te2.DefaultTexture.RenderMaterialID, Is.EqualTo(defaultMat));
+            Assert.That(te2.FaceTextures[0].RenderMaterialID, Is.EqualTo(mat0));
+            Assert.That(te2.FaceTextures[1].RenderMaterialID, Is.EqualTo(mat1));
+        }
+
+        [Test]
+        public void TextureEntry_RenderMaterialID_InheritsFromDefault_WhenNotOverridden()
+        {
+            var defaultMat = UUID.Random();
+
+            var te = new Primitive.TextureEntry(UUID.Random());
+            te.DefaultTexture.RenderMaterialID = defaultMat;
+            // No per-face override — face should inherit the default
+
+            byte[] bytes = te.GetBytes();
+            var te2 = new Primitive.TextureEntry(bytes, 0, bytes.Length);
+
+            Assert.That(te2.DefaultTexture.RenderMaterialID, Is.EqualTo(defaultMat));
+            // A face that was never explicitly created should see the default through the property getter
+            var face = te2.GetFace(0);
+            if (face != null)
+                Assert.That(face.RenderMaterialID, Is.EqualTo(defaultMat));
+        }
     }
 }
