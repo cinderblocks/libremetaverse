@@ -4,7 +4,7 @@
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 	<PropertyGroup>
-		<Version>2.5.0</Version>
+		<Version>2.6.0</Version>
 		<Product>LibreMetaverse</Product>
 		<Authors>Sjofn LLC, OpenMetaverse Developers</Authors>
 		<Copyright>Copyright © OpenMetaverse Developers 2008, 2017. Copyright © Sjofn LLC 2018-2026. All rights reserved.</Copyright>
@@ -12,7 +12,7 @@
 		<Company>Sjofn LLC</Company>
 	</PropertyGroup>
 	<PropertyGroup>
-		<PackageVersion>2.5.0</PackageVersion>
+		<PackageVersion>2.6.0</PackageVersion>
 		<PackageIcon>logo.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
