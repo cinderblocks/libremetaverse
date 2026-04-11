@@ -24,13 +24,13 @@
   <ItemGroup>
     <PackageReference Include="CoreJ2K.Skia" Version="2.1.2.38" />
     <PackageReference Include="ZLogger" Version="2.5.10" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.11" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.5" />
     <PackageReference Include="MessagePack" Version="3.1.4" />
-    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="9.0.11" />
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" Version="10.0.5" />
     <PackageReference Include="OggVorbisEncoder" Version="1.2.2" />
     <PackageReference Include="Pfim" Version="0.11.4" />
-    <PackageReference Include="System.Threading.Channels" Version="9.0.11" />
+    <PackageReference Include="System.Threading.Channels" Version="10.0.5" />
     <PackageReference Include="zlib.net-mutliplatform" Version="1.1.0" />
   </ItemGroup>
   <ItemGroup>
@@ -50,5 +50,8 @@
   <ItemGroup>
     <AdditionalFiles Include="..\data\message_template.msg" />
     <AdditionalFiles Include="linden\character\avatar_lad.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="Microsoft.SourceLink.GitHub" Version="10.0.201" />
   </ItemGroup>
   </Project>
