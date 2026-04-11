@@ -1213,6 +1213,7 @@ namespace OpenMetaverse
                                 binWriter.Write(FaceTextures[i].MaterialID.GetBytes());
                             }
                         }
+                        binWriter.Write((byte)0);
                         #endregion MaterialID
 
                         #region RenderMaterialID
