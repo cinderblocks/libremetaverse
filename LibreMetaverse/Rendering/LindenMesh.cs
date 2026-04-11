@@ -198,6 +198,19 @@ namespace OpenMetaverse.Rendering
                     RotationAngles = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
                     RotationOrder = reader.ReadByte();
                     Scale = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+
+                    // The reference-mesh format includes the same vertex section as a full mesh.
+                    // Face indices reference the parent full-mesh vertices, so we skip the
+                    // vertex data here. Each vertex is stored in separate per-attribute passes:
+                    //   Coord (12) + Normal (12) + BiNormal (12) + TexCoord (8) = 44 bytes/vertex
+                    //   + DetailTexCoord (8) if HasDetailTexCoords
+                    //   + Weight        (4) if HasWeights
+                    ushort numVertices = reader.ReadUInt16();
+                    long skipBytes = (long)numVertices * (12 + 12 + 12 + 8);
+                    if (HasDetailTexCoords) skipBytes += (long)numVertices * 8;
+                    if (HasWeights)        skipBytes += (long)numVertices * 4;
+                    reader.BaseStream.Seek(skipBytes, SeekOrigin.Current);
+
                     NumFaces = reader.ReadUInt16();
 
                     Faces = new Face[NumFaces];
