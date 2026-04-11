@@ -32,7 +32,7 @@
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);CS1591</NoWarn>
-		<DebugType>pdbonly</DebugType>
+		<DebugType>portable</DebugType>
 		<Optimize>true</Optimize>
 	</PropertyGroup>
 	<ItemGroup>
@@ -41,6 +41,6 @@
 		<None Include="$(MSBuildThisFileDirectory)data\logo.png" Pack="true" PackagePath="\" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.201" PrivateAssets="all" />
 	</ItemGroup>
 </Project>

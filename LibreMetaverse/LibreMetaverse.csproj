@@ -51,7 +51,4 @@
     <AdditionalFiles Include="..\data\message_template.msg" />
     <AdditionalFiles Include="linden\character\avatar_lad.xml" />
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference Update="Microsoft.SourceLink.GitHub" Version="10.0.201" />
-  </ItemGroup>
   </Project>

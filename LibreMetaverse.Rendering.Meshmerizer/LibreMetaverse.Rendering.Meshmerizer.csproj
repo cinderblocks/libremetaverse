@@ -24,7 +24,4 @@
     <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
     <ProjectReference Include="..\PrimMesher\LibreMetaverse.PrimMesher.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference Update="Microsoft.SourceLink.GitHub" Version="10.0.201" />
-  </ItemGroup>
   </Project>
