@@ -704,7 +704,7 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Move a category within inventory.
+        /// Move a category within inventory by patching its parent_id.
         /// </summary>
         /// <param name="sourceUuid">Source category UUID.</param>
         /// <param name="destUuid">Destination category UUID.</param>
@@ -720,13 +720,22 @@ namespace LibreMetaverse
             {
                 if (!Uri.TryCreate($"{cap}/category/{sourceUuid}?tid={UUID.Random()}", UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
 
-                using (var request = new HttpRequestMessage(new HttpMethod("MOVE"), uri))
+                var updates = new OSDMap { ["parent_id"] = OSD.FromUUID(destUuid) };
+#if (NETSTANDARD2_1_OR_GREATER || NET)
+                using (var request = new HttpRequestMessage(HttpMethod.Patch, uri))
+#else
+                using (var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri))
+#endif
                 {
-                    request.Headers.Add("Destination", destUuid.ToString());
-
-                    using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
+                    using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(updates),
+                               Encoding.UTF8, HttpCapsClient.LLSD_XML))
                     {
-                        success = HandleResponseStatus(reply, $"Move category {sourceUuid} to {destUuid}");
+                        request.Content = content;
+
+                        using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
+                        {
+                            success = HandleResponseStatus(reply, $"Move category {sourceUuid} to {destUuid}");
+                        }
                     }
                 }
             }
@@ -813,40 +822,13 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Move children of a category to a destination category.
+        /// AIS v3 does not expose a batch "move children" endpoint; this operation is not supported.
         /// </summary>
-        /// <param name="category">Source category identifier.</param>
-        /// <param name="destUuid">Destination category UUID.</param>
-        /// <param name="callback">Callback invoked with success flag.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task MoveCategoryChildren(string category, UUID destUuid, Action<bool> callback, CancellationToken cancellationToken = default)
+        public Task MoveCategoryChildren(string category, UUID destUuid, Action<bool> callback, CancellationToken cancellationToken = default)
         {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false); return; }
-
-            var success = false;
-
-            try
-            {
-                if (!Uri.TryCreate($"{cap}/category/{category}/children?tid={UUID.Random()}", UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
-
-                using (var request = new HttpRequestMessage(new HttpMethod("MOVE"), uri))
-                {
-                    request.Headers.Add("Destination", destUuid.ToString());
-
-                    using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                    {
-                        success = HandleResponseStatus(reply, $"Move children for {category} to {destUuid}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success);
-            }
+            Logger.Warn($"MoveCategoryChildren has no AIS v3 equivalent and is not supported ({category} -> {destUuid})");
+            callback?.Invoke(false);
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -953,40 +935,13 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Move links from a category to a destination category.
+        /// AIS v3 does not expose a batch "move links" endpoint; this operation is not supported.
         /// </summary>
-        /// <param name="category">Source category identifier.</param>
-        /// <param name="destUuid">Destination category UUID.</param>
-        /// <param name="callback">Callback invoked with success flag.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task MoveCategoryLinks(string category, UUID destUuid, Action<bool> callback, CancellationToken cancellationToken = default)
+        public Task MoveCategoryLinks(string category, UUID destUuid, Action<bool> callback, CancellationToken cancellationToken = default)
         {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false); return; }
-
-            var success = false;
-
-            try
-            {
-                if (!Uri.TryCreate($"{cap}/category/{category}/links?tid={UUID.Random()}", UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
-
-                using (var request = new HttpRequestMessage(new HttpMethod("MOVE"), uri))
-                {
-                    request.Headers.Add("Destination", destUuid.ToString());
-
-                    using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                    {
-                        success = HandleResponseStatus(reply, $"Move links for {category} to {destUuid}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success);
-            }
+            Logger.Warn($"MoveCategoryLinks has no AIS v3 equivalent and is not supported ({category} -> {destUuid})");
+            callback?.Invoke(false);
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -1058,7 +1013,7 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Move an item to a destination category.
+        /// Move an item to a destination category by patching its parent_id.
         /// </summary>
         /// <param name="itemUuid">Item UUID to move.</param>
         /// <param name="destUuid">Destination category UUID.</param>
@@ -1077,13 +1032,22 @@ namespace LibreMetaverse
                     callback?.Invoke(false); return;
                 }
 
-                using (var request = new HttpRequestMessage(new HttpMethod("MOVE"), uri))
+                var updates = new OSDMap { ["parent_id"] = OSD.FromUUID(destUuid) };
+#if (NETSTANDARD2_1_OR_GREATER || NET)
+                using (var request = new HttpRequestMessage(HttpMethod.Patch, uri))
+#else
+                using (var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri))
+#endif
                 {
-                    request.Headers.Add("Destination", destUuid.ToString());
-
-                    using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
+                    using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(updates),
+                               Encoding.UTF8, HttpCapsClient.LLSD_XML))
                     {
-                        success = HandleResponseStatus(reply, $"Move item {itemUuid} to {destUuid}");
+                        request.Content = content;
+
+                        using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
+                        {
+                            success = HandleResponseStatus(reply, $"Move item {itemUuid} to {destUuid}");
+                        }
                     }
                 }
             }

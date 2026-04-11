@@ -557,32 +557,32 @@ namespace OpenMetaverse
                                     folder.Version = descFolder["version"];
                                     folder.PreferredType = (FolderType)descFolder["type_default"].AsInteger();
                                     ret.Add(folder);
-                                }
+                                 }
+                             }
 
-                                // Fetch descendent items
-                                if (res.TryGetValue("items", out var items))
-                                {
-                                    var arr = (OSDArray)items;
-                                    foreach (var it in arr)
-                                    {
-                                        var item = InventoryItem.FromOSD(it);
-                                        if (_Store != null)
-                                        {
-                                            using (var writeLock = _storeLock.WriteLock())
-                                            {
-                                                _Store[item.UUID] = item;
-                                            }
-                                        }
-                                        else
-                                        {
-                                            Logger.Debug("Inventory store is not initialized, descendent item will not be cached locally", Client);
-                                        }
-                                        ret.Add(item);
-                                    }
-                                }
-                            }
-                        }
-                        OnFolderUpdated(new FolderUpdatedEventArgs(res["folder_id"], true));
+                             // Fetch descendent items
+                             if (res.TryGetValue("items", out var items))
+                             {
+                                 var arr = (OSDArray)items;
+                                 foreach (var it in arr)
+                                 {
+                                     var item = InventoryItem.FromOSD(it);
+                                     if (_Store != null)
+                                     {
+                                         using (var writeLock = _storeLock.WriteLock())
+                                         {
+                                             _Store[item.UUID] = item;
+                                         }
+                                     }
+                                     else
+                                     {
+                                         Logger.Debug("Inventory store is not initialized, descendent item will not be cached locally", Client);
+                                     }
+                                     ret.Add(item);
+                                 }
+                             }
+                         }
+                         OnFolderUpdated(new FolderUpdatedEventArgs(res["folder_id"], true));
                     }
                 }
             }
@@ -916,14 +916,6 @@ namespace OpenMetaverse
                 }
             }
 
-            if (Client.AisClient.IsAvailable)
-            {
-                // Fire-and-forget AIS move using Task-based API. Log failures and run onSuccess on success
-                var moveTask = Client.AisClient.MoveCategoryAsync(folderID, newParentID, CancellationToken.None);
-                ContinueWithLog(moveTask, $"MoveCategory {folderID} -> {newParentID}");
-                return;
-            }
-
             var move = new MoveInventoryFolderPacket
             {
                 AgentData =
@@ -1052,15 +1044,6 @@ namespace OpenMetaverse
                 Logger.Warn($"MoveItem local update failed: {ex.Message}", Client);
             }
 
-            // Prefer AISv3 when available
-            if (Client?.AisClient?.IsAvailable == true)
-            {
-                var task = Client.AisClient.MoveItemAsync(itemID, folderID, CancellationToken.None);
-                ContinueWithLog(task, $"MoveItem {itemID} -> {folderID}");
-                return;
-            }
-
-            // Fallback to LLUDP packet
             var move = new MoveInventoryItemPacket
             {
                     AgentData =

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2025, Sjofn LLC.
+ * Copyright (c) 2025-2026, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,7 @@ namespace OpenMetaverse.Rendering
         /// Load a skeleton from a given file.
         /// </summary>
         /// <remarks>
-        /// We use xml scema validation on top of the xml de-serializer, since the schema has
+        /// We use xml schema validation on top of the xml de-serializer, since the schema has
         /// some stricter checks than the de-serializer provides. E.g. the vector attributes
         /// are guaranteed to hold only 3 float values. This reduces the need for error checking
         /// while working with the loaded skeleton.
@@ -100,6 +100,14 @@ namespace OpenMetaverse.Rendering
         /// >linear array of the joints as defined in the skeleton file.
         /// >In particular, any joint that has more than one child will
         /// >be repeated in the list for each of its children.
+        ///
+        /// The modern avatar_skeleton.xml contains intermediate spine bones
+        /// (mSpine1–mSpine4) that are NOT referenced by the LLM skin-joint list.
+        /// The original algorithm used the actual skeleton parent name as a
+        /// placeholder, which caused these intermediate bones to appear in the
+        /// expanded list and shift all downstream joint indices.
+        /// The fixed algorithm tracks the "effective parent" — the nearest ancestor
+        /// that IS in the filter — and uses that as the placeholder instead.
         /// </remarks>
         /// <param name="jointsFilter">The list should only take these joint names in consideration</param>
         /// <returns>An "expanded" joints list as a flat list of bone names</returns>
@@ -107,43 +115,47 @@ namespace OpenMetaverse.Rendering
         {
             List<string> expandedJointList = new List<string>();
 
-            // not really sure about this algorithm, but it seems to fit the bill:
-            // and the mesh doesn't seem to be overly distorted
             if (bone.bone == null) return expandedJointList;
+            var filter = jointsFilter as string[] ?? jointsFilter.ToArray();
             foreach (Joint child in bone.bone)
-                ExpandJoint(bone, child, expandedJointList, jointsFilter);
+                ExpandJoint(child, bone.name, expandedJointList, filter);
 
             return expandedJointList;
         }
 
         /// <summary>
-        /// Expand one joint
+        /// Expand one joint, tracking the nearest filter-ancestor as the effective parent.
         /// </summary>
-        /// <param name="parentJoint">The parent of the joint we are operating on</param>
         /// <param name="currentJoint">The joint we are supposed to expand</param>
+        /// <param name="effectiveParentName">
+        /// Name of the nearest ancestor that is present in <paramref name="jointsFilter"/>,
+        /// or the skeleton root name when no such ancestor exists yet.
+        /// </param>
         /// <param name="expandedJointList">Joint list that we will extend upon</param>
         /// <param name="jointsFilter">The expanded list should only contain these joints</param>
-        private void ExpandJoint(Joint parentJoint, Joint currentJoint, List<string> expandedJointList, IEnumerable<string> jointsFilter)
+        private static void ExpandJoint(Joint currentJoint, string effectiveParentName, List<string> expandedJointList, string[] jointsFilter)
         {
-            // does the mesh reference this joint
-            var enumerable = jointsFilter as string[] ?? jointsFilter.ToArray();
-            if (enumerable.Contains(currentJoint.name))
+            string nextEffectiveParent = effectiveParentName;
+
+            // does the mesh reference this joint?
+            if (jointsFilter.Contains(currentJoint.name))
             {
-                if (expandedJointList.Count > 0 && parentJoint != null &&
-                    parentJoint.name == expandedJointList[expandedJointList.Count - 1])
+                if (expandedJointList.Count > 0 &&
+                    effectiveParentName == expandedJointList[expandedJointList.Count - 1])
                     expandedJointList.Add(currentJoint.name);
                 else
                 {
-                    expandedJointList.Add(parentJoint != null ? parentJoint.name : currentJoint.name);
-
+                    expandedJointList.Add(effectiveParentName);
                     expandedJointList.Add(currentJoint.name);
                 }
+                // this joint becomes the effective parent for its children
+                nextEffectiveParent = currentJoint.name;
             }
 
             // recurse the joint hierarchy
             if (currentJoint.bone == null) return;
             foreach (Joint child in currentJoint.bone)
-                ExpandJoint(currentJoint, child, expandedJointList, enumerable);
+                ExpandJoint(child, nextEffectiveParent, expandedJointList, jointsFilter);
         }
     }
 }

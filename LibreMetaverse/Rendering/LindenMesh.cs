@@ -198,6 +198,19 @@ namespace OpenMetaverse.Rendering
                     RotationAngles = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
                     RotationOrder = reader.ReadByte();
                     Scale = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+
+                    // The reference-mesh format includes the same vertex section as a full mesh.
+                    // Face indices reference the parent full-mesh vertices, so we skip the
+                    // vertex data here. Each vertex is stored in separate per-attribute passes:
+                    //   Coord (12) + Normal (12) + BiNormal (12) + TexCoord (8) = 44 bytes/vertex
+                    //   + DetailTexCoord (8) if HasDetailTexCoords
+                    //   + Weight        (4) if HasWeights
+                    ushort numVertices = reader.ReadUInt16();
+                    long skipBytes = (long)numVertices * (12 + 12 + 12 + 8);
+                    if (HasDetailTexCoords) skipBytes += (long)numVertices * 8;
+                    if (HasWeights)        skipBytes += (long)numVertices * 4;
+                    reader.BaseStream.Seek(skipBytes, SeekOrigin.Current);
+
                     NumFaces = reader.ReadUInt16();
 
                     Faces = new Face[NumFaces];
@@ -462,32 +475,35 @@ namespace OpenMetaverse.Rendering
         /// <summary>
         /// Decompress the skinweights
         /// </summary>
-        /// <param name="expandedJointList">the expanded joint list, used to index which bones should influece the vertex</param>
+        /// <remarks>
+        /// SL C++ (llviewerjointmesh.cpp updateGeometry) decodes the float weight as:
+        ///   joint = floor(weight);          // integer part = index into expanded joint list
+        ///   w     = weight - joint;         // fractional part = blend weight
+        ///   lerp(mat[joint], mat[joint+1], w);
+        /// So indices [joint] and [joint+1] form the parent-child pair.
+        /// </remarks>
+        /// <param name="expandedJointList">the expanded joint list, used to index which bones should influence the vertex</param>
         void ExpandCompressedSkinWeights(List<string> expandedJointList)
         {
             for (int i = 0; i < NumVertices; i++)
             {
                 int boneIndex = (int)Math.Floor(Vertices[i].Weight); // Whole number part is the index
-                float boneWeight = (Vertices[i].Weight - boneIndex); // fractional part it the weight
+                float boneWeight = (Vertices[i].Weight - boneIndex); // fractional part is the weight
 
-                if (boneIndex == 0)         // Special case for dealing with eye meshes, which doesn't have any weights
+                if (boneIndex + 1 < expandedJointList.Count)
                 {
-                    SkinWeights.Add(new SkinWeightElement { Bone1 = expandedJointList[0], Weight1 = 1, Bone2 = expandedJointList[1], Weight2 = 0 });
-                }
-                else if (boneIndex < expandedJointList.Count)
-                {
-                    string bone1 = expandedJointList[boneIndex - 1];
-                    string bone2 = expandedJointList[boneIndex];
+                    string bone1 = expandedJointList[boneIndex];
+                    string bone2 = expandedJointList[boneIndex + 1];
                     SkinWeights.Add(new SkinWeightElement { Bone1 = bone1, Weight1 = 1 - boneWeight, Bone2 = bone2, Weight2 = boneWeight });
                 }
                 else
-                {   // this should add a weight where the "invalid" Joint has a weight of zero
+                {   // boneIndex+1 out of range — assign 100% to the last valid joint
                     SkinWeights.Add(new SkinWeightElement
                     {
-                        Bone1 = expandedJointList[boneIndex - 1],
-                        Weight1 = 1 - boneWeight,
+                        Bone1 = expandedJointList[Math.Min(boneIndex, expandedJointList.Count - 1)],
+                        Weight1 = 1,
                         Bone2 = "mPelvis",
-                        Weight2 = boneWeight
+                        Weight2 = 0
                     });
                 }
             }
