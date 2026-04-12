@@ -61,8 +61,13 @@ namespace LibreMetaverse.PrimMesher
             axis = axis.Normalize();
 
             angle *= 0.5f;
+#if NETSTANDARD2_0
             var c = (float)Math.Cos(angle);
             var s = (float)Math.Sin(angle);
+#else
+            var c = MathF.Cos(angle);
+            var s = MathF.Sin(angle);
+#endif
 
             X = axis.X * s;
             Y = axis.Y * s;
@@ -74,7 +79,11 @@ namespace LibreMetaverse.PrimMesher
 
         public float Length()
         {
+#if NETSTANDARD2_0
             return (float)Math.Sqrt(X * X + Y * Y + Z * Z + W * W);
+#else
+            return MathF.Sqrt(X * X + Y * Y + Z * Z + W * W);
+#endif
         }
 
         public Quat Normalize()
@@ -132,7 +141,11 @@ namespace LibreMetaverse.PrimMesher
 
         public float Length()
         {
+#if NETSTANDARD2_0
             return (float)Math.Sqrt(X * X + Y * Y + Z * Z);
+#else
+            return MathF.Sqrt(X * X + Y * Y + Z * Z);
+#endif
         }
 
         public Coord Invert()
@@ -219,7 +232,7 @@ namespace LibreMetaverse.PrimMesher
                     2f * q.W * q.Y * v.X -
                     q.Y * q.Y * v.Z +
                     2f * q.W * q.X * v.Y -
-//                    q.X * q.X * v.Z +
+                    q.X * q.X * v.Z +
                     q.W * q.W * v.Z
             };
 
@@ -421,9 +434,39 @@ namespace LibreMetaverse.PrimMesher
 
     internal class AngleList
     {
+        // Value-type cache key avoids string allocation on every makeAngles call
+        private readonly struct AngleCacheKey : IEquatable<AngleCacheKey>
+        {
+            private readonly int _sides;
+            private readonly float _startAngle;
+            private readonly float _stopAngle;
+
+            internal AngleCacheKey(int sides, float startAngle, float stopAngle)
+            {
+                _sides = sides;
+                _startAngle = startAngle;
+                _stopAngle = stopAngle;
+            }
+
+            public bool Equals(AngleCacheKey other) =>
+                _sides == other._sides &&
+                _startAngle == other._startAngle &&
+                _stopAngle == other._stopAngle;
+
+            public override bool Equals(object obj) => obj is AngleCacheKey k && Equals(k);
+
+            public override int GetHashCode()
+            {
+                var h = _sides;
+                h = h * 397 ^ _startAngle.GetHashCode();
+                h = h * 397 ^ _stopAngle.GetHashCode();
+                return h;
+            }
+        }
+
         // Cache computed angle lists to avoid recomputing identical profiles
-        private static readonly ConcurrentDictionary<string, (Angle[] angles, Coord[] normals)> AngleCache =
-            new ConcurrentDictionary<string, (Angle[], Coord[])>();
+        private static readonly ConcurrentDictionary<AngleCacheKey, (Angle[] angles, Coord[] normals)> AngleCache =
+            new ConcurrentDictionary<AngleCacheKey, (Angle[], Coord[])>();
 
         private static readonly Angle[] angles3 =
         {
@@ -516,7 +559,7 @@ namespace LibreMetaverse.PrimMesher
         internal void makeAngles(int sides, float startAngle, float stopAngle)
         {
             // Try cache first
-            var key = sides + ":" + startAngle.ToString("R") + ":" + stopAngle.ToString("R");
+            var key = new AngleCacheKey(sides, startAngle, stopAngle);
             if (AngleCache.TryGetValue(key, out var cached))
             {
                 angles = new List<Angle>(cached.angles);
@@ -594,8 +637,13 @@ namespace LibreMetaverse.PrimMesher
                 {
                     Angle newAngle;
                     newAngle.angle = (float)angle;
+#if NETSTANDARD2_0
                     newAngle.X = (float)Math.Cos(angle);
                     newAngle.Y = (float)Math.Sin(angle);
+#else
+                    newAngle.X = MathF.Cos((float)angle);
+                    newAngle.Y = MathF.Sin((float)angle);
+#endif
                     angles.Add(newAngle);
                     step += 1;
                     angle = stepSize * step;
@@ -605,7 +653,11 @@ namespace LibreMetaverse.PrimMesher
                 {
                     Angle newAngle;
                     intersection(angles[0].X, angles[0].Y, angles[1].X, angles[1].Y, 0.0f, 0.0f,
+#if NETSTANDARD2_0
                         (float)Math.Cos(startAngle), (float)Math.Sin(startAngle));
+#else
+                        MathF.Cos(startAngle), MathF.Sin(startAngle));
+#endif
                     newAngle.angle = startAngle;
                     newAngle.X = iX;
                     newAngle.Y = iY;
@@ -617,7 +669,11 @@ namespace LibreMetaverse.PrimMesher
                 {
                     Angle newAngle;
                     intersection(angles[index - 1].X, angles[index - 1].Y, angles[index].X, angles[index].Y, 0.0f, 0.0f,
+#if NETSTANDARD2_0
                         (float)Math.Cos(stopAngle), (float)Math.Sin(stopAngle));
+#else
+                        MathF.Cos(stopAngle), MathF.Sin(stopAngle));
+#endif
                     newAngle.angle = stopAngle;
                     newAngle.X = iX;
                     newAngle.Y = iY;
@@ -636,7 +692,7 @@ namespace LibreMetaverse.PrimMesher
             {
                 // ignore cache failures
             }
-         }
+        }
      }
 
     /// <summary>
@@ -1317,6 +1373,9 @@ namespace LibreMetaverse.PrimMesher
             if (taperY < -0.999f)
                 taperY = -0.999f;
 
+            // Pre-size the list to avoid repeated heap growth during generation
+            pathNodes.Capacity = steps + 2;
+
             if (pathType == PathType.Linear || pathType == PathType.Flexible)
             {
                 var step = 0;
@@ -1456,11 +1515,19 @@ namespace LibreMetaverse.PrimMesher
                     var twist = twistBegin + twistTotal * percentOfPath;
 
                     var xOffset = 0.5f * (skewStart + totalSkew * percentOfAngles);
+#if NETSTANDARD2_0
                     xOffset += (float)Math.Sin(angle) * xOffsetTopShearXFactor;
 
                     var yOffset = yShearCompensation * (float)Math.Cos(angle) * (0.5f - yPathScale) * radiusScale;
 
                     var zOffset = (float)Math.Sin(angle + topShearY) * (0.5f - yPathScale) * radiusScale;
+#else
+                    xOffset += MathF.Sin((float)angle) * xOffsetTopShearXFactor;
+
+                    var yOffset = yShearCompensation * MathF.Cos((float)angle) * (0.5f - yPathScale) * radiusScale;
+
+                    var zOffset = MathF.Sin((float)(angle + topShearY)) * (0.5f - yPathScale) * radiusScale;
+#endif
 
                     newNode.position = new Coord(xOffset, yOffset, zOffset);
 
