@@ -914,9 +914,9 @@ namespace OpenMetaverse.Assets.Gltf
 
             var assetMeta = new OSDMap();
             assetMeta["version"] = OSD.FromString(Version);
-            if (!string.IsNullOrEmpty(Generator))  assetMeta["generator"]  = OSD.FromString(Generator);
-            if (!string.IsNullOrEmpty(Copyright))  assetMeta["copyright"]  = OSD.FromString(Copyright);
-            if (!string.IsNullOrEmpty(MinVersion)) assetMeta["minVersion"] = OSD.FromString(MinVersion);
+            if (!string.IsNullOrEmpty(Generator))  assetMeta["generator"]  = OSD.FromString(Generator!);
+            if (!string.IsNullOrEmpty(Copyright))  assetMeta["copyright"]  = OSD.FromString(Copyright!);
+            if (!string.IsNullOrEmpty(MinVersion)) assetMeta["minVersion"] = OSD.FromString(MinVersion!);
             root["asset"] = assetMeta;
 
             if (DefaultScene >= 0) root["scene"] = OSD.FromInteger(DefaultScene);

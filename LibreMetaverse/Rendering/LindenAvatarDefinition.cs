@@ -264,7 +264,7 @@ namespace OpenMetaverse.Rendering
         private static Vector3 ParseVector3Attr(string? value)
         {
             if (string.IsNullOrWhiteSpace(value)) return Vector3.Zero;
-            var parts = value.Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+            var parts = value!.Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
             var x = parts.Length > 0 && float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var fx) ? fx : 0f;
             var y = parts.Length > 1 && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var fy) ? fy : 0f;
             var z = parts.Length > 2 && float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var fz) ? fz : 0f;

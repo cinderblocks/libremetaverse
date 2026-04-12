@@ -532,7 +532,7 @@ namespace OpenMetaverse.Rendering
                                 ushort t1X = Utils.BytesToUInt16(tex1Bytes, vertexIndexOffset);
                                 ushort t1Y = Utils.BytesToUInt16(tex1Bytes, vertexIndexOffset + 2);
 
-                                oface.TexCoords1.Add(new Vector2(
+                                oface.TexCoords1?.Add(new Vector2(
                                     Utils.UInt16ToFloat(t1X, tex1PosMin.X, tex1PosMax.X),
                                     Utils.UInt16ToFloat(t1Y, tex1PosMin.Y, tex1PosMax.Y)));
                             }
