@@ -24,6 +24,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -32,6 +33,50 @@ using System.Xml.Serialization;
 
 namespace OpenMetaverse.Rendering
 {
+    /// <summary>
+    /// Indicates whether a skeleton joint is part of the original base avatar skeleton
+    /// or the extended set added for fitted mesh, creature features, etc.
+    /// </summary>
+    public enum JointSupportCategory
+    {
+        /// <summary>Original Linden Lab base avatar skeleton bone.</summary>
+        Base,
+        /// <summary>Extended bone added for fitted mesh, tails, wings, and other creature features.</summary>
+        Extended
+    }
+
+    /// <summary>
+    /// Extension helpers for <see cref="JointBase"/>.
+    /// </summary>
+    public partial class JointBase
+    {
+        /// <summary>
+        /// Returns the joint's support category derived from the <c>support</c> XML attribute.
+        /// Bones without the attribute default to <see cref="JointSupportCategory.Base"/>.
+        /// </summary>
+        public JointSupportCategory SupportCategory =>
+            string.Equals(support, "extended", StringComparison.OrdinalIgnoreCase)
+                ? JointSupportCategory.Extended
+                : JointSupportCategory.Base;
+    }
+
+    /// <summary>
+    /// Extension helpers for <see cref="Joint"/>.
+    /// </summary>
+    public partial class Joint
+    {
+        /// <summary>
+        /// Splits the space-separated <c>aliases</c> XML attribute into individual alias names.
+        /// Returns an empty array when no aliases are defined.
+        /// </summary>
+        public string[] GetAliasesList()
+        {
+            if (string.IsNullOrWhiteSpace(aliases))
+                return Array.Empty<string>();
+            return aliases.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+        }
+    }
+
     /// <summary>
     /// load the 'avatar_skeleton.xml'
     /// </summary>
@@ -121,6 +166,53 @@ namespace OpenMetaverse.Rendering
                 ExpandJoint(child, bone.name, expandedJointList, filter);
 
             return expandedJointList;
+        }
+
+        /// <summary>
+        /// Enumerates every <see cref="Joint"/> in the skeleton tree in depth-first order.
+        /// Each joint is returned exactly once; <see cref="CollisionVolume"/> entries are excluded.
+        /// </summary>
+        public IEnumerable<Joint> GetAllJoints() => EnumerateJointsDepthFirst(bone);
+
+        private static IEnumerable<Joint> EnumerateJointsDepthFirst(Joint joint)
+        {
+            yield return joint;
+            if (joint.bone == null) yield break;
+            foreach (var child in joint.bone)
+                foreach (var descendant in EnumerateJointsDepthFirst(child))
+                    yield return descendant;
+        }
+
+        /// <summary>
+        /// Builds a flat dictionary that maps every joint's canonical name <em>and</em> each of
+        /// its aliases to the corresponding <see cref="Joint"/> instance.
+        /// </summary>
+        /// <returns>
+        /// A dictionary with ordinal string comparison, keyed by joint name or alias.
+        /// </returns>
+        public Dictionary<string, Joint> BuildJointDictionary()
+        {
+            var dict = new Dictionary<string, Joint>(StringComparer.Ordinal);
+            foreach (var joint in GetAllJoints())
+            {
+                if (!string.IsNullOrEmpty(joint.name))
+                    dict[joint.name] = joint;
+                foreach (var alias in joint.GetAliasesList())
+                    if (!string.IsNullOrEmpty(alias))
+                        dict[alias] = joint;
+            }
+            return dict;
+        }
+
+        /// <summary>
+        /// Finds a joint by its canonical name or any of its aliases.
+        /// </summary>
+        /// <param name="nameOrAlias">The joint name or alias to search for.</param>
+        /// <returns>The matching <see cref="Joint"/>, or <c>null</c> if not found.</returns>
+        public Joint? GetBone(string nameOrAlias)
+        {
+            if (string.IsNullOrEmpty(nameOrAlias)) return null;
+            return BuildJointDictionary().TryGetValue(nameOrAlias, out var joint) ? joint : null;
         }
 
         /// <summary>

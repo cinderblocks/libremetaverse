@@ -153,6 +153,29 @@ namespace OpenMetaverse
         }
     }
     /// <summary>
+    /// Describes how a single bone should be scaled (and optionally repositioned) by a visual parameter.
+    /// Corresponds to a &lt;bone&gt; entry inside a &lt;param_skeleton&gt; element in avatar_lad.xml.
+    /// The deformation formula is additive: finalScale = defaultScale + ScaleDeformation * paramValue.
+    /// </summary>
+    public struct SkeletalBoneInfo
+    {
+        /// <summary>Name of the skeleton bone to deform.</summary>
+        public string BoneName;
+        /// <summary>Additive scale delta applied to the bone when the parameter is at full value.</summary>
+        public Vector3 ScaleDeformation;
+        /// <summary>Additive position delta applied to the bone when the parameter is at full value.</summary>
+        public Vector3 PositionDeformation;
+        /// <summary>True when this bone entry also carries a position deformation.</summary>
+        public bool HasPositionDeformation;
+        public SkeletalBoneInfo(string boneName, Vector3 scaleDeformation, Vector3 positionDeformation, bool hasPositionDeformation)
+        {
+            BoneName = boneName;
+            ScaleDeformation = scaleDeformation;
+            PositionDeformation = positionDeformation;
+            HasPositionDeformation = hasPositionDeformation;
+        }
+    }
+    /// <summary>
     /// A single visual characteristic of an avatar mesh, such as eyebrow height
     /// </summary>
     public struct VisualParam
@@ -187,6 +210,8 @@ namespace OpenMetaverse
         public int[] Drivers;
         /// <summary>Full driven-param info including piecewise-linear mapping (non-null for driver params).</summary>
         public DrivenParamInfo[]? DrivenParams;
+        /// <summary>Per-bone skeletal deformations driven by this visual parameter (non-null for skeletal morph params).</summary>
+        public SkeletalBoneInfo[]? SkeletalDistortions;
         /// <summary>
         /// Set all the values through the constructor
         /// </summary>
@@ -205,7 +230,7 @@ namespace OpenMetaverse
         /// <param name="alpha">Alpha blending/bump info</param>
         /// <param name="colorParams">Color information</param>
         /// <param name="drivenParams">Full driven-param info for driver params</param>
-        public VisualParam(int paramID, string name, int group, string wearable, string label, string labelMin, string labelMax, float def, float min, float max, bool isBumpAttribute, int[] drivers, VisualAlphaParam? alpha, VisualColorParam? colorParams, DrivenParamInfo[]? drivenParams = null)
+        public VisualParam(int paramID, string name, int group, string wearable, string label, string labelMin, string labelMax, float def, float min, float max, bool isBumpAttribute, int[] drivers, VisualAlphaParam? alpha, VisualColorParam? colorParams, DrivenParamInfo[]? drivenParams = null, SkeletalBoneInfo[]? skeletalDistortions = null)
         {
             ParamID = paramID;
             Name = name;
@@ -222,6 +247,7 @@ namespace OpenMetaverse
             AlphaParams = alpha;
             ColorParams = colorParams;
             DrivenParams = drivenParams;
+            SkeletalDistortions = skeletalDistortions;
         }
     }
 
@@ -299,6 +325,15 @@ namespace OpenMetaverse
             return value.ToString(EnUsCulture) + "f";
         }
 
+        private static (string x, string y, string z) ParseVector3(string value)
+        {
+            var parts = value.Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+            var x = parts.Length > 0 ? FormatFloat(float.Parse(parts[0], NumberStyles.Float, EnUsCulture.NumberFormat)) : "0f";
+            var y = parts.Length > 1 ? FormatFloat(float.Parse(parts[1], NumberStyles.Float, EnUsCulture.NumberFormat)) : "0f";
+            var z = parts.Length > 2 ? FormatFloat(float.Parse(parts[2], NumberStyles.Float, EnUsCulture.NumberFormat)) : "0f";
+            return (x, y, z);
+        }
+
         private static string GenerateFromTemplateAndXml(string templateText, string xmlText, SourceProductionContext spc)
         {
             var doc = new XmlDocument();
@@ -309,6 +344,7 @@ namespace OpenMetaverse
             var alphas = new Dictionary<int, string>();
             var colors = new Dictionary<int, string>();
             var drivenParamInfoMap = new Dictionary<int, string>();
+            var skeletalInfoMap = new Dictionary<int, string>();
 
             var sb = new StringBuilder();
 
@@ -412,6 +448,36 @@ namespace OpenMetaverse
                                     colors[id] = $"new VisualColorParam({operation}, new Color4[] {{ {colorsStr} }})";
                                 }
                             }
+                            else if (child is { Name: "param_skeleton", HasChildNodes: true })
+                            {
+                                var boneInfoList = new List<string>();
+                                foreach (XmlNode bnode in child.ChildNodes)
+                                {
+                                    if (bnode.Name != "bone" || bnode.Attributes?["name"] == null) continue;
+                                    var boneName = bnode.Attributes["name"].Value;
+                                    var scaleAttr = bnode.Attributes["scale"]?.Value ?? "0 0 0";
+                                    var posAttr = bnode.Attributes["pos"]?.Value;
+                                    var (sx, sy, sz) = ParseVector3(scaleAttr);
+                                    var hasPosDeform = posAttr != null;
+                                    string posArg;
+                                    if (hasPosDeform)
+                                    {
+                                        var (px, py, pz) = ParseVector3(posAttr!);
+                                        posArg = $"new Vector3({px}, {py}, {pz})";
+                                    }
+                                    else
+                                    {
+                                        posArg = "Vector3.Zero";
+                                    }
+                                    var hasPosStr = hasPosDeform ? "true" : "false";
+                                    boneInfoList.Add($"new SkeletalBoneInfo(\"" + boneName + $"\", new Vector3({sx}, {sy}, {sz}), {posArg}, {hasPosStr})");
+                                }
+                                if (boneInfoList.Count > 0)
+                                {
+                                    var joinedBones = string.Join(", ", boneInfoList);
+                                    skeletalInfoMap[id] = $"new SkeletalBoneInfo[] {{ {joinedBones} }}";
+                                }
+                            }
                         }
                     }
 
@@ -506,6 +572,8 @@ namespace OpenMetaverse
 
                 sb.Append((colors.TryGetValue(kv.Key, out var color) ? color : "null") + ", ");
                 sb.Append(drivenParamInfoMap.TryGetValue(kv.Key, out var dpi) ? dpi : "null");
+                if (skeletalInfoMap.TryGetValue(kv.Key, out var skeletal))
+                    sb.Append(", " + skeletal);
                 sb.AppendLine(");");
             }
 

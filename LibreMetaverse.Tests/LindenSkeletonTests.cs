@@ -25,6 +25,7 @@
  */
 
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using OpenMetaverse.Rendering;
 
@@ -209,6 +210,110 @@ namespace LibreMetaverse.Tests
                 "mNeck is not in the filter and must not appear as a placeholder");
             Assert.That(result, Is.EqualTo(
                 new List<string> { "mPelvis", "mTorso", "mChest", "mHead" }));
+        }
+
+        // ── JointBase.SupportCategory ──────────────────────────────────────────
+
+        [Test]
+        public void JointBase_SupportCategory_ReturnsBase_WhenAttributeIsBase()
+        {
+            var joint = new Joint { name = "mTorso", support = "base" };
+            Assert.That(joint.SupportCategory, Is.EqualTo(JointSupportCategory.Base));
+        }
+
+        [Test]
+        public void JointBase_SupportCategory_ReturnsExtended_WhenAttributeIsExtended()
+        {
+            var joint = new Joint { name = "mTail1", support = "extended" };
+            Assert.That(joint.SupportCategory, Is.EqualTo(JointSupportCategory.Extended));
+        }
+
+        [Test]
+        public void JointBase_SupportCategory_DefaultsToBase_WhenAttributeIsMissing()
+        {
+            var joint = new Joint { name = "mTest" };
+            Assert.That(joint.SupportCategory, Is.EqualTo(JointSupportCategory.Base));
+        }
+
+        // ── Joint.GetAliasesList ───────────────────────────────────────────────
+
+        [Test]
+        public void Joint_GetAliasesList_ReturnsSplitAliases_WhenAttributeIsSet()
+        {
+            var joint = new Joint { name = "mPelvis", aliases = "hip avatar_mPelvis" };
+            Assert.That(joint.GetAliasesList(), Is.EqualTo(new[] { "hip", "avatar_mPelvis" }));
+        }
+
+        [Test]
+        public void Joint_GetAliasesList_ReturnsEmpty_WhenAttributeIsEmpty()
+        {
+            var joint = new Joint { name = "mHead" };
+            Assert.That(joint.GetAliasesList(), Is.Empty);
+        }
+
+        // ── LindenSkeleton.GetAllJoints ────────────────────────────────────────
+
+        [Test]
+        public void GetAllJoints_ReturnsAllJointsDepthFirst()
+        {
+            var skeleton = MakeSkeleton("root",
+                MakeJoint("A",
+                    MakeJoint("B")),
+                MakeJoint("C"));
+
+            var names = skeleton.GetAllJoints().Select(j => j.name).ToList();
+
+            Assert.That(names, Is.EqualTo(new[] { "root", "A", "B", "C" }));
+        }
+
+        // ── LindenSkeleton.BuildJointDictionary ────────────────────────────────
+
+        [Test]
+        public void BuildJointDictionary_ContainsCanonicalNamesAndAliases()
+        {
+            var child = new Joint { name = "mPelvis", aliases = "hip avatar_mPelvis" };
+            var root = new Joint { name = "root", bone = new[] { child } };
+            var skeleton = new LindenSkeleton { bone = root };
+
+            var dict = skeleton.BuildJointDictionary();
+
+            Assert.That(dict.ContainsKey("root"), Is.True);
+            Assert.That(dict.ContainsKey("mPelvis"), Is.True);
+            Assert.That(dict.ContainsKey("hip"), Is.True);
+            Assert.That(dict.ContainsKey("avatar_mPelvis"), Is.True);
+            Assert.That(dict["hip"], Is.SameAs(dict["mPelvis"]));
+        }
+
+        // ── LindenSkeleton.GetBone ─────────────────────────────────────────────
+
+        [Test]
+        public void GetBone_ReturnsBone_ByCanonicalName()
+        {
+            var skeleton = MakeSkeleton("root", MakeJoint("mTorso"));
+            var result = skeleton.GetBone("mTorso");
+
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.name, Is.EqualTo("mTorso"));
+        }
+
+        [Test]
+        public void GetBone_ReturnsBone_ByAlias()
+        {
+            var child = new Joint { name = "mPelvis", aliases = "hip" };
+            var root = new Joint { name = "root", bone = new[] { child } };
+            var skeleton = new LindenSkeleton { bone = root };
+
+            var result = skeleton.GetBone("hip");
+
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.name, Is.EqualTo("mPelvis"));
+        }
+
+        [Test]
+        public void GetBone_ReturnsNull_ForUnknownName()
+        {
+            var skeleton = MakeSkeleton("root", MakeJoint("mTorso"));
+            Assert.That(skeleton.GetBone("nonexistent"), Is.Null);
         }
     }
 }
