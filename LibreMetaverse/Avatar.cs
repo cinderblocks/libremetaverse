@@ -492,6 +492,29 @@ namespace OpenMetaverse
             }
         }
 
+        /// <summary>
+        /// Decodes the compressed group-0 visual parameters received from the network
+        /// into a dictionary of parameter ID to float value.
+        /// The result can be passed directly to
+        /// <see cref="OpenMetaverse.Rendering.LindenAvatarDefinition.ComputeBoneTransforms"/>.
+        /// </summary>
+        /// <returns>
+        /// A read-only dictionary mapping each group-0 parameter ID to its decoded float value.
+        /// </returns>
+        public IReadOnlyDictionary<int, float> DecodeVisualParams()
+        {
+            var result = new Dictionary<int, float>();
+            var i = 0;
+            foreach (var kvp in VisualParams.Params)
+            {
+                if (kvp.Value.Group != 0) continue;
+                if (i >= VisualParameters.Length) break;
+                result[kvp.Key] = Utils.ByteToFloat(VisualParameters[i], kvp.Value.MinValue, kvp.Value.MaxValue);
+                i++;
+            }
+            return result;
+        }
+
         public override OSD GetOSD()
         {
             OSDMap Avi = (OSDMap)base.GetOSD();

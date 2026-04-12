@@ -378,6 +378,36 @@ namespace OpenMetaverse
         /// <summary>Textures about this client sent to the sim</summary>
         public Primitive.TextureEntry MyTextures = new Primitive.TextureEntry(Primitive.TextureEntry.WHITE_TEXTURE);
 
+        /// <summary>
+        /// Collects the current float value for every visual parameter by merging all
+        /// downloaded wearable parameters, falling back to each parameter's default value.
+        /// The returned dictionary can be passed directly to
+        /// <see cref="OpenMetaverse.Rendering.LindenAvatarDefinition.ComputeBoneTransforms"/>.
+        /// </summary>
+        /// <returns>
+        /// A dictionary mapping every visual parameter ID to its current value.
+        /// </returns>
+        public Dictionary<int, float> GetCurrentParamValues()
+        {
+            var result = new Dictionary<int, float>(VisualParams.Params.Count);
+            lock (Wearables)
+            {
+                foreach (var kvp in VisualParams.Params)
+                {
+                    var vp = kvp.Value;
+                    var paramValue = 0f;
+                    if (!Wearables.Any(wearableList => wearableList.Value.Any(
+                            wearable => wearable.Asset != null &&
+                                        wearable.Asset.Params.TryGetValue(vp.ParamID, out paramValue))))
+                    {
+                        paramValue = vp.DefaultValue;
+                    }
+                    result[vp.ParamID] = paramValue;
+                }
+            }
+            return result;
+        }
+
         #endregion Properties
 
         #region Private Members
