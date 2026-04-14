@@ -476,31 +476,35 @@ namespace OpenMetaverse.Rendering
         /// Decompress the skinweights
         /// </summary>
         /// <remarks>
-        /// SL C++ (llviewerjointmesh.cpp updateGeometry) decodes the float weight as:
-        ///   joint = floor(weight);          // integer part = index into expanded joint list
-        ///   w     = weight - joint;         // fractional part = blend weight
-        ///   lerp(mat[joint], mat[joint+1], w);
-        /// So indices [joint] and [joint+1] form the parent-child pair.
+        /// The binary mesh stores joint indices as 1-based integers (raw index 1 = first
+        /// entry in the expanded joint list). SL C++ compensates by building its expanded
+        /// list with a dummy entry at position 0 so that mat[rawIndex] gives the right bone.
+        /// We convert to 0-based here: boneIndex = rawIndex - 1.
+        ///   rawIndex  = floor(weight);      // 1-based index from the binary
+        ///   boneIndex = rawIndex - 1;       // convert to 0-based list index
+        ///   w         = weight - rawIndex;  // fractional part = blend weight toward bone2
+        ///   lerp(list[boneIndex], list[boneIndex+1], w);
         /// </remarks>
         /// <param name="expandedJointList">the expanded joint list, used to index which bones should influence the vertex</param>
         void ExpandCompressedSkinWeights(List<string> expandedJointList)
         {
             for (int i = 0; i < NumVertices; i++)
             {
-                int boneIndex = (int)Math.Floor(Vertices[i].Weight); // Whole number part is the index
-                float boneWeight = (Vertices[i].Weight - boneIndex); // fractional part is the weight
+                int rawIndex  = (int)Math.Floor(Vertices[i].Weight); // 1-based index from the binary
+                int boneIndex = rawIndex - 1;                         // convert to 0-based
+                float boneWeight = Vertices[i].Weight - rawIndex;     // fractional part is the weight
 
-                if (boneIndex + 1 < expandedJointList.Count)
+                if (boneIndex >= 0 && boneIndex + 1 < expandedJointList.Count)
                 {
                     string bone1 = expandedJointList[boneIndex];
                     string bone2 = expandedJointList[boneIndex + 1];
                     SkinWeights.Add(new SkinWeightElement { Bone1 = bone1, Weight1 = 1 - boneWeight, Bone2 = bone2, Weight2 = boneWeight });
                 }
                 else
-                {   // boneIndex+1 out of range — assign 100% to the last valid joint
+                {   // boneIndex out of range — assign 100% to the nearest valid joint
                     SkinWeights.Add(new SkinWeightElement
                     {
-                        Bone1 = expandedJointList[Math.Min(boneIndex, expandedJointList.Count - 1)],
+                        Bone1 = expandedJointList[Math.Max(0, Math.Min(boneIndex, expandedJointList.Count - 1))],
                         Weight1 = 1,
                         Bone2 = "mPelvis",
                         Weight2 = 0
