@@ -232,14 +232,21 @@ namespace OpenMetaverse.Rendering
             // does the mesh reference this joint?
             if (jointsFilter.Contains(currentJoint.name))
             {
-                if (expandedJointList.Count > 0 &&
-                    effectiveParentName == expandedJointList[expandedJointList.Count - 1])
-                    expandedJointList.Add(currentJoint.name);
-                else
+                bool parentMatchesLast = expandedJointList.Count > 0 &&
+                    effectiveParentName == expandedJointList[expandedJointList.Count - 1];
+
+                if (!parentMatchesLast)
                 {
-                    expandedJointList.Add(effectiveParentName);
-                    expandedJointList.Add(currentJoint.name);
+                    // Only insert the bridge entry when the effective parent is itself
+                    // a joint referenced by this mesh.  If it is not in the filter
+                    // (e.g. mPelvis for a head-only or eyelash mesh) inserting it as a
+                    // phantom entry shifts every downstream rawIndex by +1, causing all
+                    // vertices to be mapped to the wrong bone.
+                    if (jointsFilter.Contains(effectiveParentName))
+                        expandedJointList.Add(effectiveParentName);
                 }
+
+                expandedJointList.Add(currentJoint.name);
                 // this joint becomes the effective parent for its children
                 nextEffectiveParent = currentJoint.name;
             }

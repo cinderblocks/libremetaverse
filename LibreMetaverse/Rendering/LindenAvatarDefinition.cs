@@ -186,6 +186,7 @@ namespace OpenMetaverse.Rendering
                 result[joint.name] = new BoneTransform { Position = pos, Scale = scale };
             }
 
+            int posDeformCount = 0;
             foreach (var kv in VisualParams.Params)
             {
                 var vp = kv.Value;
@@ -199,11 +200,16 @@ namespace OpenMetaverse.Rendering
                     if (!result.TryGetValue(boneInfo.BoneName, out var bt)) continue;
                     bt.Scale = bt.Scale + boneInfo.ScaleDeformation * paramVal;
                     if (boneInfo.HasPositionDeformation)
-                        bt.Position = bt.Position + boneInfo.PositionDeformation * paramVal;
+                    {
+                        var delta = boneInfo.PositionDeformation * paramVal;
+                        if (delta.LengthSquared() > 1e-10f) posDeformCount++;
+                        bt.Position = bt.Position + delta;
+                    }
                     result[boneInfo.BoneName] = bt;
                 }
             }
 
+            OpenMetaverse.Logger.DebugLog($"[VP Skel] {posDeformCount} non-negligible bone position deformations applied");
             return result;
         }
 

@@ -494,24 +494,65 @@ namespace OpenMetaverse
 
         /// <summary>
         /// Decodes the compressed group-0 visual parameters received from the network
-        /// into a dictionary of parameter ID to float value.
+        /// into a dictionary of parameter ID to float value, then derives driven (group-1+)
+        /// parameters from their group-0 driver values.
         /// The result can be passed directly to
         /// <see cref="OpenMetaverse.Rendering.LindenAvatarDefinition.ComputeBoneTransforms"/>.
         /// </summary>
         /// <returns>
-        /// A read-only dictionary mapping each group-0 parameter ID to its decoded float value.
+        /// A read-only dictionary mapping each visual parameter ID to its decoded or derived float value.
         /// </returns>
         public IReadOnlyDictionary<int, float> DecodeVisualParams()
         {
-            var result = new Dictionary<int, float>();
-            var i = 0;
-            foreach (var kvp in VisualParams.Params)
+            var ids    = VisualParams.Group0ParamIds;
+            var result = new Dictionary<int, float>(ids.Length);
+            for (int i = 0; i < ids.Length; i++)
             {
-                if (kvp.Value.Group != 0) continue;
                 if (i >= VisualParameters.Length) break;
-                result[kvp.Key] = Utils.ByteToFloat(VisualParameters[i], kvp.Value.MinValue, kvp.Value.MaxValue);
-                i++;
+                if (!VisualParams.Params.TryGetValue(ids[i], out var vp)) continue;
+                result[ids[i]] = Utils.ByteToFloat(VisualParameters[i], vp.MinValue, vp.MaxValue);
             }
+
+            // Derive driven params (group-1 body morphs etc.) from their group-0 driver values.
+            // Mirrors LLDriverParam::setDrivenWeight in the SL viewer.
+            foreach (var kv in VisualParams.Params)
+            {
+                var driverVp = kv.Value;
+                if (driverVp.DrivenParams == null || driverVp.DrivenParams.Length == 0) continue;
+                if (!result.TryGetValue(driverVp.ParamID, out var driverVal)) continue;
+
+                foreach (var driven in driverVp.DrivenParams)
+                {
+                    if (!VisualParams.Params.TryGetValue(driven.ParamID, out var drivenVp)) continue;
+
+                    float drivenNorm;
+                    if (!driven.HasRange)
+                    {
+                        float range = driverVp.MaxValue - driverVp.MinValue;
+                        drivenNorm = range > 1e-6f
+                            ? (driverVal - driverVp.MinValue) / range
+                            : 0f;
+                    }
+                    else
+                    {
+                        if (driverVal < driven.Min1)
+                            drivenNorm = 0f;
+                        else if (driverVal < driven.Max1)
+                            drivenNorm = (driverVal - driven.Min1) / (driven.Max1 - driven.Min1);
+                        else if (driverVal <= driven.Max2)
+                            drivenNorm = 1f;
+                        else if (driverVal < driven.Min2)
+                            drivenNorm = (driven.Min2 - driverVal) / (driven.Min2 - driven.Max2);
+                        else
+                            drivenNorm = 0f;
+                    }
+
+                    drivenNorm = Math.Max(0f, Math.Min(1f, drivenNorm));
+                    result[driven.ParamID] =
+                        drivenVp.MinValue + drivenNorm * (drivenVp.MaxValue - drivenVp.MinValue);
+                }
+            }
+
             return result;
         }
 

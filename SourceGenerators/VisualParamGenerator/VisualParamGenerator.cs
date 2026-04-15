@@ -258,6 +258,12 @@ namespace OpenMetaverse
     {
         public static SortedList<int, VisualParam> Params = new SortedList<int, VisualParam>();
 
+        /// <summary>
+        /// Group-0 parameter IDs in the exact order they appear in avatar_lad.xml.
+        /// This order matches the byte sequence in the AvatarAppearance packet visual_param block.
+        /// </summary>
+        public static int[] Group0ParamIds = Array.Empty<int>();
+
         public static VisualParam Find(string name, string wearable)
         {
             foreach (KeyValuePair<int, VisualParam> param in Params)
@@ -341,12 +347,14 @@ namespace OpenMetaverse
             var nodes = doc.GetElementsByTagName("param");
 
             var ids = new SortedList<int, string>();
+            var group0IdsInOrder = new List<int>();  // group-0 IDs in avatar_lad.xml document order
             var alphas = new Dictionary<int, string>();
             var colors = new Dictionary<int, string>();
             var drivenParamInfoMap = new Dictionary<int, string>();
             var skeletalInfoMap = new Dictionary<int, string>();
 
             var sb = new StringBuilder();
+            sb.AppendLine("#nullable enable");
 
             // copy template first
             sb.AppendLine(templateText);
@@ -456,7 +464,7 @@ namespace OpenMetaverse
                                     if (bnode.Name != "bone" || bnode.Attributes?["name"] == null) continue;
                                     var boneName = bnode.Attributes["name"].Value;
                                     var scaleAttr = bnode.Attributes["scale"]?.Value ?? "0 0 0";
-                                    var posAttr = bnode.Attributes["pos"]?.Value;
+                                    var posAttr = bnode.Attributes["offset"]?.Value;
                                     var (sx, sy, sz) = ParseVector3(scaleAttr);
                                     var hasPosDeform = posAttr != null;
                                     string posArg;
@@ -546,7 +554,10 @@ namespace OpenMetaverse
                                       id, name, group, wearable, label, labelMin, labelMax, FormatFloat(def), FormatFloat(min), FormatFloat(max), bumpAttrib, drivers));
 
                     if (group == 0)
+                    {
+                        group0IdsInOrder.Add(id);
                         ++count;
+                    }
                 }
                 catch
                 {
@@ -576,6 +587,12 @@ namespace OpenMetaverse
                     sb.Append(", " + skeletal);
                 sb.AppendLine(");");
             }
+
+            // Emit Group0ParamIds initializer — group-0 params in avatar_lad.xml document order.
+            // This order matches the AvatarAppearance visual_param byte sequence.
+            sb.Append("            Group0ParamIds = new int[] { ");
+            sb.Append(string.Join(", ", group0IdsInOrder));
+            sb.AppendLine(" };");
 
             // close the constructor / class / namespace that the template left open
             sb.Append("        }").AppendLine();
