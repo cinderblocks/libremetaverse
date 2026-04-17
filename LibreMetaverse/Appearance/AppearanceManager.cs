@@ -405,6 +405,48 @@ namespace OpenMetaverse
                     result[vp.ParamID] = paramValue;
                 }
             }
+
+            // Derive driven (group-1) params from their group-0 driver values.
+            // Mirrors LLDriverParam::setDrivenWeight in the SL viewer and
+            // Avatar.DecodeVisualParams() for remote avatars.
+            foreach (var kv in VisualParams.Params)
+            {
+                var driverVp = kv.Value;
+                if (driverVp.DrivenParams == null || driverVp.DrivenParams.Length == 0) continue;
+                if (!result.TryGetValue(driverVp.ParamID, out var driverVal)) continue;
+
+                foreach (var driven in driverVp.DrivenParams)
+                {
+                    if (!VisualParams.Params.TryGetValue(driven.ParamID, out var drivenVp)) continue;
+
+                    float drivenNorm;
+                    if (!driven.HasRange)
+                    {
+                        float range = driverVp.MaxValue - driverVp.MinValue;
+                        drivenNorm = range > 1e-6f
+                            ? (driverVal - driverVp.MinValue) / range
+                            : 0f;
+                    }
+                    else
+                    {
+                        if (driverVal < driven.Min1)
+                            drivenNorm = 0f;
+                        else if (driverVal < driven.Max1)
+                            drivenNorm = (driverVal - driven.Min1) / (driven.Max1 - driven.Min1);
+                        else if (driverVal <= driven.Max2)
+                            drivenNorm = 1f;
+                        else if (driverVal < driven.Min2)
+                            drivenNorm = (driven.Min2 - driverVal) / (driven.Min2 - driven.Max2);
+                        else
+                            drivenNorm = 0f;
+                    }
+
+                    drivenNorm = Math.Max(0f, Math.Min(1f, drivenNorm));
+                    result[driven.ParamID] =
+                        drivenVp.MinValue + drivenNorm * (drivenVp.MaxValue - drivenVp.MinValue);
+                }
+            }
+
             return result;
         }
 

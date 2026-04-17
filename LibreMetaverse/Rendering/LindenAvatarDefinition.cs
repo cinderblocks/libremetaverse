@@ -26,7 +26,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Xml;
 
@@ -143,7 +142,10 @@ namespace OpenMetaverse.Rendering
         public static LindenAvatarDefinition Load(string? ladFileName = null, string? skeletonFileName = null)
         {
             if (ladFileName == null)
-                ladFileName = System.IO.Path.Combine(Settings.RESOURCE_DIR ?? string.Empty, "character", "avatar_lad.xml");
+            {
+                ladFileName =
+                    System.IO.Path.Combine(Settings.RESOURCE_DIR ?? string.Empty, "character", "avatar_lad.xml");
+            }
 
             var skeleton = LindenSkeleton.Load(skeletonFileName);
 
@@ -186,7 +188,6 @@ namespace OpenMetaverse.Rendering
                 result[joint.name] = new BoneTransform { Position = pos, Scale = scale };
             }
 
-            int posDeformCount = 0;
             foreach (var kv in VisualParams.Params)
             {
                 var vp = kv.Value;
@@ -198,18 +199,13 @@ namespace OpenMetaverse.Rendering
                 foreach (var boneInfo in vp.SkeletalDistortions)
                 {
                     if (!result.TryGetValue(boneInfo.BoneName, out var bt)) continue;
-                    bt.Scale = bt.Scale + boneInfo.ScaleDeformation * paramVal;
+                    bt.Scale += boneInfo.ScaleDeformation * paramVal;
                     if (boneInfo.HasPositionDeformation)
-                    {
-                        var delta = boneInfo.PositionDeformation * paramVal;
-                        if (delta.LengthSquared() > 1e-10f) posDeformCount++;
-                        bt.Position = bt.Position + delta;
-                    }
+                        bt.Position = bt.Position + boneInfo.PositionDeformation * paramVal;
                     result[boneInfo.BoneName] = bt;
                 }
             }
 
-            OpenMetaverse.Logger.DebugLog($"[VP Skel] {posDeformCount} non-negligible bone position deformations applied");
             return result;
         }
 
@@ -270,7 +266,7 @@ namespace OpenMetaverse.Rendering
         private static Vector3 ParseVector3Attr(string? value)
         {
             if (string.IsNullOrWhiteSpace(value)) return Vector3.Zero;
-            var parts = value!.Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+            var parts = value!.Trim().Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
             var x = parts.Length > 0 && float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var fx) ? fx : 0f;
             var y = parts.Length > 1 && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var fy) ? fy : 0f;
             var z = parts.Length > 2 && float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var fz) ? fz : 0f;
