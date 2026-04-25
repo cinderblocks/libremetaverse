@@ -186,6 +186,49 @@ namespace OpenMetaverse
         /// texture is not set for a face</summary>
         public static readonly UUID DEFAULT_AVATAR_TEXTURE = new UUID("c228d1cf-4b5d-4ba8-84f4-899a0796aa97");
 
+        /// <summary>
+        /// Magic sentinel UUIDs that an attachment face's TextureEntry can carry to
+        /// request that the viewer substitute a specific avatar bake layer instead of
+        /// fetching a standalone texture asset.  Equivalent to the IMG_USE_BAKED_*
+        /// constants in indra/llcommon/indra_constants.cpp of the SL viewer.
+        /// </summary>
+        /// <remarks>
+        /// When a prim face's texture ID equals one of these values the renderer should
+        /// resolve it to the avatar's current baked texture for that layer via
+        /// <see cref="BakeTypeToAgentTextureIndex"/> and the avatar's TextureEntry.
+        /// </remarks>
+        public static readonly UUID IMG_USE_BAKED_HEAD     = new UUID("5a9f4a74-30f2-821c-b88d-70499d3e7183");
+        public static readonly UUID IMG_USE_BAKED_UPPER    = new UUID("ae2de45c-d252-50b8-5c6e-19f39ce79317");
+        public static readonly UUID IMG_USE_BAKED_LOWER    = new UUID("24daea5f-0539-cfcf-047f-fbc40b2786ba");
+        public static readonly UUID IMG_USE_BAKED_EYES     = new UUID("52cc6bb6-2ee5-e632-d3ad-50197b1dcb8a");
+        public static readonly UUID IMG_USE_BAKED_SKIRT    = new UUID("43529ce8-7faa-ad92-165a-bc4078371687");
+        public static readonly UUID IMG_USE_BAKED_HAIR     = new UUID("09aac1fb-6bce-0bee-7d44-caac6dbb6c63");
+        public static readonly UUID IMG_USE_BAKED_LEFTARM  = new UUID("ff62763f-d60a-9855-890b-0c96f8f8cd98");
+        public static readonly UUID IMG_USE_BAKED_LEFTLEG  = new UUID("8e915e25-31d1-cc95-ae08-d58a47488251");
+        public static readonly UUID IMG_USE_BAKED_AUX1     = new UUID("9742065b-19b5-297c-858a-29711d539043");
+        public static readonly UUID IMG_USE_BAKED_AUX2     = new UUID("03642e83-2bd1-4eb9-34b4-4c47ed586d2d");
+        public static readonly UUID IMG_USE_BAKED_AUX3     = new UUID("edd51b77-fc10-ce7a-4b3d-011dfc349e4f");
+
+        /// <summary>
+        /// Maps each IMG_USE_BAKED_* sentinel UUID to the corresponding
+        /// <see cref="AvatarTextureIndex"/> baked slot on the avatar's TextureEntry.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<UUID, AvatarTextureIndex> IMG_USE_BAKED_INDICES =
+            new Dictionary<UUID, AvatarTextureIndex>
+            {
+                { IMG_USE_BAKED_HEAD,    AvatarTextureIndex.HeadBaked    },
+                { IMG_USE_BAKED_UPPER,   AvatarTextureIndex.UpperBaked   },
+                { IMG_USE_BAKED_LOWER,   AvatarTextureIndex.LowerBaked   },
+                { IMG_USE_BAKED_EYES,    AvatarTextureIndex.EyesBaked    },
+                { IMG_USE_BAKED_SKIRT,   AvatarTextureIndex.SkirtBaked   },
+                { IMG_USE_BAKED_HAIR,    AvatarTextureIndex.HairBaked    },
+                { IMG_USE_BAKED_LEFTARM, AvatarTextureIndex.LeftArmBaked },
+                { IMG_USE_BAKED_LEFTLEG, AvatarTextureIndex.LegLegBaked  },
+                { IMG_USE_BAKED_AUX1,    AvatarTextureIndex.Aux1Baked    },
+                { IMG_USE_BAKED_AUX2,    AvatarTextureIndex.Aux2Baked    },
+                { IMG_USE_BAKED_AUX3,    AvatarTextureIndex.Aux3Baked    },
+            };
+
         #endregion Constants
 
         #region Structs / Classes
