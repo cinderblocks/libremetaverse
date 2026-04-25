@@ -702,12 +702,15 @@ namespace OpenMetaverse.Rendering
                 while (idx < data.Length)
                 {
                     int jointIdx = data[idx++];
-                    if (jointIdx >= jointCount)
+                    if (jointIdx == 0xFF)
                         break; // end-of-vertex sentinel
 
                     if (idx + 1 >= data.Length) break;
                     ushort rawWeight = (ushort)(data[idx] | (data[idx + 1] << 8));
                     idx += 2;
+
+                    if (jointIdx >= jointCount)
+                        continue; // skip invalid but non-sentinel joint index
 
                     // Clamp to [0.001, 0.999] to match the SL viewer.
                     float w = rawWeight / 65535f;
@@ -739,6 +742,13 @@ namespace OpenMetaverse.Rendering
                 }
 
                 weights.Add(vw);
+            }
+
+            // Pad with default weight (joint 0, weight 1.0) for vertices beyond the data.
+            // Matches SL viewer fallback where unweighted vertices bind to the first joint.
+            while (weights.Count < vertexCount)
+            {
+                weights.Add(new VertexWeight { Joint0 = 0, Weight0 = 1f });
             }
 
             return weights;

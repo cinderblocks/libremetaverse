@@ -163,7 +163,8 @@ namespace OpenMetaverse.Rendering
         /// </summary>
         /// <remarks>
         /// Deformation formula (matching LLPolySkeletalDistortion::apply in the SL viewer):
-        /// <c>finalScale = defaultScale + scaleDeformation * paramValue</c>
+        /// <c>weight = (value - min) / (max - min)</c>, then
+        /// <c>finalScale = defaultScale + scaleDeformation * weight</c>
         /// </remarks>
         /// <param name="paramValues">
         /// Current visual-parameter values keyed by param ID.
@@ -186,6 +187,20 @@ namespace OpenMetaverse.Rendering
                     ? new Vector3(joint.scale[0], joint.scale[1], joint.scale[2])
                     : Vector3.One;
                 result[joint.name] = new BoneTransform { Position = pos, Scale = scale };
+
+                // Seed collision volumes so VP distortions targeting them (BELLY, CHEST, etc.)
+                // are applied in the loop below.  These drive fitted-mesh LBS deformations.
+                foreach (var cv in joint.collision_volume ?? [])
+                {
+                    if (cv == null || string.IsNullOrEmpty(cv.name)) continue;
+                    var cvPos = cv.pos != null && cv.pos.Length >= 3
+                        ? new Vector3(cv.pos[0], cv.pos[1], cv.pos[2])
+                        : Vector3.Zero;
+                    var cvScale = cv.scale != null && cv.scale.Length >= 3
+                        ? new Vector3(cv.scale[0], cv.scale[1], cv.scale[2])
+                        : Vector3.One;
+                    result[cv.name] = new BoneTransform { Position = cvPos, Scale = cvScale };
+                }
             }
 
             foreach (var kv in VisualParams.Params)
@@ -193,15 +208,19 @@ namespace OpenMetaverse.Rendering
                 var vp = kv.Value;
                 if (vp.SkeletalDistortions == null) continue;
 
-                if (!paramValues.TryGetValue(vp.ParamID, out var paramVal))
-                    paramVal = vp.DefaultValue;
+                if (!paramValues.TryGetValue(vp.ParamID, out var rawVal))
+                    rawVal = vp.DefaultValue;
+                float vpRange = vp.MaxValue - vp.MinValue;
+                float weight = vpRange > 1e-6f
+                    ? Math.Max(0f, Math.Min(1f, (rawVal - vp.MinValue) / vpRange))
+                    : 0f;
 
                 foreach (var boneInfo in vp.SkeletalDistortions)
                 {
                     if (!result.TryGetValue(boneInfo.BoneName, out var bt)) continue;
-                    bt.Scale += boneInfo.ScaleDeformation * paramVal;
+                    bt.Scale += boneInfo.ScaleDeformation * weight;
                     if (boneInfo.HasPositionDeformation)
-                        bt.Position = bt.Position + boneInfo.PositionDeformation * paramVal;
+                        bt.Position = bt.Position + boneInfo.PositionDeformation * weight;
                     result[boneInfo.BoneName] = bt;
                 }
             }
