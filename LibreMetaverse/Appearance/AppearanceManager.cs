@@ -526,6 +526,34 @@ namespace OpenMetaverse
         /// Is server baking complete. It needs doing only once
         /// </summary>
         private bool ServerBakingDone = false;
+        /// <summary>
+        /// COF version that was sent in the last UpdateAvatarAppearance request.
+        /// Mirrors SL viewer's mLastUpdateRequestCOFVersion. -1 = never requested.
+        /// </summary>
+        private int _lastUpdateRequestCOFVersion = -1;
+        /// <summary>
+        /// COF version of the last successfully received server-bake result.
+        /// Mirrors SL viewer's mLastUpdateReceivedCOFVersion. -1 = never received.
+        /// </summary>
+        private int _lastUpdateReceivedCOFVersion = -1;
+        /// <summary>
+        /// Public read access for <see cref="_lastUpdateReceivedCOFVersion"/>.
+        /// Used by AvatarManager to apply the stale-version guard for self-appearance packets.
+        /// </summary>
+        public int LastUpdateReceivedCOFVersion => _lastUpdateReceivedCOFVersion;
+
+        /// <summary>
+        /// Called by AvatarManager when a UDP AvatarAppearance for our own avatar passes the
+        /// stale-version guard. Updates <see cref="_lastUpdateReceivedCOFVersion"/> so that the
+        /// SSB retry loop's guard reflects the version the sim has acknowledged, matching SL
+        /// viewer's <c>mLastUpdateReceivedCOFVersion = thisAppearanceVersion</c> assignment in
+        /// <c>processAvatarAppearance</c>.
+        /// </summary>
+        public void UpdateLastReceivedCOFVersion(int cofVersion)
+        {
+            if (cofVersion > _lastUpdateReceivedCOFVersion)
+                _lastUpdateReceivedCOFVersion = cofVersion;
+        }
 
         // Lock to guard creation/cancellation/cleanup of appearance workflow state
         private readonly object _appearanceLock = new object();
@@ -756,6 +784,9 @@ namespace OpenMetaverse
             }
 
             var wearables = new MultiValueDictionary<WearableType, WearableData>();
+            // Clear stale attachment entries from any previous outfit before rebuilding.
+            // SL viewer always rebuilds from scratch on re-dress.
+            Attachments.Clear();
             foreach (var item in contents)
             {
                 switch (item)
@@ -1362,7 +1393,12 @@ namespace OpenMetaverse
 
             var objectsPrimitives = sim.ObjectsPrimitives;
 
-            // No primitives found.
+            // Clear stale entries from the previous sim/outfit before rebuilding from
+            // live prim data.  Any concurrent Objects_AttachmentUpdate fires will
+            // re-add entries via AddOrUpdate, and the scan below will also capture them.
+            Attachments.Clear();
+
+            // No primitives found — cleared above, nothing to add.
             if (objectsPrimitives.IsEmpty)
             {
                 return true;
@@ -1940,8 +1976,42 @@ namespace OpenMetaverse
         /// <returns>True if the server baking was successful</returns>
         private async Task<bool> UpdateAvatarAppearanceAsync(CancellationToken cancellationToken, int totalRetries = 3)
         {
-            while (true)
+            var cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("UpdateAvatarAppearance");
+            if (cap == null)
             {
+                Logger.Warn("Could not retrieve UpdateAvatarAppearance region capability", Client);
+                return false;
+            }
+
+            // Fetch COF once outside the retry loop — SL viewer does getCOFVersion() which
+            // is a single local store lookup; re-fetching on every iteration wastes network.
+            var currentOutfitFolder = await GetCurrentOutfitFolder(cancellationToken);
+            if (currentOutfitFolder == null)
+            {
+                Logger.Warn("Could not retrieve Current Outfit folder", Client);
+                return false;
+            }
+            // TODO: create Current Outfit Folder if null
+
+            // SL viewer constants for SSB retry backoff.
+            // delay = pow(BAKE_RETRY_TIMEOUT=2.0, retryCount) - 1.0 seconds, max BAKE_RETRY_MAX_COUNT=5 retries.
+            const int BAKE_RETRY_MAX_COUNT = 5;
+            const double BAKE_RETRY_TIMEOUT_BASE = 2.0;
+            var retryCount = 0;
+            var bRetry = false;
+            var bakeSucceeded = false;
+
+            // Track the version we set _lastUpdateRequestCOFVersion to inside this call so we
+            // can clear it on any non-success exit path (cancellation, exception, retry-exhausted,
+            // plain error). Without this, a stale in-flight guard can permanently block future
+            // bake attempts for the same or lower COF version.
+            var requestedCofVersion = -1;
+
+            try
+            {
+                do
+                {
+                bRetry = false;
                 if (cancellationToken.IsCancellationRequested) { return false; }
 
                 if (totalRetries < 0)
@@ -1949,33 +2019,43 @@ namespace OpenMetaverse
                     return false;
                 }
 
-                var cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("UpdateAvatarAppearance");
-                if (cap == null)
+                // Re-read the version from the store on every iteration (including retries) in case
+                // AIS updated it while we were waiting — mirrors SL viewer's getCOFVersion() call
+                // inside the do-loop.
+                var cofVersion = currentOutfitFolder.Version;
+                if (Client?.Inventory?.Store != null &&
+                    Client.Inventory.Store.TryGetNodeFor(currentOutfitFolder.UUID, out var cofNode) &&
+                    cofNode.Data is InventoryFolder updatedFolder)
                 {
-                    Logger.Warn("Could not retrieve UpdateAvatarAppearance region capability", Client);
+                    cofVersion = updatedFolder.Version;
+                }
+
+                if (cofVersion < 0)
+                {
+                    Logger.Warn($"COF version is unknown ({cofVersion}), skipping UpdateAvatarAppearance", Client);
                     return false;
                 }
 
-                var currentOutfitFolder = await GetCurrentOutfitFolder(cancellationToken);
-                if (currentOutfitFolder == null)
+                // Guard: if we already received a successful bake for this (or higher) version, exit.
+                // Mirrors SL viewer's "cofVersion <= lastRcv → return" guard inside the do-loop.
+                if (_lastUpdateReceivedCOFVersion >= cofVersion)
                 {
-                    Logger.Warn("Could not retrieve Current Outfit folder", Client);
+                    Logger.DebugLog($"COF version {cofVersion} already received (lastRcv={_lastUpdateReceivedCOFVersion}), skipping", Client);
+                    return true;
+                }
+
+                // Guard: if a request for this version is already in-flight, exit.
+                // Mirrors SL viewer's "lastReq >= cofVersion → return" guard inside the do-loop.
+                // Return false (not true) — the prior request failed; baking is not confirmed.
+                if (_lastUpdateRequestCOFVersion >= cofVersion)
+                {
+                    Logger.DebugLog($"COF version {cofVersion} already in-flight (lastReq={_lastUpdateRequestCOFVersion}), skipping duplicate", Client);
                     return false;
                 }
-                else
-                {
-                    // TODO: create Current Outfit Folder
-                }
 
-                Logger.Info($"Requesting bake for COF version {currentOutfitFolder.Version}", Client);
+                var maxWait = 1000; // About a minute. (50,000ms)
 
-                var request = new OSDMap(1) { ["cof_version"] = currentOutfitFolder.Version };
-
-                OSD? res = null;
-
-                var maxRetries = 1000; // About a minute. (50,000ms)
-
-                while (maxRetries-- > 0)
+                while (maxWait-- > 0)
                 {
                     if (Client?.Network?.Connected != true)
                     {
@@ -2001,6 +2081,14 @@ namespace OpenMetaverse
                     return false;
                 }
 
+                Logger.Info($"Requesting bake for COF version {cofVersion} (lastRcv={_lastUpdateReceivedCOFVersion}, lastReq={_lastUpdateRequestCOFVersion})", Client);
+                _lastUpdateRequestCOFVersion = cofVersion;
+                requestedCofVersion = cofVersion;
+
+                var request = new OSDMap(1) { ["cof_version"] = cofVersion };
+
+                OSD? res = null;
+
                 await http.PostRequestAsync(cap, OSDFormat.Xml, request, cancellationToken, (response, data, error) =>
                 {
                     if (data != null)
@@ -2013,14 +2101,18 @@ namespace OpenMetaverse
                     }
                 });
 
-                if (!(res is OSDMap result)) { return false; }
+                if (!(res is OSDMap result))
+                {
+                    // Transport-level failure. The finally block clears the in-flight guard.
+                    return false;
+                }
 
                 if (result.ContainsKey("success") && result["success"].AsBoolean())
                 {
 
                     var visualParams = result["visual_params"].AsBinary();
                     var textures = (result["textures"] as OSDArray)?.Select(arrayEntry => arrayEntry.AsUUID()).ToArray();
-                    var cofVersion = result["cof_version"].AsInteger();
+                    var receivedCofVersion = result["cof_version"].AsInteger();
 
                     MyVisualParameters = visualParams;
 
@@ -2029,8 +2121,13 @@ namespace OpenMetaverse
                         if ((textures[8] == UUID.Zero || textures[9] == UUID.Zero || textures[10] == UUID.Zero || textures[11] == UUID.Zero) || (textures[8] == DEFAULT_AVATAR_TEXTURE || textures[9] == DEFAULT_AVATAR_TEXTURE || textures[10] == DEFAULT_AVATAR_TEXTURE || textures[11] == DEFAULT_AVATAR_TEXTURE))
                         {
                             // This hasn't actually baked. Retry after a delay.
+                            // Clear in-flight guard so the next iteration can re-send for the same
+                            // (or AIS-bumped) cofVersion without tripping the lastReq >= cofVersion check.
+                            _lastUpdateRequestCOFVersion = -1;
+                            requestedCofVersion = -1;
                             await Task.Delay(REBAKE_DELAY, cancellationToken).ConfigureAwait(false);
                             totalRetries--;
+                            bRetry = true;
                             continue;
                         }
                     }
@@ -2060,7 +2157,7 @@ namespace OpenMetaverse
 
                             selfPrim.VisualParameters = visualParams;
                             selfPrim.AppearanceVersion = 1;
-                            selfPrim.COFVersion = cofVersion;
+                            selfPrim.COFVersion = receivedCofVersion;
                             selfPrim.AppearanceFlags = 0;
 
                             var texEntry = selfPrim.Textures ?? new Primitive.TextureEntry(UUID.Zero);
@@ -2081,7 +2178,7 @@ namespace OpenMetaverse
                                     defaultTex,
                                     faceTextures,
                                     selfPrim.VisualParameters.ToList(), 1,
-                                    cofVersion,
+                                    receivedCofVersion,
                                     AppearanceFlags.None,
                                     selfPrim.ChildCount);
 
@@ -2095,31 +2192,76 @@ namespace OpenMetaverse
                         throw;
                     }
 
+                    // Use the monotonic update so a higher-version UDP AvatarAppearance that
+                    // arrived between our POST and this response is not overwritten with an older
+                    // version. SL viewer's processAvatarAppearance does the same `>=` check.
+                    UpdateLastReceivedCOFVersion(receivedCofVersion);
+                    bakeSucceeded = true;
                     Logger.Info("Returning appearance information from server-side bake request.", Client);
                     return true;
                 }
+
                 if (result.ContainsKey("expected"))
                 {
-                    Logger.Warn($"Server expected {result["expected"].AsInteger()} as COF version. " +
-                               $"Version {currentOutfitFolder.Version} was sent.", Client);
+                    // Server reports a COF version mismatch. SL viewer does NOT call IncrementCOFVersion here
+                    // — it sends "avatartexturesrequest" (forces UDP resend of our own appearance so
+                    // processAvatarAppearance can update mLastUpdateReceivedCOFVersion with the canonical
+                    // version), then retries with exponential backoff pow(2.0, retryCount) - 1.0 seconds.
+                    var serverExpected = result["expected"].AsInteger();
+                    Logger.Warn($"Server expected COF version {serverExpected}, we sent {cofVersion}.", Client);
 
-                    await SyncCofVersion(cancellationToken).ConfigureAwait(false);
+                    // Force sim to push canonical appearance back via UDP.
+                    Client?.Avatars?.RequestOwnAvatarTextures();
+
+                    // Reset in-flight guard so the retry iteration can send a fresh request
+                    // (possibly with an updated cofVersion if AIS incremented it during backoff).
+                    _lastUpdateRequestCOFVersion = -1;
+                    requestedCofVersion = -1;
+
+                    if (++retryCount > BAKE_RETRY_MAX_COUNT)
+                    {
+                        Logger.Warn("Bake retry count exceeded on COF version mismatch.", Client);
+                        break;
+                    }
+
+                    var backoffSeconds = Math.Pow(BAKE_RETRY_TIMEOUT_BASE, retryCount) - 1.0;
+                    Logger.Warn($"Bake retry #{retryCount} in {backoffSeconds:F1}s.", Client);
+                    await Task.Delay(TimeSpan.FromSeconds(backoffSeconds), cancellationToken).ConfigureAwait(false);
 
                     --totalRetries;
+                    bRetry = true;
                     continue;
                 }
+
+                // Any other error (no "expected" key) — SL viewer logs "No retry attempted." and breaks.
                 if (result.ContainsKey("error"))
                 {
-                    var er = result["error"].AsString();
-                    if (string.IsNullOrEmpty(er))
-                    {
-                        Logger.Warn($"UpdateAvatarAppearance failed. Server responded with: '{result["error"].AsString()}'", Client);
-                    }
+                    Logger.Warn($"UpdateAvatarAppearance failed with error: '{result["error"].AsString()}'. No retry attempted.", Client);
+                }
+                else
+                {
+                    Logger.Warn($"Avatar appearance update failed on attempt {totalRetries}. No retry attempted.", Client);
                 }
 
-                Logger.Info($"Avatar appearance update failed on {totalRetries} attempt.", Client);
-                await Task.Delay(REBAKE_DELAY, cancellationToken).ConfigureAwait(false);
-                --totalRetries;
+                break;
+
+                } while (bRetry);
+
+                return false;
+            }
+            finally
+            {
+                // If we exit without a confirmed bake (cancellation, exception, retry-exhausted,
+                // plain error), clear the in-flight guard for the version we requested so subsequent
+                // bake attempts for that version aren't permanently blocked. Only clear if our
+                // request hasn't been superseded — if a concurrent caller has already moved
+                // _lastUpdateRequestCOFVersion past ours, leave their value alone.
+                if (!bakeSucceeded
+                    && requestedCofVersion >= 0
+                    && _lastUpdateRequestCOFVersion == requestedCofVersion)
+                {
+                    _lastUpdateRequestCOFVersion = -1;
+                }
             }
         }
 
@@ -2491,6 +2633,12 @@ namespace OpenMetaverse
             }
         }
 
+        /// <remarks>
+        /// This method is no longer called by the appearance pipeline. The IncrementCOFVersion
+        /// capability is for AIS COF mutations only; calling it on an SSB mismatch corrupts the
+        /// COF version counter. Retained for potential external callers only.
+        /// </remarks>
+        [Obsolete("Do not call during SSB retry. IncrementCOFVersion is for AIS mutations only.")]
         private async Task SyncCofVersion(CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested) { return; }
@@ -2765,6 +2913,32 @@ namespace OpenMetaverse
 
     private void Network_OnSimChanged(object? sender, SimChangedEventArgs e)
     {
+        // Cancel any appearance workflow that was running for the previous sim.
+        // The new sim will trigger a fresh Simulator_OnCapabilitiesReceived and
+        // start a new appearance pass once capabilities are ready.
+        CancellationTokenSource? oldCts;
+        lock (_appearanceLock)
+        {
+            oldCts = AppearanceCts;
+            AppearanceCts = null;
+            AppearanceTask = null;
+
+            // Force a full server bake in the new region — the previous bake result
+            // belongs to the old region's appearance service.
+            ServerBakingDone = false;
+            // Reset COF version tracking so the new region's appearance service
+            // doesn't skip a request based on a stale version from the old region.
+            _lastUpdateRequestCOFVersion = -1;
+            _lastUpdateReceivedCOFVersion = -1;
+        }
+
+        // Cancel and dispose outside the lock so we don't hold the lock during disposal.
+        if (oldCts != null)
+        {
+            try { oldCts.Cancel(); } catch { }
+            try { oldCts.Dispose(); } catch { }
+        }
+
         var cur = Client.Network.CurrentSim;
         if (cur?.Caps != null)
         {
@@ -2827,12 +3001,10 @@ namespace OpenMetaverse
             {
                 if (ServerBakingRegion())
                 {
-                    // Second Life (SSB): delegate baking to the server via UpdateAvatarAppearance
-                    var updateSucceeded = await UpdateAvatarAppearanceAsync(CancellationToken.None).ConfigureAwait(false);
-                    if (updateSucceeded)
-                    {
-                        await SendOutfitToCurrentSimulatorAsync(CancellationToken.None).ConfigureAwait(false);
-                    }
+                    // Second Life (SSB): run the server-bake + outfit-send under the same
+                    // cancellable AppearanceTask machinery used by RequestSetAppearance so that
+                    // a subsequent teleport can cancel and supersede this work cleanly.
+                    await StartAppearanceImmediate(forceRebake: false).ConfigureAwait(false);
                 }
                 else if (Wearables.Any())
                 {
@@ -2945,6 +3117,11 @@ namespace OpenMetaverse
                         if (await UpdateAvatarAppearanceAsync(cancellationToken).ConfigureAwait(false))
                         {
                             ServerBakingDone = true;
+                            // Re-rez attachments in the new region after a successful server bake.
+                            // The SL viewer sends RezMultipleAttachmentsFromInv with FirstDetachAll=true
+                            // after every region crossing once the bake is confirmed.
+                            cancellationToken.ThrowIfCancellationRequested();
+                            await SendOutfitToCurrentSimulatorAsync(cancellationToken).ConfigureAwait(false);
                         }
                         else
                         {
@@ -2970,7 +3147,7 @@ namespace OpenMetaverse
 
                 ServerBakingDone = false;
 
-                if (!await DownloadWearablesAsync().ConfigureAwait(false))
+                if (!await DownloadWearablesAsync(cancellationToken).ConfigureAwait(false))
                 {
                     success = false;
                     Logger.Warn("One or more agent wearables failed to download, appearance will be incomplete", Client);
@@ -2980,7 +3157,7 @@ namespace OpenMetaverse
 
                 if (SetAppearanceSerialNum == 0 && !forceRebake)
                 {
-                    if (!await GetCachedBakesAsync().ConfigureAwait(false))
+                    if (!await GetCachedBakesAsync(cancellationToken).ConfigureAwait(false))
                     {
                         Logger.Warn("Failed to get a list of cached bakes from the simulator, appearance will be rebaked", Client);
                     }
@@ -2988,7 +3165,7 @@ namespace OpenMetaverse
 
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (!await CreateBakesAsync().ConfigureAwait(false))
+                if (!await CreateBakesAsync(cancellationToken).ConfigureAwait(false))
                 {
                     success = false;
                     Logger.Warn("Failed to create or upload one or more bakes, appearance will be incomplete", Client);

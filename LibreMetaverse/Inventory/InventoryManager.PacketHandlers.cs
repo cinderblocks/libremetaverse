@@ -347,13 +347,25 @@ namespace OpenMetaverse
 
             var move = (MoveInventoryItemPacket)packet;
 
+            if (_Store is null) return;
+
             foreach (var data in move.InventoryData)
             {
-                // FIXME: Do something here
-                var newName = Utils.BytesToString(data.NewName);
+                if (!_Store.Contains(data.ItemID)) continue;
 
-                Logger.Warn($"MoveInventoryItemHandler: Item {data.ItemID} is moving to Folder {data.FolderID} with new name \"{newName}\"." +
-                    " Someone write this function!", Client);
+                var item = _Store[data.ItemID] as InventoryItem;
+                if (item == null) continue;
+
+                var oldParent = item.ParentUUID;
+                item.ParentUUID = data.FolderID;
+
+                var newName = Utils.BytesToString(data.NewName);
+                if (!string.IsNullOrEmpty(newName))
+                    item.Name = newName;
+
+                _Store.UpdateNodeFor(item);
+
+                Logger.DebugLog($"MoveInventoryItemHandler: moved {item.UUID} (\"{item.Name}\") from {oldParent} to {data.FolderID}", Client);
             }
         }
 

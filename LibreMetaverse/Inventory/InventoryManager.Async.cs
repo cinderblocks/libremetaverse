@@ -493,15 +493,21 @@ namespace OpenMetaverse
                 {
                     if (!(inventory[i] is InventoryItem item)) continue;
 
-                    if (item.IsLink())
+                    if (!item.IsLink()) continue;
+
+                    var store = Store;
+                    // If the real item is already in the local store, substitute it immediately
+                    // so callers always receive fully-typed items with correct metadata (e.g.
+                    // AttachmentPoint on InventoryAttachment) rather than bare link objects.
+                    if (store != null && store.TryGetValue<InventoryItem>(item.AssetUUID, out var cached) && cached != null && !cached.IsLink())
                     {
-                        var store = Store;
-                        if (!(store?.Contains(item.AssetUUID) ?? false))
-                        {
-                            var fetched = await FetchItemAsync(item.AssetUUID, owner, cancellationToken).ConfigureAwait(false);
-                            if (fetched != null)
-                                inventory[i] = fetched;
-                        }
+                        inventory[i] = cached;
+                    }
+                    else
+                    {
+                        var fetched = await FetchItemAsync(item.AssetUUID, owner, cancellationToken).ConfigureAwait(false);
+                        if (fetched != null)
+                            inventory[i] = fetched;
                     }
                 }
             }

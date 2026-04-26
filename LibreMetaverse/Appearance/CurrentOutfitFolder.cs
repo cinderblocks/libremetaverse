@@ -68,6 +68,8 @@ namespace LibreMetaverse.Appearance
         private readonly SemaphoreSlim cofInitLock = new SemaphoreSlim(1, 1);
         private Task<bool>? cofInitTask;
 
+        private CancellationTokenSource _sessionCts = new CancellationTokenSource();
+
         #endregion Fields
 
         #region Construction and disposal
@@ -103,6 +105,8 @@ namespace LibreMetaverse.Appearance
                 if (disposing)
                 {
                     UnregisterClientEvents(client);
+                    _sessionCts.Cancel();
+                    _sessionCts.Dispose();
                 }
 
                 disposed = true;
@@ -209,7 +213,7 @@ namespace LibreMetaverse.Appearance
                         var inv = client.Inventory;
                         if (inv != null)
                         {
-                            await inv.RequestFetchInventoryAsync(items, CancellationToken.None).ConfigureAwait(false);
+                            await inv.RequestFetchInventoryAsync(items, _sessionCts.Token).ConfigureAwait(false);
                         }
                     }
                 }
@@ -220,33 +224,47 @@ namespace LibreMetaverse.Appearance
             }
         }
 
-        private async void Objects_KillObject(object? sender, KillObjectEventArgs e)
+        private void Objects_KillObject(object? sender, KillObjectEventArgs e)
         {
-            try
-            {
-                var sim = client.Network.CurrentSim;
-                if (sim == null || sim != e.Simulator)
-                {
-                    return;
-                }
-
-                if (sim.ObjectsPrimitives.TryGetValue(e.ObjectLocalID, out var prim))
-                {
-                    var invItemId = CurrentOutfitFolder.GetAttachmentItemID(prim);
-                    if (invItemId != UUID.Zero)
-                    {
-                        await RemoveLinksToByActualId(new List<UUID>() { invItemId }).ConfigureAwait(false);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error("Unhandled exception in Objects_KillObject: " + ex.Message, ex, client);
-            }
+            // Do NOT modify COF links here.
+            //
+            // KillObject fires for worn attachments both on explicit user-initiated detaches
+            // AND during teleports (the departing sim destroys every rezzed object).  Removing
+            // COF links in response to KillObject during a teleport would permanently delete
+            // the links from the inventory server, causing attachments to be missing after the
+            // agent arrives in the destination sim.
+            //
+            // The SL viewer (llagent.cpp / LLVOAvatarSelf) only modifies COF links from
+            // deliberate user actions (Detach, ReplaceOutfit, AddToOutfit, etc.) and from the
+            // server-driven BulkUpdateInventory / MoveInventoryItem callbacks that accompany a
+            // real server-side detach — never from ObjectKill packets alone.
         }
 
         private void Network_OnSimChanged(object? sender, SimChangedEventArgs e)
         {
+            // Reset COF initialization state so the new sim re-fetches the folder.
+            // The COF UUID itself is stable across teleports (it lives in the agent's
+            // inventory, not in the sim), but the COF version number and folder contents
+            // must be re-queried from the inventory service after each region crossing.
+            // We only reset the volatile flag; the semaphore-guarded cofInitTask is cleared
+            // under cofInitLock so concurrent init callers see a clean slate.
+            initializedCOF = false;
+            cofInitLock.Wait();
+            try
+            {
+                cofInitTask = null;
+            }
+            finally
+            {
+                cofInitLock.Release();
+            }
+
+            // Cancel any outstanding prefetch requests from the previous sim session
+            // and issue a fresh CTS for the new session.
+            var oldCts = Interlocked.Exchange(ref _sessionCts, new CancellationTokenSource());
+            oldCts.Cancel();
+            oldCts.Dispose();
+
             var sim = client.Network.CurrentSim;
             if (sim?.Caps != null)
             {

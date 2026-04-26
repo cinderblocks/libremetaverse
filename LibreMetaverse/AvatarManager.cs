@@ -786,6 +786,37 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Request the sim to send our own avatar's textures via UDP AvatarAppearance packet.
+        /// This is equivalent to SL viewer's LLAvatarPropertiesProcessor::sendAvatarTexturesRequest,
+        /// which sends a GenericMessage "avatartexturesrequest" for our own agent ID.
+        /// Used on COF version mismatch to force the sim to push the canonical appearance back
+        /// so processAvatarAppearance (AvatarAppearanceHandler) can update mLastUpdateReceivedCOFVersion.
+        /// </summary>
+        public void RequestOwnAvatarTextures()
+        {
+            var gmp = new GenericMessagePacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    TransactionID = UUID.Zero
+                },
+                MethodData =
+                {
+                    Method = Utils.StringToBytes("avatartexturesrequest"),
+                    Invoice = UUID.Zero
+                },
+                ParamList = new GenericMessagePacket.ParamListBlock[1]
+            };
+            gmp.ParamList[0] = new GenericMessagePacket.ParamListBlock
+            {
+                Parameter = Utils.StringToBytes(Client.Self.AgentID.ToString())
+            };
+            Client.Network.SendPacket(gmp);
+        }
+
+        /// <summary>
         /// Check if AgentProfile functionality is available
         /// </summary>
         /// <returns>True if AgentProfile functionality is available</returns>
@@ -1155,8 +1186,19 @@ namespace OpenMetaverse
                 }
             }
 
-            // We need to ignore this for avatar self-appearance. The data in this packet is incorrect for self
-            if (appearance.Sender.ID == Client.Self.AgentID) return;
+            // For our own avatar, apply a stale-version guard mirroring SL viewer's
+            // processAvatarAppearance: drop packets whose COF version is at or below the
+            // last one we already processed. This prevents redundant/out-of-order updates.
+            if (appearance.Sender.ID == Client.Self.AgentID)
+            {
+                if (COFVersion > 0 && COFVersion <= Client.Appearance.LastUpdateReceivedCOFVersion)
+                {
+                    Logger.DebugLog(
+                        $"Dropping stale AvatarAppearance for self (packet COFVersion={COFVersion}, " +
+                        $"lastReceived={Client.Appearance.LastUpdateReceivedCOFVersion})", Client);
+                    return;
+                }
+            }
 
             foreach (var a in e.Simulator.ObjectsAvatars)
             {
@@ -1172,6 +1214,14 @@ namespace OpenMetaverse
                     av.AppearanceFlags = appearanceFlags;
                     av.HoverHeight = hoverHeight;
                 }
+            }
+
+            // For our own avatar, update the AppearanceManager's received-version tracker
+            // so the retry loop's guard correctly sees the version the sim has acknowledged.
+            // SL viewer does: mLastUpdateReceivedCOFVersion = thisAppearanceVersion (in processAvatarAppearance).
+            if (appearance.Sender.ID == Client.Self.AgentID && COFVersion > 0)
+            {
+                Client.Appearance.UpdateLastReceivedCOFVersion(COFVersion);
             }
 
             OnAvatarAppearance(new AvatarAppearanceEventArgs(simulator,
