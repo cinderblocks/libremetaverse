@@ -61,29 +61,42 @@ namespace LibreMetaverse.Tests
 
             var decoded = avatar.DecodeVisualParams();
 
-            Assert.That(decoded.Count, Is.EqualTo(group0.Count));
+            // DecodeVisualParams also derives driven (group-1+) params, so total count >= group0.Count
+            Assert.That(decoded.Count, Is.GreaterThanOrEqualTo(group0.Count));
         }
 
         [Test]
         public void DecodeVisualParams_RoundTrip_DefaultValues()
         {
-            var group0 = Group0Params;
-            var bytes = group0
-                .Select(p => Utils.FloatToByte(p.DefaultValue, p.MinValue, p.MaxValue))
+            // Build the byte array in Group0ParamIds document order — this is the order
+            // DecodeVisualParams consumes, which differs from the SortedList key order.
+            var bytes = VisualParams.Group0ParamIds
+                .Select(id => VisualParams.Params.TryGetValue(id, out var vp)
+                    ? Utils.FloatToByte(vp.DefaultValue, vp.MinValue, vp.MaxValue)
+                    : (byte)0)
                 .ToArray();
 
             var avatar = new Avatar { VisualParameters = bytes };
             var decoded = avatar.DecodeVisualParams();
 
-            foreach (var vp in group0)
+            // Collect all param IDs that are driven targets (their values get overwritten by derivation)
+            var drivenTargetIds = new HashSet<int>(
+                VisualParams.Params.Values
+                    .Where(p => p.DrivenParams != null)
+                    .SelectMany(p => p.DrivenParams!.Select(d => d.ParamID)));
+
+            foreach (var id in VisualParams.Group0ParamIds)
             {
-                Assert.That(decoded.ContainsKey(vp.ParamID), Is.True,
-                    $"ParamID {vp.ParamID} ({vp.Name}) missing from decoded result");
+                if (!VisualParams.Params.TryGetValue(id, out var vp)) continue;
+                Assert.That(decoded.ContainsKey(id), Is.True,
+                    $"ParamID {id} ({vp.Name}) missing from decoded result");
+                // Skip params that are driven targets — their value is overwritten by driver derivation
+                if (drivenTargetIds.Contains(id)) continue;
                 var expected = Utils.ByteToFloat(
                     Utils.FloatToByte(vp.DefaultValue, vp.MinValue, vp.MaxValue),
                     vp.MinValue, vp.MaxValue);
-                Assert.That(decoded[vp.ParamID], Is.EqualTo(expected).Within(1e-5f),
-                    $"ParamID {vp.ParamID} ({vp.Name}) value mismatch");
+                Assert.That(decoded[id], Is.EqualTo(expected).Within(1e-5f),
+                    $"ParamID {id} ({vp.Name}) value mismatch");
             }
         }
 
@@ -96,7 +109,8 @@ namespace LibreMetaverse.Tests
             var decoded = avatar.DecodeVisualParams();
             var expectedIds = new HashSet<int>(group0.Select(p => p.ParamID));
 
-            Assert.That(new HashSet<int>(decoded.Keys), Is.EqualTo(expectedIds));
+            // DecodeVisualParams also derives driven params, so group-0 IDs are a subset of all decoded keys
+            Assert.That(expectedIds, Is.SubsetOf(decoded.Keys));
         }
 
         [Test]
@@ -165,7 +179,8 @@ namespace LibreMetaverse.Tests
             var args = MakeAppearanceEventArgs(bytes);
             var decoded = args.DecodeVisualParams();
 
-            Assert.That(decoded.Count, Is.EqualTo(group0.Count));
+            // DecodeVisualParams also derives driven (group-1+) params, so total count >= group0.Count
+            Assert.That(decoded.Count, Is.GreaterThanOrEqualTo(group0.Count));
             foreach (var vp in group0)
             {
                 Assert.That(decoded.ContainsKey(vp.ParamID), Is.True,
