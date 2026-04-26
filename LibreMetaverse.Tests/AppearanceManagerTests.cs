@@ -99,5 +99,50 @@ namespace LibreMetaverse.Tests
             var unknown = AppearanceManager.BakeTypeToAgentTextureIndex((BakeType)(-999));
             Assert.That(unknown, Is.EqualTo(AvatarTextureIndex.Unknown));
         }
+
+        // ── LastUpdateReceivedCOFVersion / UpdateLastReceivedCOFVersion ────────
+
+        [Test]
+        public void LastUpdateReceivedCOFVersion_InitialValue_IsMinusOne()
+        {
+            var client = new GridClient();
+            Assert.That(client.Appearance.LastUpdateReceivedCOFVersion, Is.EqualTo(-1));
+        }
+
+        [Test]
+        public void UpdateLastReceivedCOFVersion_HigherVersion_Updates()
+        {
+            var client = new GridClient();
+            client.Appearance.UpdateLastReceivedCOFVersion(5);
+            Assert.That(client.Appearance.LastUpdateReceivedCOFVersion, Is.EqualTo(5));
+        }
+
+        [Test]
+        public void UpdateLastReceivedCOFVersion_LowerVersion_DoesNotUpdate()
+        {
+            var client = new GridClient();
+            client.Appearance.UpdateLastReceivedCOFVersion(10);
+            client.Appearance.UpdateLastReceivedCOFVersion(7);
+            Assert.That(client.Appearance.LastUpdateReceivedCOFVersion, Is.EqualTo(10));
+        }
+
+        [Test]
+        public void UpdateLastReceivedCOFVersion_SameVersion_DoesNotChange()
+        {
+            var client = new GridClient();
+            client.Appearance.UpdateLastReceivedCOFVersion(5);
+            client.Appearance.UpdateLastReceivedCOFVersion(5);
+            Assert.That(client.Appearance.LastUpdateReceivedCOFVersion, Is.EqualTo(5));
+        }
+
+        [Test]
+        public void UpdateLastReceivedCOFVersion_MonotonicallyIncreasing_TracksPeak()
+        {
+            var client = new GridClient();
+            var versions = new[] { 1, 3, 2, 7, 5, 10, 9 };
+            foreach (var v in versions)
+                client.Appearance.UpdateLastReceivedCOFVersion(v);
+            Assert.That(client.Appearance.LastUpdateReceivedCOFVersion, Is.EqualTo(10));
+        }
     }
 }
