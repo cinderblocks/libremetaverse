@@ -88,8 +88,8 @@ namespace LibreMetaverse.Tests
 
             var result = skeleton.BuildExpandedJointList(new[] { "A", "B", "C" });
 
-            // root is the initial effective parent, then each bone chains onto the tail
-            Assert.That(result, Is.EqualTo(new List<string> { "root", "A", "B", "C" }));
+            // root is not in the filter so no bridge entry is emitted; the filter-present bones chain directly
+            Assert.That(result, Is.EqualTo(new List<string> { "A", "B", "C" }));
         }
 
         [Test]
@@ -107,7 +107,7 @@ namespace LibreMetaverse.Tests
 
             Assert.That(result, Does.Not.Contain("B"),
                 "Intermediate bone absent from filter must not appear as a placeholder");
-            Assert.That(result, Is.EqualTo(new List<string> { "root", "A", "C" }));
+            Assert.That(result, Is.EqualTo(new List<string> { "A", "C" }));
         }
 
         [Test]
@@ -124,7 +124,7 @@ namespace LibreMetaverse.Tests
 
             Assert.That(result, Does.Not.Contain("inter1"));
             Assert.That(result, Does.Not.Contain("inter2"));
-            Assert.That(result, Is.EqualTo(new List<string> { "root", "A", "B" }));
+            Assert.That(result, Is.EqualTo(new List<string> { "A", "B" }));
         }
 
         [Test]
@@ -140,9 +140,9 @@ namespace LibreMetaverse.Tests
 
             var result = skeleton.BuildExpandedJointList(new[] { "A", "B", "C", "D" });
 
-            // First child branch:  root, A, B, C
+            // First child branch:  A, B, C
             // Second child branch: A (repeated placeholder), D
-            Assert.That(result, Is.EqualTo(new List<string> { "root", "A", "B", "C", "A", "D" }));
+            Assert.That(result, Is.EqualTo(new List<string> { "A", "B", "C", "A", "D" }));
         }
 
         [Test]
@@ -160,13 +160,14 @@ namespace LibreMetaverse.Tests
 
             Assert.That(result, Does.Not.Contain("B"),
                 "Intermediate bone absent from filter must not appear in the expanded list");
-            Assert.That(result, Is.EqualTo(new List<string> { "root", "A", "C", "A", "D" }));
+            Assert.That(result, Is.EqualTo(new List<string> { "A", "C", "A", "D" }));
         }
 
         [Test]
         public void BuildExpandedJointList_OnlyLeafInFilter_ReachableViaRootPlaceholder()
         {
             // root -> inter1 -> inter2 -> leaf (only leaf is in filter)
+            // Root and intermediates are not in the filter, so no bridge entries are emitted.
             var skeleton = MakeSkeleton("root",
                 MakeJoint("inter1",
                     MakeJoint("inter2",
@@ -174,7 +175,7 @@ namespace LibreMetaverse.Tests
 
             var result = skeleton.BuildExpandedJointList(new[] { "leaf" });
 
-            Assert.That(result, Is.EqualTo(new List<string> { "root", "leaf" }));
+            Assert.That(result, Is.EqualTo(new List<string> { "leaf" }));
         }
 
         [Test]
@@ -186,7 +187,7 @@ namespace LibreMetaverse.Tests
 
             var result = skeleton.BuildExpandedJointList(new[] { "A" });
 
-            Assert.That(result, Is.EqualTo(new List<string> { "root", "A" }));
+            Assert.That(result, Is.EqualTo(new List<string> { "A" }));
         }
 
         [Test]
@@ -209,7 +210,7 @@ namespace LibreMetaverse.Tests
             Assert.That(result, Does.Not.Contain("mNeck"),
                 "mNeck is not in the filter and must not appear as a placeholder");
             Assert.That(result, Is.EqualTo(
-                new List<string> { "mPelvis", "mTorso", "mChest", "mHead" }));
+                new List<string> { "mTorso", "mChest", "mHead" }));
         }
 
         // ── JointBase.SupportCategory ──────────────────────────────────────────
