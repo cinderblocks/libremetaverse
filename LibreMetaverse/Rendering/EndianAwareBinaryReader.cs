@@ -76,6 +76,8 @@ namespace OpenMetaverse.Rendering
         public override int ReadInt32()
         {
             m_a32 = base.ReadBytes(4);
+            if (m_a32.Length < 4)
+                throw new System.IO.EndOfStreamException("Could not read enough bytes for an Int32 value.");
             if (m_shouldReverseOrder)
                 Array.Reverse(m_a32);
             return BitConverter.ToInt32(m_a32, 0);
@@ -88,6 +90,8 @@ namespace OpenMetaverse.Rendering
         public override short ReadInt16()
         {
             m_a16 = base.ReadBytes(2);
+            if (m_a16.Length < 2)
+                throw new System.IO.EndOfStreamException("Could not read enough bytes for an Int16 value.");
             if (m_shouldReverseOrder)
                 Array.Reverse(m_a16);
             return BitConverter.ToInt16(m_a16, 0);
@@ -100,6 +104,8 @@ namespace OpenMetaverse.Rendering
         public override long ReadInt64()
         {
             m_a64 = base.ReadBytes(8);
+            if (m_a64.Length < 8)
+                throw new System.IO.EndOfStreamException("Could not read enough bytes for an Int64 value.");
             if (m_shouldReverseOrder)
                 Array.Reverse(m_a64);
             return BitConverter.ToInt64(m_a64, 0);
@@ -112,6 +118,8 @@ namespace OpenMetaverse.Rendering
         public override uint ReadUInt32()
         {
             m_a32 = base.ReadBytes(4);
+            if (m_a32.Length < 4)
+                throw new System.IO.EndOfStreamException("Could not read enough bytes for a UInt32 value.");
             if (m_shouldReverseOrder)
                 Array.Reverse(m_a32);
             return BitConverter.ToUInt32(m_a32, 0);
@@ -124,6 +132,8 @@ namespace OpenMetaverse.Rendering
         public override float ReadSingle()
         {
             m_a32 = base.ReadBytes(4);
+            if (m_a32.Length < 4)
+                throw new System.IO.EndOfStreamException("Could not read enough bytes for a Single value.");
             if (m_shouldReverseOrder)
                 Array.Reverse(m_a32);
             return BitConverter.ToSingle(m_a32, 0);
@@ -136,6 +146,8 @@ namespace OpenMetaverse.Rendering
         public override double ReadDouble()
         {
             m_a64 = base.ReadBytes(8);
+            if (m_a64.Length < 8)
+                throw new System.IO.EndOfStreamException("Could not read enough bytes for a Double value.");
             if (m_shouldReverseOrder)
                 Array.Reverse(m_a64);
             return BitConverter.ToDouble(m_a64, 0);
