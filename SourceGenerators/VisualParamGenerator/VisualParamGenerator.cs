@@ -597,9 +597,12 @@ namespace OpenMetaverse
             }
 
             // Emit Group0ParamIds initializer — group-0 and group-3 (TRANSMIT_NOT_TWEAKABLE) params
-            // in avatar_lad.xml document order. This order matches the AvatarAppearance visual_param
-            // byte sequence. Group-3 params are interleaved with group-0 params as they appear in
-            // the XML; omitting them causes all subsequent params to be decoded from the wrong byte.
+            // sorted in ascending numeric ID order. The SL viewer stores visual params in a
+            // std::map<S32, LLVisualParam*> (mVisualParamIndexMap) which iterates in ascending
+            // numeric key order. Both the encoder and decoder in the SL viewer use this same sorted
+            // iteration, so byte[N] in the AvatarAppearance packet corresponds to the N-th param
+            // by ascending numeric ID — not by avatar_lad.xml document order.
+            group0IdsInOrder.Sort();
             sb.Append("            Group0ParamIds = new int[] { ");
             sb.Append(string.Join(", ", group0IdsInOrder));
             sb.AppendLine(" };");

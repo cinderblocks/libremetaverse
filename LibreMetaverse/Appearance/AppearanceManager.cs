@@ -2326,25 +2326,20 @@ namespace OpenMetaverse
 
                 foreach (var kvp in VisualParams.Params)
                 {
+                    if (vpIndex >= nrParams) break;
                     var vp = kvp.Value;
-                    var paramValue = 0f;
 
+                    var paramValue = 0f;
                     var found = Wearables.Any(wearableList => wearableList.Value.Any(wearable => wearable.Asset != null && wearable.Asset.Params.TryGetValue(vp.ParamID, out paramValue)));
 
-                    // Try and find this value in our collection of downloaded wearables
-                    // Use a default value if we don't have one set for it
                     if (!found)
                         paramValue = vp.DefaultValue;
 
-                    // Only Group-0 parameters are sent in AgentSetAppearance packets
-                    if (kvp.Value.Group == 0)
+                    set.VisualParam[vpIndex] = new AgentSetAppearancePacket.VisualParamBlock
                     {
-                        set.VisualParam[vpIndex] = new AgentSetAppearancePacket.VisualParamBlock
-                        {
-                            ParamValue = Utils.FloatToByte(paramValue, vp.MinValue, vp.MaxValue)
-                        };
-                        ++vpIndex;
-                    }
+                        ParamValue = Utils.FloatToByte(paramValue, vp.MinValue, vp.MaxValue)
+                    };
+                    ++vpIndex;
 
                     // Check if this is one of the visual params used in the agent height calculation
                     switch (vp.ParamID)
@@ -2371,8 +2366,6 @@ namespace OpenMetaverse
                             agentSizeVPHipLength = paramValue;
                             break;
                     }
-
-                    if (vpIndex >= nrParams) break;
                 }
 
                 MyVisualParameters = new byte[set.VisualParam.Length];
