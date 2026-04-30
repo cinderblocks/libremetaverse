@@ -347,7 +347,7 @@ namespace OpenMetaverse
             var nodes = doc.GetElementsByTagName("param");
 
             var ids = new SortedList<int, string>();
-            var group0IdsInOrder = new List<int>();  // group-0 IDs in avatar_lad.xml document order
+            var group0IdsInOrder = new List<int>();  // group-0 and group-3 (TRANSMIT_NOT_TWEAKABLE) IDs in avatar_lad.xml document order
             var alphas = new Dictionary<int, string>();
             var colors = new Dictionary<int, string>();
             var drivenParamInfoMap = new Dictionary<int, string>();
@@ -558,6 +558,14 @@ namespace OpenMetaverse
                         group0IdsInOrder.Add(id);
                         ++count;
                     }
+                    else if (group == 3)
+                    {
+                        // group-3 (VISUAL_PARAM_GROUP_TRANSMIT_NOT_TWEAKABLE) params are also
+                        // transmitted in the AvatarAppearance packet interleaved with group-0 params
+                        // in avatar_lad.xml document order. They must be included here so that
+                        // DecodeVisualParams() reads each byte from the correct offset.
+                        group0IdsInOrder.Add(id);
+                    }
                 }
                 catch
                 {
@@ -588,8 +596,10 @@ namespace OpenMetaverse
                 sb.AppendLine(");");
             }
 
-            // Emit Group0ParamIds initializer — group-0 params in avatar_lad.xml document order.
-            // This order matches the AvatarAppearance visual_param byte sequence.
+            // Emit Group0ParamIds initializer — group-0 and group-3 (TRANSMIT_NOT_TWEAKABLE) params
+            // in avatar_lad.xml document order. This order matches the AvatarAppearance visual_param
+            // byte sequence. Group-3 params are interleaved with group-0 params as they appear in
+            // the XML; omitting them causes all subsequent params to be decoded from the wrong byte.
             sb.Append("            Group0ParamIds = new int[] { ");
             sb.Append(string.Join(", ", group0IdsInOrder));
             sb.AppendLine(" };");

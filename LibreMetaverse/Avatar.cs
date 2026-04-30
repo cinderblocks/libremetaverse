@@ -493,15 +493,18 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Decodes the compressed group-0 visual parameters received from the network
+        /// Decodes the compressed group-0 and group-3 visual parameters received from the network
         /// into a dictionary of parameter ID to float value, then derives driven (group-1+)
         /// parameters from their group-0 driver values.
         /// The result can be passed directly to
         /// <see cref="OpenMetaverse.Rendering.LindenAvatarDefinition.ComputeBoneTransforms"/>.
         /// </summary>
-        /// <returns>
-        /// A read-only dictionary mapping each visual parameter ID to its decoded or derived float value.
-        /// </returns>
+        /// <remarks>
+        /// The AvatarAppearance packet transmits both TWEAKABLE (group-0) and
+        /// TRANSMIT_NOT_TWEAKABLE (group-3) params interleaved in avatar_lad.xml document order.
+        /// <see cref="VisualParams.Group0ParamIds"/> includes both groups in that order so each
+        /// byte maps to the correct parameter.
+        /// </remarks>
         public IReadOnlyDictionary<int, float> DecodeVisualParams()
         {
             var ids    = VisualParams.Group0ParamIds;
