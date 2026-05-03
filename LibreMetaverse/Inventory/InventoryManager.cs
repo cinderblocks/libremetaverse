@@ -1989,6 +1989,73 @@ namespace OpenMetaverse
             }
         }
 
+        /// <summary>
+        /// Creates multiple inventory links to another inventory item or folder atonce
+        /// </summary>
+        /// <param name="folderID"></param>
+        /// <param name="items"></param>
+        /// <param name="callback"></param>
+        public async Task CreateLinksAsync(
+            UUID folderID,
+            IEnumerable<InventoryBase> items,
+            Action<bool> callback,
+            CancellationToken cancellationToken = default
+        )
+        {
+            if (Client.AisClient.IsAvailable)
+            {
+                OSDArray links = new OSDArray();
+                foreach (InventoryBase baseItem in items)
+                {
+                    switch (baseItem)
+                    {
+                        case InventoryItem item:
+                            {
+                                OSDMap link = new OSDMap
+                                {
+                                    ["linked_id"] = OSD.FromUUID(item.UUID),
+                                    ["type"] = OSD.FromInteger((int)AssetType.Link),
+                                    ["inv_type"] = OSD.FromInteger((int)item.InventoryType),
+                                    ["name"] = OSD.FromString(item.Name),
+                                    ["desc"] = OSD.FromString(item.Description)
+                                };
+
+                                links.Add(link);
+                                break;
+                            }
+                        case InventoryFolder folder:
+                            {
+                                OSDMap link = new OSDMap
+                                {
+                                    ["linked_id"] = OSD.FromUUID(folder.UUID),
+                                    ["type"] = OSD.FromInteger((int)AssetType.LinkFolder),
+                                    ["inv_type"] = OSD.FromInteger((int)InventoryType.Folder),
+                                    ["name"] = OSD.FromString(folder.Name),
+                                    ["desc"] = OSD.FromString(string.Empty)
+                                };
+
+                                links.Add(link);
+                            }
+                            break;
+                    }
+                }
+
+                OSDMap newInventory = new OSDMap { { "links", links } };
+
+                await Client.AisClient.CreateInventory(
+                    folderID,
+                    newInventory,
+                    true,
+                    (success, reply) => callback?.Invoke(success),
+                    cancellationToken
+                ).ConfigureAwait(false);
+            }
+            else
+            {
+                throw new InvalidOperationException("Creating of batch links only supported on AIS3");
+            }
+        }
+
         #endregion Create
 
         #region Copy
