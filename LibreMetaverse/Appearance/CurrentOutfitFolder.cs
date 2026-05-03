@@ -1262,10 +1262,7 @@ namespace LibreMetaverse.Appearance
             }
 
             // Add links to new items
-            foreach (var item in itemsToAdd)
-            {
-                await AddLink(item, cancellationToken);
-            }
+            await AddLinks(itemsToAdd, cancellationToken);
 
             client.Appearance.AddToOutfit(itemsToAdd, replace);
             _ = Task.Run(async () =>
