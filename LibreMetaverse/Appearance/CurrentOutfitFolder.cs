@@ -520,9 +520,13 @@ namespace LibreMetaverse.Appearance
                 return;
             }
 
+            List<InventoryItem> cofLinks = await GetCurrentOutfitLinks(cancellationToken);
+            IEnumerable<InventoryItem> newLinks = items
+                .Where(item => cofLinks.Find(itemLink => itemLink.AssetUUID == item.ResolvedAssetID) == null);
+
             if (client.AisClient.IsAvailable)
             {
-                await client.Inventory.CreateLinksAsync(COF.UUID, items, success =>
+                await client.Inventory.CreateLinksAsync(COF.UUID, newLinks, success =>
                 {
                     client.Inventory.RequestFolderContents(
                         COF.UUID,
@@ -536,7 +540,7 @@ namespace LibreMetaverse.Appearance
             }
             else
             {
-                foreach (InventoryItem item in items)
+                foreach (InventoryItem item in newLinks)
                 {
                     await AddLink(item, cancellationToken);
                 }

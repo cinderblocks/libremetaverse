@@ -1990,7 +1990,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Creates multiple inventory links to another inventory item or folder atonce
+        /// Creates multiple inventory links to another inventory item or folder at once.
         /// </summary>
         /// <param name="folderID"></param>
         /// <param name="items"></param>
