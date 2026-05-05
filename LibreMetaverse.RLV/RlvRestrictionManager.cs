@@ -218,7 +218,7 @@ namespace LibreMetaverse.RLV
 
                 if (notificationRestriction.Args.Count > 1)
                 {
-                    filter = notificationRestriction.Args[1].ToString();
+                    filter = notificationRestriction.Args[1].ToString() ?? string.Empty;
                 }
 
                 if (!restrictionName.Contains(filter.ToLowerInvariant()))

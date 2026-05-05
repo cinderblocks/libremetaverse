@@ -5,7 +5,7 @@
 namespace System.Diagnostics.CodeAnalysis
 #pragma warning restore IDE0130 // Namespace does not match folder structure
 {
-#if !NETSTANDARD2_1
+#if NETSTANDARD2_0
     /// <summary>Specifies that null is allowed as an input even if the corresponding type disallows it.</summary>
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Property, Inherited = false)]
 #if SYSTEM_PRIVATE_CORELIB
