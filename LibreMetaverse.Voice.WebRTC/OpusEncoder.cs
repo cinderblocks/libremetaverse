@@ -52,9 +52,9 @@ namespace LibreMetaverse.Voice.WebRTC
         private const int MAX_FRAME_SIZE = MAX_DECODED_FRAME_SIZE_MULT * 960;
         private const int SAMPLE_RATE = 48000;
 
-        private int _channels = 1;
-        private short[]? _shortBuffer;
-        private byte[]? _byteBuffer;
+        private const int CHANNELS = 1;
+        private short[]? _decodeBuffer;
+        private byte[]? _encodeOutputBuffer;
 
         private IOpusEncoder? _opusEncoder;
         private IOpusDecoder? _opusDecoder;
@@ -82,21 +82,19 @@ namespace LibreMetaverse.Voice.WebRTC
 
             if (_opusDecoder == null)
             {
-                _opusDecoder = OpusCodecFactory.CreateDecoder(SAMPLE_RATE, _channels);
-                _shortBuffer = new short[MAX_FRAME_SIZE * _channels];
+                _opusDecoder = OpusCodecFactory.CreateDecoder(SAMPLE_RATE, CHANNELS);
+                _decodeBuffer = new short[MAX_FRAME_SIZE * CHANNELS];
             }
 
             try
             {
                 var numSamplesDecoded = _opusDecoder!.Decode(
-                        encodedSample.AsSpan(), _shortBuffer!.AsSpan(), GetFrameSize());
+                        encodedSample.AsSpan(), _decodeBuffer!.AsSpan(), GetFrameSize());
 
                 if (numSamplesDecoded >= 1)
                 {
                     var buffer = new short[numSamplesDecoded];
-                    Array.Copy(_shortBuffer!, 0,
-                        buffer, 0, numSamplesDecoded);
-
+                    Array.Copy(_decodeBuffer!, 0, buffer, 0, numSamplesDecoded);
                     return buffer;
                 }
             }
@@ -113,20 +111,25 @@ namespace LibreMetaverse.Voice.WebRTC
 
             if (_opusEncoder == null)
             {
-                _opusEncoder = OpusCodecFactory.CreateEncoder(SAMPLE_RATE, _channels, OpusApplication.OPUS_APPLICATION_VOIP);
+                _opusEncoder = OpusCodecFactory.CreateEncoder(SAMPLE_RATE, CHANNELS, OpusApplication.OPUS_APPLICATION_VOIP);
                 _opusEncoder.ForceMode = OpusMode.MODE_AUTO;
-                _byteBuffer = new byte[MAX_PACKET_SIZE];
+                _opusEncoder.UseInbandFEC = true;
+                _opusEncoder.SignalType = OpusSignal.OPUS_SIGNAL_VOICE;
+                _opusEncoder.MaxBandwidth = OpusBandwidth.OPUS_BANDWIDTH_FULLBAND;
+                _opusEncoder.ExpertFrameDuration = OpusFramesize.OPUS_FRAMESIZE_20_MS;
+                _opusEncoder.UseVBR = true;
+                _encodeOutputBuffer = new byte[MAX_PACKET_SIZE];
             }
 
             int frameSize = GetFrameSize();
 
-            // Accumulate samples until we have a full Opus frame.
-            // SDL callbacks may deliver partial frames (e.g. 446 samples instead of 960).
             if (_encodeAccumulator == null)
             {
                 _encodeAccumulator = new short[frameSize];
                 _encodeAccumulatorCount = 0;
             }
+
+            var results = new System.Collections.Generic.List<byte[]>();
 
             int inputOffset = 0;
             while (inputOffset < in_pcm.Length)
@@ -143,14 +146,13 @@ namespace LibreMetaverse.Voice.WebRTC
                 try
                 {
                     var size = _opusEncoder!.Encode(
-                        _encodeAccumulator.AsSpan(), frameSize, _byteBuffer!.AsSpan(), MAX_PACKET_SIZE);
+                        _encodeAccumulator.AsSpan(), frameSize, _encodeOutputBuffer!.AsSpan(), MAX_PACKET_SIZE);
 
                     if (size > 1)
                     {
                         var result = new byte[size];
-                        Array.Copy(_byteBuffer!, 0, result, 0, size);
-                        _encodeAccumulatorCount = 0;
-                        return result;
+                        Array.Copy(_encodeOutputBuffer!, 0, result, 0, size);
+                        results.Add(result);
                     }
                 }
                 catch (Exception ex)
@@ -161,7 +163,10 @@ namespace LibreMetaverse.Voice.WebRTC
                 _encodeAccumulatorCount = 0;
             }
 
-            return Array.Empty<byte>();
+            // Return the first encoded packet; any additional frames from an oversized
+            // input buffer are discarded here — SDL3 delivers at most one frame's worth
+            // per callback when SetAudioSourceFormat is configured correctly.
+            return results.Count > 0 ? results[0] : Array.Empty<byte>();
         }
 
         public int GetFrameSize()
