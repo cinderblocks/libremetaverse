@@ -3426,6 +3426,10 @@ namespace OpenMetaverse.Messages.Linden
         public byte[] BinaryBucket;
         /// <summary>Is this invitation for voice group/conference chat</summary>
         public bool Voice;
+        /// <summary>Voice channel URI (only set when <see cref="Voice"/> is true)</summary>
+        public string VoiceChannelUri = string.Empty;
+        /// <summary>Voice channel credentials (only set when <see cref="Voice"/> is true)</summary>
+        public string VoiceChannelCredentials = string.Empty;
 
         /// <summary>
         /// Serialize the object
@@ -3472,6 +3476,13 @@ namespace OpenMetaverse.Messages.Linden
                 IMSessionID = map["session_id"].AsUUID();
                 BinaryBucket = Utils.StringToBytes(map["session_name"].AsString());
                 Voice = true;
+
+                // Extract voice channel URI and credentials from the voice submap
+                if (map["voice"] is OSDMap voiceMap)
+                {
+                    VoiceChannelUri = voiceMap.ContainsKey("channel_uri") ? voiceMap["channel_uri"].AsString() : string.Empty;
+                    VoiceChannelCredentials = voiceMap.ContainsKey("channel_credentials") ? voiceMap["channel_credentials"].AsString() : string.Empty;
+                }
             }
             else
             {

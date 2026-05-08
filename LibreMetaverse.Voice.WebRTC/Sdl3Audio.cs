@@ -108,6 +108,7 @@ namespace LibreMetaverse
                 try
                 {
                     Source = new SDL3AudioSource(RecordingDevice.name, _audioEncoder);
+                    Source.SetAudioSourceFormat(OpusAudioEncoder.MEDIA_FORMAT_OPUS);
                     AttachSourceHandlers();
                 }
                 catch (Exception ex)
@@ -133,7 +134,7 @@ namespace LibreMetaverse
             try
             {
                 if (PlaybackActive) { _ = StopPlaybackAsync(); }
-                if (RecordingActive) StopRecording();
+                CloseRecordingSource();
                 if (IsAvailable) SDL3Helper.QuitSDL();
             }
             catch { }
@@ -311,62 +312,23 @@ namespace LibreMetaverse
             if (!IsAvailable || Source == null) return;
             try
             {
-                // Check if source needs reinitialization (after being closed)
-                bool needsReinit = false;
-                try
-                {
-                    var sourceType = Source.GetType();
-                    var streamField = sourceType.GetField("_audioStream", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    if (streamField != null)
-                    {
-                        var stream = streamField.GetValue(Source);
-                        if (stream == null)
-                        {
-                            needsReinit = true;
-                            _log.Debug("Recording source audio stream is null, reinitializing");
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _log.Debug($"Could not check source stream state: {ex.Message}");
-                }
-                
-                // Reinitialize source if needed
-                if (needsReinit)
-                {
-                    try
-                    {
-                        // Get the current format and reinitialize
-                        var formats = Source.GetAudioSourceFormats();
-                        if (formats != null && formats.Count > 0)
-                        {
-                            var fmt = formats[0]; // Use first available format
-                            Source.SetAudioSourceFormat(fmt);
-                            _log.Debug("Recording source reinitialized");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _log.Warn($"Failed to reinitialize recording source: {ex.Message}");
-                        // Try to recreate source from scratch
-                        try
-                        {
-                            DetachSourceHandlers();
-                            Source = new SDL3AudioSource(RecordingDevice.name, _audioEncoder);
-                            AttachSourceHandlers();
-                            _log.Debug("Recording source recreated from scratch");
-                        }
-                        catch (Exception ex2)
-                        {
-                            _log.Error($"Failed to recreate recording source: {ex2.Message}");
-                            return;
-                        }
-                    }
-                }
-                
-                // Ensure handlers are attached before starting so encoded/raw callbacks are received
                 AttachSourceHandlers();
+
+                // If the source is already running but paused (e.g. PTT muted), resume it.
+                // IsAudioSourcePaused() returns true only after StartAudio() has been called
+                // at least once, so we can use it to distinguish "paused" from "never started".
+                if (Source.IsAudioSourcePaused())
+                {
+                    Source.ResumeAudio();
+                    RecordingActive = true;
+                    OnRecordingActiveChanged?.Invoke(true);
+                    _log.Debug("Recording resumed");
+                    return;
+                }
+
+                if (RecordingActive)
+                    return; // already running and not paused — nothing to do
+
                 Source.StartAudio();
                 RecordingActive = true;
                 OnRecordingActiveChanged?.Invoke(true);
@@ -381,7 +343,43 @@ namespace LibreMetaverse
         public void StopRecording()
         {
             if (!IsAvailable || Source == null) return;
-            try { DetachSourceHandlers(); StopSourceSafely(Source); RecordingActive = false; OnRecordingActiveChanged?.Invoke(false); _log.Debug("Recording stopped"); } catch (Exception ex) { _log.Error($"Failed to stop recording: {ex.Message}"); }
+            try
+            {
+                // Use PauseAudio to suspend the capture stream without destroying the SDL3 audio
+                // stream or disposing the source object. Calling StopAudio / Dispose here causes
+                // the underlying SDL3 stream handle to be released, so a subsequent StartAudio()
+                // (e.g. when PTT is pressed again) silently fails on a disposed object.
+                // PauseAudio/ResumeAudio leave all event subscriptions intact so the VoiceSession
+                // peer-connection wiring continues to work after unmute.
+                if (!Source.IsAudioSourcePaused())
+                    Source.PauseAudio();
+                RecordingActive = false;
+                OnRecordingActiveChanged?.Invoke(false);
+                _log.Debug("Recording stopped");
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Failed to stop recording: {ex.Message}");
+            }
+        }
+
+        public void CloseRecordingSource()
+        {
+            if (Source == null) return;
+            try
+            {
+                DetachSourceHandlers();
+                try { Source.CloseAudio(); } catch { }
+                try { if (Source is IDisposable d) d.Dispose(); } catch { }
+                Source = null;
+                RecordingActive = false;
+                _sourceHandlersAttached = false;
+                _log.Debug("Recording source closed");
+            }
+            catch (Exception ex)
+            {
+                _log.Warn($"Failed to close recording source: {ex.Message}");
+            }
         }
 
         private void StopSourceSafely(object? source)
@@ -814,6 +812,7 @@ namespace LibreMetaverse
                     throw new InvalidOperationException("Failed to create SDL3 audio source.", lastEx);
                 }
 
+                Source.SetAudioSourceFormat(OpusAudioEncoder.MEDIA_FORMAT_OPUS);
                 AttachSourceHandlers();
                 if (wasRecording) StartRecording();
             }

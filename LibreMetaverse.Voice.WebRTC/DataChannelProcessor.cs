@@ -84,52 +84,74 @@ namespace LibreMetaverse.Voice.WebRTC
             catch (Exception ex) { try { _log.Debug($"SetPeerMute failed: {ex.Message}", _client); } catch { } return false; }
         }
 
+        /// <summary>
+        /// Set per-peer gain on the voice server.
+        /// <paramref name="gain"/> must be in SL's 0–220 range (PEER_GAIN_CONVERSION_FACTOR = 220).
+        /// 220 = full volume (1.0), 0 = silence.
+        /// </summary>
         public bool SetPeerGain(UUID peerId, int gain)
         {
+            // Clamp to valid server range
+            if (gain < 0) gain = 0;
+            if (gain > 220) gain = 220;
             try { return TrySend("{\"ug\": {\"" + peerId + "\": " + gain + "}}"); }
             catch (Exception ex) { try { _log.Debug($"SetPeerGain failed: {ex.Message}", _client); } catch { } return false; }
         }
 
-        public bool SendPosition(Vector3d globalPos, Quaternion heading)
+        /// <summary>
+        /// Send avatar body position/heading (<c>sp</c>/<c>sh</c>) and camera/listener
+        /// position/heading (<c>lp</c>/<c>lh</c>) as separate values.
+        /// This is the preferred overload — it matches SL C++ which tracks avatar and camera poses
+        /// independently. <c>listenerPos</c>/<c>listenerHeading</c> should come from the camera.
+        /// </summary>
+        public bool SendPosition(Vector3d avatarPos, Quaternion avatarHeading,
+                                  Vector3d listenerPos, Quaternion listenerHeading)
         {
             try
             {
-                int posX = (int)Math.Round(globalPos.X * 100);
-                int posY = (int)Math.Round(globalPos.Y * 100);
-                int posZ = (int)Math.Round(globalPos.Z * 100);
+                int spX = (int)Math.Round(avatarPos.X * 100);
+                int spY = (int)Math.Round(avatarPos.Y * 100);
+                int spZ = (int)Math.Round(avatarPos.Z * 100);
+                int shX = (int)Math.Round(avatarHeading.X * 100);
+                int shY = (int)Math.Round(avatarHeading.Y * 100);
+                int shZ = (int)Math.Round(avatarHeading.Z * 100);
+                int shW = (int)Math.Round(avatarHeading.W * 100);
 
-                int headX = (int)Math.Round(heading.X * 100);
-                int headY = (int)Math.Round(heading.Y * 100);
-                int headZ = (int)Math.Round(heading.Z * 100);
-                int headW = (int)Math.Round(heading.W * 100);
+                int lpX = (int)Math.Round(listenerPos.X * 100);
+                int lpY = (int)Math.Round(listenerPos.Y * 100);
+                int lpZ = (int)Math.Round(listenerPos.Z * 100);
+                int lhX = (int)Math.Round(listenerHeading.X * 100);
+                int lhY = (int)Math.Round(listenerHeading.Y * 100);
+                int lhZ = (int)Math.Round(listenerHeading.Z * 100);
+                int lhW = (int)Math.Round(listenerHeading.W * 100);
 
                 var jw = new JsonWriter();
                 jw.WriteObjectStart();
 
                 jw.WritePropertyName("sp"); jw.WriteObjectStart();
-                jw.WritePropertyName("x"); jw.Write(posX);
-                jw.WritePropertyName("y"); jw.Write(posY);
-                jw.WritePropertyName("z"); jw.Write(posZ);
+                jw.WritePropertyName("x"); jw.Write(spX);
+                jw.WritePropertyName("y"); jw.Write(spY);
+                jw.WritePropertyName("z"); jw.Write(spZ);
                 jw.WriteObjectEnd();
 
                 jw.WritePropertyName("sh"); jw.WriteObjectStart();
-                jw.WritePropertyName("x"); jw.Write(headX);
-                jw.WritePropertyName("y"); jw.Write(headY);
-                jw.WritePropertyName("z"); jw.Write(headZ);
-                jw.WritePropertyName("w"); jw.Write(headW);
+                jw.WritePropertyName("x"); jw.Write(shX);
+                jw.WritePropertyName("y"); jw.Write(shY);
+                jw.WritePropertyName("z"); jw.Write(shZ);
+                jw.WritePropertyName("w"); jw.Write(shW);
                 jw.WriteObjectEnd();
 
                 jw.WritePropertyName("lp"); jw.WriteObjectStart();
-                jw.WritePropertyName("x"); jw.Write(posX);
-                jw.WritePropertyName("y"); jw.Write(posY);
-                jw.WritePropertyName("z"); jw.Write(posZ);
+                jw.WritePropertyName("x"); jw.Write(lpX);
+                jw.WritePropertyName("y"); jw.Write(lpY);
+                jw.WritePropertyName("z"); jw.Write(lpZ);
                 jw.WriteObjectEnd();
 
                 jw.WritePropertyName("lh"); jw.WriteObjectStart();
-                jw.WritePropertyName("x"); jw.Write(headX);
-                jw.WritePropertyName("y"); jw.Write(headY);
-                jw.WritePropertyName("z"); jw.Write(headZ);
-                jw.WritePropertyName("w"); jw.Write(headW);
+                jw.WritePropertyName("x"); jw.Write(lhX);
+                jw.WritePropertyName("y"); jw.Write(lhY);
+                jw.WritePropertyName("z"); jw.Write(lhZ);
+                jw.WritePropertyName("w"); jw.Write(lhW);
                 jw.WriteObjectEnd();
 
                 jw.WriteObjectEnd();
@@ -137,6 +159,13 @@ namespace LibreMetaverse.Voice.WebRTC
             }
             catch (Exception ex) { try { _log.Debug($"SendPosition failed: {ex.Message}", _client); } catch { } return false; }
         }
+
+        /// <summary>
+        /// Legacy single-pose overload — sets both avatar and listener to the same position/heading.
+        /// Prefer the four-argument overload which separates avatar body from camera pose.
+        /// </summary>
+        public bool SendPosition(Vector3d globalPos, Quaternion heading)
+            => SendPosition(globalPos, heading, globalPos, heading);
 
         public bool SendAvatarArray(List<UUID> avatars)
         {
@@ -174,12 +203,19 @@ namespace LibreMetaverse.Voice.WebRTC
             catch (Exception ex) { try { _log.Debug($"SendMuteMap failed: {ex.Message}", _client); } catch { } return false; }
         }
 
+        /// <summary>
+        /// Send a batch gain map. Values must be in SL's 0–220 range (PEER_GAIN_CONVERSION_FACTOR = 220).
+        /// </summary>
         public bool SendGainMap(Dictionary<UUID, int> gainMap)
         {
             try
             {
                 var jw = new JsonWriter(); jw.WriteObjectStart(); jw.WritePropertyName("ug"); jw.WriteObjectStart();
-                if (gainMap != null) foreach (var kv in gainMap) { jw.WritePropertyName(kv.Key.ToString()); jw.Write(kv.Value); }
+                if (gainMap != null) foreach (var kv in gainMap)
+                {
+                    int v = kv.Value < 0 ? 0 : kv.Value > 220 ? 220 : kv.Value;
+                    jw.WritePropertyName(kv.Key.ToString()); jw.Write(v);
+                }
                 jw.WriteObjectEnd(); jw.WriteObjectEnd();
                 return TrySend(jw.ToString());
             }

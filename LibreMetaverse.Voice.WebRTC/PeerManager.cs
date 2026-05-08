@@ -51,6 +51,7 @@ namespace LibreMetaverse.Voice.WebRTC
         public event Action<UUID, VoiceSession.PeerAudioState>? PeerAudioUpdated;
         public event Action<Dictionary<UUID, bool>>? MuteMapReceived;
         public event Action<Dictionary<UUID, int>>? GainMapReceived;
+        public event Action? PongReceived;
 
         public PeerManager(Sdl3Audio audioDevice, GridClient client, IVoiceLogger log)
         {
@@ -63,6 +64,8 @@ namespace LibreMetaverse.Voice.WebRTC
         {
             try { return Peers.Keys.ToList(); } catch { return new List<UUID>(); }
         }
+
+        public bool TryGetSsrc(UUID peerId, out uint ssrc) => PeerToSsrc.TryGetValue(peerId, out ssrc);
 
         public void ClearAllPeers()
         {
@@ -227,12 +230,16 @@ namespace LibreMetaverse.Voice.WebRTC
             
             var jdContains = jdDict;
 
-            // Ping reply
+            // Ping/pong
             try
             {
                 if (jdContains != null && containsWrapper(jdContains, "ping") && JBool(jd["ping"]) == true)
                 {
                     try { sendString?.Invoke("{\"pong\":true}"); } catch { }
+                }
+                if (jdContains != null && containsWrapper(jdContains, "pong") && JBool(jd["pong"]) == true)
+                {
+                    try { PongReceived?.Invoke(); } catch { }
                 }
             }
             catch { }
@@ -504,18 +511,21 @@ namespace LibreMetaverse.Voice.WebRTC
             }
             catch { }
 
-            // Reply to ping if present
+            // Reply to ping / record pong
             try
             {
                 if (map.ContainsKey("ping") && map["ping"] is OSD && map["ping"].AsBoolean())
                 {
                     try { sendString?.Invoke("{\"pong\":true}"); } catch { }
                 }
+                if (map.ContainsKey("pong") && map["pong"].AsBoolean())
+                {
+                    try { PongReceived?.Invoke(); } catch { }
+                }
             }
             catch { }
         }
 
-        public bool TryGetSsrcForPeer(UUID peerId, out uint ssrc) => PeerToSsrc.TryGetValue(peerId, out ssrc);
         public bool TryGetPeerForSsrc(uint ssrc, out UUID peerId) => SsrcToPeer.TryGetValue(ssrc, out peerId);
 
     }

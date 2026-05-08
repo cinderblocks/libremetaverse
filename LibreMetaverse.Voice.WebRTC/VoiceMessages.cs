@@ -47,17 +47,19 @@ namespace LibreMetaverse.Voice.WebRTC
 
         public OSDMap Serialize()
         {
-            var map = new OSDMap(1);
-            var jsep = new OSDMap(5)
+            var map = new OSDMap(4);
+            var jsep = new OSDMap(2)
             {
                 { "type", "offer" },
                 { "sdp", Sdp },
             };
+            map.Add("jsep", jsep);
+            // parcel_local_id is a top-level body field, NOT inside jsep.
+            // SL C++: if (mParcelLocalID != INVALID_PARCEL_ID) body["parcel_local_id"] = mParcelLocalID;
             if (ParcelId > -1)
             {
-                jsep["parcel_location_id"] = ParcelId;
+                map["parcel_local_id"] = ParcelId;
             }
-            map.Add("jsep", jsep);
             map.Add("channel_type", "local");
             map.Add("voice_server_type", "webrtc");
 

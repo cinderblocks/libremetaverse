@@ -72,7 +72,24 @@ namespace OpenMetaverse.StructuredData
                 return DeserializeLLSDXml(data);
             }
 
-            return DeserializeJson(Encoding.UTF8.GetString(data));
+            // Only attempt JSON if the data starts with a valid JSON token.
+            // Plain-text error responses from the server (e.g. "Unknown conference") must
+            // not be fed to the JSON lexer — they will cause a JsonException.
+            var trimmed = headerUtf8.TrimStart();
+            if (trimmed.Length > 0)
+            {
+                char first = trimmed[0];
+                if (first == '{' || first == '[' || first == '"' || first == '-'
+                    || char.IsDigit(first)
+                    || trimmed.StartsWith("true", StringComparison.Ordinal)
+                    || trimmed.StartsWith("false", StringComparison.Ordinal)
+                    || trimmed.StartsWith("null", StringComparison.Ordinal))
+                {
+                    return DeserializeJson(Encoding.UTF8.GetString(data));
+                }
+            }
+
+            throw new OSDException($"Unable to deserialize data: unrecognized format. Preview: {trimmed.Substring(0, Math.Min(trimmed.Length, 64))}");
         }
 
         public static OSD Deserialize(string data)
