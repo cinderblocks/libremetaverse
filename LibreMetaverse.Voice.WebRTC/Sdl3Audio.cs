@@ -662,6 +662,18 @@ namespace LibreMetaverse
             FeedPcmSamples(samples, channels, sampleRate);
         }
 
+        /// <summary>
+        /// Inject a pre-encoded Opus frame directly into the transmission chain.
+        /// Fires <see cref="OnAudioSourceEncodedSample"/> (which VoiceSession wires to
+        /// <c>pc.SendAudio</c>) without any local playback side-effect.
+        /// Used by <c>TtsService</c> to transmit TTS audio over WebRTC.
+        /// </summary>
+        public void FeedEncodedSample(uint durationRtpUnits, byte[] encoded)
+        {
+            if (encoded == null || encoded.Length == 0) return;
+            try { OnAudioSourceEncodedSample?.Invoke(durationRtpUnits, encoded); } catch { }
+        }
+
         public async Task PlayRawPcmStreamAsync(Stream pcmStream, int channels = 1, int sampleRate = 48000, CancellationToken ct = default)
         {
             if (pcmStream == null) throw new ArgumentNullException(nameof(pcmStream));
@@ -697,50 +709,20 @@ namespace LibreMetaverse
             int monoLen = interleaved.Length / channels; var mono = new short[monoLen]; for (int i = 0; i < monoLen; i++) { int acc = 0; for (int c = 0; c < channels; c++) acc += interleaved[i * channels + c]; mono[i] = (short)(acc / channels); } return mono;
         }
 
-        // Incoming source callbacks
+        // Incoming source callbacks — forward encoded mic audio up the chain so VoiceSession
+        // can wire it to pc.SendAudio. Do NOT decode and play it back locally; local playback
+        // is for *received remote* audio only (routed via PeerManager.PlayRtpPacket).
         private int _samplesReceivedCount = 0;
         public void AudioSource_OnAudioSourceEncodedSample(uint durationRtpUnits, byte[] sample)
         {
             _samplesReceivedCount++;
             try { OnAudioSourceEncodedSample?.Invoke(durationRtpUnits, sample); } catch { }
-
-            if (!IsAvailable) return;
-            if (EndPoint == null)
-            {
-                // Try to recreate endpoint if missing
-                if (!EnsureEndpoint())
-                {
-                    _log.Warn("AudioSource_OnAudioSourceEncodedSample: cannot create audio endpoint");
-                    return;
-                }
-            }
-            
-            // Auto-start playback when audio samples arrive if not already playing
-            if (!PlaybackActive) 
-            { 
-                _log.Debug($"Auto-starting playback (sample #{_samplesReceivedCount})");
-                _ = StartPlaybackAsync(); 
-                // Give playback time to start
-                System.Threading.Thread.Sleep(50);
-            }
-
-            if (sample == null || sample.Length == 0) return;
-            try
-            {
-                var pcmSample = _audioEncoder.DecodeAudio(sample, OpusAudioEncoder.MEDIA_FORMAT_OPUS);
-                if (pcmSample == null || pcmSample.Length == 0) return;
-                var pcmBytes = pcmSample.SelectMany(BitConverter.GetBytes).ToArray();
-                EndPoint?.PutAudioSample(pcmBytes);
-            }
-            catch (Exception ex)
-            {
-                _log.Debug($"Failed to decode/play audio sample: {ex.Message}");
-            }
         }
 
         public void AudioSource_OnAudioSourceRawSample(AudioSamplingRatesEnum samplingRate, uint durationMilliseconds, short[] sample)
         {
-            try { byte[] pcmBytes = sample.SelectMany(BitConverter.GetBytes).ToArray(); EndPoint?.PutAudioSample(pcmBytes); } catch { }
+            // Raw mic samples are only used for level metering (see VoiceViewModel). Do not
+            // route them to the endpoint — that would cause local mic-feedback echo.
         }
 
         // Device lists
