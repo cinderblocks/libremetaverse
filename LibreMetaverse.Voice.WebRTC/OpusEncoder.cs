@@ -62,6 +62,7 @@ namespace LibreMetaverse.Voice.WebRTC
         // Accumulation buffer for partial frames from the audio source callback
         private short[]? _encodeAccumulator;
         private int _encodeAccumulatorCount;
+        private readonly object _encodeLock = new object();
 
         public List<AudioFormat> SupportedFormats { get; }
 
@@ -109,64 +110,67 @@ namespace LibreMetaverse.Voice.WebRTC
         {
             if (format.FormatName != "opus") { return _audioEncoder.EncodeAudio(in_pcm, format); }
 
-            if (_opusEncoder == null)
+            lock (_encodeLock)
             {
-                _opusEncoder = OpusCodecFactory.CreateEncoder(SAMPLE_RATE, CHANNELS, OpusApplication.OPUS_APPLICATION_VOIP);
-                _opusEncoder.ForceMode = OpusMode.MODE_AUTO;
-                _opusEncoder.UseInbandFEC = true;
-                _opusEncoder.SignalType = OpusSignal.OPUS_SIGNAL_VOICE;
-                _opusEncoder.MaxBandwidth = OpusBandwidth.OPUS_BANDWIDTH_FULLBAND;
-                _opusEncoder.ExpertFrameDuration = OpusFramesize.OPUS_FRAMESIZE_20_MS;
-                _opusEncoder.UseVBR = true;
-                _encodeOutputBuffer = new byte[MAX_PACKET_SIZE];
-            }
-
-            int frameSize = GetFrameSize();
-
-            if (_encodeAccumulator == null || _encodeAccumulator.Length != frameSize)
-            {
-                _encodeAccumulator = new short[frameSize];
-                _encodeAccumulatorCount = 0;
-            }
-
-            var results = new System.Collections.Generic.List<byte[]>();
-
-            int inputOffset = 0;
-            while (inputOffset < in_pcm.Length)
-            {
-                int copyCount = Math.Min(in_pcm.Length - inputOffset, frameSize - _encodeAccumulatorCount);
-                Array.Copy(in_pcm, inputOffset, _encodeAccumulator, _encodeAccumulatorCount, copyCount);
-                inputOffset += copyCount;
-                _encodeAccumulatorCount += copyCount;
-
-                if (_encodeAccumulatorCount < frameSize)
-                    break;
-
-                // We have a full frame — encode it.
-                try
+                if (_opusEncoder == null)
                 {
-                    var size = _opusEncoder!.Encode(
-                        _encodeAccumulator.AsSpan(), frameSize, _encodeOutputBuffer!.AsSpan(), MAX_PACKET_SIZE);
+                    _opusEncoder = OpusCodecFactory.CreateEncoder(SAMPLE_RATE, CHANNELS, OpusApplication.OPUS_APPLICATION_VOIP);
+                    _opusEncoder.ForceMode = OpusMode.MODE_AUTO;
+                    _opusEncoder.UseInbandFEC = true;
+                    _opusEncoder.SignalType = OpusSignal.OPUS_SIGNAL_VOICE;
+                    _opusEncoder.MaxBandwidth = OpusBandwidth.OPUS_BANDWIDTH_FULLBAND;
+                    _opusEncoder.ExpertFrameDuration = OpusFramesize.OPUS_FRAMESIZE_20_MS;
+                    _opusEncoder.UseVBR = true;
+                    _encodeOutputBuffer = new byte[MAX_PACKET_SIZE];
+                }
 
-                    if (size > 1)
+                int frameSize = GetFrameSize();
+
+                if (_encodeAccumulator == null || _encodeAccumulator.Length != frameSize)
+                {
+                    _encodeAccumulator = new short[frameSize];
+                    _encodeAccumulatorCount = 0;
+                }
+
+                var results = new List<byte[]>();
+
+                int inputOffset = 0;
+                while (inputOffset < in_pcm.Length)
+                {
+                    int copyCount = Math.Min(in_pcm.Length - inputOffset, frameSize - _encodeAccumulatorCount);
+                    Array.Copy(in_pcm, inputOffset, _encodeAccumulator, _encodeAccumulatorCount, copyCount);
+                    inputOffset += copyCount;
+                    _encodeAccumulatorCount += copyCount;
+
+                    if (_encodeAccumulatorCount < frameSize)
+                        break;
+
+                    // We have a full frame — encode it.
+                    try
                     {
-                        var result = new byte[size];
-                        Array.Copy(_encodeOutputBuffer!, 0, result, 0, size);
-                        results.Add(result);
+                        var size = _opusEncoder!.Encode(
+                            _encodeAccumulator.AsSpan(), frameSize, _encodeOutputBuffer!.AsSpan(), MAX_PACKET_SIZE);
+
+                        if (size > 1)
+                        {
+                            var result = new byte[size];
+                            Array.Copy(_encodeOutputBuffer!, 0, result, 0, size);
+                            results.Add(result);
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    log.LogWarning(ex, "Opus encode failed");
+                    catch (Exception ex)
+                    {
+                        log.LogWarning(ex, "Opus encode failed");
+                    }
+
+                    _encodeAccumulatorCount = 0;
                 }
 
-                _encodeAccumulatorCount = 0;
+                // Return the first encoded packet; any additional frames from an oversized
+                // input buffer are discarded here — SDL3 delivers at most one frame's worth
+                // per callback when SetAudioSourceFormat is configured correctly.
+                return results.Count > 0 ? results[0] : Array.Empty<byte>();
             }
-
-            // Return the first encoded packet; any additional frames from an oversized
-            // input buffer are discarded here — SDL3 delivers at most one frame's worth
-            // per callback when SetAudioSourceFormat is configured correctly.
-            return results.Count > 0 ? results[0] : Array.Empty<byte>();
         }
 
         public int GetFrameSize()
