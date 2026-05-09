@@ -171,7 +171,7 @@ namespace WebRtcTest
                             try { if (onReady != null) voice.PeerConnectionReady -= onReady; } catch { }
                         };
 
-                        if (voice.connected)
+                        if (voice.Connected)
                         {
                             onReady();
                         }

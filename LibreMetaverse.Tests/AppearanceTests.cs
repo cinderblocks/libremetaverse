@@ -38,7 +38,10 @@ namespace LibreMetaverse.Tests
         // ── Helpers ────────────────────────────────────────────────────────────
 
         private static List<VisualParam> Group0Params =>
-            VisualParams.Params.Values.Where(p => p.Group == 0).ToList();
+            VisualParams.Group0ParamIds
+                .Where(id => VisualParams.Params.ContainsKey(id))
+                .Select(id => VisualParams.Params[id])
+                .ToList();
 
         // ── Avatar.DecodeVisualParams ──────────────────────────────────────────
 
@@ -122,7 +125,10 @@ namespace LibreMetaverse.Tests
 
             var decoded = avatar.DecodeVisualParams();
 
-            Assert.That(decoded.Count, Is.EqualTo(partialCount));
+            // decoded may contain additional driven (group-1+) params derived from the partial input,
+            // so the count will be >= partialCount but less than the full Group0ParamIds length.
+            Assert.That(decoded.Count, Is.GreaterThanOrEqualTo(partialCount)
+                .And.LessThan(VisualParams.Group0ParamIds.Length));
         }
 
         [Test]
@@ -171,20 +177,23 @@ namespace LibreMetaverse.Tests
         [Test]
         public void AvatarAppearanceEventArgs_DecodeVisualParams_RoundTrip_DefaultValues()
         {
-            var group0 = Group0Params;
-            var bytes = group0
-                .Select(p => Utils.FloatToByte(p.DefaultValue, p.MinValue, p.MaxValue))
+            // Build bytes in Group0ParamIds document order — this is the order DecodeVisualParams consumes.
+            var bytes = VisualParams.Group0ParamIds
+                .Select(id => VisualParams.Params.TryGetValue(id, out var vp)
+                    ? Utils.FloatToByte(vp.DefaultValue, vp.MinValue, vp.MaxValue)
+                    : (byte)0)
                 .ToList();
 
             var args = MakeAppearanceEventArgs(bytes);
             var decoded = args.DecodeVisualParams();
 
-            // DecodeVisualParams also derives driven (group-1+) params, so total count >= group0.Count
-            Assert.That(decoded.Count, Is.GreaterThanOrEqualTo(group0.Count));
-            foreach (var vp in group0)
+            // DecodeVisualParams also derives driven (group-1+) params, so total count >= Group0ParamIds.Length
+            Assert.That(decoded.Count, Is.GreaterThanOrEqualTo(VisualParams.Group0ParamIds.Length));
+            foreach (var id in VisualParams.Group0ParamIds)
             {
-                Assert.That(decoded.ContainsKey(vp.ParamID), Is.True,
-                    $"ParamID {vp.ParamID} ({vp.Name}) missing from decoded result");
+                if (!VisualParams.Params.TryGetValue(id, out var vp)) continue;
+                Assert.That(decoded.ContainsKey(id), Is.True,
+                    $"ParamID {id} ({vp.Name}) missing from decoded result");
             }
         }
 
