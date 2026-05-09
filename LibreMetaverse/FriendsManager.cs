@@ -410,6 +410,27 @@ namespace OpenMetaverse
             remove { lock (m_FriendFoundLock) { m_FriendFound -= value; } }
         }
 
+        /// <summary>The event subscribers. null if no subscribers</summary>
+        private EventHandler<CallingCardOfferedEventArgs>? m_CallingCardOffered;
+
+        /// <summary>Raises the CallingCardOffered event</summary>
+        /// <param name="e">A CallingCardOfferedEventArgs object containing the data returned from the simulator</param>
+        protected virtual void OnCallingCardOffered(CallingCardOfferedEventArgs e)
+        {
+            EventHandler<CallingCardOfferedEventArgs>? handler = m_CallingCardOffered;
+            handler?.Invoke(this, e);
+        }
+
+        /// <summary>Thread sync lock object</summary>
+        private readonly object m_CallingCardOfferedLock = new object();
+
+        /// <summary>Raised when another agent offers us their calling card</summary>
+        public event EventHandler<CallingCardOfferedEventArgs> CallingCardOffered
+        {
+            add { lock (m_CallingCardOfferedLock) { m_CallingCardOffered += value; } }
+            remove { lock (m_CallingCardOfferedLock) { m_CallingCardOffered -= value; } }
+        }
+
         #endregion Delegates
 
         private readonly GridClient Client;
@@ -454,6 +475,7 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.ChangeUserRights, ChangeUserRightsHandler);
             Client.Network.RegisterCallback(PacketType.TerminateFriendship, TerminateFriendshipHandler);
             Client.Network.RegisterCallback(PacketType.FindAgent, OnFindAgentReplyHandler);
+            Client.Network.RegisterCallback(PacketType.OfferCallingCard, OfferCallingCardHandler);
 
             Client.Network.RegisterLoginResponseCallback(Network_OnLoginResponse, new[] { "buddy-list" });
         }
@@ -807,6 +829,19 @@ namespace OpenMetaverse
             }
         }
 
+        private void OfferCallingCardHandler(object? sender, PacketReceivedEventArgs e)
+        {
+            if (e.Packet is not OfferCallingCardPacket offer) return;
+
+            UUID fromAgentId = offer.AgentData.AgentID;
+            string name = m_FriendList.TryGetValue(fromAgentId, out var fi)
+                ? fi.Name ?? fromAgentId.ToString()
+                : fromAgentId.ToString();
+
+            OnCallingCardOffered(new CallingCardOfferedEventArgs(
+                fromAgentId, name, offer.AgentBlock.TransactionID));
+        }
+
         /// <summary>
         /// Change the rights of a friend avatar.
         /// </summary>
@@ -909,6 +944,82 @@ namespace OpenMetaverse
             };
 
             Client.Network.SendPacket(gmp);
+        }
+
+        /// <summary>
+        /// Offer our calling card to another agent
+        /// </summary>
+        /// <param name="agentID">UUID of the agent to offer the calling card to</param>
+        public void GiveCallingCard(UUID agentID)
+        {
+            OfferCallingCardPacket offer = new OfferCallingCardPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                AgentBlock =
+                {
+                    DestID = agentID,
+                    TransactionID = UUID.Random()
+                }
+            };
+
+            Client.Network.SendPacket(offer);
+        }
+
+        /// <summary>
+        /// Accept a calling card offer
+        /// </summary>
+        /// <param name="fromAgentID">UUID of the agent who offered the card</param>
+        /// <param name="transactionID">Transaction ID from the offer</param>
+        public void AcceptCallingCard(UUID fromAgentID, UUID transactionID)
+        {
+            UUID callingCardFolder = Client.Inventory.FindFolderForType(AssetType.CallingCard);
+
+            AcceptCallingCardPacket accept = new AcceptCallingCardPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                TransactionBlock =
+                {
+                    TransactionID = transactionID
+                },
+                FolderData = new AcceptCallingCardPacket.FolderDataBlock[1]
+            };
+            accept.FolderData[0] = new AcceptCallingCardPacket.FolderDataBlock
+            {
+                FolderID = callingCardFolder
+            };
+
+            Client.Network.SendPacket(accept);
+        }
+
+        /// <summary>
+        /// Decline a calling card offer
+        /// </summary>
+        /// <param name="fromAgentID">UUID of the agent who offered the card</param>
+        /// <param name="transactionID">Transaction ID from the offer</param>
+        public void DeclineCallingCard(UUID fromAgentID, UUID transactionID)
+        {
+            DeclineCallingCardPacket decline = new DeclineCallingCardPacket
+            {
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                TransactionBlock =
+                {
+                    TransactionID = transactionID
+                }
+            };
+
+            Client.Network.SendPacket(decline);
         }
 
         #endregion
@@ -1286,6 +1397,33 @@ namespace OpenMetaverse
             this.AgentID = agentID;
             this.RegionHandle = regionHandle;
             this.Location = location;
+        }
+    }
+    /// <summary>
+    /// Data sent when another agent offers their calling card
+    /// </summary>
+    public class CallingCardOfferedEventArgs : EventArgs
+    {
+        /// <summary>Get the ID of the agent offering the calling card</summary>
+        public UUID AgentID { get; }
+
+        /// <summary>Get the name of the agent offering the calling card</summary>
+        public string AgentName { get; }
+
+        /// <summary>Get the transaction ID used to accept or decline the offer</summary>
+        public UUID TransactionID { get; }
+
+        /// <summary>
+        /// Construct a new instance of the CallingCardOfferedEventArgs class
+        /// </summary>
+        /// <param name="agentID">The ID of the agent offering the calling card</param>
+        /// <param name="agentName">The name of the agent offering the calling card</param>
+        /// <param name="transactionID">The transaction ID for accepting or declining</param>
+        public CallingCardOfferedEventArgs(UUID agentID, string agentName, UUID transactionID)
+        {
+            AgentID = agentID;
+            AgentName = agentName;
+            TransactionID = transactionID;
         }
     }
     #endregion
