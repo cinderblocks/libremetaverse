@@ -1572,7 +1572,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
                 var json = jw.ToString();
 
-                _log.Debug($"Sending Position: {json}", _client);
+                //_log.Debug($"Sending Position: {json}", _client);
                 TrySendDataChannelString(json);
 
                 // Update last sent and clear dirty flag
