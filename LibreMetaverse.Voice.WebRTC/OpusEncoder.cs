@@ -123,7 +123,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
             int frameSize = GetFrameSize();
 
-            if (_encodeAccumulator == null)
+            if (_encodeAccumulator == null || _encodeAccumulator.Length != frameSize)
             {
                 _encodeAccumulator = new short[frameSize];
                 _encodeAccumulatorCount = 0;
