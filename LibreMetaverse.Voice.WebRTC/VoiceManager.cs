@@ -175,6 +175,8 @@ public event Action<UUID>? OnP2PCallIncoming;
 
             // Register for P2P voice call invitations via ChatterBox
             Client.Network.RegisterEventCallback("ChatterBoxInvitation", OnChatterBoxInvitationForVoice);
+            Client.Network.RegisterEventCallback("ChatterBoxSessionStartReply", OnChatterBoxSessionStartReply);
+            Client.Network.RegisterEventCallback("ForceCloseChatterBoxSession", OnForceCloseChatterBoxSession);
 
             // Register for region change events
             Client.Network.SimChanged += OnSimChanged;
@@ -503,6 +505,8 @@ public event Action<UUID>? OnP2PCallIncoming;
                 Client.Network.SimChanged -= OnSimChanged;
                 Client.Self.TeleportProgress -= OnTeleport;
                 Client.Network.UnregisterEventCallback("ChatterBoxInvitation", OnChatterBoxInvitationForVoice);
+                    try { Client.Network.UnregisterEventCallback("ChatterBoxSessionStartReply", OnChatterBoxSessionStartReply); } catch { }
+                    try { Client.Network.UnregisterEventCallback("ForceCloseChatterBoxSession", OnForceCloseChatterBoxSession); } catch { }
             }
             catch { }
 
@@ -889,6 +893,92 @@ public event Action<UUID>? OnP2PCallIncoming;
         /// Extracts the channel URI and credentials from the invitation and raises
         /// <see cref="OnP2PCallIncoming"/> so the UI layer can offer the user an Accept/Decline prompt.
         /// </summary>
+        /// <summary>
+        /// Handle ChatterBoxSessionStartReply for voice sessions.
+        /// SL C++ LLViewerChatterBoxSessionStartReply: on success, populate voice channel info;
+        /// on failure for a P2P or group session, fire the appropriate failure event.
+        /// </summary>
+        private void OnChatterBoxSessionStartReply(string capsKey, IMessage message, Simulator simulator)
+        {
+            if (!(message is ChatterBoxSessionStartReplyMessage msg)) return;
+            if (msg.Success) return;
+
+            var sessionId = msg.SessionID;
+
+            // Find a P2P session whose session-id matches (outgoing call whose server start failed)
+            foreach (var kvp in _p2pSessions)
+            {
+                if (kvp.Value.Session?.SessionId == sessionId)
+                {
+                    _log.Warn($"P2P voice session start failed for agent {kvp.Key} (session {sessionId})", Client);
+                    _ = EndP2PCall(kvp.Key);
+                    try { OnP2PCallFailed?.Invoke(kvp.Key, new Exception($"Session start rejected by server")); } catch { }
+                    return;
+                }
+            }
+
+            // Check group sessions
+            foreach (var kvp in _groupSessions)
+            {
+                if (kvp.Value.Session?.SessionId == sessionId)
+                {
+                    _log.Warn($"Group voice session start failed for group {kvp.Key} (session {sessionId})", Client);
+                    _ = LeaveGroupVoice(kvp.Key);
+                    try { OnGroupVoiceJoinFailed?.Invoke(kvp.Key, new Exception($"Session start rejected by server")); } catch { }
+                    return;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handle ForceCloseChatterBoxSession — the server is kicking us from a voice/chat session.
+        /// SL C++ LLViewerForceCloseChatterBoxSession: close the matching voice session and notify UI.
+        /// </summary>
+        private void OnForceCloseChatterBoxSession(string capsKey, IMessage message, Simulator simulator)
+        {
+            if (!(message is ForceCloseChatterBoxSessionMessage msg)) return;
+
+            var sessionId = msg.SessionID;
+            _log.Info($"ForceCloseChatterBoxSession: session {sessionId} closed by server (reason: {msg.Reason})", Client);
+
+            // Match against P2P sessions by XOR session id or by stored session object id
+            foreach (var kvp in _p2pSessions)
+            {
+                var p2p = kvp.Value;
+                // Compute expected XOR session id for this peer
+                var expectedId = Client.Self.AgentID ^ kvp.Key;
+                if (p2p.Session?.SessionId == sessionId || expectedId == sessionId)
+                {
+                    _log.Info($"Force-closing P2P voice session with {kvp.Key}", Client);
+                    _ = EndP2PCall(kvp.Key);
+                    return;
+                }
+            }
+
+            // Match against group sessions
+            foreach (var kvp in _groupSessions)
+            {
+                if (kvp.Value.Session?.SessionId == sessionId || kvp.Key == sessionId)
+                {
+                    _log.Info($"Force-closing group voice session for {kvp.Key}", Client);
+                    _ = LeaveGroupVoice(kvp.Key);
+                    return;
+                }
+            }
+
+            // Pending invite that was forcibly rejected before we answered
+            foreach (var kvp in _pendingP2PInvites)
+            {
+                if (kvp.Value.SessionId == sessionId)
+                {
+                    _pendingP2PInvites.TryRemove(kvp.Key, out _);
+                    _log.Info($"Pending P2P invite from {kvp.Key} force-closed by server", Client);
+                    try { OnP2PCallDeclined?.Invoke(kvp.Key); } catch { }
+                    return;
+                }
+            }
+        }
+
         private void OnChatterBoxInvitationForVoice(string capsKey, IMessage message, Simulator simulator)
         {
             if (!(message is ChatterBoxInvitationMessage msg) || !msg.Voice) return;
