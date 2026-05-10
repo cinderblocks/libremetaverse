@@ -78,6 +78,11 @@ namespace LibreMetaverse.Voice.WebRTC
             public bool? VoiceActive { get; set; }
             public bool? JoinedPrimary { get; set; }
             public bool Left { get; set; }
+            /// <summary>
+            /// Moderator-muted flag. SL data channel "m" per-peer field.
+            /// When true the server has muted this participant's voice.
+            /// </summary>
+            public bool? ModeratorMuted { get; set; }
         }
         public event Action<UUID, PeerAudioState>? OnPeerAudioUpdated;
         private bool _answerReceived = false;

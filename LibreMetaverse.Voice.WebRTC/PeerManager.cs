@@ -173,6 +173,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     if (peerDict != null && peerDict.Contains("p")) state.Power = ToInt(peerMap["p"]);
                     if (peerDict != null && peerDict.Contains("V")) state.VoiceActive = ToBool(peerMap["V"]);
                     else if (peerDict != null && peerDict.Contains("v")) state.VoiceActive = ToBool(peerMap["v"]);
+                    if (peerDict != null && peerDict.Contains("m")) state.ModeratorMuted = ToBool(peerMap["m"]);
 
                     try
                     {
@@ -205,6 +206,40 @@ namespace LibreMetaverse.Voice.WebRTC
                         var jmap = peerMap["j"];
                         if (jmap is IDictionary jdict && jdict.Contains("p")) state.JoinedPrimary = ToBool(jmap["p"]);
                         try { PeerJoined?.Invoke(peerId); } catch { }
+
+                        // Mirror SL's OnDataReceivedImpl: when a peer joins, immediately send back
+                        // mute and gain info so the server applies them for this participant.
+                        var muteResponse = new Dictionary<UUID, bool>();
+                        var gainResponse = new Dictionary<UUID, int>();
+                        var muteKey = $"2 {peerId}"; // MuteType.Resident = 2
+                        if (_client?.Self?.MuteList?.ContainsKey(muteKey) == true &&
+                            (_client.Self.MuteList[muteKey].Flags & MuteFlags.VoiceChat) != 0)
+                        {
+                            muteResponse[peerId] = true;
+                        }
+                        if (muteResponse.Count > 0 || gainResponse.Count > 0)
+                        {
+                            try
+                            {
+                                var jw2 = new JsonWriter();
+                                jw2.WriteObjectStart();
+                                if (muteResponse.Count > 0)
+                                {
+                                    jw2.WritePropertyName("m"); jw2.WriteObjectStart();
+                                    foreach (var kv in muteResponse) { jw2.WritePropertyName(kv.Key.ToString()); jw2.Write(kv.Value); }
+                                    jw2.WriteObjectEnd();
+                                }
+                                if (gainResponse.Count > 0)
+                                {
+                                    jw2.WritePropertyName("ug"); jw2.WriteObjectStart();
+                                    foreach (var kv in gainResponse) { jw2.WritePropertyName(kv.Key.ToString()); jw2.Write(kv.Value); }
+                                    jw2.WriteObjectEnd();
+                                }
+                                jw2.WriteObjectEnd();
+                                sendString?.Invoke(jw2.ToString());
+                            }
+                            catch { }
+                        }
                     }
 
                     if (peerDict != null && peerDict.Contains("l") && ToBool(peerMap["l"]) == true)
