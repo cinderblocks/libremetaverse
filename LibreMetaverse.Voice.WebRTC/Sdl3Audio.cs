@@ -653,6 +653,45 @@ namespace LibreMetaverse
             }
         }
 
+        /// <summary>
+        /// Paced variant of <see cref="FeedPcmSamples"/>: encodes PCM to Opus frames
+        /// and fires <see cref="OnAudioSourceEncodedSample"/> one frame at a time,
+        /// waiting 20 ms between frames so the remote WebRTC peer receives audio at the
+        /// correct real-time rate instead of as a burst (which causes buffering/garble).
+        /// </summary>
+        public async Task FeedPcmSamplesPacedAsync(short[] pcmInterleaved, int channels = 1,
+            int sampleRate = 48000, CancellationToken ct = default)
+        {
+            if (pcmInterleaved == null) throw new ArgumentNullException(nameof(pcmInterleaved));
+            if (channels < 1) throw new ArgumentOutOfRangeException(nameof(channels));
+            var frameSize = _audioEncoder.GetFrameSize();
+            // Each Opus frame represents 20 ms of audio at 48 kHz (960 samples).
+            const int frameDurationMs = 20;
+            short[] monoSamples = DownmixToMono(pcmInterleaved, channels);
+            if (sampleRate != 48000) monoSamples = ResampleTo48k(monoSamples, sampleRate);
+            int idx = 0;
+            while (idx < monoSamples.Length && !ct.IsCancellationRequested)
+            {
+                int remaining = monoSamples.Length - idx;
+                short[] frame = new short[frameSize];
+                if (remaining >= frameSize)
+                    Array.Copy(monoSamples, idx, frame, 0, frameSize);
+                else
+                    Array.Copy(monoSamples, idx, frame, 0, remaining);
+                byte[]? encoded = null;
+                try { encoded = _audioEncoder.EncodeAudio(frame, OpusAudioEncoder.MEDIA_FORMAT_OPUS); }
+                catch (Exception ex) { _log.Warn($"FeedPcmSamplesPacedAsync: encode failed: {ex.Message}"); }
+                if (encoded != null && encoded.Length > 0)
+                {
+                    try { OnAudioSourceEncodedSample?.Invoke((uint)frameSize, encoded); } catch { }
+                }
+                idx += frameSize;
+                // Pace delivery: wait one frame duration before sending the next frame.
+                if (idx < monoSamples.Length)
+                    await Task.Delay(frameDurationMs, ct).ConfigureAwait(false);
+            }
+        }
+
         public void FeedPcmBytes(byte[] pcmBytes, int channels = 1, int sampleRate = 48000)
         {
             if (pcmBytes == null) throw new ArgumentNullException(nameof(pcmBytes));

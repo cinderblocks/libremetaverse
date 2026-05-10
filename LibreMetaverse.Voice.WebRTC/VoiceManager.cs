@@ -1129,6 +1129,17 @@ public event Action<UUID>? OnP2PCallIncoming;
         /// <summary>
         /// Join a group voice channel. This creates a new voice session specifically for the group.
         /// </summary>
+        /// <summary>
+        /// Joins voice for a conference (ad-hoc multi-agent) session.
+        /// Conference sessions use the same MULTIAGENT voice provisioning as group voice.
+        /// </summary>
+        /// <param name="sessionId">The UUID of the conference session</param>
+        /// <returns>True if the join was successful, false otherwise</returns>
+        public Task<bool> JoinConferenceVoice(UUID sessionId) => JoinGroupVoice(sessionId);
+
+        /// <summary>Leaves voice for a conference (ad-hoc multi-agent) session.</summary>
+        public Task LeaveConferenceVoice(UUID sessionId) => LeaveGroupVoice(sessionId);
+
         /// <param name="groupId">The UUID of the group to join voice for</param>
         /// <returns>True if the join was successful, false otherwise</returns>
         public async Task<bool> JoinGroupVoice(UUID groupId)
