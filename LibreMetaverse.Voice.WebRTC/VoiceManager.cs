@@ -902,36 +902,47 @@ public event Action<UUID>? OnP2PCallIncoming;
 
             _log.Info($"Incoming P2P voice call from {callerId} (session {msg.IMSessionID})", Client);
 
-            // Cache the credentials so AcceptP2PCall can use them without a separate CAP round-trip.
-            // We store them keyed by caller UUID; the UI calls AcceptP2PCall(callerId) to connect.
-            _pendingP2PInvites[callerId] = (channelUri, credentials);
+            // Cache credentials and session-id so accept/decline can use them without a separate round-trip.
+            // Keyed by caller UUID; the UI calls AcceptIncomingP2PCall/DeclineIncomingP2PCall.
+            _pendingP2PInvites[callerId] = (channelUri, credentials, msg.IMSessionID);
 
             try { OnP2PCallIncoming?.Invoke(callerId); } catch { }
         }
 
-        // Pending voice invitations waiting for user accept/decline: callerId -> (channelUri, credentials)
-        private readonly ConcurrentDictionary<UUID, (string ChannelUri, string Credentials)> _pendingP2PInvites
-            = new ConcurrentDictionary<UUID, (string, string)>();
+        // Pending voice invitations: callerId -> (channelUri, credentials, sessionId)
+        private readonly ConcurrentDictionary<UUID, (string ChannelUri, string Credentials, UUID SessionId)> _pendingP2PInvites
+            = new ConcurrentDictionary<UUID, (string, string, UUID)>();
 
         /// <summary>
         /// Accept a pending incoming P2P voice call that was signalled via <see cref="OnP2PCallIncoming"/>.
+        /// Sends the SL-protocol "accept invitation" CAP POST before connecting the WebRTC session.
         /// </summary>
-        public Task<bool> AcceptIncomingP2PCall(UUID callerId)
+        public async Task<bool> AcceptIncomingP2PCall(UUID callerId)
         {
-            if (_pendingP2PInvites.TryRemove(callerId, out var invite))
+            if (!_pendingP2PInvites.TryRemove(callerId, out var invite))
             {
-                return AcceptP2PCall(callerId, invite.ChannelUri, invite.Credentials);
+                _log.Warn($"AcceptIncomingP2PCall: no pending invite found for {callerId}", Client);
+                return false;
             }
-            _log.Warn($"AcceptIncomingP2PCall: no pending invite found for {callerId}", Client);
-            return Task.FromResult(false);
+
+            // Mirror SL's chatterBoxInvitationCoro: POST "accept invitation" to ChatSessionRequest
+            // so the server knows we accepted and sends us the agent list for the session.
+            await PostChatSessionRequestAsync("accept invitation", invite.SessionId).ConfigureAwait(false);
+
+            return await AcceptP2PCall(callerId, invite.ChannelUri, invite.Credentials).ConfigureAwait(false);
         }
 
         /// <summary>
-        /// Decline a pending incoming P2P voice call and discard the cached credentials.
+        /// Decline a pending incoming P2P voice call.
+        /// Sends the SL-protocol "decline p2p voice" CAP POST to notify the server/caller.
         /// </summary>
         public void DeclineIncomingP2PCall(UUID callerId)
         {
-            _pendingP2PInvites.TryRemove(callerId, out _);
+            if (_pendingP2PInvites.TryRemove(callerId, out var invite))
+            {
+                // Mirror SL's processCallResponse(1) for P2P: POST "decline p2p voice"
+                _ = PostChatSessionRequestAsync("decline p2p voice", invite.SessionId);
+            }
             DeclineP2PCall(callerId);
         }
 
@@ -1309,7 +1320,7 @@ public event Action<UUID>? OnP2PCallIncoming;
                 _log.Info($"Starting P2P voice call with {agentId}", Client);
 
                 // Request P2P voice credentials from the simulator
-                var (channelUri, credentials) = await RequestP2PVoiceInfo(agentId).ConfigureAwait(false);
+                var (channelUri, credentials, sessionId) = await RequestP2PVoiceInfo(agentId).ConfigureAwait(false);
 
                 if (string.IsNullOrEmpty(channelUri) || string.IsNullOrEmpty(credentials))
                 {
@@ -1367,6 +1378,10 @@ public event Action<UUID>? OnP2PCallIncoming;
 
                 if (provisioned)
                 {
+                    // Mirror SL's chatterBoxInvitationCoro: the outgoing caller also sends
+                    // "accept invitation" so the server adds us as a session participant.
+                    await PostChatSessionRequestAsync("accept invitation", sessionId).ConfigureAwait(false);
+
                     _log.Info($"Successfully started P2P call with {agentId}", Client);
                     try { OnP2PCallStarted?.Invoke(agentId); } catch { }
                     return true;
@@ -1516,8 +1531,6 @@ public event Action<UUID>? OnP2PCallIncoming;
         {
             _log.Info($"Declining P2P voice call from {agentId}", Client);
             try { OnP2PCallDeclined?.Invoke(agentId); } catch { }
-            // Note: The simulator should be notified of the decline via a capability request
-            // This would be implementation-specific based on the grid's protocol
         }
 
         /// <summary>
@@ -1584,21 +1597,65 @@ public event Action<UUID>? OnP2PCallIncoming;
         }
 
         /// <summary>
-        /// Request P2P voice channel information from the simulator.
+        /// POST a method call to the ChatSessionRequest capability.
+        /// Mirrors SL's chatterBoxInvitationCoro / inline postData patterns.
         /// </summary>
-        private async Task<(string? channelUri, string? credentials)> RequestP2PVoiceInfo(UUID agentId)
+        private async Task PostChatSessionRequestAsync(string method, UUID sessionId)
+        {
+            var cap = Client.Network?.CurrentSim?.Caps?.CapabilityURI("ChatSessionRequest");
+            if (cap == null)
+            {
+                _log.Warn($"ChatSessionRequest cap not available for method={method}", Client);
+                return;
+            }
+
+            var payload = new OSDMap
+            {
+                ["method"]     = method,
+                ["session-id"] = sessionId
+            };
+
+            var tcs = new TaskCompletionSource<bool>();
+            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, CancellationToken.None,
+                (response, data, error) =>
+                {
+                    if (error != null)
+                        _log.Warn($"ChatSessionRequest {method} failed: {error.Message}", Client);
+                    else
+                        _log.Debug($"ChatSessionRequest {method} OK", Client);
+                    tcs.TrySetResult(true);
+                });
+
+            try { await tcs.Task.ConfigureAwait(false); }
+            catch (Exception ex) { _log.Warn($"ChatSessionRequest {method} exception: {ex.Message}", Client); }
+        }
+
+        /// <summary>
+        /// Request P2P voice channel information from the simulator.
+        /// Mirrors SL's startP2PVoiceCoro: session-id = selfAgent XOR otherAgent,
+        /// params = otherParticipantId, alt_params.voice_server_type = "webrtc".
+        /// Returns (channelUri, credentials, sessionId) or nulls on failure.
+        /// </summary>
+        private async Task<(string? channelUri, string? credentials, UUID sessionId)> RequestP2PVoiceInfo(UUID agentId)
         {
             var cap = Client.Network?.CurrentSim?.Caps?.CapabilityURI("ChatSessionRequest");
             if (cap == null)
             {
                 _log.Warn("ChatSessionRequest capability not available for P2P voice", Client);
-                return (null, null);
+                return (null, null, UUID.Zero);
             }
 
+            // SL computes the P2P session UUID as selfAgentId XOR otherAgentId
+            var selfId = Client.Self.AgentID;
+            var sessionId = selfId ^ agentId;
+
+            var altParams = new OSDMap { ["voice_server_type"] = "webrtc" };
             var payload = new OSDMap
             {
-                ["method"] = "start p2p voice",
-                ["session-id"] = agentId
+                ["method"]     = "start p2p voice",
+                ["session-id"] = sessionId,
+                ["params"]     = agentId,
+                ["alt_params"] = altParams
             };
 
             var tcs = new TaskCompletionSource<OSD>();
@@ -1630,7 +1687,7 @@ public event Action<UUID>? OnP2PCallIncoming;
                     }
 
                     _log.Debug($"P2P voice credentials received for {agentId}: {channelUri}", Client);
-                    return (channelUri, credentials);
+                    return (channelUri, credentials, sessionId);
                 }
             }
             catch (Exception ex)
@@ -1638,7 +1695,7 @@ public event Action<UUID>? OnP2PCallIncoming;
                 _log.Warn($"Failed to request P2P voice info for {agentId}: {ex.Message}", Client);
             }
 
-            return (null, null);
+            return (null, null, UUID.Zero);
         }
 
         #endregion
