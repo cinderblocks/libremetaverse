@@ -1753,11 +1753,15 @@ namespace LibreMetaverse.Voice.WebRTC
                 // cause this watchdog to tear down the new (already-healthy) connection.
                 var watchedPc = _peerConnection;
                 var watchedSession = SessionId;
+                // Capture token before the lambda — _cts may be disposed before the 60s elapses.
+                CancellationToken watchdogToken;
+                try { watchdogToken = _cts.Token; }
+                catch (ObjectDisposedException) { watchdogToken = CancellationToken.None; }
                 _ = Task.Run(async () =>
                 {
                     try
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(60)).ConfigureAwait(false);
+                        await Task.Delay(TimeSpan.FromSeconds(60), watchdogToken).ConfigureAwait(false);
                         // Only act if this session is still the active one; an earlier reprovision
                         // may have already replaced it with a healthy connection.
                         if (SessionId != watchedSession) return;
@@ -1767,8 +1771,9 @@ namespace LibreMetaverse.Voice.WebRTC
                             try { ScheduleReprovisionWithBackoff(); } catch { }
                         }
                     }
+                    catch (OperationCanceledException) { }
                     catch { }
-                });
+                }, watchdogToken);
 
                 // Store channel info if present
                 if (osdMap.ContainsKey("channel")) ChannelId = osdMap["channel"].AsString() ?? string.Empty;
@@ -1824,16 +1829,20 @@ namespace LibreMetaverse.Voice.WebRTC
                 _answerReceived = true;
                 _ = FlushPendingIceCandidates();
 
-                // Watchdog: 60s timeout \u2014 STUN negotiation through NAT can legitimately take >30s.
+                // Watchdog: 60s timeout — STUN negotiation through NAT can legitimately take >30s.
                 // Capture the specific PC so a later reprovision replacing _peerConnection does not
                 // cause this watchdog to tear down the new (already-healthy) connection.
                 var watchedPc = _peerConnection;
                 var watchedSession = SessionId;
+                // Capture token before the lambda — _cts may be disposed before the 60s elapses.
+                CancellationToken watchdogToken;
+                try { watchdogToken = _cts.Token; }
+                catch (ObjectDisposedException) { watchdogToken = CancellationToken.None; }
                 _ = Task.Run(async () =>
                 {
                     try
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(60)).ConfigureAwait(false);
+                        await Task.Delay(TimeSpan.FromSeconds(60), watchdogToken).ConfigureAwait(false);
                         // Only act if this session is still the active one.
                         if (SessionId != watchedSession) return;
                         if (watchedPc != null && watchedPc.connectionState != RTCPeerConnectionState.connected)
@@ -1842,8 +1851,9 @@ namespace LibreMetaverse.Voice.WebRTC
                             try { ScheduleReprovisionWithBackoff(); } catch { }
                         }
                     }
+                    catch (OperationCanceledException) { }
                     catch { }
-                });
+                }, watchdogToken);
 
                 if (osdMap.ContainsKey("channel")) ChannelId = osdMap["channel"].AsString();
                 if (osdMap.ContainsKey("credentials")) ChannelCredentials = osdMap["credentials"].AsString();
