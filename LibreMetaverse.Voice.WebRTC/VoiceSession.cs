@@ -1505,7 +1505,10 @@ namespace LibreMetaverse.Voice.WebRTC
             }
             finally
             {
-                _reprovisionLock.Release();
+                if (!_disposed)
+                {
+                    try { _reprovisionLock.Release(); } catch (ObjectDisposedException) { }
+                }
             }
         }
 
