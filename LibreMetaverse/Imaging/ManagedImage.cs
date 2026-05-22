@@ -116,23 +116,6 @@ namespace OpenMetaverse.Imaging
         }
 
         /// <summary>
-        /// Converts an array of 32-bit color values to an array of 8-bit color values
-        /// </summary>
-        /// <param name="sourceData">The input array of 32-bit color values</param>
-        /// <param name="destinationData">The output array of 8-bit color values</param>
-        private static void ConvertTo8BitChannel(int[] sourceData, out byte[] destinationData)
-        {
-            destinationData = new byte[sourceData.Length];
-            for (var i = 0; i < sourceData.Length; i++)
-            {
-                int v = sourceData[i];
-                if (v < 0) { v = 0; }
-                else if (v > 255) { v = 255; }
-                destinationData[i] = (byte)v;
-            }
-        }
-
-        /// <summary>
         /// Constructs ManagedImage class from <see cref="InterleavedImage"/>
         /// Currently only supporting 8-bit channels;
         /// </summary>
@@ -142,38 +125,54 @@ namespace OpenMetaverse.Imaging
             Width = image.Width;
             Height = image.Height;
 
+            var pixelCount = Width * Height;
             var numComp = image.NumberOfComponents;
             switch (numComp)
             {
                 case 1:
                     Channels = ImageChannels.Gray;
-                    ConvertTo8BitChannel(image.GetComponent(0), out Red);
+                    Red = new byte[pixelCount];
+                    image.ToComponentBytes(0, Red);
                     break;
                 case 2:
                     Channels = ImageChannels.Gray | ImageChannels.Alpha;
-                    ConvertTo8BitChannel(image.GetComponent(0), out Red);
-                    ConvertTo8BitChannel(image.GetComponent(1), out Alpha);
+                    Red = new byte[pixelCount];
+                    Alpha = new byte[pixelCount];
+                    image.ToComponentBytes(0, Red);
+                    image.ToComponentBytes(1, Alpha);
                     break;
                 case 3:
                     Channels = ImageChannels.Color;
-                    ConvertTo8BitChannel(image.GetComponent(0), out Red);
-                    ConvertTo8BitChannel(image.GetComponent(1), out Green);
-                    ConvertTo8BitChannel(image.GetComponent(2), out Blue);
+                    Red = new byte[pixelCount];
+                    Green = new byte[pixelCount];
+                    Blue = new byte[pixelCount];
+                    image.ToComponentBytes(0, Red);
+                    image.ToComponentBytes(1, Green);
+                    image.ToComponentBytes(2, Blue);
                     break;
                 case 4:
                     Channels = ImageChannels.Alpha | ImageChannels.Color;
-                    ConvertTo8BitChannel(image.GetComponent(0), out Red);
-                    ConvertTo8BitChannel(image.GetComponent(1), out Green);
-                    ConvertTo8BitChannel(image.GetComponent(2), out Blue);
-                    ConvertTo8BitChannel(image.GetComponent(3), out Alpha);
+                    Red = new byte[pixelCount];
+                    Green = new byte[pixelCount];
+                    Blue = new byte[pixelCount];
+                    Alpha = new byte[pixelCount];
+                    image.ToComponentBytes(0, Red);
+                    image.ToComponentBytes(1, Green);
+                    image.ToComponentBytes(2, Blue);
+                    image.ToComponentBytes(3, Alpha);
                     break;
                 case 5:
                     Channels = ImageChannels.Alpha | ImageChannels.Color | ImageChannels.Bump;
-                    ConvertTo8BitChannel(image.GetComponent(0), out Red);
-                    ConvertTo8BitChannel(image.GetComponent(1), out Green);
-                    ConvertTo8BitChannel(image.GetComponent(2), out Blue);
-                    ConvertTo8BitChannel(image.GetComponent(3), out Bump);
-                    ConvertTo8BitChannel(image.GetComponent(4), out Alpha);
+                    Red = new byte[pixelCount];
+                    Green = new byte[pixelCount];
+                    Blue = new byte[pixelCount];
+                    Bump = new byte[pixelCount];
+                    Alpha = new byte[pixelCount];
+                    image.ToComponentBytes(0, Red);
+                    image.ToComponentBytes(1, Green);
+                    image.ToComponentBytes(2, Blue);
+                    image.ToComponentBytes(3, Bump);
+                    image.ToComponentBytes(4, Alpha);
                     break;
             }
         }

@@ -101,7 +101,7 @@ namespace OpenMetaverse.Assets
 
             this.Components = 0;
 
-            var image = J2kImage.FromBytes(AssetData);
+            using var image = J2kImage.FromBytes(AssetData);
             Image = new ManagedImage(image);
 
             if ((Image.Channels & ManagedImage.ImageChannels.Color) != 0)
