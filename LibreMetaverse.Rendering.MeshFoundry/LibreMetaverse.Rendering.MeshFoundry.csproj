@@ -19,11 +19,11 @@
     <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="SkiaSharp" Version="3.119.2" />
+    <PackageReference Include="SkiaSharp" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-    <PackageReference Include="System.Buffers" Version="4.6.1" />
-    <PackageReference Include="System.Memory" Version="4.6.3" />
+    <PackageReference Include="System.Buffers" />
+    <PackageReference Include="System.Memory" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
@@ -31,7 +31,4 @@
     <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
     <ProjectReference Include="..\PrimMesher\LibreMetaverse.PrimMesher.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference Update="Microsoft.SourceLink.GitHub" Version="10.0.203" />
-  </ItemGroup>
-</Project>
+  </Project>
