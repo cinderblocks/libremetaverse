@@ -213,7 +213,16 @@ namespace OpenMetaverse
 
             if (disposing)
             {
-                // Dispose subsystems that implement IDisposable
+                // Shut down networking FIRST to cancel all in-flight HTTP requests before
+                // HttpCapsClient is disposed, preventing ObjectDisposedException on SslStream.
+                try
+                {
+                    Network?.Shutdown(NetworkManager.DisconnectType.ClientInitiated);
+                }
+                catch { }
+
+                // Dispose subsystems that implement IDisposable (these may use HttpCapsClient,
+                // so they must be disposed before HttpCapsClient is torn down)
                 if (Sound is IDisposable soundDisposable) DisposalHelper.SafeDispose(soundDisposable);
                 if (Terrain is IDisposable terrainDisposable) DisposalHelper.SafeDispose(terrainDisposable);
                 if (Appearance is IDisposable appearanceDisposable) DisposalHelper.SafeDispose(appearanceDisposable);
@@ -223,16 +232,9 @@ namespace OpenMetaverse
                 if (Parcels is IDisposable parcelsDisposable) DisposalHelper.SafeDispose(parcelsDisposable);
                 if (Objects is IDisposable objectsDisposable) DisposalHelper.SafeDispose(objectsDisposable);
 
-                // Dispose HttpCapsClient which is a HttpClient
+                // Now safe to dispose HttpCapsClient — network is shut down and all subsystems
+                // that used it have been disposed, so no more requests are in flight.
                 if (HttpCapsClient is IDisposable httpDisposable) DisposalHelper.SafeDispose(httpDisposable);
-
-                // If Network has shutdown needs, attempt a graceful shutdown
-                try
-                {
-                    // Best-effort shutdown of network (if available)
-                    Network?.Shutdown( NetworkManager.DisconnectType.ClientInitiated );
-                }
-                catch { }
 
                 // Attempt to shutdown logging synchronously to flush providers when possible
                 try { Logger.Shutdown(); } catch { }
