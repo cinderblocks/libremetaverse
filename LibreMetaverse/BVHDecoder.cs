@@ -328,6 +328,9 @@ namespace OpenMetaverse
 
             */
 
+            if (keycount == 0)
+                return Array.Empty<binBVHJointKey>();
+
             binBVHJointKey[] m_keys = new binBVHJointKey[keycount];
             for (int j = 0; j < keycount; j++)
             {
