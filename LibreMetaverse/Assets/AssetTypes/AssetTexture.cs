@@ -29,6 +29,7 @@ using System;
 using CoreJ2K;
 using CoreJ2K.Configuration;
 using OpenMetaverse.Imaging;
+using SkiaSharp;
 
 namespace OpenMetaverse.Assets
 {
@@ -101,8 +102,8 @@ namespace OpenMetaverse.Assets
 
             this.Components = 0;
 
-            using var image = J2kImage.FromBytes(AssetData);
-            Image = new ManagedImage(image);
+            using var bitmap = J2kImage.DecodeToImage<SKBitmap>(AssetData);
+            Image = new ManagedImage(bitmap);
 
             if ((Image.Channels & ManagedImage.ImageChannels.Color) != 0)
                 Components += 3;
