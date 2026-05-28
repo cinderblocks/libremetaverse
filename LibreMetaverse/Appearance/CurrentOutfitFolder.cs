@@ -500,6 +500,53 @@ namespace LibreMetaverse.Appearance
             }
         }
 
+        /// <summary>
+        /// Creates multiple COF links in a single request.
+        /// </summary>
+        /// <param name="items">Original items to be linked to COF</param>
+        /// <remarks>
+        /// Note: On simulators supporting AIS3 it runs in a single request. On simulators not supporting it, it falls back
+        /// to iterating and calling <see cref="AddLink(InventoryItem, CancellationToken)"/> for each element.
+        /// </remarks>
+        public async Task AddLinks(IEnumerable<InventoryItem> items, CancellationToken cancellationToken = default)
+        {
+            if (COF == null)
+            {
+                return;
+            }
+
+            if (items == null || !items.Any())
+            {
+                return;
+            }
+
+            List<InventoryItem> cofLinks = await GetCurrentOutfitLinks(cancellationToken);
+            IEnumerable<InventoryItem> newLinks = items
+                .Where(item => cofLinks.Find(itemLink => itemLink.AssetUUID == item.ResolvedAssetID) == null);
+
+            if (client.AisClient.IsAvailable)
+            {
+                await client.Inventory.CreateLinksAsync(COF.UUID, newLinks, success =>
+                {
+                    client.Inventory.RequestFolderContents(
+                        COF.UUID,
+                        COF.OwnerID,
+                        fetchFolders: true,
+                        fetchItems: true,
+                        order: InventorySortOrder.ByName,
+                        cancellationToken: cancellationToken
+                    ).ConfigureAwait(false);
+                }, cancellationToken);
+            }
+            else
+            {
+                foreach (InventoryItem item in newLinks)
+                {
+                    await AddLink(item, cancellationToken);
+                }
+            }
+        }
+
         protected async Task RemoveLinksToByActualId(IEnumerable<UUID> actualItemIdsToRemoveLinksTo, CancellationToken cancellationToken = default)
         {
             var actualItemIdsSet = actualItemIdsToRemoveLinksTo.ToArray();
@@ -736,6 +783,7 @@ namespace LibreMetaverse.Appearance
             }
 
             var trashFolderId = client.Inventory.FindFolderForType(FolderType.Trash);
+            var outfitsFolderId = client.Inventory.FindFolderForType(FolderType.Outfit);
             var rootFolderId = client.Inventory.Store.RootFolder.UUID;
 
             var newOutfit = await client.Inventory.RequestFolderContents(
@@ -965,35 +1013,39 @@ namespace LibreMetaverse.Appearance
             var toRemoveIds = linksToRemove
                 .Select(n => n.UUID)
                 .Distinct();
-            await client.Inventory.RemoveItemsAsync(toRemoveIds, cancellationToken);
+            if (toRemoveIds.Any())
+            {
+                await client.Inventory.RemoveItemsAsync(toRemoveIds, cancellationToken);
+            }
 
             // Add body parts from current outfit to new outfit if it's lacking those essential body parts
             foreach (var item in bodypartsToWear)
             {
                 itemsBeingAdded.Add(item.Value.UUID, item.Value);
             }
-            foreach (var item in itemsBeingAdded)
-            {
-                await AddLink(item.Value, cancellationToken);
-            }
+            await AddLinks(itemsBeingAdded.Values, cancellationToken);
 
-            // Add link to outfit folder we're putting on
-            await client.Inventory.CreateLinkAsync(
-                currentOutfitFolder.UUID,
-                newOutfitFolderNode.Data.UUID,
-                newOutfitFolderNode.Data.Name,
-                "",
-                InventoryType.Folder,
-                UUID.Random(),
-                (success, newItem) =>
-                {
+            bool isOutfitFolder = await IsObjectDescendentOf(newOutfitFolderNode.Data, outfitsFolderId, cancellationToken);
+            // Add link to outfit folder we're putting on, but only if its a child of "Outfits"
+            if (isOutfitFolder)
+            {
+                await client.Inventory.CreateLinkAsync(
+                    currentOutfitFolder.UUID,
+                    newOutfitFolderNode.Data.UUID,
+                    newOutfitFolderNode.Data.Name,
+                    "",
+                    InventoryType.Folder,
+                    UUID.Random(),
+                    (success, newItem) =>
+                    {
                         if (success && newItem != null)
                         {
                             _ = client.Inventory.RequestFetchInventoryAsync(newItem.UUID, newItem.OwnerID);
                         }
-                },
-                cancellationToken
-            ).ConfigureAwait(false);
+                    },
+                    cancellationToken
+                ).ConfigureAwait(false);
+            }
 
             // Wear new outfit
             var tcs = new TaskCompletionSource<bool>();
@@ -1214,10 +1266,7 @@ namespace LibreMetaverse.Appearance
             }
 
             // Add links to new items
-            foreach (var item in itemsToAdd)
-            {
-                await AddLink(item, cancellationToken);
-            }
+            await AddLinks(itemsToAdd, cancellationToken);
 
             client.Appearance.AddToOutfit(itemsToAdd, replace);
             _ = Task.Run(async () =>
