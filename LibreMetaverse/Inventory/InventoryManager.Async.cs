@@ -269,7 +269,7 @@ namespace OpenMetaverse
 
             try
             {
-                var result = await PostStringAsync(cap, request.Serialize(), cancellationToken, progress).ConfigureAwait(false);
+                var result = await PostCapAsync(cap, request.Serialize(), cancellationToken, progress).ConfigureAwait(false);
                 UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data),
                     itemID, result, null, cancellationToken, progress);
             }
@@ -297,7 +297,7 @@ namespace OpenMetaverse
 
             try
             {
-                var result = await PostStringAsync(cap, msg.Serialize(), cancellationToken, progress).ConfigureAwait(false);
+                var result = await PostCapAsync(cap, msg.Serialize(), cancellationToken, progress).ConfigureAwait(false);
                 UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data),
                     itemID, result, null, cancellationToken, progress);
             }
