@@ -943,6 +943,13 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="endPoint">IPEndPoint of the Simulator to search for</param>
         /// <returns>A Simulator reference on success, otherwise null</returns>
+        internal void RemoveSimulator(Simulator simulator)
+        {
+            _simulatorsLock.EnterWriteLock();
+            try { Simulators.Remove(simulator); }
+            finally { _simulatorsLock.ExitWriteLock(); }
+        }
+
         public Simulator? FindSimulator(IPEndPoint endPoint)
         {
             _simulatorsLock.EnterReadLock();

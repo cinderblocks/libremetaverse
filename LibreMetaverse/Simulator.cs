@@ -488,7 +488,7 @@ namespace OpenMetaverse
         {
             get
             {
-                lock (this)
+                lock (_parcelMapLock)
                 {
                     if (Client?.Settings.POOL_PARCEL_DATA == true)
                     {
@@ -582,6 +582,7 @@ namespace OpenMetaverse
 
          // simulator <> parcel LocalID Map
          private int[,]? _parcelMap;
+         private readonly object _parcelMapLock = new object();
          public readonly SimulatorDataPool? DataPool;
         internal bool DownloadingParcelMap
         {
@@ -958,9 +959,7 @@ namespace OpenMetaverse
                 {
                     Logger.Warn($"Giving up waiting for RegionHandshake for {this}", Client);
                     //Remove the simulator from the list, not useful if we haven't received the RegionHandshake
-                    lock (Client.Network.Simulators) {
-                        Client.Network.Simulators.Remove(this);
-                    }
+                    Client.Network.RemoveSimulator(this);
                 }
 
                 // Start periodic background tasks for ACKs, stats and pings
