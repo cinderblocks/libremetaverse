@@ -1397,7 +1397,7 @@ namespace OpenMetaverse.Packets
             }
             else
             {
-                return string.Format("{0,30}: (No Decoder) Length={1}" + Environment.NewLine, fieldName, data.Length) +
+                return $"{fieldName,30}: (No Decoder) Length={data.Length}{Environment.NewLine}" +
                        Utils.BytesToHexString(data, $"{"",30}");
             }
         }

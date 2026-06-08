@@ -367,8 +367,7 @@ public delegate void TextureDownloadCallback(TextureRequestState state, AssetTex
 
                         if (percentComplete > 0f)
                         {
-                            Logger.DebugLog(string.Format("Updating priority on image transfer {0} to {1}, {2}% complete",
-                                                          imageID, task.Transfer.Priority, Math.Round(percentComplete, 2)));
+                            Logger.DebugLog($"Updating priority on image transfer {imageID} to {task.Transfer.Priority}, {Math.Round(percentComplete, 2)}% complete");
                         }
                     }
                     else

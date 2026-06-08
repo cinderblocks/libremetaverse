@@ -860,7 +860,7 @@ namespace OpenMetaverse
                     return result;
                 }
 
-                var status = contents.ContainsKey("state") ? contents["state"].AsString().ToLower() : string.Empty;
+                var status = contents.ContainsKey("state") ? contents["state"].AsString().ToLowerInvariant() : string.Empty;
                 result.Status = status;
 
                 if (status == "upload")
@@ -879,7 +879,7 @@ namespace OpenMetaverse
                     if (uploadRes is OSDMap uploadMap)
                     {
                         contents = uploadMap;
-                        status = contents.ContainsKey("state") ? contents["state"].AsString().ToLower() : status;
+                        status = contents.ContainsKey("state") ? contents["state"].AsString().ToLowerInvariant() : status;
                         result.Status = status;
                     }
                 }

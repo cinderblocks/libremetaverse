@@ -156,14 +156,14 @@ namespace LibreMetaverse.RLV
                 return false;
             }
 
-            if (enforceNostrip && item.Name.ToLowerInvariant().Contains("nostrip"))
+            if (enforceNostrip && item.Name.Contains("nostrip", StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }
 
             // Special exception: If a folder with (nostrip) contains inventory links to other items, those linked items can still
             //   be removed. Only the objects actual parent folder or the actual item itself counts.
-            if (enforceNostrip && !item.IsLink && item.Folder != null && item.Folder.Name.ToLowerInvariant().Contains("nostrip"))
+            if (enforceNostrip && !item.IsLink && item.Folder != null && item.Folder.Name.Contains("nostrip", StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }

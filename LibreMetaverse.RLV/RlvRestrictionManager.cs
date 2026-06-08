@@ -221,7 +221,7 @@ namespace LibreMetaverse.RLV
                     filter = notificationRestriction.Args[1].ToString() ?? string.Empty;
                 }
 
-                if (!restrictionName.Contains(filter.ToLowerInvariant()))
+                if (!restrictionName.Contains(filter, StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
@@ -307,7 +307,7 @@ namespace LibreMetaverse.RLV
                         throw new KeyNotFoundException($"_currentRestrictions has a behavior '{item.Key}' that is not defined in the reverse behavior map");
                     }
 
-                    if (!behaviorName.Contains(behaviorNameFilter.ToLowerInvariant()))
+                    if (!behaviorName.Contains(behaviorNameFilter, StringComparison.OrdinalIgnoreCase))
                     {
                         continue;
                     }
@@ -392,7 +392,7 @@ namespace LibreMetaverse.RLV
         internal async Task<bool> ProcessClearCommand(RlvMessage command, CancellationToken cancellationToken)
         {
             var filteredRestrictions = _restrictionToNameMap
-                .Where(n => n.Value.Contains(command.Param.ToLowerInvariant()))
+                .Where(n => n.Value.Contains(command.Param, StringComparison.OrdinalIgnoreCase))
                 .Select(n => n.Key)
                 .ToList();
 

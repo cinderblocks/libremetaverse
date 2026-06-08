@@ -465,8 +465,7 @@ namespace OpenMetaverse
             /// <returns></returns>
             public override string ToString()
             {
-                return string.Format("Color: {0} Intensity: {1} Radius: {2} Cutoff: {3} Falloff: {4}",
-                    Color, Intensity, Radius, Cutoff, Falloff);
+                return $"Color: {Color} Intensity: {Intensity} Radius: {Radius} Cutoff: {Cutoff} Falloff: {Falloff}";
             }
         }
 

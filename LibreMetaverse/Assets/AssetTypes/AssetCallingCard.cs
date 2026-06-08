@@ -80,7 +80,7 @@ namespace OpenMetaverse.Assets
         public sealed override bool Decode()
         {
             String text = Utils.BytesToString(AssetData);
-            if (text.ToLower().Contains("callingcard version 2"))
+            if (text.Contains("callingcard version 2", StringComparison.OrdinalIgnoreCase))
             {
                 AvatarID = new UUID(text.Substring(text.IndexOf("avatar_id", StringComparison.Ordinal) + 10, 36));
                 return true;

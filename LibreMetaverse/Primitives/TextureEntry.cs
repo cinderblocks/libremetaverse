@@ -570,10 +570,8 @@ namespace OpenMetaverse
             /// <returns></returns>
             public override string ToString()
             {
-                return string.Format("Color: {0} RepeatU: {1} RepeatV: {2} OffsetU: {3} OffsetV: {4} " +
-                    "Rotation: {5} Bump: {6} Shiny: {7} Fullbright: {8} Mapping: {9} Media: {10} Glow: {11} ID: {12} MaterialID: {13} RenderMaterialID: {14}",
-                    RGBA, RepeatU, RepeatV, OffsetU, OffsetV, Rotation, Bump, Shiny, Fullbright, TexMapType,
-                    MediaFlags, Glow, TextureID, MaterialID, RenderMaterialID);
+                return $"Color: {RGBA} RepeatU: {RepeatU} RepeatV: {RepeatV} OffsetU: {OffsetU} OffsetV: {OffsetV} " +
+                    $"Rotation: {Rotation} Bump: {Bump} Shiny: {Shiny} Fullbright: {Fullbright} Mapping: {TexMapType} Media: {MediaFlags} Glow: {Glow} ID: {TextureID} MaterialID: {MaterialID} RenderMaterialID: {RenderMaterialID}";
             }
         }
 

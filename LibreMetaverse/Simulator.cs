@@ -1536,14 +1536,10 @@ namespace OpenMetaverse
                     {
                         if (packet.Header.Resent)
                             Logger.Debug(
-                                string.Format(
-                                    "Received a resend of already processed packet #{0}, type: {1} from {2}", 
-                                    packet.Header.Sequence, packet.Type, Name));
+                                $"Received a resend of already processed packet #{packet.Header.Sequence}, type: {packet.Type} from {Name}");
                         else
                             Logger.Warn(
-                                string.Format(
-                                    "Received a duplicate (not marked as resend) of packet #{0}, type: {1} for {2} from {3}", 
-                                    packet.Header.Sequence, packet.Type, Client.Self.Name, Name));
+                                $"Received a duplicate (not marked as resend) of packet #{packet.Header.Sequence}, type: {packet.Type} for {Client.Self.Name} from {Name}");
 
                         // Avoid firing a callback twice for the same packet
                         return;
@@ -1641,8 +1637,7 @@ namespace OpenMetaverse
                 {
                     if (Client.Settings.LOG_RESENDS)
                     {
-                        Logger.Debug(string.Format("Resending {2} packet #{0}, {1}ms have passed",
-                            outgoing.SequenceNumber, now - outgoing.TickCount, outgoing.Type), Client);
+                        Logger.Debug($"Resending {outgoing.Type} packet #{outgoing.SequenceNumber}, {now - outgoing.TickCount}ms have passed", Client);
                     }
 
                     // The TickCount will be set to the current time when the packet
@@ -1660,8 +1655,7 @@ namespace OpenMetaverse
                 }
                 else
                 {
-                    Logger.Debug(string.Format("Dropping packet #{0} after {1} failed attempts",
-                        outgoing.SequenceNumber, outgoing.ResendCount));
+                    Logger.Debug($"Dropping packet #{outgoing.SequenceNumber} after {outgoing.ResendCount} failed attempts");
 
                     lock (NeedAck) NeedAck.Remove(outgoing.SequenceNumber);
                 }

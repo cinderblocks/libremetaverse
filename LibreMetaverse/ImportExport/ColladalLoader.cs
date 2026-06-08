@@ -124,7 +124,7 @@ namespace OpenMetaverse.ImportExport
 
             try
             {
-                string ext = System.IO.Path.GetExtension(material.Texture).ToLower();
+                string ext = System.IO.Path.GetExtension(material.Texture).ToLowerInvariant();
 
                 SKBitmap bitmap;
 

@@ -1476,7 +1476,7 @@ namespace OpenMetaverse
                     {
                         foreach (var t in nics)
                         {
-                            var adapterMac = t.GetPhysicalAddress().ToString().ToUpper();
+                            var adapterMac = t.GetPhysicalAddress().ToString().ToUpperInvariant();
                             if (adapterMac.Length == 12 && adapterMac != "000000000000")
                             {
                                 mac = adapterMac;

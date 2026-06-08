@@ -72,7 +72,7 @@ namespace OpenMetaverse.Assets
         public sealed override bool Decode()
         {
             string text = Utils.BytesToString(AssetData);
-            if (text.ToLower().Contains("landmark version 2"))
+            if (text.Contains("landmark version 2", StringComparison.OrdinalIgnoreCase))
             {
                 RegionID = new UUID(text.Substring(text.IndexOf("region_id", StringComparison.Ordinal) + 10, 36));
                 const string vecDelim = " ";

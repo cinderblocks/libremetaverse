@@ -235,7 +235,7 @@ namespace OpenMetaverse
 
             var contents = (OSDMap)result;
 
-            var status = contents["state"].AsString().ToLower();
+            var status = contents["state"].AsString().ToLowerInvariant();
 
             if (status == "upload")
             {

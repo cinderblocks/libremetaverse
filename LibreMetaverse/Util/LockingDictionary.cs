@@ -407,21 +407,17 @@ namespace OpenMetaverse
             get
             {
                 lock (Dictionary)
-                {
-                    return Dictionary.Keys;
-                }
+                    return Dictionary.Keys.ToList();
             }
         }
-        
+
         /// <inheritdoc />
         public ICollection<TValue> Values
         {
             get
             {
                 lock (Dictionary)
-                {
-                    return Dictionary.Values;
-                }
+                    return Dictionary.Values.ToList();
             }
         }
 
@@ -429,9 +425,7 @@ namespace OpenMetaverse
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
         {
             lock (Dictionary)
-            {
-                return Dictionary.GetEnumerator();
-            }
+                return new List<KeyValuePair<TKey, TValue>>(Dictionary).GetEnumerator();
         }
 
         /// <inheritdoc />

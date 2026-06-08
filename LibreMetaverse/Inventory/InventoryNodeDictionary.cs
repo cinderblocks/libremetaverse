@@ -160,10 +160,14 @@ namespace OpenMetaverse
 
         internal void Sort()
         {
-            if (Settings.SORT_INVENTORY)
+            if (!Settings.SORT_INVENTORY) return;
+            lock (syncRoot)
             {
-                // TODO resort SDictionary now that more data has come?  
-            } 
+                if (SDictionary == null) return;
+                SDictionary.Clear();
+                foreach (var pair in Dictionary)
+                    SDictionary.Add(pair.Key, pair.Value);
+            }
         }
     }
 }
