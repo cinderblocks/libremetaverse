@@ -179,90 +179,88 @@ namespace OpenMetaverse
             private int _lastPingSent;
             private int _lastPingID;
 
-            // Less frequently updated fields
-            private readonly object _sync = new object();
-
-            private int _lastLag;
+            // Less frequently updated fields — volatile provides memory visibility without lock overhead
+            private volatile int _lastLag;
             /// <summary></summary>
-            public int LastLag { get { lock (_sync) { return _lastLag; } } set { lock (_sync) { _lastLag = value; } } }
-            private int _missedPings;
+            public int LastLag { get => _lastLag; set => _lastLag = value; }
+            private volatile int _missedPings;
             /// <summary></summary>
-            public int MissedPings { get { lock (_sync) { return _missedPings; } } set { lock (_sync) { _missedPings = value; } } }
-            private float _dilation;
+            public int MissedPings { get => _missedPings; set => _missedPings = value; }
+            private volatile float _dilation;
             /// <summary></summary>
-            public float Dilation { get { lock (_sync) { return _dilation; } } set { lock (_sync) { _dilation = value; } } }
-            private int _fps;
+            public float Dilation { get => _dilation; set => _dilation = value; }
+            private volatile int _fps;
             /// <summary></summary>
-            public int FPS { get { lock (_sync) { return _fps; } } set { lock (_sync) { _fps = value; } } }
-            private float _physicsFPS;
+            public int FPS { get => _fps; set => _fps = value; }
+            private volatile float _physicsFPS;
             /// <summary></summary>
-            public float PhysicsFPS { get { lock (_sync) { return _physicsFPS; } } set { lock (_sync) { _physicsFPS = value; } } }
-            private float _agentUpdates;
+            public float PhysicsFPS { get => _physicsFPS; set => _physicsFPS = value; }
+            private volatile float _agentUpdates;
             /// <summary></summary>
-            public float AgentUpdates { get { lock (_sync) { return _agentUpdates; } } set { lock (_sync) { _agentUpdates = value; } } }
-            private float _frameTime;
+            public float AgentUpdates { get => _agentUpdates; set => _agentUpdates = value; }
+            private volatile float _frameTime;
             /// <summary></summary>
-            public float FrameTime { get { lock (_sync) { return _frameTime; } } set { lock (_sync) { _frameTime = value; } } }
-            private float _netTime;
+            public float FrameTime { get => _frameTime; set => _frameTime = value; }
+            private volatile float _netTime;
             /// <summary></summary>
-            public float NetTime { get { lock (_sync) { return _netTime; } } set { lock (_sync) { _netTime = value; } } }
-            private float _physicsTime;
+            public float NetTime { get => _netTime; set => _netTime = value; }
+            private volatile float _physicsTime;
             /// <summary></summary>
-            public float PhysicsTime { get { lock (_sync) { return _physicsTime; } } set { lock (_sync) { _physicsTime = value; } } }
-            private float _imageTime;
+            public float PhysicsTime { get => _physicsTime; set => _physicsTime = value; }
+            private volatile float _imageTime;
             /// <summary></summary>
-            public float ImageTime { get { lock (_sync) { return _imageTime; } } set { lock (_sync) { _imageTime = value; } } }
-            private float _scriptTime;
+            public float ImageTime { get => _imageTime; set => _imageTime = value; }
+            private volatile float _scriptTime;
             /// <summary></summary>
-            public float ScriptTime { get { lock (_sync) { return _scriptTime; } } set { lock (_sync) { _scriptTime = value; } } }
-            private float _agentTime;
+            public float ScriptTime { get => _scriptTime; set => _scriptTime = value; }
+            private volatile float _agentTime;
             /// <summary></summary>
-            public float AgentTime { get { lock (_sync) { return _agentTime; } } set { lock (_sync) { _agentTime = value; } } }
-            private float _otherTime;
+            public float AgentTime { get => _agentTime; set => _agentTime = value; }
+            private volatile float _otherTime;
             /// <summary></summary>
-            public float OtherTime { get { lock (_sync) { return _otherTime; } } set { lock (_sync) { _otherTime = value; } } }
-            private int _objects;
+            public float OtherTime { get => _otherTime; set => _otherTime = value; }
+            private volatile int _objects;
             /// <summary></summary>
-            public int Objects { get { lock (_sync) { return _objects; } } set { lock (_sync) { _objects = value; } } }
-            private int _scriptedObjects;
+            public int Objects { get => _objects; set => _objects = value; }
+            private volatile int _scriptedObjects;
             /// <summary></summary>
-            public int ScriptedObjects { get { lock (_sync) { return _scriptedObjects; } } set { lock (_sync) { _scriptedObjects = value; } } }
-            private int _agents;
+            public int ScriptedObjects { get => _scriptedObjects; set => _scriptedObjects = value; }
+            private volatile int _agents;
             /// <summary></summary>
-            public int Agents { get { lock (_sync) { return _agents; } } set { lock (_sync) { _agents = value; } } }
-            private int _childAgents;
+            public int Agents { get => _agents; set => _agents = value; }
+            private volatile int _childAgents;
             /// <summary></summary>
-            public int ChildAgents { get { lock (_sync) { return _childAgents; } } set { lock (_sync) { _childAgents = value; } } }
-            private int _activeScripts;
+            public int ChildAgents { get => _childAgents; set => _childAgents = value; }
+            private volatile int _activeScripts;
             /// <summary></summary>
-            public int ActiveScripts { get { lock (_sync) { return _activeScripts; } } set { lock (_sync) { _activeScripts = value; } } }
-            private int _lslips;
+            public int ActiveScripts { get => _activeScripts; set => _activeScripts = value; }
+            private volatile int _lslips;
             /// <summary></summary>
-            public int LSLIPS { get { lock (_sync) { return _lslips; } } set { lock (_sync) { _lslips = value; } } }
-            private int _inpps;
+            public int LSLIPS { get => _lslips; set => _lslips = value; }
+            private volatile int _inpps;
             /// <summary></summary>
-            public int INPPS { get { lock (_sync) { return _inpps; } } set { lock (_sync) { _inpps = value; } } }
-            private int _outpps;
+            public int INPPS { get => _inpps; set => _inpps = value; }
+            private volatile int _outpps;
             /// <summary></summary>
-            public int OUTPPS { get { lock (_sync) { return _outpps; } } set { lock (_sync) { _outpps = value; } } }
-            private int _pendingDownloads;
+            public int OUTPPS { get => _outpps; set => _outpps = value; }
+            private volatile int _pendingDownloads;
             /// <summary></summary>
-            public int PendingDownloads { get { lock (_sync) { return _pendingDownloads; } } set { lock (_sync) { _pendingDownloads = value; } } }
-            private int _pendingUploads;
+            public int PendingDownloads { get => _pendingDownloads; set => _pendingDownloads = value; }
+            private volatile int _pendingUploads;
             /// <summary></summary>
-            public int PendingUploads { get { lock (_sync) { return _pendingUploads; } } set { lock (_sync) { _pendingUploads = value; } } }
-            private int _virtualSize;
+            public int PendingUploads { get => _pendingUploads; set => _pendingUploads = value; }
+            private volatile int _virtualSize;
             /// <summary></summary>
-            public int VirtualSize { get { lock (_sync) { return _virtualSize; } } set { lock (_sync) { _virtualSize = value; } } }
-            private int _residentSize;
+            public int VirtualSize { get => _virtualSize; set => _virtualSize = value; }
+            private volatile int _residentSize;
             /// <summary></summary>
-            public int ResidentSize { get { lock (_sync) { return _residentSize; } } set { lock (_sync) { _residentSize = value; } } }
-            private int _pendingLocalUploads;
+            public int ResidentSize { get => _residentSize; set => _residentSize = value; }
+            private volatile int _pendingLocalUploads;
             /// <summary></summary>
-            public int PendingLocalUploads { get { lock (_sync) { return _pendingLocalUploads; } } set { lock (_sync) { _pendingLocalUploads = value; } } }
-            private int _unackedBytes;
+            public int PendingLocalUploads { get => _pendingLocalUploads; set => _pendingLocalUploads = value; }
+            private volatile int _unackedBytes;
             /// <summary></summary>
-            public int UnackedBytes { get { lock (_sync) { return _unackedBytes; } } set { lock (_sync) { _unackedBytes = value; } } }
+            public int UnackedBytes { get => _unackedBytes; set => _unackedBytes = value; }
 
             // Atomic operations
             public void AddRecvBytes(long v) => Interlocked.Add(ref _recvBytes, v);

@@ -249,13 +249,11 @@ namespace OpenMetaverse
         {
             /// <summary>Languages profile field</summary>
             public string LanguagesText;
-            /// <summary></summary>
-            // FIXME:
+            /// <summary>Bitmask of skills (values defined by the SL viewer)</summary>
             public uint SkillsMask;
             /// <summary></summary>
             public string SkillsText;
-            /// <summary></summary>
-            // FIXME:
+            /// <summary>Bitmask of "want to" interests (values defined by the SL viewer)</summary>
             public uint WantToMask;
             /// <summary></summary>
             public string WantToText;

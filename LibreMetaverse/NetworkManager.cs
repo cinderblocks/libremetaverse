@@ -322,6 +322,7 @@ namespace OpenMetaverse
 
         /// <summary>All simulators we are currently connected to</summary>
         public List<Simulator> Simulators = new List<Simulator>();
+        private readonly ReaderWriterLockSlim _simulatorsLock = new ReaderWriterLockSlim();
 
         /// <summary>Handlers for incoming capability events</summary>
         internal CapsEventDictionary CapsEvents;
@@ -604,7 +605,9 @@ namespace OpenMetaverse
 
                 // Immediately add this simulator to the list of current sims. It will be removed if the
                 // connection fails
-                lock (Simulators) Simulators.Add(simulator);
+                _simulatorsLock.EnterWriteLock();
+                try { Simulators.Add(simulator); }
+                finally { _simulatorsLock.ExitWriteLock(); }
             }
             
             if (_packetInbox == null || _packetOutbox == null)
@@ -636,10 +639,9 @@ namespace OpenMetaverse
                     if (args.Cancel)
                     {
                         // Callback is requesting that we abort this connection
-                        lock (Simulators)
-                        {
-                            Simulators.Remove(simulator);
-                        }
+                        _simulatorsLock.EnterWriteLock();
+                        try { Simulators.Remove(simulator); }
+                        finally { _simulatorsLock.ExitWriteLock(); }
                         return null;
                     }
                 }
@@ -675,10 +677,9 @@ namespace OpenMetaverse
                 }
 
                 // Connection failed, remove this simulator from our list and destroy it
-                lock (Simulators)
-                {
-                    Simulators.Remove(simulator);
-                }
+                _simulatorsLock.EnterWriteLock();
+                try { Simulators.Remove(simulator); }
+                finally { _simulatorsLock.ExitWriteLock(); }
 
                 return null;
             }
@@ -815,11 +816,13 @@ namespace OpenMetaverse
                 }
 
                 int simulatorsCount;
-                lock (Simulators)
+                _simulatorsLock.EnterWriteLock();
+                try
                 {
                     Simulators.Remove(simulator);
                     simulatorsCount = Simulators.Count;
                 }
+                finally { _simulatorsLock.ExitWriteLock(); }
 
                 if (simulatorsCount == 0)
                 {
@@ -875,7 +878,8 @@ namespace OpenMetaverse
             // Send a CloseCircuit packet to simulators if we are initiating the disconnect
             bool sendCloseCircuit = (type == DisconnectType.ClientInitiated || type == DisconnectType.NetworkTimeout);
 
-            lock (Simulators)
+            _simulatorsLock.EnterWriteLock();
+            try
             {
                 // Disconnect all simulators except the current one
                 foreach (var sim in Simulators.Where(t => t != null && t != CurrentSim))
@@ -892,6 +896,7 @@ namespace OpenMetaverse
 
                 Simulators.Clear();
             }
+            finally { _simulatorsLock.ExitWriteLock(); }
 
             if (CurrentSim != null)
             {
@@ -940,26 +945,30 @@ namespace OpenMetaverse
         /// <returns>A Simulator reference on success, otherwise null</returns>
         public Simulator? FindSimulator(IPEndPoint endPoint)
         {
-            lock (Simulators)
+            _simulatorsLock.EnterReadLock();
+            try
             {
                 foreach (var sim in Simulators.Where(t => t.IPEndPoint.Equals(endPoint)))
                 {
                     return sim;
                 }
             }
+            finally { _simulatorsLock.ExitReadLock(); }
 
             return null;
         }
 
         public Simulator? FindSimulator(ulong handle)
         {
-            lock (Simulators)
+            _simulatorsLock.EnterReadLock();
+            try
             {
                 foreach (var t in Simulators.Where(t => t.Handle == handle))
                 {
                     return t;
                 }
             }
+            finally { _simulatorsLock.ExitReadLock(); }
 
             return null;
         }
@@ -1094,7 +1103,9 @@ namespace OpenMetaverse
                 return;
 
             Simulator? oldSim = CurrentSim;
-            lock (Simulators) CurrentSim = simulator; // CurrentSim is synchronized against Simulators
+            _simulatorsLock.EnterWriteLock();
+            try { CurrentSim = simulator; }
+            finally { _simulatorsLock.ExitWriteLock(); }
 
             simulator.SetSeedCaps(seedcaps, oldSim != simulator);
 

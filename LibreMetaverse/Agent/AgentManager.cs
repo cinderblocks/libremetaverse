@@ -2004,7 +2004,7 @@ namespace OpenMetaverse
                     if (callback != null)
                     {
                         try { callback(new AgentAccessEventArgs(success, AgentAccess)); }
-                        catch { } // *TODO: So gross
+                        catch (Exception ex) { Logger.Error("Exception in AgentAccess callback", ex, Client); }
                     }
                 }).ConfigureAwait(false);
         }

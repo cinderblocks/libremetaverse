@@ -27,6 +27,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OpenMetaverse
 {
@@ -111,16 +112,22 @@ namespace OpenMetaverse
         {
             get
             {
-                if (Settings.SORT_INVENTORY && SDictionary != null) return SDictionary.Keys;
-                return Dictionary.Keys;
+                lock (syncRoot)
+                {
+                    if (Settings.SORT_INVENTORY && SDictionary != null) return SDictionary.Keys.ToList();
+                    return Dictionary.Keys.ToList();
+                }
             }
         }
         public ICollection<InventoryNode> Values
         {
             get
             {
-                if (Settings.SORT_INVENTORY && SDictionary != null) return SDictionary.Values;
-                return Dictionary.Values;
+                lock (syncRoot)
+                {
+                    if (Settings.SORT_INVENTORY && SDictionary != null) return SDictionary.Values.ToList();
+                    return Dictionary.Values.ToList();
+                }
             }
         }
 
@@ -145,7 +152,10 @@ namespace OpenMetaverse
 
         public bool Contains(UUID key)
         {
-            return Dictionary.ContainsKey(key);
+            lock (syncRoot)
+            {
+                return Dictionary.ContainsKey(key);
+            }
         }
 
         internal void Sort()
