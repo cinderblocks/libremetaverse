@@ -836,6 +836,34 @@ namespace OpenMetaverse
                         }
                         break;
                     }
+                    case InventoryItem misclassifiedLink when misclassifiedLink.IsLink()
+                                                             && Client.Inventory?.Store != null
+                                                             && Client.Inventory.Store.Contains(misclassifiedLink.ResolvedItemID):
+                    {
+                        // Old in-world attachments are stored with inv_type=0 (Texture). The link
+                        // inherits this wrong type so FromOSD emits InventoryTexture, bypassing the
+                        // typed cases above. Resolve the target and handle it by its real type.
+                        var resolved = Client.Inventory.Store[misclassifiedLink.ResolvedItemID];
+                        switch (resolved)
+                        {
+                            case InventoryWearable w when !w.IsLink():
+                                wearables.Add(w.WearableType, new WearableData
+                                {
+                                    ItemID = w.UUID,
+                                    AssetID = w.AssetUUID,
+                                    AssetType = w.AssetType,
+                                    WearableType = w.WearableType
+                                });
+                                break;
+                            case InventoryAttachment ra:
+                                Attachments.AddOrUpdate(ra.ResolvedItemID, ra.AttachmentPoint, (_, _) => ra.AttachmentPoint);
+                                break;
+                            case InventoryObject ro:
+                                Attachments.AddOrUpdate(ro.ResolvedItemID, ro.AttachPoint, (_, _) => ro.AttachPoint);
+                                break;
+                        }
+                        break;
+                    }
                 }
             }
             lock (Wearables) { Wearables = wearables; }
@@ -2528,6 +2556,46 @@ namespace OpenMetaverse
                             Logger.Debug($"Wearing object {attachmentIO.UUID} ({attachmentIO.Name})", Client);
 
                             blocks.Add(block);
+                            break;
+                        }
+                    case InventoryItem misclassifiedLink when misclassifiedLink.IsLink()
+                                                             && Client.Inventory?.Store != null
+                                                             && Client.Inventory.Store.Contains(misclassifiedLink.ResolvedItemID):
+                        {
+                            var resolved = Client.Inventory.Store[misclassifiedLink.ResolvedItemID];
+                            RezMultipleAttachmentsFromInvPacket.ObjectDataBlock? block = resolved switch
+                            {
+                                InventoryAttachment ra => new RezMultipleAttachmentsFromInvPacket.ObjectDataBlock
+                                {
+                                    AttachmentPt = (byte)(ATTACHMENT_ADD | (byte)ra.AttachmentPoint),
+                                    EveryoneMask = (uint)ra.Permissions.EveryoneMask,
+                                    GroupMask = (uint)ra.Permissions.GroupMask,
+                                    ItemFlags = ra.Flags,
+                                    ItemID = ra.ResolvedItemID,
+                                    Name = Utils.StringToBytes(ra.Name),
+                                    Description = Utils.StringToBytes(ra.Description),
+                                    NextOwnerMask = (uint)ra.Permissions.NextOwnerMask,
+                                    OwnerID = ra.OwnerID
+                                },
+                                InventoryObject ro => new RezMultipleAttachmentsFromInvPacket.ObjectDataBlock
+                                {
+                                    AttachmentPt = ATTACHMENT_ADD,
+                                    EveryoneMask = (uint)ro.Permissions.EveryoneMask,
+                                    GroupMask = (uint)ro.Permissions.GroupMask,
+                                    ItemFlags = ro.Flags,
+                                    ItemID = ro.ResolvedItemID,
+                                    Name = Utils.StringToBytes(ro.Name),
+                                    Description = Utils.StringToBytes(ro.Description),
+                                    NextOwnerMask = (uint)ro.Permissions.NextOwnerMask,
+                                    OwnerID = ro.OwnerID
+                                },
+                                _ => null
+                            };
+                            if (block != null)
+                            {
+                                Logger.Debug($"Wearing misclassified link target {resolved.Name} ({resolved.UUID})", Client);
+                                blocks.Add(block);
+                            }
                             break;
                         }
                 }
