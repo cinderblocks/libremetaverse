@@ -762,9 +762,9 @@ namespace OpenMetaverse
                     UUID tmpUUID = new UUID(data, i);
                     i += 16;
                     
-                    for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    for (uint face = 0; face < bitfieldSize; face++)
                     {
-                        if ((faceBits & bit) != 0)
+                        if ((faceBits & (1UL << (int)face)) != 0)
                             CreateFace(face).TextureID = tmpUUID;
                     }
                 }
@@ -779,9 +779,9 @@ namespace OpenMetaverse
                     Color4 tmpColor = new Color4(data, i, true);
                     i += 4;
 
-                    for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    for (uint face = 0; face < bitfieldSize; face++)
                     {
-                        if ((faceBits & bit) != 0)
+                        if ((faceBits & (1UL << (int)face)) != 0)
                             CreateFace(face).RGBA = tmpColor;
                     }
                 }
@@ -796,9 +796,9 @@ namespace OpenMetaverse
                     float tmpFloat = Utils.BytesToFloat(data, i);
                     i += 4;
 
-                    for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    for (uint face = 0; face < bitfieldSize; face++)
                     {
-                        if ((faceBits & bit) != 0)
+                        if ((faceBits & (1UL << (int)face)) != 0)
                             CreateFace(face).RepeatU = tmpFloat;
                     }
                 }
@@ -813,9 +813,9 @@ namespace OpenMetaverse
                     float tmpFloat = Utils.BytesToFloat(data, i);
                     i += 4;
 
-                    for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    for (uint face = 0; face < bitfieldSize; face++)
                     {
-                        if ((faceBits & bit) != 0)
+                        if ((faceBits & (1UL << (int)face)) != 0)
                             CreateFace(face).RepeatV = tmpFloat;
                     }
                 }
@@ -830,9 +830,9 @@ namespace OpenMetaverse
                     float tmpFloat = Helpers.TEOffsetFloat(data, i);
                     i += 2;
 
-                    for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    for (uint face = 0; face < bitfieldSize; face++)
                     {
-                        if ((faceBits & bit) != 0)
+                        if ((faceBits & (1UL << (int)face)) != 0)
                             CreateFace(face).OffsetU = tmpFloat;
                     }
                 }
@@ -847,9 +847,9 @@ namespace OpenMetaverse
                     float tmpFloat = Helpers.TEOffsetFloat(data, i);
                     i += 2;
 
-                    for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    for (uint face = 0; face < bitfieldSize; face++)
                     {
-                        if ((faceBits & bit) != 0)
+                        if ((faceBits & (1UL << (int)face)) != 0)
                             CreateFace(face).OffsetV = tmpFloat;
                     }
                 }
@@ -864,9 +864,9 @@ namespace OpenMetaverse
                     float tmpFloat = Helpers.TERotationFloat(data, i);
                     i += 2;
 
-                    for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    for (uint face = 0; face < bitfieldSize; face++)
                     {
-                        if ((faceBits & bit) != 0)
+                        if ((faceBits & (1UL << (int)face)) != 0)
                             CreateFace(face).Rotation = tmpFloat;
                     }
                 }
@@ -881,9 +881,9 @@ namespace OpenMetaverse
                     byte tmpByte = data[i];
                     i++;
 
-                    for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    for (uint face = 0; face < bitfieldSize; face++)
                     {
-                        if ((faceBits & bit) != 0)
+                        if ((faceBits & (1UL << (int)face)) != 0)
                             CreateFace(face).material = tmpByte;
                     }
                 }
@@ -898,9 +898,9 @@ namespace OpenMetaverse
                     byte tmpByte = data[i];
                     i++;
 
-                    for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    for (uint face = 0; face < bitfieldSize; face++)
                     {
-                        if ((faceBits & bit) != 0)
+                        if ((faceBits & (1UL << (int)face)) != 0)
                             CreateFace(face).media = tmpByte;
                     }
                 }
@@ -915,9 +915,9 @@ namespace OpenMetaverse
                     float tmpFloat = Helpers.TEGlowFloat(data, i);
                     i++;
 
-                    for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                    for (uint face = 0; face < bitfieldSize; face++)
                     {
-                        if ((faceBits & bit) != 0)
+                        if ((faceBits & (1UL << (int)face)) != 0)
                             CreateFace(face).Glow = tmpFloat;
                     }
                 }
@@ -934,9 +934,9 @@ namespace OpenMetaverse
                         UUID tmpUUID = new UUID(data, i);
                         i += 16;
 
-                        for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                        for (uint face = 0; face < bitfieldSize; face++)
                         {
-                            if ((faceBits & bit) != 0)
+                            if ((faceBits & (1UL << (int)face)) != 0)
                                 CreateFace(face).MaterialID = tmpUUID;
                         }
                     }
@@ -954,9 +954,9 @@ namespace OpenMetaverse
                         UUID tmpUUID = new UUID(data, i);
                         i += 16;
 
-                        for (uint face = 0, bit = 1; face < bitfieldSize; face++, bit <<= 1)
+                        for (uint face = 0; face < bitfieldSize; face++)
                         {
-                            if ((faceBits & bit) != 0)
+                            if ((faceBits & (1UL << (int)face)) != 0)
                                 CreateFace(face).RenderMaterialID = tmpUUID;
                         }
                     }
