@@ -49,6 +49,7 @@ namespace OpenMetaverse
         /// <param name="success">Indicates if operation was successful</param>
         /// <param name="info">Attachment resource usage information</param>
         public delegate void AttachmentResourcesCallback(bool success, AttachmentResourcesMessage? info);
+        /// <summary>Called when a request to change the agent's maximum allowed content maturity level completes</summary>
         public delegate void AgentAccessCallback(AgentAccessEventArgs e);
         #endregion Delegates
 
@@ -1272,7 +1273,9 @@ namespace OpenMetaverse
 
         #region Touch and grab
 
+        /// <summary>Sentinel texture coordinate value indicating no valid UV hit point for a touch or grab event</summary>
         public static readonly Vector3 TOUCH_INVALID_TEXCOORD = new Vector3(-1.0f, -1.0f, 0.0f);
+        /// <summary>Sentinel position/normal/binormal vector indicating no valid surface hit point for a touch or grab event</summary>
         public static readonly Vector3 TOUCH_INVALID_VECTOR = Vector3.Zero;
 
         /// <summary>
@@ -1868,9 +1871,10 @@ namespace OpenMetaverse
             SetDisplayNameAsync(oldName, newName, cancellationToken).GetAwaiter().GetResult();
         }
 
-        /// <summary>
-        /// Initiates request to set a new display name (async)
-        /// </summary>
+        /// <summary>Initiates request to set a new display name (async)</summary>
+        /// <param name="oldName">The avatar's current display name; required by the server for validation</param>
+        /// <param name="newName">The desired new display name</param>
+        /// <param name="cancellationToken">Token to cancel the capability request</param>
         public async Task SetDisplayNameAsync(string oldName, string newName, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();

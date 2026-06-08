@@ -32,6 +32,12 @@ namespace OpenMetaverse
 {
     public partial class AgentManager
     {
+        /// <summary>Send a PointAt viewer effect to make this avatar's cursor point at an object or position</summary>
+        /// <param name="sourceAvatar">UUID of the avatar producing the effect</param>
+        /// <param name="targetObject">UUID of the target object, or UUID.Zero for a position-only target</param>
+        /// <param name="globalOffset">Global coordinates of the point being indicated</param>
+        /// <param name="type">The point-at interaction type</param>
+        /// <param name="effectID">Client-generated UUID to identify this effect instance</param>
         public void PointAtEffect(UUID sourceAvatar, UUID targetObject, Vector3d globalOffset, PointAtType type,
             UUID effectID)
         {
@@ -68,6 +74,12 @@ namespace OpenMetaverse
             Client.Network.SendPacket(effect);
         }
 
+        /// <summary>Send a LookAt viewer effect to indicate where this avatar is looking</summary>
+        /// <param name="sourceAvatar">UUID of the avatar producing the effect</param>
+        /// <param name="targetObject">UUID of the target object, or UUID.Zero for a position-only target</param>
+        /// <param name="globalOffset">Global coordinates of the gaze target</param>
+        /// <param name="type">The look-at interaction type (determines duration and rendering)</param>
+        /// <param name="effectID">Client-generated UUID to identify this effect instance</param>
         public void LookAtEffect(UUID sourceAvatar, UUID targetObject, Vector3d globalOffset, LookAtType type,
             UUID effectID)
         {
@@ -133,6 +145,13 @@ namespace OpenMetaverse
             Client.Network.SendPacket(effect);
         }
 
+        /// <summary>Send a Beam viewer effect that draws a colored line from one point to another</summary>
+        /// <param name="sourceAvatar">UUID of the avatar or object emitting the beam</param>
+        /// <param name="targetObject">UUID of the target object, or UUID.Zero for a position-only target</param>
+        /// <param name="globalOffset">Global coordinates of the beam endpoint</param>
+        /// <param name="color">RGBA color of the beam</param>
+        /// <param name="duration">Duration in seconds the beam should be displayed</param>
+        /// <param name="effectID">Client-generated UUID to identify this effect instance</param>
         public void BeamEffect(UUID sourceAvatar, UUID targetObject, Vector3d globalOffset, Color4 color,
             float duration, UUID effectID)
         {
@@ -166,6 +185,11 @@ namespace OpenMetaverse
             Client.Network.SendPacket(effect);
         }
 
+        /// <summary>Send a Sphere viewer effect that renders a colored sphere at a world position</summary>
+        /// <param name="globalOffset">Global coordinates of the sphere center</param>
+        /// <param name="color">RGBA color of the sphere</param>
+        /// <param name="duration">Duration in seconds the sphere should be displayed</param>
+        /// <param name="effectID">Client-generated UUID to identify this effect instance</param>
         public void SphereEffect(Vector3d globalOffset, Color4 color, float duration, UUID effectID)
         {
             ViewerEffectPacket effect = new ViewerEffectPacket

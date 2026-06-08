@@ -393,11 +393,16 @@ namespace OpenMetaverse
             }
         }
 
+        /// <summary>Request a teleport lure from another agent with a custom message and explicit session ID</summary>
+        /// <param name="targetID">UUID of the avatar to request a lure from</param>
+        /// <param name="message">Message text to include with the request</param>
         public void SendTeleportLureRequest(UUID targetID, string message)
         {
             SendTeleportLureRequest(targetID, targetID, message);
         }
 
+        /// <summary>Request a teleport lure from another agent using a default message</summary>
+        /// <param name="targetID">UUID of the avatar to request a lure from</param>
         public void SendTeleportLureRequest(UUID targetID)
         {
             SendTeleportLureRequest(targetID, "Let me join you in your location");

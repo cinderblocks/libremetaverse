@@ -202,43 +202,43 @@ namespace OpenMetaverse
                 get => GetControlFlag(ControlFlags.AGENT_CONTROL_UP_NEG);
                 set => SetControlFlag(ControlFlags.AGENT_CONTROL_UP_NEG, value);
             }
-            /// <summary></summary>
+            /// <summary>Pitch agent's view upward (nose up)</summary>
             public bool PitchPos
             {
                 get => GetControlFlag(ControlFlags.AGENT_CONTROL_PITCH_POS);
                 set => SetControlFlag(ControlFlags.AGENT_CONTROL_PITCH_POS, value);
             }
-            /// <summary></summary>
+            /// <summary>Pitch agent's view downward (nose down)</summary>
             public bool PitchNeg
             {
                 get => GetControlFlag(ControlFlags.AGENT_CONTROL_PITCH_NEG);
                 set => SetControlFlag(ControlFlags.AGENT_CONTROL_PITCH_NEG, value);
             }
-            /// <summary></summary>
+            /// <summary>Yaw agent's view left</summary>
             public bool YawPos
             {
                 get => GetControlFlag(ControlFlags.AGENT_CONTROL_YAW_POS);
                 set => SetControlFlag(ControlFlags.AGENT_CONTROL_YAW_POS, value);
             }
-            /// <summary></summary>
+            /// <summary>Yaw agent's view right</summary>
             public bool YawNeg
             {
                 get => GetControlFlag(ControlFlags.AGENT_CONTROL_YAW_NEG);
                 set => SetControlFlag(ControlFlags.AGENT_CONTROL_YAW_NEG, value);
             }
-            /// <summary></summary>
+            /// <summary>Move forward at increased speed (run forward)</summary>
             public bool FastAt
             {
                 get => GetControlFlag(ControlFlags.AGENT_CONTROL_FAST_AT);
                 set => SetControlFlag(ControlFlags.AGENT_CONTROL_FAST_AT, value);
             }
-            /// <summary></summary>
+            /// <summary>Strafe at increased speed (run sideways)</summary>
             public bool FastLeft
             {
                 get => GetControlFlag(ControlFlags.AGENT_CONTROL_FAST_LEFT);
                 set => SetControlFlag(ControlFlags.AGENT_CONTROL_FAST_LEFT, value);
             }
-            /// <summary></summary>
+            /// <summary>Move vertically at increased speed (fast up)</summary>
             public bool FastUp
             {
                 get => GetControlFlag(ControlFlags.AGENT_CONTROL_FAST_UP);
@@ -316,13 +316,13 @@ namespace OpenMetaverse
                 get => GetControlFlag(ControlFlags.AGENT_CONTROL_NUDGE_UP_NEG);
                 set => SetControlFlag(ControlFlags.AGENT_CONTROL_NUDGE_UP_NEG, value);
             }
-            /// <summary></summary>
+            /// <summary>Rotate agent body to the left (yaw left while walking)</summary>
             public bool TurnLeft
             {
                 get => GetControlFlag(ControlFlags.AGENT_CONTROL_TURN_LEFT);
                 set => SetControlFlag(ControlFlags.AGENT_CONTROL_TURN_LEFT, value);
             }
-            /// <summary></summary>
+            /// <summary>Rotate agent body to the right (yaw right while walking)</summary>
             public bool TurnRight
             {
                 get => GetControlFlag(ControlFlags.AGENT_CONTROL_TURN_RIGHT);
@@ -334,25 +334,25 @@ namespace OpenMetaverse
                 get => GetControlFlag(ControlFlags.AGENT_CONTROL_AWAY);
                 set => SetControlFlag(ControlFlags.AGENT_CONTROL_AWAY, value);
             }
-            /// <summary></summary>
+            /// <summary>Left mouse button held down (used for object interaction while walking)</summary>
             public bool LButtonDown
             {
                 get => GetControlFlag(ControlFlags.AGENT_CONTROL_LBUTTON_DOWN);
                 set => SetControlFlag(ControlFlags.AGENT_CONTROL_LBUTTON_DOWN, value);
             }
-            /// <summary></summary>
+            /// <summary>Left mouse button released</summary>
             public bool LButtonUp
             {
                 get => GetControlFlag(ControlFlags.AGENT_CONTROL_LBUTTON_UP);
                 set => SetControlFlag(ControlFlags.AGENT_CONTROL_LBUTTON_UP, value);
             }
-            /// <summary></summary>
+            /// <summary>Left mouse button held down in mouselook mode</summary>
             public bool MLButtonDown
             {
                 get => GetControlFlag(ControlFlags.AGENT_CONTROL_ML_LBUTTON_DOWN);
                 set => SetControlFlag(ControlFlags.AGENT_CONTROL_ML_LBUTTON_DOWN, value);
             }
-            /// <summary></summary>
+            /// <summary>Left mouse button released in mouselook mode</summary>
             public bool MLButtonUp
             {
                 get => GetControlFlag(ControlFlags.AGENT_CONTROL_ML_LBUTTON_UP);
@@ -645,17 +645,17 @@ namespace OpenMetaverse
             /// will not touch the state of Self.Movement or
             /// Self.Movement.Camera in any way
             /// </summary>
-            /// <param name="controlFlags"></param>
-            /// <param name="position"></param>
-            /// <param name="forwardAxis"></param>
-            /// <param name="leftAxis"></param>
-            /// <param name="upAxis"></param>
-            /// <param name="bodyRotation"></param>
-            /// <param name="headRotation"></param>
-            /// <param name="farClip"></param>
-            /// <param name="reliable"></param>
-            /// <param name="flags"></param>
-            /// <param name="state"></param>
+            /// <param name="controlFlags">Bitmask of agent control flags to send</param>
+            /// <param name="position">Camera position in region coordinates</param>
+            /// <param name="forwardAxis">Camera forward (at) axis</param>
+            /// <param name="leftAxis">Camera left axis</param>
+            /// <param name="upAxis">Camera up axis</param>
+            /// <param name="bodyRotation">Agent body rotation quaternion</param>
+            /// <param name="headRotation">Agent head rotation quaternion</param>
+            /// <param name="farClip">Camera far clip distance in meters</param>
+            /// <param name="flags">Agent flags bitfield</param>
+            /// <param name="state">Agent animation state</param>
+            /// <param name="reliable">Whether the packet should be sent reliably</param>
             public void SendManualUpdate(ControlFlags controlFlags, Vector3 position, Vector3 forwardAxis,
                 Vector3 leftAxis, Vector3 upAxis, Quaternion bodyRotation, Quaternion headRotation, float farClip,
                 AgentFlags flags, AgentState state, bool reliable)
@@ -700,6 +700,9 @@ namespace OpenMetaverse
                 else AgentControls &= ~((uint)flag);
             }
 
+            /// <summary>
+            /// Reset all transient movement control flags, preserving persistent state (away, fly, mouselook, crouch)
+            /// </summary>
             public void ResetControlFlags()
             {
                 // Reset all flags except for persistent settings like

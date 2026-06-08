@@ -645,6 +645,12 @@ namespace OpenMetaverse
             return _Store.RootFolder.UUID;
         }
 
+        /// <summary>
+        /// Find the UUID of the default folder for a given folder type
+        /// </summary>
+        /// <remarks>Returns the root folder UUID if no matching folder is found</remarks>
+        /// <param name="type">The <see cref="FolderType"/> to search for</param>
+        /// <returns>The UUID of the matching folder, or the root folder UUID if not found</returns>
         public UUID FindFolderForType(FolderType type)
         {
             if (_Store == null)

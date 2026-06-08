@@ -38,32 +38,32 @@ namespace OpenMetaverse
             /// </summary>
             public class AgentCamera
             {
-                /// <summary></summary>
+                /// <summary>Maximum camera draw distance in meters</summary>
                 public float Far;
 
                 /// <summary>The camera is a local frame of reference inside
                 /// the larger grid space. This is where the math happens</summary>
                 private readonly CoordinateFrame Frame;
 
-                /// <summary></summary>
+                /// <summary>Camera position in region coordinates</summary>
                 public Vector3 Position
                 {
                     get => Frame.Origin;
                     set => Frame.Origin = value;
                 }
-                /// <summary></summary>
+                /// <summary>Camera forward direction (Y axis of the camera frame)</summary>
                 public Vector3 AtAxis
                 {
                     get => Frame.YAxis;
                     set => Frame.YAxis = value;
                 }
-                /// <summary></summary>
+                /// <summary>Camera left direction (X axis of the camera frame)</summary>
                 public Vector3 LeftAxis
                 {
                     get => Frame.XAxis;
                     set => Frame.XAxis = value;
                 }
-                /// <summary></summary>
+                /// <summary>Camera up direction (Z axis of the camera frame)</summary>
                 public Vector3 UpAxis
                 {
                     get => Frame.ZAxis;
@@ -79,46 +79,71 @@ namespace OpenMetaverse
                     Far = 128f;
                 }
 
+                /// <summary>Roll the camera around its forward axis</summary>
+                /// <param name="angle">Angle in radians</param>
                 public void Roll(float angle)
                 {
                     Frame.Roll(angle);
                 }
 
+                /// <summary>Pitch the camera around its left axis</summary>
+                /// <param name="angle">Angle in radians</param>
                 public void Pitch(float angle)
                 {
                     Frame.Pitch(angle);
                 }
 
+                /// <summary>Yaw the camera around its up axis</summary>
+                /// <param name="angle">Angle in radians</param>
                 public void Yaw(float angle)
                 {
                     Frame.Yaw(angle);
                 }
 
+                /// <summary>Orient the camera to point in a given direction</summary>
+                /// <param name="target">Direction vector to look toward (does not need to be normalized)</param>
                 public void LookDirection(Vector3 target)
                 {
                     Frame.LookDirection(target);
                 }
 
+                /// <summary>Orient the camera to point in a given direction with an explicit up vector</summary>
+                /// <param name="target">Direction vector to look toward</param>
+                /// <param name="upDirection">World up direction used to compute the camera roll</param>
                 public void LookDirection(Vector3 target, Vector3 upDirection)
                 {
                     Frame.LookDirection(target, upDirection);
                 }
 
+                /// <summary>Orient the camera to face a compass heading</summary>
+                /// <param name="heading">Heading in radians (0 = north, increasing clockwise)</param>
                 public void LookDirection(double heading)
                 {
                     Frame.LookDirection(heading);
                 }
 
+                /// <summary>Move the camera to a position and orient it toward a target point</summary>
+                /// <param name="position">New camera position in region coordinates</param>
+                /// <param name="target">Point in region coordinates to look at</param>
                 public void LookAt(Vector3 position, Vector3 target)
                 {
                     Frame.LookAt(position, target);
                 }
 
+                /// <summary>Move the camera to a position, orient it toward a target point, and specify the up direction</summary>
+                /// <param name="position">New camera position in region coordinates</param>
+                /// <param name="target">Point in region coordinates to look at</param>
+                /// <param name="upDirection">World up direction used to compute the camera roll</param>
                 public void LookAt(Vector3 position, Vector3 target, Vector3 upDirection)
                 {
                     Frame.LookAt(position, target, upDirection);
                 }
 
+                /// <summary>Set the camera position and orientation from Euler angles</summary>
+                /// <param name="position">New camera position in region coordinates</param>
+                /// <param name="roll">Roll angle in radians</param>
+                /// <param name="pitch">Pitch angle in radians</param>
+                /// <param name="yaw">Yaw angle in radians</param>
                 public void SetPositionOrientation(Vector3 position, float roll, float pitch, float yaw)
                 {
                     Frame.Origin = position;
