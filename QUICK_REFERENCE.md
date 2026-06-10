@@ -10,6 +10,7 @@ Quick examples for common tasks with LibreMetaverse.
 - [Chat & Messaging](#chat--messaging)
 - [Textures & Assets](#textures--assets)
 - [OSD Serialization](#osd-serialization)
+- [Voice (WebRTC)](#voice-webrtc)
 
 ## Connection & Login
 
@@ -359,6 +360,62 @@ while (!completed && DateTime.UtcNow < timeout)
 
 if (!completed)
     Console.WriteLine("Operation timed out");
+```
+
+## Voice (WebRTC)
+
+Requires the `LibreMetaverse.Voice.WebRTC` package (.NET 8+).
+
+### Connect spatial voice
+
+```csharp
+var voiceManager = new VoiceManager(client);
+
+voiceManager.PeerConnectionReady  += () => Console.WriteLine("Voice connected");
+voiceManager.PeerConnectionClosed += () => Console.WriteLine("Voice disconnected");
+voiceManager.PeerJoined  += id => Console.WriteLine($"Peer joined: {id}");
+voiceManager.PeerLeft    += id => Console.WriteLine($"Peer left: {id}");
+
+await voiceManager.ConnectPrimaryRegion();
+```
+
+### Enable audio processing (noise suppression, HPF)
+
+Call after constructing `VoiceManager`. Processing is enabled for the lifetime of the
+audio device and survives reconnects.
+
+```csharp
+// Recommended defaults: noise suppression + high-pass filter
+voiceManager.AudioDevice.EnableAudioProcessing();
+
+// With AGC and echo cancellation
+voiceManager.AudioDevice.EnableAudioProcessing(
+    noiseSuppression: true,
+    highPassFilter:   true,
+    agc:              true,
+    echoCancellation: true);  // requires speaker output as AEC reference (wired automatically)
+
+// Turn off
+voiceManager.AudioDevice.DisableAudioProcessing();
+```
+
+### Mic mute / unmute
+
+```csharp
+voiceManager.AudioDevice.MicMute = true;   // mute
+voiceManager.AudioDevice.MicMute = false;  // unmute
+```
+
+### Speaker and microphone volume
+
+```csharp
+voiceManager.AudioDevice.SpeakerLevel = 0.8f;  // 0.0–1.0
+```
+
+### Disconnect voice
+
+```csharp
+voiceManager.Disconnect();
 ```
 
 ## More Examples

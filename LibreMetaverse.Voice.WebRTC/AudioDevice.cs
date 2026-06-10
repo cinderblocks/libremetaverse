@@ -413,6 +413,32 @@ namespace LibreMetaverse
             }
         }
 
+#if NET8_0_OR_GREATER
+        /// <summary>
+        /// Enables WebRTC audio processing on the capture stream (noise suppression, high-pass filter,
+        /// and optionally AGC and echo cancellation). Safe to call before or after recording starts.
+        /// For echo cancellation, the playback device is automatically supplied as the reference signal.
+        /// </summary>
+        public void EnableAudioProcessing(
+            bool noiseSuppression = true,
+            bool highPassFilter = true,
+            bool agc = false,
+            bool echoCancellation = false)
+        {
+            if (Source == null) return;
+            Source.EnableAudioProcessing(
+                referenceDevice: echoCancellation ? EndPoint?.PlaybackDevice : null,
+                noiseSuppression: noiseSuppression,
+                highPassFilter: highPassFilter,
+                agc2: agc,
+                echoCancellation: echoCancellation
+            );
+        }
+
+        /// <summary>Removes and disposes the active WebRTC APM modifier.</summary>
+        public void DisableAudioProcessing() => Source?.DisableAudioProcessing();
+#endif
+
         private void StopSourceSafely(object? source)
         {
             if (source == null) return;
