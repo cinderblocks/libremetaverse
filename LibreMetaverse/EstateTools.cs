@@ -1279,10 +1279,9 @@ namespace OpenMetaverse
                 return null;
             }
 
-            var msg = new SimConsoleAsyncMessage { Command = command };
             string? output = null;
 
-            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken,
+            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, OSD.FromString(command), cancellationToken,
                 (response, data, error) =>
                 {
                     if (error != null)
@@ -1294,11 +1293,7 @@ namespace OpenMetaverse
                     try
                     {
                         if (OSDParser.Deserialize(data) is OSDMap map)
-                        {
-                            var reply = new SimConsoleAsyncMessage();
-                            reply.Deserialize(map);
-                            output = reply.Output;
-                        }
+                            output = map["Response"].AsString();
                     }
                     catch (Exception ex)
                     {
