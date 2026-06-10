@@ -54,7 +54,7 @@ namespace LibreMetaverse.Voice.WebRTC
         }
 
         private readonly GridClient _client;
-        private readonly Sdl3Audio _audioDevice;
+        private readonly AudioDevice _audioDeviceDevice;
         private readonly IVoiceLogger _log;
         private RTCPeerConnection? _peerConnection;
 
@@ -199,16 +199,16 @@ namespace LibreMetaverse.Voice.WebRTC
         private const long POSITION_KEEPALIVE_MS = 3000;
 
 
-        internal VoiceSession(Sdl3Audio audioDevice, ESessionType type, GridClient client, IVoiceLogger? logger = null)
+        internal VoiceSession(AudioDevice audioDeviceDevice, ESessionType type, GridClient client, IVoiceLogger? logger = null)
         {
             _client = client;
-            _audioDevice = audioDevice;
+            _audioDeviceDevice = audioDeviceDevice;
             SessionType = type;
             SessionId = UUID.Zero;
             _log = logger ?? new OpenMetaverseVoiceLogger();
 
             // Initialize peer manager and forward its events to existing VoiceSession events
-            _peerManager = new PeerManager(_audioDevice, _client, _log);
+            _peerManager = new PeerManager(_audioDeviceDevice, _client, _log);
             _peerManager.PeerJoined += id => { try { OnPeerJoined?.Invoke(id); } catch { } };
             _peerManager.PeerLeft += id => { try { OnPeerLeft?.Invoke(id); } catch { } };
             _peerManager.PeerPositionUpdated += (id, map) =>
@@ -438,12 +438,12 @@ namespace LibreMetaverse.Voice.WebRTC
                     //          $"TS={rtpPacket.Header.Timestamp}",
                     //    Helpers.LogLevel.Debug, _client);
 
-                    if (_audioDevice?.EndPoint != null)
+                    if (_audioDeviceDevice?.EndPoint != null)
                     {
                         try
                         {
                             uint ssrcVal = rtpPacket.Header.SyncSource;
-                            _audioDevice.PlayRtpPacket(ssrcVal, rtpPacket.Payload);
+                            _audioDeviceDevice.PlayRtpPacket(ssrcVal, rtpPacket.Payload);
                         }
                         catch (Exception ex)
                         {
@@ -538,17 +538,17 @@ namespace LibreMetaverse.Voice.WebRTC
 
             // SDP negotiation
             // Ensure we have a recording source; attempt to create a default one if missing so GetAudioSourceFormats() won't NRE.
-            if (_audioDevice == null)
+            if (_audioDeviceDevice == null)
             {
                 _log.Error("_audioDevice is null in VoiceSession.CreatePeerConnection", _client);
                 throw new VoiceException("Internal error: _audioDevice is null.");
             }
-            if (_audioDevice.Source == null)
+            if (_audioDeviceDevice.Source == null)
             {
                 _log.Warn("Recording is null. Attempting to create default recording source.", _client);
                 try
                 {
-                    _audioDevice.SetRecordingDevice(null);
+                    _audioDeviceDevice.SetRecordingDevice(null);
                 }
                 catch (Exception ex)
                 {
@@ -556,14 +556,14 @@ namespace LibreMetaverse.Voice.WebRTC
                 }
 
                 // If we still don't have a source, fail early with a clear error instead of passing null to MediaStreamTrack
-                if (_audioDevice.Source == null)
+                if (_audioDeviceDevice.Source == null)
                 {
                     _log.Error("No audio recording source available after attempts to create one.", _client);
                     throw new VoiceException("No audio recording source available.");
                 }
             }
 
-            var audioTrack = new MediaStreamTrack(_audioDevice?.Source?.GetAudioSourceFormats());
+            var audioTrack = new MediaStreamTrack(_audioDeviceDevice?.Source?.GetAudioSourceFormats());
 
             pc.addTrack(audioTrack);
 
@@ -674,29 +674,29 @@ namespace LibreMetaverse.Voice.WebRTC
                 _log.Debug($"Peer connection state changed to {state}.", _client);
                 if (state == RTCPeerConnectionState.connected)
                 {
-                    if (_audioDevice?.EndPoint != null)
+                    if (_audioDeviceDevice?.EndPoint != null)
                     {
                         try
                         {
-                            await _audioDevice.StartPlaybackAsync().ConfigureAwait(false);
+                            await _audioDeviceDevice.StartPlaybackAsync().ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {
                             _log.Debug($"Failed to start playback via _audioDevice: {ex.Message}", _client);
                             // Fallback: attempt to start endpoint directly
-                            try { if (_audioDevice.EndPoint != null) await _audioDevice.EndPoint.StartAudioSink().ConfigureAwait(false); } catch { }
+                            try { if (_audioDeviceDevice.EndPoint != null) await _audioDeviceDevice.EndPoint.StartAudioSink().ConfigureAwait(false); } catch { }
                         }
                         _log.Debug("Playback started", _client);
                     }
                     else
                     {
                         // Attempt to recreate endpoint if possible
-                        var got = _audioDevice!.EnsureEndpoint();
+                        var got = _audioDeviceDevice!.EnsureEndpoint();
                         if (got)
                         {
                             try
                             {
-                                await _audioDevice!.StartPlaybackAsync().ConfigureAwait(false);
+                                await _audioDeviceDevice!.StartPlaybackAsync().ConfigureAwait(false);
                                 _log.Debug("Playback started after EnsureEndpoint", _client!);
                             }
                             catch (Exception ex)
@@ -727,10 +727,10 @@ namespace LibreMetaverse.Voice.WebRTC
                     _log.Warn("Peer connection failed — stopping audio and scheduling reprovision", _client);
                     StopPositionLoop();
                     StopKeepAliveLoop();
-                    if (_audioDevice != null)
+                    if (_audioDeviceDevice != null)
                     {
-                        try { await _audioDevice.StopPlaybackAsync().ConfigureAwait(false); } catch { }
-                        try { _audioDevice.StopRecording(); } catch { }
+                        try { await _audioDeviceDevice.StopPlaybackAsync().ConfigureAwait(false); } catch { }
+                        try { _audioDeviceDevice.StopRecording(); } catch { }
                     }
                     try { ScheduleReprovisionWithBackoff(); } catch { }
                 }
@@ -738,26 +738,26 @@ namespace LibreMetaverse.Voice.WebRTC
                 {
                     StopPositionLoop();
                     StopKeepAliveLoop();
-                    if (_audioDevice != null)
+                    if (_audioDeviceDevice != null)
                     {
-                        try { await _audioDevice.StopPlaybackAsync().ConfigureAwait(false); } catch { }
-                        try { _audioDevice.StopRecording(); } catch { }
+                        try { await _audioDeviceDevice.StopPlaybackAsync().ConfigureAwait(false); } catch { }
+                        try { _audioDeviceDevice.StopRecording(); } catch { }
                     }
                     OnPeerConnectionClosed?.Invoke();
                 }
             };
 
             // Detach any existing handler to prevent duplicates on reprovision
-            if (_audioDevice?.Source != null)
+            if (_audioDeviceDevice?.Source != null)
             {
-                try { _audioDevice.Source.OnAudioSourceEncodedSample -= pc.SendAudio; } catch { }
+                try { _audioDeviceDevice.Source.OnAudioSourceEncodedSample -= pc.SendAudio; } catch { }
 
                 // Neighbour sessions must never transmit this agent's mic — peers would hear echo
                 // from the same voice simultaneously on multiple region connections.
                 // Matches SL C++: LLVoiceWebRTCSpatialConnection::setMuteMic() always mutes non-primary.
                 if (IsPrimary)
                 {
-                    _audioDevice.Source.OnAudioSourceEncodedSample += (duration, sample) =>
+                    _audioDeviceDevice.Source.OnAudioSourceEncodedSample += (duration, sample) =>
                     {
                         pc.SendAudio(duration, sample);
                     };
@@ -765,12 +765,12 @@ namespace LibreMetaverse.Voice.WebRTC
             }
 
             // Also wire the _audioDevice level event for file playback and other non-source audio
-            if (_audioDevice != null)
+            if (_audioDeviceDevice != null)
             {
-                try { _audioDevice.OnAudioSourceEncodedSample -= pc.SendAudio; } catch { }
+                try { _audioDeviceDevice.OnAudioSourceEncodedSample -= pc.SendAudio; } catch { }
                 if (IsPrimary)
                 {
-                    _audioDevice.OnAudioSourceEncodedSample += (duration, sample) =>
+                    _audioDeviceDevice.OnAudioSourceEncodedSample += (duration, sample) =>
                     {
                         pc.SendAudio(duration, sample);
                     };
@@ -1386,30 +1386,30 @@ namespace LibreMetaverse.Voice.WebRTC
                 try { _iceCheckingWatchdogCts?.Cancel(); } catch { }
 
                 // Store recording state before closing
-                bool wasRecording = _audioDevice?.Source != null && _audioDevice.RecordingActive;
-                bool wasPlaybackActive = _audioDevice?.EndPoint != null && _audioDevice.PlaybackActive;
+                bool wasRecording = _audioDeviceDevice?.Source != null && _audioDeviceDevice.RecordingActive;
+                bool wasPlaybackActive = _audioDeviceDevice?.EndPoint != null && _audioDeviceDevice.PlaybackActive;
 
                 try
                 {
                     // Stop audio before closing peer connection
-                    if (_audioDevice != null)
+                    if (_audioDeviceDevice != null)
                     {
-                        try { _audioDevice.StopRecording(); } catch { }
-                        try { _audioDevice.StopPlaybackAsync().Wait(250); } catch { }
+                        try { _audioDeviceDevice.StopRecording(); } catch { }
+                        try { _audioDeviceDevice.StopPlaybackAsync().Wait(250); } catch { }
                     }
 
                     // Close existing peer connection if present
                     if (_peerConnection != null)
                     {
                         // Detach audio source handler before closing
-                        if (_audioDevice?.Source != null)
+                        if (_audioDeviceDevice?.Source != null)
                         {
-                            try { _audioDevice.Source.OnAudioSourceEncodedSample -= _peerConnection.SendAudio; } catch { }
+                            try { _audioDeviceDevice.Source.OnAudioSourceEncodedSample -= _peerConnection.SendAudio; } catch { }
                         }
                         // Detach _audioDevice level handler
-                        if (_audioDevice != null)
+                        if (_audioDeviceDevice != null)
                         {
-                            try { _audioDevice.OnAudioSourceEncodedSample -= _peerConnection.SendAudio; } catch { }
+                            try { _audioDeviceDevice.OnAudioSourceEncodedSample -= _peerConnection.SendAudio; } catch { }
                         }
                         try { _peerConnection.Close("Reprovision"); } catch { }
                     }
@@ -1469,7 +1469,7 @@ namespace LibreMetaverse.Voice.WebRTC
                             _log.Debug($"Reprovision completed, new session {SessionId}", _client);
 
                             // Restore audio state after successful reprovision
-                            if (_audioDevice != null)
+                            if (_audioDeviceDevice != null)
                             {
                                 // Wait a moment for peer connection to stabilize
                                 await Task.Delay(500).ConfigureAwait(false);
@@ -1479,7 +1479,7 @@ namespace LibreMetaverse.Voice.WebRTC
                                 // Blindly calling StartRecording() here would fight PTT mode.
                                 if (wasPlaybackActive)
                                 {
-                                    try { await _audioDevice.StartPlaybackAsync().ConfigureAwait(false); } catch (Exception ex) { _log.Warn($"Failed to restart playback after reprovision: {ex.Message}", _client); }
+                                    try { await _audioDeviceDevice.StartPlaybackAsync().ConfigureAwait(false); } catch (Exception ex) { _log.Warn($"Failed to restart playback after reprovision: {ex.Message}", _client); }
                                 }
                             }
 
@@ -1601,7 +1601,7 @@ namespace LibreMetaverse.Voice.WebRTC
         // SL C++: MAX_AUDIO_DIST = 50.0f, PEER_GAIN_CONVERSION_FACTOR = 220.
         private void ApplyDistanceAttenuation(UUID peerId, OSDMap map)
         {
-            if (_audioDevice == null) return;
+            if (_audioDeviceDevice == null) return;
             if (!_peerManager.TryGetSsrc(peerId, out var ssrc)) return;
 
             // Peer's speaker position in global coords (centimeters → meters)
@@ -1646,7 +1646,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
             // Store as percent for SDL3 (0–220 → 0.0–2.2 linear gain; SDL3 API accepts 0–200%)
             int gainPercent = (int)Math.Round(gainValue / 2.20);
-            _audioDevice.SetSsrcGainPercent(ssrc, gainPercent);
+            _audioDeviceDevice.SetSsrcGainPercent(ssrc, gainPercent);
         }
 
         // Minimal implementation of RequestProvision to satisfy callers.
@@ -1970,13 +1970,13 @@ namespace LibreMetaverse.Voice.WebRTC
                 // Detach audio handlers
                 try
                 {
-                    if (_audioDevice?.Source != null && _peerConnection != null)
+                    if (_audioDeviceDevice?.Source != null && _peerConnection != null)
                     {
-                        try { _audioDevice.Source.OnAudioSourceEncodedSample -= _peerConnection.SendAudio; } catch { }
+                        try { _audioDeviceDevice.Source.OnAudioSourceEncodedSample -= _peerConnection.SendAudio; } catch { }
                     }
-                    if (_audioDevice != null && _peerConnection != null)
+                    if (_audioDeviceDevice != null && _peerConnection != null)
                     {
-                        try { _audioDevice.OnAudioSourceEncodedSample -= _peerConnection.SendAudio; } catch { }
+                        try { _audioDeviceDevice.OnAudioSourceEncodedSample -= _peerConnection.SendAudio; } catch { }
                     }
                 }
                 catch { }
@@ -1984,10 +1984,10 @@ namespace LibreMetaverse.Voice.WebRTC
                 // Stop audio
                 try
                 {
-                    if (_audioDevice != null)
+                    if (_audioDeviceDevice != null)
                     {
-                        try { _audioDevice.StopRecording(); } catch { }
-                        try { _audioDevice.StopPlaybackAsync().Wait(250); } catch { }
+                        try { _audioDeviceDevice.StopRecording(); } catch { }
+                        try { _audioDeviceDevice.StopPlaybackAsync().Wait(250); } catch { }
                     }
                 }
                 catch { }

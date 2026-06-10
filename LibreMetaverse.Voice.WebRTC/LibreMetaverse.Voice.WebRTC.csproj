@@ -22,7 +22,12 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="SIPSorcery" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="SIPSorceryMedia.SDL3" />
     <PackageReference Include="SIPSorceryMedia.SDL3.Native" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">
+    <PackageReference Include="SIPSorceryMedia.SoundFlow" />
   </ItemGroup>
 </Project>

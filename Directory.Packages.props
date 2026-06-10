@@ -23,6 +23,7 @@
     <PackageVersion Include="SIPSorcery" Version="8.0.23" />
     <PackageVersion Include="SIPSorceryMedia.SDL3" Version="0.0.4" />
     <PackageVersion Include="SIPSorceryMedia.SDL3.Native" Version="3.2.28" />
+    <PackageVersion Include="SIPSorceryMedia.SoundFlow" Version="0.1.0" />
     <PackageVersion Include="SkiaSharp" Version="3.119.4" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="3.119.4" />
     <PackageVersion Include="SkiaSharp.NativeAssets.macOS" Version="3.119.4" />

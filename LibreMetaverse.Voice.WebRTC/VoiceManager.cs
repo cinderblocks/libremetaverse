@@ -74,7 +74,7 @@ namespace LibreMetaverse.Voice.WebRTC
         }
 
         private readonly GridClient Client;
-        public readonly Sdl3Audio AudioDevice;
+        public readonly AudioDevice AudioDevice;
         private readonly IVoiceLogger _log;
 
         // Track primary region session
@@ -169,7 +169,7 @@ public event Action<UUID>? OnP2PCallIncoming;
         public VoiceManager(GridClient client, IVoiceLogger? logger = null)
         {
             Client = client;
-            AudioDevice = new Sdl3Audio();
+            AudioDevice = new AudioDevice();
             _log = logger ?? new OpenMetaverseVoiceLogger();
             Client.Network.RegisterEventCallback("RequiredVoiceVersion", RequiredVoiceVersionEventHandler);
 
