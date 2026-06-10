@@ -40,7 +40,7 @@ namespace LibreMetaverse.Voice.WebRTC
         private readonly ConcurrentDictionary<UUID, OSDMap> Peers = new ConcurrentDictionary<UUID, OSDMap>();
         private readonly ConcurrentDictionary<uint, UUID> SsrcToPeer = new ConcurrentDictionary<uint, UUID>();
         private readonly ConcurrentDictionary<UUID, uint> PeerToSsrc = new ConcurrentDictionary<UUID, uint>();
-        private readonly AudioDevice _audioDeviceDevice;
+        private readonly AudioDevice _audioDevice;
         private readonly GridClient _client;
         private readonly IVoiceLogger _log;
 
@@ -53,9 +53,9 @@ namespace LibreMetaverse.Voice.WebRTC
         public event Action<Dictionary<UUID, int>>? GainMapReceived;
         public event Action? PongReceived;
 
-        public PeerManager(AudioDevice audioDeviceDevice, GridClient client, IVoiceLogger log)
+        public PeerManager(AudioDevice audioDevice, GridClient client, IVoiceLogger log)
         {
-            _audioDeviceDevice = audioDeviceDevice;
+            _audioDevice = audioDevice;
             _client = client;
             _log = log;
         }
@@ -83,8 +83,8 @@ namespace LibreMetaverse.Voice.WebRTC
                     try
                     {
                         SsrcToPeer.TryRemove(s, out _);
-                        try { _audioDeviceDevice?.SetSsrcMute(s, true); } catch { }
-                        try { _audioDeviceDevice?.ClearSsrc(s); } catch { }
+                        try { _audioDevice?.SetSsrcMute(s, true); } catch { }
+                        try { _audioDevice?.ClearSsrc(s); } catch { }
                     }
                     catch { }
                 }
@@ -105,8 +105,8 @@ namespace LibreMetaverse.Voice.WebRTC
                     if (PeerToSsrc.TryRemove(peerId, out var ssrc))
                     {
                         SsrcToPeer.TryRemove(ssrc, out _);
-                        try { _audioDeviceDevice?.SetSsrcMute(ssrc, true); } catch { }
-                        try { _audioDeviceDevice?.ClearSsrc(ssrc); } catch { }
+                        try { _audioDevice?.SetSsrcMute(ssrc, true); } catch { }
+                        try { _audioDevice?.ClearSsrc(ssrc); } catch { }
                     }
                 }
                 catch { }
@@ -186,8 +186,8 @@ namespace LibreMetaverse.Voice.WebRTC
                             if (PeerToSsrc.TryGetValue(peerId, out var oldSsrc) && oldSsrc != ssrc)
                             {
                                 SsrcToPeer.TryRemove(oldSsrc, out _);
-                                try { _audioDeviceDevice?.SetSsrcMute(oldSsrc, true); } catch { }
-                                try { _audioDeviceDevice?.ClearSsrc(oldSsrc); } catch { }
+                                try { _audioDevice?.SetSsrcMute(oldSsrc, true); } catch { }
+                                try { _audioDevice?.ClearSsrc(oldSsrc); } catch { }
                             }
 
                             if (SsrcToPeer.TryGetValue(ssrc, out var mappedPeer) && mappedPeer != peerId)
@@ -390,8 +390,8 @@ namespace LibreMetaverse.Voice.WebRTC
                 {
                     foreach (var keyObj in muteDict.Keys)
                     {
-                    var key = keyObj as string;
-                    if (!string.IsNullOrEmpty(key) && UUID.TryParse(key!, out var id))
+                        var key = keyObj as string;
+                        if (!string.IsNullOrEmpty(key) && UUID.TryParse(key!, out var id))
                         {
                             var b = JBool(muteMap[key!]);
                             if (b.HasValue) dict[id] = b.Value;
@@ -405,7 +405,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     {
                         if (PeerToSsrc.TryGetValue(kv.Key, out var ssrc))
                         {
-                            try { _audioDeviceDevice?.SetSsrcMute(ssrc, kv.Value); } catch { }
+                            try { _audioDevice?.SetSsrcMute(ssrc, kv.Value); } catch { }
                         }
                     }
                 }
@@ -424,8 +424,8 @@ namespace LibreMetaverse.Voice.WebRTC
                 {
                     foreach (var keyObj in gainDict.Keys)
                     {
-                    var key = keyObj as string;
-                    if (!string.IsNullOrEmpty(key) && UUID.TryParse(key!, out var id))
+                        var key = keyObj as string;
+                        if (!string.IsNullOrEmpty(key) && UUID.TryParse(key!, out var id))
                         {
                             var gi = JInt(gainMap[key!]);
                             if (gi.HasValue) dict[id] = gi.Value;
@@ -439,7 +439,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     {
                         if (PeerToSsrc.TryGetValue(kv.Key, out var ssrc))
                         {
-                            try { _audioDeviceDevice?.SetSsrcGainPercent(ssrc, kv.Value); } catch { }
+                            try { _audioDevice?.SetSsrcGainPercent(ssrc, kv.Value); } catch { }
                         }
                     }
                 }

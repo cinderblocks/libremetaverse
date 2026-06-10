@@ -321,8 +321,6 @@ namespace LibreMetaverse
 
             try
             {
-                // Reset the samples counter when starting playback to allow auto-restart after reconnection
-                _samplesReceivedCount = 0;
                 await EndPoint!.StartAudioSink();
                 PlaybackActive = true;
                 OnPlaybackActiveChanged?.Invoke(true);
@@ -430,8 +428,6 @@ namespace LibreMetaverse
         private bool _filePlaybackLoop = false;
         private bool _filePlaybackActive = false;
         private bool _filePlaybackWasRecording = false;
-        private string? _filePlaybackPath;
-
         private Task? _rawStreamTask;
         private CancellationTokenSource? _rawStreamCts;
         private bool _rawStreamActive = false;
@@ -447,7 +443,6 @@ namespace LibreMetaverse
             _filePlaybackWasRecording = RecordingActive;
             if (RecordingActive) { try { StopRecording(); } catch { } }
 
-            _filePlaybackPath = path;
             _filePlaybackLoop = loop;
             _filePlaybackCts = new CancellationTokenSource();
             var token = _filePlaybackCts.Token;
@@ -784,10 +779,8 @@ namespace LibreMetaverse
         // Incoming source callbacks — forward encoded mic audio up the chain so VoiceSession
         // can wire it to pc.SendAudio. Do NOT decode and play it back locally; local playback
         // is for *received remote* audio only (routed via PeerManager.PlayRtpPacket).
-        private int _samplesReceivedCount = 0;
         public void AudioSource_OnAudioSourceEncodedSample(uint durationRtpUnits, byte[] sample)
         {
-            _samplesReceivedCount++;
             try { OnAudioSourceEncodedSample?.Invoke(durationRtpUnits, sample); } catch { }
         }
 

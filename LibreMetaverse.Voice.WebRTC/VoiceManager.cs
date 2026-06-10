@@ -146,7 +146,7 @@ namespace LibreMetaverse.Voice.WebRTC
         public event Action<UUID>? OnP2PCallStarted;
         public event Action<UUID>? OnP2PCallEnded;
         public event Action<UUID, Exception>? OnP2PCallFailed;
-public event Action<UUID>? OnP2PCallIncoming;
+        public event Action<UUID>? OnP2PCallIncoming;
         public event Action<UUID>? OnP2PCallAccepted;
         public event Action<UUID>? OnP2PCallDeclined;
 
@@ -423,20 +423,7 @@ public event Action<UUID>? OnP2PCallIncoming;
 
                 // wire internal events
                 session.OnDataChannelReady += CurrentSessionOnOnDataChannelReady;
-                session.OnPeerConnectionReady += () => { try { PeerConnectionReady?.Invoke(); } catch { } };
-                session.OnPeerConnectionClosed += () => { try { PeerConnectionClosed?.Invoke(); } catch { } };
-
-                // forward session events (raw)
-                session.OnPeerJoined += (id) => PeerJoined?.Invoke(id);
-                session.OnPeerLeft += (id) => PeerLeft?.Invoke(id);
-                session.OnPeerPositionUpdated += (id, map) => PeerPositionUpdated?.Invoke(id, map);
-                session.OnPeerListUpdated += (list) => PeerListUpdated?.Invoke(list);
-
-                // forward typed events
-                session.OnPeerAudioUpdated += (id, state) => PeerAudioUpdated?.Invoke(id, state);
-                session.OnPeerPositionUpdatedTyped += (id, pos) => PeerPositionUpdatedTyped?.Invoke(id, pos);
-                session.OnMuteMapReceived += (m) => MuteMapReceived?.Invoke(m);
-                session.OnGainMapReceived += (g) => GainMapReceived?.Invoke(g);
+                WirePrimarySessionEvents(session);
 
                 await session.StartAsync().ConfigureAwait(false);
                 var provisioned = await session.RequestProvision().ConfigureAwait(false);
