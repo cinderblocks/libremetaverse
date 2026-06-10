@@ -19,12 +19,12 @@ permissions:
   contents: write
   checks: write
   actions: read
+  id-token: write
 
 jobs:
   build-and-publish:
     runs-on: windows-2022
     env:
-      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
       LMVTESTAGENTUSERNAME: ${{ secrets.LMVTESTAGENTUSERNAME }}
       LMVTESTAGENTPASSWORD: ${{ secrets.LMVTESTAGENTPASSWORD }}
 
@@ -123,9 +123,19 @@ jobs:
             Compress-Archive -Path ($snupkgs | ForEach-Object { $_.FullName }) -DestinationPath ./release_artifacts/nuget_libraries_symbols.zip -Force
           }
 
+      - name: Get NuGet publish token
+        id: nuget-token
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token = await core.getIDToken('api.nuget.org');
+            core.setSecret(token);
+            core.setOutput('token', token);
+
       - name: Publish to NuGet.org
-        if: env.NUGET_API_KEY != ''
         shell: pwsh
+        env:
+          NUGET_TOKEN: ${{ steps.nuget-token.outputs.token }}
         run: |
           $ErrorActionPreference = 'Stop'
           $packages = Get-ChildItem -Path ./artifacts\* -Include *.nupkg,*.snupkg -File -ErrorAction SilentlyContinue
@@ -134,7 +144,7 @@ jobs:
               $pkg = $p.FullName
               Write-Host "Publishing $pkg to nuget.org"
               try {
-                dotnet nuget push $pkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
+                dotnet nuget push $pkg --api-key $env:NUGET_TOKEN --source https://api.nuget.org/v3/index.json --skip-duplicate
               } catch {
                 Write-Host "Failed to push ${pkg}: $($_)"
               }
