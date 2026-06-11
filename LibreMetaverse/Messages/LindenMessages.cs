@@ -6773,7 +6773,7 @@ namespace OpenMetaverse.Messages.Linden
     /// Available only to estate owners/managers and Linden Lab staff (god mode).
     /// Corresponds to LLSimConsole in the SL C++ viewer (llsimconsole.cpp).
     /// </summary>
-    public class SimConsoleAsyncMessage : IMessage
+    public class SimConsoleAsyncMessage
     {
         /// <summary>The console command to execute on the simulator</summary>
         public string Command = string.Empty;
@@ -6784,17 +6784,17 @@ namespace OpenMetaverse.Messages.Linden
         /// </summary>
         public string Output = string.Empty;
 
-        /// <inheritdoc/>
-        public OSDMap Serialize()
+        /// <summary>Serializes the command as a plain LLSD string (the wire format expected by the simulator).</summary>
+        public OSD Serialize()
         {
-            return new OSDMap(1) { ["console"] = OSD.FromString(Command) };
+            return OSD.FromString(Command);
         }
 
-        /// <inheritdoc/>
-        public void Deserialize(OSDMap map)
+        /// <summary>Deserializes an LLSD response from the simulator.</summary>
+        public void Deserialize(OSD osd)
         {
-            Command = map.ContainsKey("console") ? map["console"].AsString() : string.Empty;
-            Output  = map.ContainsKey("output")  ? map["output"].AsString()  : string.Empty;
+            if (osd is OSDMap map)
+                Output = map["Response"].AsString();
         }
     }
 
