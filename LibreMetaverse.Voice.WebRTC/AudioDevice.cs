@@ -29,6 +29,7 @@ using LibreMetaverse.Voice.WebRTC;
 using SIPSorceryMedia.Abstractions;
 #if NET8_0_OR_GREATER
 using SIPSorceryMedia.SoundFlow;
+using SoundFlow.Extensions.WebRtc.Apm;
 #else
 using SIPSorceryMedia.SDL3;
 #endif
@@ -423,15 +424,21 @@ namespace LibreMetaverse
             bool noiseSuppression = true,
             bool highPassFilter = true,
             bool agc = false,
-            bool echoCancellation = false)
+            bool echoCancellation = false,
+            NoiseSuppressionLevel nsLevel = NoiseSuppressionLevel.High,
+            bool agc1 = false,
+            int aecLatencyMs = 40)
         {
             if (Source == null) return;
             Source.EnableAudioProcessing(
                 referenceDevice: echoCancellation ? EndPoint?.PlaybackDevice : null,
                 noiseSuppression: noiseSuppression,
+                nsLevel: nsLevel,
                 highPassFilter: highPassFilter,
+                agc1: agc1,
                 agc2: agc,
-                echoCancellation: echoCancellation
+                echoCancellation: echoCancellation,
+                aecLatencyMs: aecLatencyMs
             );
         }
 

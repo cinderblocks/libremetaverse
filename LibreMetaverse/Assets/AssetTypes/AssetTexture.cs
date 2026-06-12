@@ -87,8 +87,7 @@ namespace OpenMetaverse.Assets
                 return;
             }
 
-            AssetData = J2kImage.ToBytes(Image.ExportBitmap(),
-                new CompleteEncoderConfigurationBuilder().ForStreaming().Build());
+            AssetData = CompleteConfigurationPresets.Streaming.Encode(Image.ExportBitmap());
         }
 
         /// <summary>

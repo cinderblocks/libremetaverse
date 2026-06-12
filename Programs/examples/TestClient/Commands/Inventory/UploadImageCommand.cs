@@ -27,7 +27,6 @@
 
 using System;
 using System.Threading.Tasks;
-using CoreJ2K;
 using CoreJ2K.Configuration;
 using OpenMetaverse;
 using SkiaSharp;
@@ -174,8 +173,7 @@ namespace TestClient.Commands.Inventory
                         bitmap.Dispose();
                         bitmap = scaledImage;
                     }
-                    uploadData = J2kImage.ToBytes(bitmap,
-                        new CompleteEncoderConfigurationBuilder().ForStreaming().Build());
+                    uploadData = CompleteConfigurationPresets.Streaming.Encode(bitmap);
                 }
             }
             catch (Exception ex)
