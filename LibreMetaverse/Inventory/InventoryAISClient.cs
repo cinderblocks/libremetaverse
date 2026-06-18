@@ -1422,28 +1422,27 @@ namespace LibreMetaverse
             var ret = new List<InventoryItem>();
             if (response == null) return ret;
 
-            // Prefer _embedded.items, but also accept top-level "items"
             if (response.TryGetValue("_embedded", out var embeddedObj) && embeddedObj is OSDMap embedded)
             {
                 if (embedded.TryGetValue("items", out var itemsObj) && itemsObj is OSDMap itemsMap)
+                    ret.AddRange(parseItemsFromResponse(itemsMap));
+
+                // "item" (singular): target item embedded inline when following a link
+                if (embedded.TryGetValue("item", out var singleItemObj) && singleItemObj is OSDMap singleItem
+                    && singleItem.ContainsKey("item_id"))
                 {
-                    ret = parseItemsFromResponse(itemsMap);
-                }
-                else if (embedded.TryGetValue("links", out var linksObj) && linksObj is OSDMap linksMap)
-                {
-                    // Some responses may include links instead of concrete items
-                    ret = parseLinksFromResponse(linksMap);
+                    ret.Add(InventoryItem.FromOSD(singleItem));
                 }
             }
             else
             {
                 if (response.TryGetValue("items", out var itemsObj) && itemsObj is OSDMap itemsMap)
+                    ret.AddRange(parseItemsFromResponse(itemsMap));
+
+                if (response.TryGetValue("item", out var singleItemObj) && singleItemObj is OSDMap singleItem
+                    && singleItem.ContainsKey("item_id"))
                 {
-                    ret = parseItemsFromResponse(itemsMap);
-                }
-                else if (response.TryGetValue("links", out var linksObj) && linksObj is OSDMap linksMap)
-                {
-                    ret = parseLinksFromResponse(linksMap);
+                    ret.Add(InventoryItem.FromOSD(singleItem));
                 }
             }
 
@@ -1462,16 +1461,28 @@ namespace LibreMetaverse
 
             if (response.TryGetValue("_embedded", out var embeddedObj) && embeddedObj is OSDMap embedded)
             {
-                if (embedded.TryGetValue("folders", out var foldersObj) && foldersObj is OSDArray foldersArray)
+                // AIS3 uses "categories" (OSDMap keyed by UUID) for folder collections,
+                // and "category" (OSDMap) for a single embedded folder (e.g., target of a link).
+                if (embedded.TryGetValue("categories", out var catsObj) && catsObj is OSDMap catsMap)
                 {
-                    ret = parseFoldersFromResponse(foldersArray);
+                    ret = parseFoldersFromResponse(catsMap);
+                }
+                if (embedded.TryGetValue("category", out var catObj) && catObj is OSDMap singleCat
+                    && singleCat.ContainsKey("category_id"))
+                {
+                    ret.Add(InventoryFolder.FromOSD(singleCat));
                 }
             }
             else
             {
-                if (response.TryGetValue("folders", out var foldersObj) && foldersObj is OSDArray foldersArray)
+                if (response.TryGetValue("categories", out var catsObj) && catsObj is OSDMap catsMap)
                 {
-                    ret = parseFoldersFromResponse(foldersArray);
+                    ret = parseFoldersFromResponse(catsMap);
+                }
+                if (response.TryGetValue("category", out var catObj) && catObj is OSDMap singleCat
+                    && singleCat.ContainsKey("category_id"))
+                {
+                    ret.Add(InventoryFolder.FromOSD(singleCat));
                 }
             }
 
@@ -1532,14 +1543,13 @@ namespace LibreMetaverse
             return ret;
         }
 
-        private List<InventoryFolder> parseFoldersFromResponse(OSDArray foldersOsd)
+        private List<InventoryFolder> parseFoldersFromResponse(OSDMap categoriesOsd)
         {
-            List<InventoryFolder> ret = new List<InventoryFolder>();
-
-            foreach (var osd in foldersOsd)
+            var ret = new List<InventoryFolder>();
+            foreach (KeyValuePair<string, OSD> kv in categoriesOsd)
             {
-                var folder = (OSDMap)osd;
-                ret.Add(InventoryFolder.FromOSD(folder));
+                if (kv.Value is OSDMap folder)
+                    ret.Add(InventoryFolder.FromOSD(folder));
             }
             return ret;
         }
