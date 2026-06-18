@@ -1448,8 +1448,6 @@ namespace OpenMetaverse
                         Logger.Warn("Received a ViewerEffect of type " + type + ", implement me!", Client);
                         break;
                     case EffectType.Glow:
-                        Logger.Warn("Received a Glow ViewerEffect which is not implemented yet", Client);
-                        break;
                     case EffectType.Beam:
                     case EffectType.Point:
                     case EffectType.Trail:

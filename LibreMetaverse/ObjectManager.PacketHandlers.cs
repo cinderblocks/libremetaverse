@@ -475,43 +475,57 @@ namespace OpenMetaverse
 
         protected void DecodeParticleUpdate(ObjectUpdatePacket.ObjectDataBlock block)
         {
-            // TODO: Handle ParticleSystem ObjectUpdate blocks
-            // float bounce_b
-            // Vector4 scale_range
-            // Vector4 alpha_range
-            // Vector3 vel_offset
-            // float dist_begin_fadeout
-            // float dist_end_fadeout
-            // UUID image_uuid
-            // long flags
-            // byte createme
-            // Vector3 diff_eq_alpha
-            // Vector3 diff_eq_scale
-            // byte max_particles
-            // byte initial_particles
-            // float kill_plane_z
-            // Vector3 kill_plane_normal
-            // float bounce_plane_z
-            // Vector3 bounce_plane_normal
-            // float spawn_range
-            // float spawn_frequency
-            // float spawn_frequency_range
-            // Vector3 spawn_direction
-            // float spawn_direction_range
-            // float spawn_velocity
-            // float spawn_velocity_range
-            // float speed_limit
-            // float wind_weight
-            // Vector3 current_gravity
-            // float gravity_weight
-            // float global_lifetime
-            // float individual_lifetime
-            // float individual_lifetime_range
-            // float alpha_decay
-            // float scale_decay
-            // float distance_death
-            // float damp_motion_factor
-            // Vector3 wind_diffusion_factor
+            // PCode.ParticleSystem is a legacy format superseded by PSBlock in regular prim updates.
+            // SL no longer emits these on the live grid; decode and log for diagnostics only.
+            const int LEGACY_PART_SIZE = 235;
+            if (block.Data.Length < LEGACY_PART_SIZE)
+            {
+                Logger.Debug($"PCode.ParticleSystem LocalID={block.ID} has unexpected data length {block.Data.Length}", Client);
+                return;
+            }
+
+            int i = 0;
+            _ = Utils.BytesToFloat(block.Data, i); i += 4;   // bounce_b
+            _ = new Vector4(block.Data, i); i += 16;          // scale_range
+            _ = new Vector4(block.Data, i); i += 16;          // alpha_range
+            _ = new Vector3(block.Data, i); i += 12;          // vel_offset
+            _ = Utils.BytesToFloat(block.Data, i); i += 4;   // dist_begin_fadeout
+            _ = Utils.BytesToFloat(block.Data, i); i += 4;   // dist_end_fadeout
+            var imageUuid = new UUID(block.Data, i); i += 16;
+            _ = Utils.BytesToUInt(block.Data, i); i += 4;    // flags (U32 in original protocol)
+            byte createMe = block.Data[i++];
+            _ = new Vector3(block.Data, i); i += 12;          // diff_eq_alpha
+            _ = new Vector3(block.Data, i); i += 12;          // diff_eq_scale
+            byte maxParticles = block.Data[i++];
+            _ = block.Data[i++];                              // initial_particles
+            _ = Utils.BytesToFloat(block.Data, i); i += 4;   // kill_plane_z
+            _ = new Vector3(block.Data, i); i += 12;          // kill_plane_normal
+            _ = Utils.BytesToFloat(block.Data, i); i += 4;   // bounce_plane_z
+            _ = new Vector3(block.Data, i); i += 12;          // bounce_plane_normal
+            _ = Utils.BytesToFloat(block.Data, i); i += 4;   // spawn_range
+            float spawnFrequency = Utils.BytesToFloat(block.Data, i); i += 4;
+            _ = Utils.BytesToFloat(block.Data, i); i += 4;   // spawn_frequency_range
+            _ = new Vector3(block.Data, i); i += 12;          // spawn_direction
+            _ = Utils.BytesToFloat(block.Data, i); i += 4;   // spawn_direction_range
+            _ = Utils.BytesToFloat(block.Data, i); i += 4;   // spawn_velocity
+            _ = Utils.BytesToFloat(block.Data, i); i += 4;   // spawn_velocity_range
+            _ = Utils.BytesToFloat(block.Data, i); i += 4;   // speed_limit
+            _ = Utils.BytesToFloat(block.Data, i); i += 4;   // wind_weight
+            _ = new Vector3(block.Data, i); i += 12;          // current_gravity
+            _ = Utils.BytesToFloat(block.Data, i); i += 4;   // gravity_weight
+            float globalLifetime = Utils.BytesToFloat(block.Data, i); i += 4;
+            _ = Utils.BytesToFloat(block.Data, i); i += 4;   // individual_lifetime
+            _ = Utils.BytesToFloat(block.Data, i); i += 4;   // individual_lifetime_range
+            _ = Utils.BytesToFloat(block.Data, i); i += 4;   // alpha_decay
+            _ = Utils.BytesToFloat(block.Data, i); i += 4;   // scale_decay
+            _ = Utils.BytesToFloat(block.Data, i); i += 4;   // distance_death
+            _ = Utils.BytesToFloat(block.Data, i); i += 4;   // damp_motion_factor
+            _ = new Vector3(block.Data, i);                   // wind_diffusion_factor
+
+            Logger.Debug(
+                $"Legacy PCode.ParticleSystem LocalID={block.ID} image={imageUuid} " +
+                $"maxParticles={maxParticles} createMe={createMe} lifetime={globalLifetime} spawnFreq={spawnFrequency}",
+                Client);
         }
 
         /// <summary>

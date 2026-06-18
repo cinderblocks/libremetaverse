@@ -498,7 +498,7 @@ namespace OpenMetaverse
                 },
                 MethodData =
                 {
-                    Invoice = UUID.Random(), // FIXME:
+                    Invoice = UUID.Random(),
                     Method = Utils.StringToBytes(method)
                 },
                 ParamList = new EstateOwnerMessagePacket.ParamListBlock[listParams.Count]
@@ -987,7 +987,7 @@ namespace OpenMetaverse
                 ["block_bots"] = flags.HasFlag(RegionFlags.DenyBots),
                 ["allow_voice_chat"] = flags.HasFlag(RegionFlags.AllowVoice),
                 ["override_public_access"] = flags.HasFlag(RegionFlags.AllowAccessOverride),
-                ["invoice"] = UUID.Random() // FIXME:
+                ["invoice"] = UUID.Random()
             };
             using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(payload), Encoding.UTF8, HttpCapsClient.LLSD_XML)) 
             {
