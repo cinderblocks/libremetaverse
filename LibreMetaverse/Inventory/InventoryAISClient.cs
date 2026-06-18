@@ -253,7 +253,16 @@ namespace LibreMetaverse
 
                 using (var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken).ConfigureAwait(false))
                 {
-                    success = HandleResponseStatus(reply, $"Remove folder {categoryUuid}");
+                    // 410 GONE: folder already deleted on server — desired state achieved
+                    if ((int)reply.StatusCode == 410)
+                    {
+                        Logger.Info($"Remove folder {categoryUuid}: already gone on server (410)");
+                        success = true;
+                    }
+                    else
+                    {
+                        success = HandleResponseStatus(reply, $"Remove folder {categoryUuid}");
+                    }
                 }
             }
             catch (Exception ex)
@@ -285,7 +294,16 @@ namespace LibreMetaverse
 
                 using (var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken).ConfigureAwait(false))
                 {
-                    success = HandleResponseStatus(reply, $"Remove item {itemUuid}");
+                    // 410 GONE: item already deleted on server — desired state achieved
+                    if ((int)reply.StatusCode == 410)
+                    {
+                        Logger.Info($"Remove item {itemUuid}: already gone on server (410)");
+                        success = true;
+                    }
+                    else
+                    {
+                        success = HandleResponseStatus(reply, $"Remove item {itemUuid}");
+                    }
                 }
             }
             catch (Exception ex)
@@ -565,6 +583,10 @@ namespace LibreMetaverse
                 {
                     success = HandleResponseStatus(reply, $"Fetch children for {category}");
 
+                    // 403 at depth=0 means the folder content exceeds the server's item limit
+                    if (!success && reply.StatusCode == System.Net.HttpStatusCode.Forbidden && requestedDepth == 0)
+                        Logger.Warn($"GetCategoryChildren: '{category}' at depth=0 returned 403 — folder exceeds inventory size limit");
+
                     if (reply.IsSuccessStatusCode)
                     {
 #if NET5_0_OR_GREATER
@@ -830,7 +852,20 @@ namespace LibreMetaverse
 #endif
                         if (deserialized is OSDMap m)
                         {
-                            ParseEmbedded(m, out folders, out items, out links);
+                            // GET /item/{id} returns the item at the top level, not inside _embedded.
+                            // C++ parseContent checks item_id/linked_id directly on the response root.
+                            if (m.ContainsKey("item_id"))
+                            {
+                                var parsed = InventoryItem.FromOSD(m);
+                                if (parsed.IsLink())
+                                    links = new List<InventoryItem> { parsed };
+                                else
+                                    items = new List<InventoryItem> { parsed };
+                            }
+                            else
+                            {
+                                ParseEmbedded(m, out folders, out items, out links);
+                            }
                         }
                     }
                 }
