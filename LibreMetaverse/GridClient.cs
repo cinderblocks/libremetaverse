@@ -147,15 +147,14 @@ namespace OpenMetaverse
             Groups = new GroupManager(this);
             Assets = new AssetManager(this);
             Appearance = new AppearanceManager(this);
+            HttpCapsClient = SetupHttpCapsClient();
+            AisClient = new InventoryAISClient(this);
             Inventory = new InventoryManager(this);
             Directory = new DirectoryManager(this);
             Terrain = new TerrainManager(this);
             Sound = new SoundManager(this);
             Throttle = new AgentThrottle(this);
             Stats = new Stats.UtilizationStatistics();
-
-            HttpCapsClient = SetupHttpCapsClient();
-            AisClient = new InventoryAISClient(this);
             Marketplace = new Marketplace.MarketplaceManager(this);
             Environment = new EnvironmentManager(this);
             InterestList = new InterestListManager(this);

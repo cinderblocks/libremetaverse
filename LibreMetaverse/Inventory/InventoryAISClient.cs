@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2025, Sjofn LLC
+ * Copyright (c) 2019-2026, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -63,6 +63,43 @@ namespace LibreMetaverse
     /// Use callers should apply returned data into their inventory model and
     /// implement any viewer-specific recovery or notification behavior if needed.
     /// </remarks>
+    /// <summary>
+    /// Side-effect metadata returned by AISv3 mutation operations.
+    /// Contains IDs of objects the server removed as a side-effect of the primary operation,
+    /// and the updated version numbers of affected categories.
+    /// </summary>
+    public readonly struct AISResponseMeta
+    {
+        /// <summary>Links removed by the server because their target no longer exists.</summary>
+        public IReadOnlyList<UUID> BrokenLinksRemoved { get; }
+        /// <summary>Items removed as a side-effect (e.g. collateral removal on purge).</summary>
+        public IReadOnlyList<UUID> ItemsRemoved { get; }
+        /// <summary>Categories removed as a side-effect.</summary>
+        public IReadOnlyList<UUID> CategoriesRemoved { get; }
+        /// <summary>New version numbers for affected categories, keyed by category UUID.</summary>
+        public IReadOnlyDictionary<UUID, int> CategoryVersionUpdates { get; }
+
+        public bool HasAnyData =>
+            BrokenLinksRemoved.Count > 0 || ItemsRemoved.Count > 0 ||
+            CategoriesRemoved.Count > 0 || CategoryVersionUpdates.Count > 0;
+
+        public AISResponseMeta(
+            IReadOnlyList<UUID> brokenLinks,
+            IReadOnlyList<UUID> items,
+            IReadOnlyList<UUID> categories,
+            IReadOnlyDictionary<UUID, int> versions)
+        {
+            BrokenLinksRemoved = brokenLinks;
+            ItemsRemoved = items;
+            CategoriesRemoved = categories;
+            CategoryVersionUpdates = versions;
+        }
+
+        public static readonly AISResponseMeta Empty = new AISResponseMeta(
+            Array.Empty<UUID>(), Array.Empty<UUID>(), Array.Empty<UUID>(),
+            new Dictionary<UUID, int>());
+    }
+
     public partial class InventoryAISClient
     {
         public const string INVENTORY_CAP_NAME = "InventoryAPIv3";
@@ -72,6 +109,14 @@ namespace LibreMetaverse
 
         [NonSerialized]
         private readonly GridClient Client;
+
+        /// <summary>
+        /// Fired after any successful AIS mutation whose response contains side-effect metadata
+        /// (<c>_broken_links_removed</c>, <c>_removed_items</c>, <c>_categories_removed</c>,
+        /// <c>_updated_category_versions</c>). Subscribers (e.g. InventoryManager) should apply
+        /// the metadata to their inventory store.
+        /// </summary>
+        internal event Action<AISResponseMeta>? AISMetaReceived;
 
         /// <summary>
         /// Create a new AIS client bound to the provided GridClient.
@@ -127,16 +172,19 @@ namespace LibreMetaverse
                             return;
                         }
 #if NET5_0_OR_GREATER
-                        if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) is OSDMap map && map["_embedded"] is OSDMap embedded)
+                        if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) is OSDMap map)
 #else
-                        if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) is OSDMap map && map["_embedded"] is OSDMap embedded)
+                        if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) is OSDMap map)
 #endif
                         {
-                            var items = !createLink ?
-                                parseItemsFromResponse((OSDMap)embedded["items"]) :
-                                parseLinksFromResponse((OSDMap)embedded["links"]);
-
-                            item = items.FirstOrDefault();
+                            FireAISMeta(map);
+                            if (map["_embedded"] is OSDMap embedded)
+                            {
+                                var items = !createLink ?
+                                    parseItemsFromResponse((OSDMap)embedded["items"]) :
+                                    parseLinksFromResponse((OSDMap)embedded["links"]);
+                                item = items.FirstOrDefault();
+                            }
                         }
                     }
                 }
@@ -152,7 +200,7 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Creates multiple inventory links in a single AIS3 request and returns all created items.
+        /// Creates multiple inventory links in a single AISv3 request and returns all created items.
         /// Use <see cref="InventoryManager.CreateLinksAsync"/> instead of calling this directly.
         /// </summary>
         internal async Task<IList<InventoryItem>> CreateInventoryLinksAsync(UUID parentUuid, OSD newInventory, CancellationToken cancellationToken = default)
@@ -167,7 +215,7 @@ namespace LibreMetaverse
             using var reply = await Client.HttpCapsClient.PostAsync(uri, content, cancellationToken).ConfigureAwait(false);
 
             if (!HandleResponseStatus(reply, $"Create inventory links in {parentUuid}"))
-                throw new HttpRequestException($"AIS3 POST category/{parentUuid} failed ({(int)reply.StatusCode})");
+                throw new HttpRequestException($"AISv3 POST category/{parentUuid} failed ({(int)reply.StatusCode})");
 
             try
             {
@@ -263,6 +311,14 @@ namespace LibreMetaverse
                     {
                         success = HandleResponseStatus(reply, $"Remove folder {categoryUuid}");
                     }
+                    if (success)
+                    {
+#if NET5_0_OR_GREATER
+                        FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) as OSDMap);
+#else
+                        FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) as OSDMap);
+#endif
+                    }
                 }
             }
             catch (Exception ex)
@@ -303,6 +359,14 @@ namespace LibreMetaverse
                     else
                     {
                         success = HandleResponseStatus(reply, $"Remove item {itemUuid}");
+                    }
+                    if (success)
+                    {
+#if NET5_0_OR_GREATER
+                        FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) as OSDMap);
+#else
+                        FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) as OSDMap);
+#endif
                     }
                 }
             }
@@ -382,6 +446,14 @@ namespace LibreMetaverse
                 using (var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken).ConfigureAwait(false))
                 {
                     success = HandleResponseStatus(reply, $"Purge descendents of {categoryUuid}");
+                    if (success)
+                    {
+#if NET5_0_OR_GREATER
+                        FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) as OSDMap);
+#else
+                        FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) as OSDMap);
+#endif
+                    }
                 }
             }
             catch (Exception ex)
@@ -956,6 +1028,14 @@ namespace LibreMetaverse
                         using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
                         {
                             success = HandleResponseStatus(reply, $"Move category {sourceUuid} to {destUuid}");
+                            if (success)
+                            {
+#if NET5_0_OR_GREATER
+                                FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) as OSDMap);
+#else
+                                FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) as OSDMap);
+#endif
+                            }
                         }
                     }
                 }
@@ -1268,6 +1348,14 @@ namespace LibreMetaverse
                         using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
                         {
                             success = HandleResponseStatus(reply, $"Move item {itemUuid} to {destUuid}");
+                            if (success)
+                            {
+#if NET5_0_OR_GREATER
+                                FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) as OSDMap);
+#else
+                                FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) as OSDMap);
+#endif
+                            }
                         }
                     }
                 }
@@ -1461,7 +1549,7 @@ namespace LibreMetaverse
 
             if (response.TryGetValue("_embedded", out var embeddedObj) && embeddedObj is OSDMap embedded)
             {
-                // AIS3 uses "categories" (OSDMap keyed by UUID) for folder collections,
+                // AISv3 uses "categories" (OSDMap keyed by UUID) for folder collections,
                 // and "category" (OSDMap) for a single embedded folder (e.g., target of a link).
                 if (embedded.TryGetValue("categories", out var catsObj) && catsObj is OSDMap catsMap)
                 {
@@ -1615,6 +1703,67 @@ namespace LibreMetaverse
             if (libraryCapUri != null) { return true; }
             Logger.Warn("AISv3 Library Capability not found!", Client);
             return false;
+        }
+
+        /// <summary>
+        /// Parses the AISv3 side-effect meta fields from any AIS response map.
+        /// Returns <see cref="AISResponseMeta.Empty"/> when the response contains no meta fields.
+        /// </summary>
+        public static AISResponseMeta ParseAISResponseMeta(OSDMap? response)
+        {
+            if (response == null) return AISResponseMeta.Empty;
+
+            var broken = ParseUuidList(response, "_broken_links_removed");
+            var removed = ParseUuidList(response, "_removed_items");
+            // _category_items_removed is additive with _removed_items
+            removed.AddRange(ParseUuidList(response, "_category_items_removed"));
+            var cats = ParseUuidList(response, "_categories_removed");
+
+            var versions = new Dictionary<UUID, int>();
+            if (response.TryGetValue("_updated_category_versions", out var vOsd) && vOsd is OSDMap vMap)
+            {
+                foreach (KeyValuePair<string, OSD> kv in vMap)
+                {
+                    if (UUID.TryParse(kv.Key, out var id))
+                        versions[id] = kv.Value.AsInteger();
+                }
+            }
+
+            if (broken.Count == 0 && removed.Count == 0 && cats.Count == 0 && versions.Count == 0)
+                return AISResponseMeta.Empty;
+
+            return new AISResponseMeta(broken, removed, cats, versions);
+        }
+
+        private static List<UUID> ParseUuidList(OSDMap map, string key)
+        {
+            var result = new List<UUID>();
+            if (!map.TryGetValue(key, out var osd)) return result;
+            if (osd is OSDArray arr)
+            {
+                foreach (var item in arr)
+                {
+                    var id = item.AsUUID();
+                    if (id != UUID.Zero) result.Add(id);
+                }
+            }
+            else if (osd is OSDMap dict)
+            {
+                foreach (KeyValuePair<string, OSD> kv in dict)
+                {
+                    if (UUID.TryParse(kv.Key, out var id))
+                        result.Add(id);
+                }
+            }
+            return result;
+        }
+
+        private void FireAISMeta(OSDMap? response)
+        {
+            if (response == null || AISMetaReceived == null) return;
+            var meta = ParseAISResponseMeta(response);
+            if (meta.HasAnyData)
+                AISMetaReceived.Invoke(meta);
         }
 
         private bool HandleResponseStatus(HttpResponseMessage reply, string context)

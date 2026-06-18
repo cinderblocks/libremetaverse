@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2022-2025, Sjofn LLC.
+ * Copyright (c) 2022-2026, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -106,7 +106,7 @@ namespace OpenMetaverse
             Client.Network.RegisterCallback(PacketType.InventoryDescendents, InventoryDescendentsHandler);
             Client.Network.RegisterCallback(PacketType.FetchInventoryReply, FetchInventoryReplyHandler);
 
-            // Watch for inventory given to us through instant message            
+            // Watch for inventory given to us through instant message
             Client.Self.IM += Self_IM;
 
             // Register extra parameters with login and parse the inventory data that comes back
@@ -115,6 +115,8 @@ namespace OpenMetaverse
                 new string[] {
                     "inventory-root", "inventory-skeleton", "inventory-lib-root",
                     "inventory-lib-owner", "inventory-skel-lib"});
+
+            Client.AisClient.AISMetaReceived += OnAISMetaReceived;
         }
 
         /// <summary>
@@ -152,6 +154,7 @@ namespace OpenMetaverse
                     }
 
                     try { if (Client?.Self != null) Client.Self.IM -= Self_IM; } catch (Exception ex) { Logger.Debug("Failed to detach Self_IM event handler", ex, Client); }
+                    try { if (Client?.AisClient != null) Client.AisClient.AISMetaReceived -= OnAISMetaReceived; } catch (Exception ex) { Logger.Debug("Failed to detach AISMetaReceived handler", ex, Client); }
 
                     try { _ItemCreatedCallbacks.Clear(); } catch (Exception ex) { Logger.Debug("Failed to clear ItemCreatedCallbacks", ex, Client); }
                     try { _ItemCopiedCallbacks.Clear(); } catch (Exception ex) { Logger.Debug("Failed to clear ItemCopiedCallbacks", ex, Client); }
@@ -426,7 +429,7 @@ namespace OpenMetaverse
         /// <param name="order">the sort order to return items in</param>
         /// <param name="cancellationToken">CancellationToken for operation</param>
         /// <see cref="InventoryManager.FolderContents"/>
-        public async Task<List<InventoryBase>> RequestFolderContents(UUID folderID, UUID ownerID, 
+        public async Task<List<InventoryBase>> RequestFolderContents(UUID folderID, UUID ownerID,
             bool fetchFolders, bool fetchItems, InventorySortOrder order, CancellationToken cancellationToken = default)
         {
             var cap = (ownerID == Client.Self.AgentID) ? "FetchInventoryDescendents2" : "FetchLibDescendents2";
@@ -441,7 +444,7 @@ namespace OpenMetaverse
                 OwnerID = ownerID,
                 UUID = folderID
             };
-            return await RequestFolderContents(new List<InventoryFolder>(1) { folder }, 
+            return await RequestFolderContents(new List<InventoryFolder>(1) { folder },
                 url, fetchFolders, fetchItems, order, cancellationToken);
         }
 
@@ -455,7 +458,7 @@ namespace OpenMetaverse
         /// <param name="order">the sort order to return items in</param>
         /// <param name="cancellationToken">CancellationToken for operation</param>
         /// <see cref="InventoryManager.FolderContents"/>
-        public async Task<List<InventoryBase>> RequestFolderContents(List<InventoryFolder> batch, Uri capabilityUri, 
+        public async Task<List<InventoryBase>> RequestFolderContents(List<InventoryFolder> batch, Uri capabilityUri,
             bool fetchFolders, bool fetchItems, InventorySortOrder order, CancellationToken cancellationToken = default)
         {
             List <InventoryBase> ret = new List<InventoryBase>();
@@ -526,8 +529,8 @@ namespace OpenMetaverse
                                     UUID folderID = descFolder.TryGetValue("category_id", out var category_id)
                                         ? category_id : descFolder["folder_id"];
 
-                                    if (!(_Store != null 
-                                          && _Store.TryGetValue(folderID, out var existing) 
+                                    if (!(_Store != null
+                                          && _Store.TryGetValue(folderID, out var existing)
                                           && existing is InventoryFolder existingFolder))
                                     {
                                         folder = new InventoryFolder(folderID)
@@ -599,6 +602,44 @@ namespace OpenMetaverse
         }
 
         #endregion Fetch
+
+        #region AIS meta application
+
+        /// <summary>
+        /// Applies AIS3 response side-effect metadata to the local inventory store.
+        /// Removes broken links and collateral deletions; updates folder version numbers.
+        /// Subscribed to <see cref="LibreMetaverse.InventoryAISClient.AISMetaReceived"/>.
+        /// </summary>
+        private void OnAISMetaReceived(LibreMetaverse.AISResponseMeta meta)
+        {
+            var store = _Store;
+            if (store == null || !meta.HasAnyData) return;
+
+            using var writeLock = _storeLock.WriteLock();
+
+            foreach (var id in meta.BrokenLinksRemoved)
+            {
+                if (store.TryGetValue(id, out var obj) && obj != null)
+                    store.RemoveNodeFor(obj);
+            }
+            foreach (var id in meta.ItemsRemoved)
+            {
+                if (store.TryGetValue(id, out var obj) && obj != null)
+                    store.RemoveNodeFor(obj);
+            }
+            foreach (var id in meta.CategoriesRemoved)
+            {
+                if (store.TryGetValue(id, out var obj) && obj != null)
+                    store.RemoveNodeFor(obj);
+            }
+            foreach (var kv in meta.CategoryVersionUpdates)
+            {
+                if (store.TryGetValue<InventoryFolder>(kv.Key, out var folder))
+                    folder.Version = kv.Value;
+            }
+        }
+
+        #endregion AIS meta application
 
         #region Find
 
@@ -682,7 +723,7 @@ namespace OpenMetaverse
         /// <param name="inventoryOwner">The object owners <see cref="UUID"/></param>
         /// <param name="path">A string path to search</param>
         /// <param name="timeout">time to wait for reply</param>
-        /// <returns>Found items <see cref="UUID"/> or <see cref="UUID.Zero"/> if 
+        /// <returns>Found items <see cref="UUID"/> or <see cref="UUID.Zero"/> if
         /// timeout occurs or item is not found</returns>
         public UUID FindObjectByPath(UUID baseFolder, UUID inventoryOwner, string path, TimeSpan timeout)
         {
@@ -843,8 +884,8 @@ namespace OpenMetaverse
 
             using (var upg = _storeLock.UpgradeableLock())
             {
-                if (_Store != null 
-                    && _Store.TryGetValue(folderID, out var storeItem) 
+                if (_Store != null
+                    && _Store.TryGetValue(folderID, out var storeItem)
                     && storeItem is InventoryFolder item)
                 {
                     // Retrieve node under read lock
@@ -951,8 +992,8 @@ namespace OpenMetaverse
         /// Move multiple folders, the keys in the Dictionary parameter,
         /// to a new parents, the value of that folder's key.
         /// </summary>
-        /// <param name="foldersNewParents">A Dictionary containing the 
-        /// <see cref="UUID"/> of the source as the key, and the 
+        /// <param name="foldersNewParents">A Dictionary containing the
+        /// <see cref="UUID"/> of the source as the key, and the
         /// <see cref="UUID"/> of the destination as the value</param>
         /// <param name="cancellationToken">Cancellation token for the operation</param>
         public void MoveFolders(Dictionary<UUID, UUID> foldersNewParents, CancellationToken cancellationToken = default)
@@ -961,8 +1002,8 @@ namespace OpenMetaverse
             {
                 foreach (var entry in foldersNewParents)
                 {
-                    if (_Store != null 
-                        && _Store.TryGetValue(entry.Key, out var storeItem) 
+                    if (_Store != null
+                        && _Store.TryGetValue(entry.Key, out var storeItem)
                         && storeItem is InventoryFolder inv)
                     {
                         inv.ParentUUID = entry.Value;
@@ -1089,8 +1130,8 @@ namespace OpenMetaverse
         /// Move multiple items, the keys in the Dictionary parameter,
         /// to a new folders, the value of that item's key.
         /// </summary>
-        /// <param name="itemsNewFolders">A Dictionary containing the 
-        /// <see cref="UUID"/> of the source as the key, and the 
+        /// <param name="itemsNewFolders">A Dictionary containing the
+        /// <see cref="UUID"/> of the source as the key, and the
         /// <see cref="UUID"/> of the destination as the value</param>
         /// <param name="cancellationToken">Cancellation token for the operation</param>
         public void MoveItems(Dictionary<UUID, UUID> itemsNewFolders, CancellationToken cancellationToken = default)
@@ -1181,20 +1222,20 @@ namespace OpenMetaverse
                 var visited = new HashSet<UUID>();
                 int iterations = 0;
                 const int maxIterations = 100000;
-                
+
                 stack.Push(itemId);
 
                 while (stack.Count > 0)
                 {
                     iterations++;
-                    
+
                     // Defensive iteration limit
                     if (iterations > maxIterations)
                     {
                         Logger.Warn($"RemoveLocalUi exceeded maximum iterations ({maxIterations}). Possible circular reference in inventory hierarchy.", Client);
                         break;
                     }
-                    
+
                     var id = stack.Pop();
 
                     // Defensive loop detection
@@ -1853,7 +1894,7 @@ namespace OpenMetaverse
         /// <param name="assetType">Asset type</param>
         /// <param name="invType">Inventory type</param>
         /// <param name="folderID">Put newly created inventory in this folder</param>
-        /// <param name="permissions">Permission of the newly created item 
+        /// <param name="permissions">Permission of the newly created item
         /// (EveryoneMask, GroupMask, and NextOwnerMask of Permissions struct are supported)</param>
         /// <param name="callback">Delegate that will receive feedback on success or failure</param>
         /// <param name="cancellationToken"></param>
@@ -1950,13 +1991,13 @@ namespace OpenMetaverse
         /// <param name="transactionID">Transaction UUID</param>
         /// <param name="callback">Method to call upon creation of the link</param>
         /// <param name="cancellationToken"></param>
-        public void CreateLink(UUID folderID, UUID itemID, string name, string description, 
+        public void CreateLink(UUID folderID, UUID itemID, string name, string description,
              InventoryType invType, UUID transactionID, ItemCreatedCallback callback, CancellationToken cancellationToken = default)
          {
             // preserve synchronous API by delegating to async-first implementation
             CreateLinkAsync(folderID, itemID, name, description, invType, transactionID, callback, cancellationToken).GetAwaiter().GetResult();
         }
-        
+
         public async Task CreateLinkAsync(UUID folderID, UUID itemID, string name, string description,
             InventoryType invType, UUID transactionID, ItemCreatedCallback callback, CancellationToken cancellationToken = default)
         {
@@ -2453,7 +2494,7 @@ namespace OpenMetaverse
             // The rest of the CRC fields
             CRC += (uint)iitem.Flags; // Flags
             CRC += (uint)iitem.InventoryType; // InvType
-            CRC += (uint)iitem.AssetType; // Type 
+            CRC += (uint)iitem.AssetType; // Type
             CRC += (uint)Utils.DateTimeToUnixTime(iitem.CreationDate); // CreationDate
             CRC += (uint)iitem.SalePrice;    // SalePrice
             CRC += (uint)((uint)iitem.SaleType * 0x07073096); // SaleType
