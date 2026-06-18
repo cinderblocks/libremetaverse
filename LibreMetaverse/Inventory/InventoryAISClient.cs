@@ -96,7 +96,7 @@ namespace LibreMetaverse
         /// <param name="createLink">If true, payload represents a link; otherwise an actual item.</param>
         /// <param name="callback">Callback invoked with (success, createdItem).</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task CreateInventory(UUID parentUuid, OSD newInventory, bool createLink, 
+        public async Task CreateInventory(UUID parentUuid, OSD newInventory, bool createLink,
             InventoryManager.ItemCreatedCallback callback, CancellationToken cancellationToken = default)
         {
             if (!getInventoryCap(out var cap)) { callback?.Invoke(false, null); return; }
@@ -106,7 +106,7 @@ namespace LibreMetaverse
 
             try
             {
-                if (!Uri.TryCreate($"{cap}/category/{parentUuid}?tid={UUID.Random()}", 
+                if (!Uri.TryCreate($"{cap}/category/{parentUuid}?tid={UUID.Random()}",
                         UriKind.Absolute, out var uri))
                 {
                     success = false;
@@ -114,11 +114,11 @@ namespace LibreMetaverse
                     callback?.Invoke(false, null);
                     return;
                 }
-                
-                using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(newInventory), 
+
+                using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(newInventory),
                            Encoding.UTF8, HttpCapsClient.LLSD_XML))
                 {
-                using (var reply = await Client.HttpCapsClient.PostAsync(uri, content, cancellationToken).ConfigureAwait(false))
+                    using (var reply = await Client.HttpCapsClient.PostAsync(uri, content, cancellationToken).ConfigureAwait(false))
                     {
                         success = HandleResponseStatus(reply, $"Create inventory in {parentUuid}");
 
@@ -209,7 +209,7 @@ namespace LibreMetaverse
                     return;
                 }
 
-                using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(newInventory), 
+                using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(newInventory),
                            Encoding.UTF8, HttpCapsClient.LLSD_XML))
                 {
                     using (var reply = await Client.HttpCapsClient.PutAsync(uri, content, cancellationToken).ConfigureAwait(false))
@@ -272,7 +272,7 @@ namespace LibreMetaverse
         /// <param name="itemUuid">Item UUID to remove.</param>
         /// <param name="callback">Callback invoked with (success, itemUuid).</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task RemoveItem(UUID itemUuid, Action<bool, UUID> callback, 
+        public async Task RemoveItem(UUID itemUuid, Action<bool, UUID> callback,
             CancellationToken cancellationToken = default)
         {
             if (!getInventoryCap(out var cap)) { callback?.Invoke(false, itemUuid); return; }
@@ -306,7 +306,7 @@ namespace LibreMetaverse
         /// <param name="copySubfolders">If true, include subfolders.</param>
         /// <param name="callback">Callback invoked with success flag.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task CopyLibraryCategory(UUID sourceUuid, UUID destUuid, bool copySubfolders, Action<bool> callback, 
+        public async Task CopyLibraryCategory(UUID sourceUuid, UUID destUuid, bool copySubfolders, Action<bool> callback,
             CancellationToken cancellationToken = default)
         {
             if (!getLibraryCap(out var cap)) { callback?.Invoke(false); return; }
@@ -316,7 +316,7 @@ namespace LibreMetaverse
             try
             {
                 var url = new StringBuilder($"{cap}/category/{sourceUuid}?tid={UUID.Random()}");
-                if (copySubfolders) { url.Append(",depth=0"); }
+                if (!copySubfolders) { url.Append(",depth=0"); }
 
                 if (!Uri.TryCreate(url.ToString(), UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
 
@@ -346,7 +346,7 @@ namespace LibreMetaverse
         /// <param name="categoryUuid">Category to purge descendants from.</param>
         /// <param name="callback">Callback invoked with (success, categoryUuid).</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task PurgeDescendents(UUID categoryUuid, Action<bool, UUID> callback, 
+        public async Task PurgeDescendents(UUID categoryUuid, Action<bool, UUID> callback,
             CancellationToken cancellationToken = default)
         {
             if (!getInventoryCap(out var cap)) { callback?.Invoke(false, categoryUuid); return; }
@@ -403,7 +403,7 @@ namespace LibreMetaverse
                 using (var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri))
 #endif
                 {
-                    using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(updates), 
+                    using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(updates),
                                Encoding.UTF8, HttpCapsClient.LLSD_XML))
                     {
                         request.Content = content;
@@ -432,7 +432,7 @@ namespace LibreMetaverse
         /// <param name="updates">OSD map of updates to apply.</param>
         /// <param name="callback">Callback invoked with success flag.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task UpdateItem(UUID itemUuid, OSD updates, Action<bool> callback, 
+        public async Task UpdateItem(UUID itemUuid, OSD updates, Action<bool> callback,
             CancellationToken cancellationToken = default)
         {
             if (!getInventoryCap(out var cap)) { callback?.Invoke(false); return; }
@@ -566,6 +566,158 @@ namespace LibreMetaverse
                     success = HandleResponseStatus(reply, $"Fetch children for {category}");
 
                     if (reply.IsSuccessStatusCode)
+                    {
+#if NET5_0_OR_GREATER
+                        var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false));
+#else
+                        var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false));
+#endif
+                        if (deserialized is OSDMap m)
+                        {
+                            ParseEmbedded(m, out folders, out items, out links);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex.Message);
+            }
+            finally
+            {
+                callback?.Invoke(success, folders ?? new List<InventoryFolder>(), items ?? new List<InventoryItem>(), links ?? new List<InventoryItem>());
+            }
+        }
+
+        /// <summary>
+        /// Fetch only the subfolder (category) descendants of a category — no items or links.
+        /// Equivalent to C++ <c>AISAPI::FetchCategoryCategories</c>.
+        /// </summary>
+        /// <param name="catId">Category UUID.</param>
+        /// <param name="useInventoryCap">True for user inventory, false for library.</param>
+        /// <param name="recursive">If true, fetch full depth (clamped to server limit).</param>
+        /// <param name="callback">Callback invoked with (success, folders, items, links).</param>
+        /// <param name="depth">Requested depth when not recursive.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        public async Task FetchCategoryCategories(UUID catId, bool useInventoryCap, bool recursive,
+            Action<bool, List<InventoryFolder>, List<InventoryItem>, List<InventoryItem>> callback,
+            int depth = 0, CancellationToken cancellationToken = default)
+        {
+            var hasCap = useInventoryCap
+                ? getInventoryCap(out var cap)
+                : getLibraryCap(out cap);
+            if (!hasCap)
+            {
+                callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
+                return;
+            }
+
+            var success = false;
+            List<InventoryFolder>? folders = null;
+            List<InventoryItem>? items = null;
+            List<InventoryItem>? links = null;
+
+            try
+            {
+                var requestedDepth = recursive ? MAX_FOLDER_DEPTH_REQUEST : Math.Min(depth, MAX_FOLDER_DEPTH_REQUEST);
+                if (!Uri.TryCreate($"{cap}/category/{catId}/categories?depth={requestedDepth}", UriKind.Absolute, out var uri))
+                {
+                    callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
+                    return;
+                }
+
+                using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
+                using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
+                {
+                    success = HandleResponseStatus(reply, $"Fetch categories for {catId}");
+
+                    if (success)
+                    {
+#if NET5_0_OR_GREATER
+                        var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false));
+#else
+                        var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false));
+#endif
+                        if (deserialized is OSDMap m)
+                        {
+                            ParseEmbedded(m, out folders, out items, out links);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex.Message);
+            }
+            finally
+            {
+                callback?.Invoke(success, folders ?? new List<InventoryFolder>(), items ?? new List<InventoryItem>(), links ?? new List<InventoryItem>());
+            }
+        }
+
+        /// <summary>
+        /// Fetch specific children of a category by UUID.
+        /// Equivalent to C++ <c>AISAPI::FetchCategorySubset</c>.
+        /// URL: <c>GET /category/{catId}/children?depth={depth}&amp;children={id1},{id2},...</c>
+        /// </summary>
+        /// <param name="catId">Parent category UUID.</param>
+        /// <param name="specificChildren">UUIDs of the children to fetch. Must not be empty.</param>
+        /// <param name="useInventoryCap">True for user inventory, false for library.</param>
+        /// <param name="recursive">If true, fetch full depth (clamped to server limit).</param>
+        /// <param name="callback">Callback invoked with (success, folders, items, links).</param>
+        /// <param name="depth">Requested depth when not recursive.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        public async Task FetchCategorySubset(UUID catId, IEnumerable<UUID> specificChildren,
+            bool useInventoryCap, bool recursive,
+            Action<bool, List<InventoryFolder>, List<InventoryItem>, List<InventoryItem>> callback,
+            int depth = 0, CancellationToken cancellationToken = default)
+        {
+            var childList = specificChildren?.ToList();
+            if (childList == null || childList.Count == 0)
+            {
+                Logger.Warn($"FetchCategorySubset called with empty children list for {catId}");
+                callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
+                return;
+            }
+
+            var hasCap = useInventoryCap
+                ? getInventoryCap(out var cap)
+                : getLibraryCap(out cap);
+            if (!hasCap)
+            {
+                callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
+                return;
+            }
+
+            var success = false;
+            List<InventoryFolder>? folders = null;
+            List<InventoryItem>? items = null;
+            List<InventoryItem>? links = null;
+
+            try
+            {
+                var requestedDepth = recursive ? MAX_FOLDER_DEPTH_REQUEST : Math.Min(depth, MAX_FOLDER_DEPTH_REQUEST);
+                var url = new StringBuilder($"{cap}/category/{catId}/children?depth={requestedDepth}&children=");
+                url.Append(string.Join(",", childList.Select(id => id.ToString())));
+
+                const int MAX_URL_LENGTH = 2000; // RFC recommends max 2048
+                if (url.Length > MAX_URL_LENGTH)
+                {
+                    Logger.Warn($"FetchCategorySubset URL exceeds {MAX_URL_LENGTH} chars ({url.Length}) for {catId}");
+                }
+
+                if (!Uri.TryCreate(url.ToString(), UriKind.Absolute, out var uri))
+                {
+                    callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
+                    return;
+                }
+
+                using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
+                using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
+                {
+                    success = HandleResponseStatus(reply, $"Fetch subset of {catId}");
+
+                    if (success)
                     {
 #if NET5_0_OR_GREATER
                         var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false));
@@ -1119,33 +1271,19 @@ namespace LibreMetaverse
                 }
 
                 using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
+                using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
                 {
+                    success = HandleResponseStatus(reply, "Fetch COF");
 
-                    var payload = OSDParser.SerializeLLSDXmlString(new OSDMap { { "depth", 0 } });
-                    using (var content = new StringContent(payload, Encoding.UTF8, HttpCapsClient.LLSD_XML))
+                    if (success)
                     {
-                        request.Content = content;
-
-                        using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                        {
-                            success = reply.IsSuccessStatusCode;
-
-                            if (!success)
-                            {
-                                Logger.Warn($"Could not fetch from Current Outfit Folder: {reply.ReasonPhrase}");
-                                return;
-                            }
 #if NET5_0_OR_GREATER
-                            if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) is OSDMap map)
+                        if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) is OSDMap map)
 #else
-                            if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) is OSDMap map)
+                        if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) is OSDMap map)
 #endif
-                            {
-                                if (map.TryGetValue("folders", out var folderArray))
-                                {
-                                    var folders = parseFoldersFromResponse((OSDArray)folderArray);
-                                }
-                            }
+                        {
+                            ParseEmbedded(map, out _, out _, out _);
                         }
                     }
                 }
@@ -1180,22 +1318,19 @@ namespace LibreMetaverse
                     return;
                 }
                 using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
+                using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
                 {
-                    using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                    {
-                        success = reply.IsSuccessStatusCode;
+                    success = HandleResponseStatus(reply, "Fetch orphans");
 
-                        if (!success)
-                        {
-                            Logger.Warn($"Could not fetch orphans: {reply.ReasonPhrase}");
-                        }
+                    if (success)
+                    {
 #if NET5_0_OR_GREATER
                         if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) is OSDMap map)
 #else
                         if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) is OSDMap map)
 #endif
                         {
-
+                            ParseEmbedded(map, out _, out _, out _);
                         }
                     }
                 }
