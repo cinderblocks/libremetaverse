@@ -904,7 +904,7 @@ namespace LibreMetaverse
 
             try
             {
-                if (!Uri.TryCreate($"{cap}/category/{sourceUuid}?tid={UUID.Random()}", UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
+                if (!Uri.TryCreate($"{cap}/category/{sourceUuid}", UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
 
                 var updates = new OSDMap { ["parent_id"] = OSD.FromUUID(destUuid) };
 #if (NETSTANDARD2_1_OR_GREATER || NET)
@@ -1031,7 +1031,7 @@ namespace LibreMetaverse
 
             try
             {
-                if (!Uri.TryCreate($"{cap}/category/{category}/children?tid={UUID.Random()}", UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
+                if (!Uri.TryCreate($"{cap}/category/{category}/children", UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
 
                 using (var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken).ConfigureAwait(false))
                 {
@@ -1144,7 +1144,7 @@ namespace LibreMetaverse
 
             try
             {
-                if (!Uri.TryCreate($"{cap}/category/{category}/links?tid={UUID.Random()}", UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
+                if (!Uri.TryCreate($"{cap}/category/{category}/links", UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
 
                 using (var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken).ConfigureAwait(false))
                 {
@@ -1213,7 +1213,7 @@ namespace LibreMetaverse
 
             try
             {
-                if (!Uri.TryCreate($"{cap}/item/{itemUuid}?tid={UUID.Random()}", UriKind.Absolute, out var uri))
+                if (!Uri.TryCreate($"{cap}/item/{itemUuid}", UriKind.Absolute, out var uri))
                 {
                     callback?.Invoke(false); return;
                 }

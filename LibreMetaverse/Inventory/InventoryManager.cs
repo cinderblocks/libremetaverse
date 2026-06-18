@@ -913,13 +913,19 @@ namespace OpenMetaverse
         {
             using (var writeLock = _storeLock.WriteLock())
             {
-                if (_Store != null 
-                    && _Store.TryGetValue(folderID, out var storeItem) 
+                if (_Store != null
+                    && _Store.TryGetValue(folderID, out var storeItem)
                     && storeItem is InventoryFolder inv)
                 {
                     inv.ParentUUID = newParentID;
                     _Store.UpdateNodeFor(inv);
                 }
+            }
+
+            if (Client.AisClient.IsAvailable)
+            {
+                _ = Client.AisClient.MoveCategoryAsync(folderID, newParentID, cancellationToken);
+                return;
             }
 
             var move = new MoveInventoryFolderPacket
@@ -928,7 +934,7 @@ namespace OpenMetaverse
                 {
                     AgentID = Client.Self.AgentID,
                     SessionID = Client.Self.SessionID,
-                    Stamp = false //FIXME: ??
+                    Stamp = false
                 },
                 InventoryData = new MoveInventoryFolderPacket.InventoryDataBlock[1]
             };
@@ -1035,7 +1041,7 @@ namespace OpenMetaverse
             // Update local store under write lock
             try
             {
-                using (var writeLock = _storeLock?.WriteLock())
+                using (_storeLock.WriteLock())
                 {
                     if (_Store != null && _Store.TryGetValue(itemID, out var storeItem) && storeItem is InventoryItem inv)
                     {
@@ -1050,14 +1056,22 @@ namespace OpenMetaverse
                 Logger.Warn($"MoveItem local update failed: {ex.Message}", Client);
             }
 
+            // AIS3 supports move-only; fall through to UDP when a rename is also requested
+            // (renaming on move is deprecated per the [Obsolete] on Move(item, parent, name))
+            if (string.IsNullOrEmpty(newName) && Client.AisClient.IsAvailable)
+            {
+                _ = Client.AisClient.MoveItemAsync(itemID, folderID, cancellationToken);
+                return;
+            }
+
             var move = new MoveInventoryItemPacket
             {
-                    AgentData =
-                    {
-                        AgentID = Client!.Self!.AgentID,
-                        SessionID = Client!.Self!.SessionID,
-                        Stamp = false
-                    },
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID,
+                    Stamp = false
+                },
                 InventoryData = new MoveInventoryItemPacket.InventoryDataBlock[1]
             };
 
@@ -1486,15 +1500,20 @@ namespace OpenMetaverse
 
             if (Client.AisClient.IsAvailable)
             {
+                if (folderKey == UUID.Zero)
+                {
+                    Logger.Warn("LostAndFound folder not found in local store; cannot empty via AIS", Client);
+                    return;
+                }
+
                 try
                 {
-                    // Use AIS async purge if available
                     var success = await Client.AisClient.PurgeDescendentsAsync(folderKey, cancellationToken).ConfigureAwait(false);
-                    if (success && folderKey != UUID.Zero)
+                    if (success)
                     {
                         RemoveLocalUi(true, folderKey);
                     }
-                    else if (!success)
+                    else
                     {
                         Logger.Warn("AIS PurgeDescendents (LostAndFound) failed", Client);
                     }
