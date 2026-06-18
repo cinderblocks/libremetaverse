@@ -10,35 +10,54 @@ namespace LibreMetaverse.Tests.TestHelpers
 {
     /// <summary>
     /// Minimal fake HttpMessageHandler that returns pre-configured responses for test URIs.
+    /// Supports exact URI matching, path-prefix matching (ignoring query string), and request capture.
     /// </summary>
     internal class FakeHttpMessageHandler : HttpMessageHandler
     {
         private readonly Dictionary<string, (HttpStatusCode Status, string Content, string MediaType)> _responses
             = new Dictionary<string, (HttpStatusCode, string, string)>();
 
+        /// <summary>All requests received, in order.</summary>
+        public List<(HttpMethod Method, Uri Uri, string Body)> CapturedRequests { get; } = new List<(HttpMethod, Uri, string)>();
+
+        /// <summary>Register a response matched by exact URI string.</summary>
         public void AddResponse(Uri uri, HttpStatusCode status, string content, string mediaType = "application/json")
         {
             _responses[uri.ToString()] = (status, content ?? string.Empty, mediaType ?? "application/json");
         }
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        /// <summary>Register a response matched by URI path only (query string ignored).</summary>
+        public void AddResponseForPath(string path, HttpStatusCode status, string content, string mediaType = "application/llsd+xml")
         {
-            if (request?.RequestUri != null && _responses.TryGetValue(request.RequestUri.ToString(), out var entry))
-            {
-                var resp = new HttpResponseMessage(entry.Status)
-                {
-                    Content = new StringContent(entry.Content)
-                };
-                resp.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(entry.MediaType);
-                return Task.FromResult(resp);
-            }
+            _responses["path:" + path.TrimEnd('/')] = (status, content ?? string.Empty, mediaType ?? "application/llsd+xml");
+        }
 
-            // Default fallback -- NotFound
-            var notFound = new HttpResponseMessage(HttpStatusCode.NotFound)
-            {
-                Content = new StringContent(string.Empty)
-            };
-            return Task.FromResult(notFound);
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var body = string.Empty;
+            if (request?.Content != null)
+                body = await request.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            if (request?.RequestUri != null)
+                CapturedRequests.Add((request.Method, request.RequestUri, body));
+
+            // Exact match
+            if (request?.RequestUri != null && _responses.TryGetValue(request.RequestUri.ToString(), out var entry))
+                return MakeResponse(entry);
+
+            // Path-only match (strips query string)
+            var path = request?.RequestUri?.GetLeftPart(UriPartial.Path).TrimEnd('/');
+            if (path != null && _responses.TryGetValue("path:" + path, out entry))
+                return MakeResponse(entry);
+
+            return new HttpResponseMessage(HttpStatusCode.NotFound) { Content = new StringContent(string.Empty) };
+        }
+
+        private static HttpResponseMessage MakeResponse((HttpStatusCode Status, string Content, string MediaType) entry)
+        {
+            var resp = new HttpResponseMessage(entry.Status) { Content = new StringContent(entry.Content) };
+            resp.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(entry.MediaType);
+            return resp;
         }
     }
 
@@ -72,6 +91,18 @@ namespace LibreMetaverse.Tests.TestHelpers
         {
             _fakeHandler.AddResponse(uri, status, content, mediaType);
         }
+
+        /// <summary>
+        /// Configure a response matched by URI path only (query string ignored).
+        /// Use this when the URI includes a random tid parameter.
+        /// </summary>
+        public void AddHttpResponseForPath(string path, HttpStatusCode status, string content, string mediaType = "application/llsd+xml")
+        {
+            _fakeHandler.AddResponseForPath(path, status, content, mediaType);
+        }
+
+        /// <summary>All HTTP requests received by this client, in order.</summary>
+        public List<(HttpMethod Method, Uri Uri, string Body)> CapturedRequests => _fakeHandler.CapturedRequests;
 
         /// <summary>
         /// Configure the simulated CurrentSim and set Inventory/Library capability URIs

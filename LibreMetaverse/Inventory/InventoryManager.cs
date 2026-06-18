@@ -1995,6 +1995,90 @@ namespace OpenMetaverse
             }
         }
 
+        /// <summary>
+        /// Creates multiple inventory links in a single AIS3 request when available,
+        /// falling back to sequential UDP link creation for non-AIS3 connections.
+        /// </summary>
+        /// <param name="folderID">Destination folder UUID</param>
+        /// <param name="linksToCreate">Items paired with their link description strings</param>
+        /// <param name="callback">Optional callback invoked with overall success/failure</param>
+        /// <param name="cancellationToken"></param>
+        public async Task CreateLinksAsync(
+            UUID folderID,
+            IEnumerable<(InventoryBase item, string description)> linksToCreate,
+            Action<bool>? callback,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var linkList = linksToCreate.ToList();
+            if (linkList.Count == 0) { callback?.Invoke(true); return; }
+
+            if (Client.AisClient.IsAvailable)
+            {
+                var links = new OSDArray();
+                foreach (var (item, description) in linkList)
+                {
+                    var isFolder = item is InventoryFolder;
+                    links.Add(new OSDMap
+                    {
+                        ["linked_id"] = OSD.FromUUID(item.UUID),
+                        ["type"] = OSD.FromInteger((sbyte)(isFolder ? AssetType.LinkFolder : AssetType.Link)),
+                        ["inv_type"] = OSD.FromInteger((sbyte)(isFolder ? InventoryType.Folder : ((InventoryItem)item).InventoryType)),
+                        ["name"] = OSD.FromString(item.Name),
+                        ["desc"] = OSD.FromString(description)
+                    });
+                }
+
+                try
+                {
+                    var createdLinks = await Client.AisClient.CreateInventoryLinksAsync(
+                        folderID, new OSDMap { { "links", links } }, cancellationToken).ConfigureAwait(false);
+
+                    if (_Store != null && createdLinks.Count > 0)
+                    {
+                        using (var writeLock = _storeLock.WriteLock())
+                        {
+                            foreach (var link in createdLinks)
+                                _Store[link.UUID] = link;
+                        }
+                        foreach (var link in createdLinks)
+                        {
+                            try { OnItemReceived(new ItemReceivedEventArgs(link)); }
+                            catch (Exception ex) { Logger.Debug($"OnItemReceived handler threw: {ex.Message}", ex, Client); }
+                        }
+                    }
+                    callback?.Invoke(true);
+                }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex)
+                {
+                    Logger.Warn(ex.Message, Client);
+                    callback?.Invoke(false);
+                }
+            }
+            else
+            {
+                var allSucceeded = true;
+                foreach (var (item, description) in linkList)
+                {
+                    switch (item)
+                    {
+                        case InventoryItem invItem:
+                            await CreateLinkAsync(folderID, invItem.UUID, invItem.Name, description,
+                                invItem.InventoryType, UUID.Random(),
+                                (s, _) => { if (!s) allSucceeded = false; }, cancellationToken).ConfigureAwait(false);
+                            break;
+                        case InventoryFolder folder:
+                            await CreateLinkAsync(folderID, folder.UUID, folder.Name, "",
+                                InventoryType.Folder, UUID.Random(),
+                                (s, _) => { if (!s) allSucceeded = false; }, cancellationToken).ConfigureAwait(false);
+                            break;
+                    }
+                }
+                callback?.Invoke(allSucceeded);
+            }
+        }
+
         #endregion Create
 
         #region Copy

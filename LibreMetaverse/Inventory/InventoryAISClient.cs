@@ -152,6 +152,41 @@ namespace LibreMetaverse
         }
 
         /// <summary>
+        /// Creates multiple inventory links in a single AIS3 request and returns all created items.
+        /// Use <see cref="InventoryManager.CreateLinksAsync"/> instead of calling this directly.
+        /// </summary>
+        internal async Task<IList<InventoryItem>> CreateInventoryLinksAsync(UUID parentUuid, OSD newInventory, CancellationToken cancellationToken = default)
+        {
+            if (!getInventoryCap(out var cap)) { return Array.Empty<InventoryItem>(); }
+
+            if (!Uri.TryCreate($"{cap}/category/{parentUuid}?tid={UUID.Random()}", UriKind.Absolute, out var uri))
+                return Array.Empty<InventoryItem>();
+
+            // Network errors and HTTP failures propagate — callers (CreateLinksAsync) own the catch.
+            using var content = new StringContent(OSDParser.SerializeLLSDXmlString(newInventory), Encoding.UTF8, HttpCapsClient.LLSD_XML);
+            using var reply = await Client.HttpCapsClient.PostAsync(uri, content, cancellationToken).ConfigureAwait(false);
+
+            if (!HandleResponseStatus(reply, $"Create inventory links in {parentUuid}"))
+                throw new HttpRequestException($"AIS3 POST category/{parentUuid} failed ({(int)reply.StatusCode})");
+
+            try
+            {
+#if NET5_0_OR_GREATER
+                var osd = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false));
+#else
+                var osd = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false));
+#endif
+                return ParseLinksFromEmbedded(osd as OSDMap);
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex.Message);
+                return Array.Empty<InventoryItem>();
+            }
+        }
+
+        /// <summary>
         /// Replace (slam) the links in the specified folder with the provided payload.
         /// </summary>
         /// <param name="folderUuid">Folder UUID to replace links in.</param>
@@ -462,7 +497,7 @@ namespace LibreMetaverse
 
             try
             {
-                if (!Uri.TryCreate($"{cap}/category/{category}?tid={UUID.Random()}", UriKind.Absolute, out var uri))
+                if (!Uri.TryCreate($"{cap}/category/{category}", UriKind.Absolute, out var uri))
                 {
                     callback?.Invoke(false, folders, items, links);
                     return;
@@ -517,8 +552,7 @@ namespace LibreMetaverse
             try
             {
                 var requestedDepth = recursive ? MAX_FOLDER_DEPTH_REQUEST : Math.Min(depth, MAX_FOLDER_DEPTH_REQUEST);
-                var url = new StringBuilder($"{cap}/category/{category}/children?tid={UUID.Random()}");
-                url.Append($"&depth={requestedDepth}");
+                var url = new StringBuilder($"{cap}/category/{category}/children?depth={requestedDepth}");
 
                 if (!Uri.TryCreate(url.ToString(), UriKind.Absolute, out var uri))
                 {
@@ -572,7 +606,7 @@ namespace LibreMetaverse
 
             try
             {
-                if (!Uri.TryCreate($"{cap}/category/{category}/links?tid={UUID.Random()}", UriKind.Absolute, out var uri))
+                if (!Uri.TryCreate($"{cap}/category/{category}/links", UriKind.Absolute, out var uri))
                 {
                     callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
                     return;
@@ -624,7 +658,7 @@ namespace LibreMetaverse
 
             try
             {
-                if (!Uri.TryCreate($"{cap}/item/{itemUuid}?tid={UUID.Random()}", UriKind.Absolute, out var uri))
+                if (!Uri.TryCreate($"{cap}/item/{itemUuid}", UriKind.Absolute, out var uri))
                 {
                     callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
                     return;

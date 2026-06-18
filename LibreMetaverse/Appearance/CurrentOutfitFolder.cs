@@ -500,6 +500,38 @@ namespace LibreMetaverse.Appearance
             }
         }
 
+        internal string GetCofLinkDescription(InventoryItem item)
+        {
+            if (item is InventoryWearable wearable && !IsBodyPart(item))
+                return $"{(int)wearable.WearableType}00";
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// Creates COF links for multiple items in a single AIS3 request when available,
+        /// skipping items already linked. Falls back to sequential creation for non-AIS3.
+        /// </summary>
+        protected async Task AddLinks(IEnumerable<InventoryItem> items, CancellationToken cancellationToken = default)
+        {
+            if (COF == null)
+            {
+                Logger.Warn("Cannot add links; COF hasn't been initialized.", client);
+                return;
+            }
+
+            var cofLinks = await GetCurrentOutfitLinks(cancellationToken);
+            var existingAssetIds = new HashSet<UUID>(cofLinks.Select(l => l.AssetUUID));
+
+            var linksToCreate = items
+                .Where(item => !existingAssetIds.Contains(item.UUID))
+                .Select(item => ((InventoryBase)item, GetCofLinkDescription(item)))
+                .ToList();
+
+            if (linksToCreate.Count == 0) return;
+
+            await client.Inventory.CreateLinksAsync(COF.UUID, linksToCreate, null, cancellationToken).ConfigureAwait(false);
+        }
+
         protected async Task RemoveLinksToByActualId(IEnumerable<UUID> actualItemIdsToRemoveLinksTo, CancellationToken cancellationToken = default)
         {
             var actualItemIdsSet = actualItemIdsToRemoveLinksTo.ToArray();
@@ -972,10 +1004,7 @@ namespace LibreMetaverse.Appearance
             {
                 itemsBeingAdded.Add(item.Value.UUID, item.Value);
             }
-            foreach (var item in itemsBeingAdded)
-            {
-                await AddLink(item.Value, cancellationToken);
-            }
+            await AddLinks(itemsBeingAdded.Values, cancellationToken);
 
             // Add link to outfit folder we're putting on
             await client.Inventory.CreateLinkAsync(
@@ -1213,11 +1242,7 @@ namespace LibreMetaverse.Appearance
                 await RemoveLinksTo(itemsToRemove, cancellationToken);
             }
 
-            // Add links to new items
-            foreach (var item in itemsToAdd)
-            {
-                await AddLink(item, cancellationToken);
-            }
+            await AddLinks(itemsToAdd, cancellationToken);
 
             client.Appearance.AddToOutfit(itemsToAdd, replace);
             _ = Task.Run(async () =>
