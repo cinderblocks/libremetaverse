@@ -6,34 +6,16 @@ namespace OpenMetaverse
 {
     public partial class InventoryManager
     {
-        // Helpers to reduce duplicated AIS Task continuation and local store merge logic
-        private void ContinueWithLog(Task<bool> task, string context, Action? onSuccess = null)
-        {
-            if (task == null) return;
-            task.ContinueWith(t =>
-            {
-                if (t.IsFaulted)
-                {
-                    Logger.Warn($"AIS {context} exception: {t.Exception?.GetBaseException().Message}", Client);
-                    return;
-                }
-                if (!t.Result)
-                {
-                    Logger.Warn($"AIS {context} failed", Client);
-                    return;
-                }
-                try { onSuccess?.Invoke(); } catch (Exception ex) { Logger.Debug($"AIS {context} onSuccess handler threw: {ex.Message}", ex, Client); }
-            }, TaskScheduler.Default);
-        }
-
+        // Helper to reduce duplicated AIS Task continuation and local store merge logic
         private void ContinueWithWhenAllLog(Task<bool[]> task, string context, Action<bool[]>? onSuccess = null)
         {
             if (task == null) return;
             task.ContinueWith(t =>
             {
-                if (t.IsFaulted)
+                if (t.IsFaulted || t.IsCanceled)
                 {
-                    Logger.Warn($"AIS {context} exception: {t.Exception?.GetBaseException().Message}", Client);
+                    if (t.IsFaulted)
+                        Logger.Warn($"AIS {context} exception: {t.Exception?.GetBaseException().Message}", Client);
                     return;
                 }
                 var results = t.Result;
@@ -50,29 +32,30 @@ namespace OpenMetaverse
         {
             try
             {
-                if (_Store != null)
+                if (_Store == null) return;
+
+                // Capture the updated item inside the write lock so we can fire the event
+                // outside it without a second lock-free store read.
+                InventoryItem? toNotify = null;
+                using (var writeLock = _storeLock.WriteLock())
                 {
-                    using (var writeLock = _storeLock.WriteLock())
+                    if (_Store.TryGetValue(itemUUID, out var storeItem) && storeItem is InventoryItem existing)
                     {
-                        if (_Store.TryGetValue(itemUUID, out var storeItem) && storeItem is InventoryItem existing)
+                        try
                         {
-                            try
-                            {
-                                existing.Update(update);
-                                _Store.UpdateNodeFor(existing);
-                            }
-                            catch (Exception ex)
-                            {
-                                Logger.Debug($"Failed to apply AIS update to local item {itemUUID}: {ex.Message}", ex, Client);
-                            }
+                            existing.Update(update);
+                            _Store.UpdateNodeFor(existing);
+                            toNotify = existing;
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Debug($"Failed to apply AIS update to local item {itemUUID}: {ex.Message}", ex, Client);
                         }
                     }
-
-                    if (_Store != null && _Store.TryGetValue(itemUUID, out var updated) && updated is InventoryItem updatedItem)
-                    {
-                        OnItemReceived(new ItemReceivedEventArgs(updatedItem));
-                    }
                 }
+
+                if (toNotify != null)
+                    OnItemReceived(new ItemReceivedEventArgs(toNotify));
             }
             catch (Exception ex)
             {
