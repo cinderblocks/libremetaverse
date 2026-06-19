@@ -1826,6 +1826,50 @@ namespace OpenMetaverse
         }
 
         /// <summary>
+        /// Fallback: requests wearables via legacy LLUDP (AgentWearablesRequest/AgentWearablesUpdate).
+        /// Used when COF-based loading returns empty — common on OpenSim grids where
+        /// FetchInventoryDescendents2 returns invalid LLSD or the COF is not populated.
+        /// Only called from the client-side baking path (never on SL's SSB path).
+        /// </summary>
+        private async Task<bool> GatherAgentWearablesViaLLUDPAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            EventHandler<AgentWearablesReplyEventArgs> handler = (_, _) => tcs.TrySetResult(Wearables.Any());
+
+            AgentWearablesReply += handler;
+
+            try
+            {
+                var request = new AgentWearablesRequestPacket
+                {
+                    AgentData = { AgentID = Client.Self.AgentID, SessionID = Client.Self.SessionID }
+                };
+                Client.Network.SendPacket(request);
+
+                var completed = await Task.WhenAny(tcs.Task, Task.Delay(WEARABLE_TIMEOUT, cancellationToken))
+                    .ConfigureAwait(false);
+
+                if (completed == tcs.Task)
+                    return await tcs.Task.ConfigureAwait(false);
+
+                tcs.TrySetCanceled();
+                Logger.Warn("Timed out waiting for LLUDP AgentWearablesUpdate", Client);
+                return false;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            finally
+            {
+                AgentWearablesReply -= handler;
+            }
+        }
+
+        /// <summary>
         /// Populates textures and visual params from a decoded asset
         /// </summary>
         /// <param name="wearable">Wearable to decode</param>
@@ -2858,9 +2902,10 @@ namespace OpenMetaverse
     {
         var update = (AgentWearablesUpdatePacket)e.Packet;
 
-        // Second Life sends a dummy payload  since the introduction of Server Side Baking,
-        // but OpenSimulator is arrested in protocol from almost twenty years ago and still
-        // uses this packet. Process only if we are not in a server baking region.
+        // Second Life sends a dummy payload since the introduction of Server Side Baking,
+        // but OpenSimulator still sends real wearable data via this packet.
+        // OpenSim never sets the AgentAppearanceService (bit 0) protocol flag, so
+        // ServerBakingRegion() is always false on OpenSim — the check is safe and correct.
         if (!ServerBakingRegion() && update.WearableData != null && update.WearableData.Length > 0)
         {
             // On OpenSim (or older SL grids), process the actual wearable data from the packet
@@ -3196,9 +3241,18 @@ namespace OpenMetaverse
             {
                 if (!Wearables.Any())
                 {
-                    if (!await GatherAgentWearablesAsync(cancellationToken))
+                    await GatherAgentWearablesAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                // COF-based fetch may return empty on OpenSim grids whose FetchInventoryDescendents2
+                // cap returns invalid LLSD or whose COF isn't populated. Fall back to the LLUDP path
+                // that OpenSimulator has always supported.
+                if (!Wearables.Any())
+                {
+                    Logger.Info("COF wearables fetch returned no results; falling back to LLUDP AgentWearablesRequest", Client);
+                    if (!await GatherAgentWearablesViaLLUDPAsync(cancellationToken).ConfigureAwait(false))
                     {
-                        Logger.Error("Failed to retrieve a list of current agent wearables, appearance cannot be set", Client);
+                        Logger.Error("Failed to retrieve wearables via any available method, appearance cannot be set", Client);
                         throw new AppearanceManagerException(
                             "Failed to retrieve a list of current agent wearables, appearance cannot be set");
                     }
