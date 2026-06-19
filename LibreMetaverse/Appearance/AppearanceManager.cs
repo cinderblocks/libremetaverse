@@ -527,6 +527,13 @@ namespace OpenMetaverse
         /// </summary>
         private bool ServerBakingDone = false;
         /// <summary>
+        /// Cached UUID of the Current Outfit Folder. Stored as a boxed UUID so that reads and
+        /// writes from different threads (appearance task vs Network_OnSimChanged) are atomic —
+        /// object-reference reads/writes are guaranteed atomic by the CLI spec.
+        /// null means no valid cache entry.
+        /// </summary>
+        private volatile object? _cachedCofUUID;
+        /// <summary>
         /// COF version that was sent in the last UpdateAvatarAppearance request.
         /// Mirrors SL viewer's mLastUpdateRequestCOFVersion. -1 = never requested.
         /// </summary>
@@ -688,12 +695,17 @@ namespace OpenMetaverse
                 {
                     try { previousCts?.Dispose(); } catch (Exception ex) { Logger.Debug($"Disposing previous CTS failed: {ex}", Client); }
 
-                    // Dispose any scheduled rebake timer so we start fresh
-                    if (RebakeScheduleCts != null)
+                    // Cancel and dispose any pending rebake timer so we start fresh.
+                    // Capture the reference first — the finally block in DelayedRequestSetAppearance
+                    // checks RebakeScheduleCts under _appearanceLock after Cancel() propagates, and
+                    // if we null the field first it will skip Dispose, leaking the CTS.
+                    var rebakeCts = RebakeScheduleCts;
+                    RebakeScheduleTask = null!;
+                    RebakeScheduleCts = null!;
+                    if (rebakeCts != null)
                     {
-                        try { RebakeScheduleCts.Cancel(); } catch (Exception ex) { Logger.Debug($"RebakeScheduleCts.Cancel failed: {ex}", Client); }
-                        RebakeScheduleTask = null!;
-                        RebakeScheduleCts = null!;
+                        try { rebakeCts.Cancel(); } catch (Exception ex) { Logger.Debug($"RebakeScheduleCts.Cancel failed: {ex}", Client); }
+                        try { rebakeCts.Dispose(); } catch (Exception ex) { Logger.Debug($"RebakeScheduleCts.Dispose failed: {ex}", Client); }
                     }
 
                     return StartAppearanceImmediate(forceRebake);
@@ -702,12 +714,15 @@ namespace OpenMetaverse
                 return chained;
             }
 
-            // No previous running task - start immediately
-            if (RebakeScheduleCts != null)
+            // No previous running task - start immediately.
+            // Capture and own the reference before nulling so the CTS gets properly disposed.
+            var pendingRebakeCts = RebakeScheduleCts;
+            RebakeScheduleTask = null!;
+            RebakeScheduleCts = null!;
+            if (pendingRebakeCts != null)
             {
-                try { RebakeScheduleCts.Cancel(); } catch (Exception ex) { Logger.Debug($"RebakeScheduleCts.Cancel failed: {ex}", Client); }
-                RebakeScheduleTask = null!;
-                RebakeScheduleCts = null!;
+                try { pendingRebakeCts.Cancel(); } catch (Exception ex) { Logger.Debug($"RebakeScheduleCts.Cancel failed: {ex}", Client); }
+                try { pendingRebakeCts.Dispose(); } catch (Exception ex) { Logger.Debug($"RebakeScheduleCts.Dispose failed: {ex}", Client); }
             }
 
             return StartAppearanceImmediate(forceRebake);
@@ -866,7 +881,11 @@ namespace OpenMetaverse
                     }
                 }
             }
-            lock (Wearables) { Wearables = wearables; }
+            // Only replace if COF yielded at least one wearable — an empty result means the
+            // fetch failed (missing COF, LLSD parse error, etc.) and we must not discard
+            // any wearables that were already populated (e.g., from LLUDP AgentWearablesUpdate).
+            if (wearables.Any())
+                lock (Wearables) { Wearables = wearables; }
 
             OnAgentWearables(new AgentWearablesReplyEventArgs());
             return contents;
@@ -1820,8 +1839,8 @@ namespace OpenMetaverse
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
             {
                 cts.CancelAfter(WEARABLE_TIMEOUT);
-                var contents = await RequestAgentWornAsync(cts.Token).ConfigureAwait(false);
-                return contents != null;
+                await RequestAgentWornAsync(cts.Token).ConfigureAwait(false);
+                return Wearables.Any();
             }
         }
 
@@ -2218,7 +2237,8 @@ namespace OpenMetaverse
 
                             if (textures != null)
                             {
-                                for (var i = 0; i < textures.Length; i++)
+                                var faceCount = Math.Min(textures.Length, Primitive.TextureEntry.MAX_FACES);
+                                for (var i = 0; i < faceCount; i++)
                                 {
                                     selfAvatarTextures.FaceTextures[i] = new Primitive.TextureEntryFace(null) { TextureID = textures[i] };
                                 }
@@ -2343,10 +2363,24 @@ namespace OpenMetaverse
         /// <returns>Current Outfit Folder (or null if getting the data failed)</returns>
         public async Task<InventoryFolder?> GetCurrentOutfitFolder(CancellationToken cancellationToken = default)
         {
-            // COF should be in the root folder. Request update to get the latest version number
             var clientLocal = Client;
             if (clientLocal?.Inventory?.Store?.RootFolder == null) return null;
 
+            // Fast path: if we already know the COF UUID, fetch it directly from the local
+            // inventory store without scanning the root folder over HTTP every time.
+            // _cachedCofUUID is a volatile object reference (boxed UUID) for thread safety.
+            if (_cachedCofUUID is UUID cachedId && clientLocal.Inventory.Store.Contains(cachedId))
+            {
+                if (clientLocal.Inventory.Store[cachedId] is InventoryFolder cached
+                    && cached.PreferredType == FolderType.CurrentOutfit)
+                {
+                    return cached;
+                }
+                // UUID stale (folder removed/reassigned) — fall through to full scan.
+                _cachedCofUUID = null;
+            }
+
+            // Slow path: scan the root folder to locate the COF.
             var rootFolder = clientLocal.Inventory.Store.RootFolder;
 
             List<InventoryBase>? root = await clientLocal.Inventory.RequestFolderContents(rootFolder.UUID,
@@ -2359,6 +2393,7 @@ namespace OpenMetaverse
             {
                 if (baseItem is InventoryFolder folder && folder.PreferredType == FolderType.CurrentOutfit)
                 {
+                    _cachedCofUUID = folder.UUID; // box the UUID into the volatile object field
                     return folder;
                 }
             }
@@ -2944,9 +2979,14 @@ namespace OpenMetaverse
 
             // Trigger client-side baking now that wearables are populated from the server.
             // This is the primary appearance trigger for non-SSB regions (OpenSim).
+            // Skip if a bake is already in-flight (e.g., the LLUDP fallback path already
+            // started one) — scheduling a duplicate would cancel the running bake mid-stream.
             if (Client.Settings.SEND_AGENT_APPEARANCE)
             {
-                DelayedRequestSetAppearance();
+                Task? runningTask;
+                lock (_appearanceLock) { runningTask = AppearanceTask; }
+                if (runningTask == null || runningTask.IsCompleted)
+                    DelayedRequestSetAppearance();
             }
         }
 
@@ -3036,6 +3076,9 @@ namespace OpenMetaverse
             // doesn't skip a request based on a stale version from the old region.
             _lastUpdateRequestCOFVersion = -1;
             _lastUpdateReceivedCOFVersion = -1;
+            // Invalidate the COF UUID cache so the next lookup re-confirms the folder
+            // against the inventory store (handles unlikely server-side COF reassignment).
+            _cachedCofUUID = null;
         }
 
         // Cancel and dispose outside the lock so we don't hold the lock during disposal.
