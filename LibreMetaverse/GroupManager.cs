@@ -1227,7 +1227,7 @@ namespace LibreMetaverse
             if (cap != null)
             {
                 OSDMap payload = new OSDMap(1) { ["group_id"] = @group };
-                _ = RequestGroupMembersFromCapAsync(requestID, cap, payload);
+                _ = RequestGroupMembersFromCapAsync(requestID, cap, payload, CancellationToken.None);
             }
             else // fallback to LLUDP
             {
@@ -1254,11 +1254,11 @@ namespace LibreMetaverse
             return requestID;
         }
 
-        private async Task RequestGroupMembersFromCapAsync(UUID requestID, Uri cap, OSDMap payload)
+        private async Task RequestGroupMembersFromCapAsync(UUID requestID, Uri cap, OSDMap payload, CancellationToken cancellationToken)
         {
             try
             {
-                var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload, CancellationToken.None);
+                var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload, cancellationToken);
                 if (data == null)
                 {
                     Logger.Warn("Group members request returned no data", Client);

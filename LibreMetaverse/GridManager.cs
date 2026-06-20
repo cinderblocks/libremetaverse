@@ -424,7 +424,7 @@ namespace LibreMetaverse
         /// Request a map layer from simulator capability
         /// </summary>
         /// <param name="layer">Requested <see cref="GridLayerType"/></param>
-        public async Task RequestMapLayerAsync(GridLayerType layer)
+        public async Task RequestMapLayerAsync(GridLayerType layer, CancellationToken cancellationToken = default)
         {
             var client = Client;
             Uri? cap = client?.Network?.CurrentSim?.Caps?.CapabilityURI("MapLayer");
@@ -434,7 +434,7 @@ namespace LibreMetaverse
             OSDMap payload = new OSDMap {["Flags"] = OSD.FromInteger((int) layer)};
             try
             {
-                var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload, CancellationToken.None);
+                var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload, cancellationToken);
                 MapLayerResponseHandler(response, data, null);
             }
             catch (Exception ex)

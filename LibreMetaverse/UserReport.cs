@@ -61,17 +61,18 @@ namespace LibreMetaverse
         /// Fetch a list of Abuse Report categories from the simulator
         /// </summary>
         /// <returns>Returns Dictionary of Abuse Report categories from the server</returns>
-        public Task<Dictionary<string, string>> FetchAbuseReportCategories()
+        public Task<Dictionary<string, string>> FetchAbuseReportCategories(CancellationToken cancellationToken = default)
         {
-            return FetchAbuseReportCategoriesAsync(null);
+            return FetchAbuseReportCategoriesAsync(null, cancellationToken);
         }
 
         /// <summary>
         /// Fetch a list of Abuse Report categories from the simulator
         /// </summary>
         /// <param name="lang">language to return categories in</param>
+        /// <param name="cancellationToken">Cancellation token for the operation</param>
         /// <returns>Returns Dictionary of Abuse Report categories from the server</returns>
-        public async Task<Dictionary<string, string>> FetchAbuseReportCategoriesAsync(string? lang)
+        public async Task<Dictionary<string, string>> FetchAbuseReportCategoriesAsync(string? lang, CancellationToken cancellationToken = default)
         {
             var reportCategories = new Dictionary<string, string>();
             var abuseCategoriesCap = Client.Network?.CurrentSim?.Caps?.CapabilityURI("AbuseCategories");
@@ -93,7 +94,7 @@ namespace LibreMetaverse
 
             try
             {
-                var (response, data) = await Client.HttpCapsClient.GetAsync(abuseCategoriesCap, CancellationToken.None);
+                var (response, data) = await Client.HttpCapsClient.GetAsync(abuseCategoriesCap, cancellationToken);
                 if (data != null)
                 {
                     OSD result = OSDParser.Deserialize(data);

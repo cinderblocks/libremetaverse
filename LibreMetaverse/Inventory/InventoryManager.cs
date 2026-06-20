@@ -868,7 +868,7 @@ namespace LibreMetaverse
             if (Client.AisClient.IsAvailable)
             {
                 // Fire-and-forget AIS calls for each folder move. Run concurrently and log failures.
-                var tasks = foldersNewParents.Select(kv => Client.AisClient.MoveCategoryAsync(kv.Key, kv.Value, CancellationToken.None)).ToArray();
+                var tasks = foldersNewParents.Select(kv => Client.AisClient.MoveCategoryAsync(kv.Key, kv.Value, cancellationToken)).ToArray();
                 var whenAll = Task.WhenAll(tasks);
                 ContinueWithWhenAllLog(whenAll, "MoveFolders", results =>
                 {
@@ -1004,7 +1004,7 @@ namespace LibreMetaverse
             if (Client.AisClient.IsAvailable)
             {
                 // Fire-and-forget for each item move using token-aware AIS calls
-                var tasks = itemsNewFolders.Select(kv => Client.AisClient.MoveItemAsync(kv.Key, kv.Value, CancellationToken.None)).ToArray();
+                var tasks = itemsNewFolders.Select(kv => Client.AisClient.MoveItemAsync(kv.Key, kv.Value, cancellationToken)).ToArray();
                 var whenAll = Task.WhenAll(tasks);
                 ContinueWithWhenAllLog(whenAll, "MoveItems", results =>
                 {
