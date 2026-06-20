@@ -3,24 +3,35 @@
 
 #pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace System.Diagnostics.CodeAnalysis
-#pragma warning restore IDE0130 // Namespace does not match folder structure
+#pragma warning restore IDE0130
 {
-#if NETSTANDARD2_0
-    /// <summary>Specifies that when a method returns <see cref="ReturnValue"/>, the parameter may be null even if the corresponding type disallows it.</summary>
+#if NETFRAMEWORK
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Property | AttributeTargets.ReturnValue, Inherited = false)]
+    internal sealed class MaybeNullAttribute : Attribute { }
+
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Property | AttributeTargets.ReturnValue, Inherited = false)]
+    internal sealed class NotNullAttribute : Attribute { }
+
     [AttributeUsage(AttributeTargets.Parameter, Inherited = false)]
     internal sealed class MaybeNullWhenAttribute : Attribute
     {
-        /// <summary>Initializes the attribute with the specified return value condition.</summary>
-        /// <param name="returnValue">
-        /// The return value condition. If the method returns this value, the associated parameter may be null.
-        /// </param>
-        public MaybeNullWhenAttribute(bool returnValue)
-        {
-            ReturnValue = returnValue;
-        }
-
-        /// <summary>Gets the return value condition.</summary>
+        public MaybeNullWhenAttribute(bool returnValue) => ReturnValue = returnValue;
         public bool ReturnValue { get; }
+    }
+
+    [AttributeUsage(AttributeTargets.Parameter, Inherited = false)]
+    internal sealed class NotNullWhenAttribute : Attribute
+    {
+        public NotNullWhenAttribute(bool returnValue) => ReturnValue = returnValue;
+        public bool ReturnValue { get; }
+    }
+
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Property, Inherited = false, AllowMultiple = true)]
+    internal sealed class MemberNotNullAttribute : Attribute
+    {
+        public MemberNotNullAttribute(string member) => Members = new[] { member };
+        public MemberNotNullAttribute(params string[] members) => Members = members;
+        public string[] Members { get; }
     }
 #endif
 }

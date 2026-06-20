@@ -28,7 +28,7 @@ using OggVorbisEncoder;
 using System;
 using System.IO;
 
-namespace OpenMetaverse.Assets
+namespace LibreMetaverse.Assets
 {
     /// <summary>
     /// Represents a Sound Asset

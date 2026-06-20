@@ -30,10 +30,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.Assets;
-using OpenMetaverse.Imaging;
+using LibreMetaverse.Assets;
+using LibreMetaverse.Imaging;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public partial class AppearanceManager
     {

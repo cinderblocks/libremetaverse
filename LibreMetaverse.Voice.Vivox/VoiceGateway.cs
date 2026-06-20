@@ -32,7 +32,7 @@ using System.Net.Sockets;
 using System.Diagnostics;
 using System.Threading;
 using System.Text;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace LibreMetaverse.Voice.Vivox
 {

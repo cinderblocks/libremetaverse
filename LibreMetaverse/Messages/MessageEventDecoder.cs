@@ -25,11 +25,11 @@
  */
 
 using System;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Interfaces;
-using OpenMetaverse.Messages.Linden;
+using LibreMetaverse.StructuredData;
+using LibreMetaverse.Interfaces;
+using LibreMetaverse.Messages.Linden;
 
-namespace OpenMetaverse.Messages
+namespace LibreMetaverse.Messages
 {
 
     public static partial class MessageUtils
@@ -85,7 +85,7 @@ namespace OpenMetaverse.Messages
                 case "SearchStatRequest": message = new SearchStatRequestMessage(); break;
                 case "AgentDropGroup": message = new AgentDropGroupMessage(); break;
                 case "AgentStateUpdate": message = new AgentStateUpdateMessage(); break;
-                case "NavMeshStatusUpdate": message = CreateMessageInstance("OpenMetaverse.Messages.Linden.NavMeshStatusUpdateMessage"); break;
+                case "NavMeshStatusUpdate": message = CreateMessageInstance("LibreMetaverse.Messages.Linden.NavMeshStatusUpdateMessage"); break;
                 case "ForceCloseChatterBoxSession": message = new ForceCloseChatterBoxSessionMessage(); break;
                 case "UploadBakedTexture": message = new UploadBakedTextureMessage(); break;
                 case "RegionInfo": message = new RegionInfoMessage(); break;

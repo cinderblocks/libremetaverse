@@ -37,7 +37,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     internal class InventoryCache
     {

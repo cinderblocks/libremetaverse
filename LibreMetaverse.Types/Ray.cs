@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public struct Ray
     {

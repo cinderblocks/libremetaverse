@@ -30,12 +30,12 @@ using System.IO;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using OpenMetaverse.Assets;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.Assets;
+using LibreMetaverse.StructuredData;
 
 // The common elements shared between rendering plugins are defined here
 
-namespace OpenMetaverse.Rendering
+namespace LibreMetaverse.Rendering
 {
     #region Enums
 
@@ -587,14 +587,12 @@ namespace OpenMetaverse.Rendering
                                 var v = face.Vertices[vi];
                                 if (doReflectX)
                                 {
-                                    v.Position.X = -v.Position.X;
-                                    v.Normal.X   = -v.Normal.X;
+                                    v.Position = new Vector3(-v.Position.X, v.Position.Y, v.Position.Z);
+                                    v.Normal   = new Vector3(-v.Normal.X, v.Normal.Y, v.Normal.Z);
                                 }
                                 if (doInvertNormals)
                                 {
-                                    v.Normal.X = -v.Normal.X;
-                                    v.Normal.Y = -v.Normal.Y;
-                                    v.Normal.Z = -v.Normal.Z;
+                                    v.Normal = new Vector3(-v.Normal.X, -v.Normal.Y, -v.Normal.Z);
                                 }
                                 face.Vertices[vi] = v;
                             }
@@ -790,7 +788,7 @@ namespace OpenMetaverse.Rendering
         public static List<string> ListRenderers(string path)
         {
             List<string> plugins = new List<string>();
-            string[] files = Directory.GetFiles(path, "OpenMetaverse.Rendering.*.dll");
+            string[] files = Directory.GetFiles(path, "LibreMetaverse.Rendering.*.dll");
 
             foreach (string f in files)
             {

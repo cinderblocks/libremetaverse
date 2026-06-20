@@ -26,7 +26,7 @@
 
 using System.Collections.Generic;
 
-namespace OpenMetaverse.Assets.Gltf
+namespace LibreMetaverse.Assets.Gltf
 {
     /// <summary>
     /// Pairs a time-input accessor with a value-output accessor and an interpolation method.

@@ -1,14 +1,12 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace TestClient.Commands.Inventory
 {
     public class ListContentsCommand : Command
     {
-        private InventoryManager Manager;
-        private OpenMetaverse.Inventory Inventory;
         public ListContentsCommand(TestClient client)
         {
             Name = "ls";

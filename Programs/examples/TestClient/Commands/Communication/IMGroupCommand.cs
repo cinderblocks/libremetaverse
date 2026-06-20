@@ -1,6 +1,6 @@
 using System;
 using System.Threading;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace TestClient.Commands.Communication
 {

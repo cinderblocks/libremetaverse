@@ -24,9 +24,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.Messages.Linden;
+using LibreMetaverse.Packets;
+using LibreMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,7 +34,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using static LibreMetaverse.HttpCapsClient;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public partial class InventoryManager
     {

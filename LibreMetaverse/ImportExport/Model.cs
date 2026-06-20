@@ -26,10 +26,10 @@
 
 using System;
 using System.Collections.Generic;
-using OpenMetaverse.Rendering;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.Rendering;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse.ImportExport
+namespace LibreMetaverse.ImportExport
 {
 
     public class ModelMaterial

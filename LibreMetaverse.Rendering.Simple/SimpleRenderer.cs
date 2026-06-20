@@ -28,7 +28,7 @@
 using System.Collections.Generic;
 using SkiaSharp;
 
-namespace OpenMetaverse.Rendering
+namespace LibreMetaverse.Rendering
 {
     [RendererName("Simple Cube Renderer")]
     public class SimpleRenderer : IRendering

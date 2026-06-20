@@ -26,7 +26,7 @@
 
 using System;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Identifier code for primitive types

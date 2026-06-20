@@ -24,8 +24,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using OpenMetaverse.Interfaces;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.Interfaces;
+using LibreMetaverse.StructuredData;
 
 namespace LibreMetaverse.Voice.WebRTC
 {

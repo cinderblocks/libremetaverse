@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using System.Text;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace TestClient.Commands.Prims
 {

@@ -30,14 +30,14 @@ using System.Threading;
 using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
-using OpenMetaverse.Packets;
-using OpenMetaverse.Interfaces;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Messages.Linden;
+using LibreMetaverse.Packets;
+using LibreMetaverse.Interfaces;
+using LibreMetaverse.StructuredData;
+using LibreMetaverse.Messages.Linden;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     #region Enums
 
@@ -422,7 +422,7 @@ namespace OpenMetaverse
         public float GlobalZ;
         /// <summary>Name of simulator parcel is located in</summary>
         public string SimName;
-        /// <summary>Texture <see cref="T:OpenMetaverse.UUID"/> of parcels display picture</summary>
+        /// <summary>Texture <see cref="T:LibreMetaverse.UUID"/> of parcels display picture</summary>
         public UUID SnapshotID;
         /// <summary>Float representing calculated traffic based on time spent on parcel by avatars</summary>
         public float Dwell;
@@ -735,7 +735,7 @@ namespace OpenMetaverse
         /// </summary>
         public struct ParcelAccessEntry
         {
-            /// <summary>Agents <see cref="T:OpenMetaverse.UUID"/></summary>
+            /// <summary>Agents <see cref="T:LibreMetaverse.UUID"/></summary>
             public UUID AgentID;
             /// <summary></summary>
             public DateTime Time;
@@ -748,7 +748,7 @@ namespace OpenMetaverse
         /// </summary>
         public struct ParcelPrimOwners
         {
-            /// <summary>Prim Owners <see cref="T:OpenMetaverse.UUID"/></summary>
+            /// <summary>Prim Owners <see cref="T:LibreMetaverse.UUID"/></summary>
             public UUID OwnerID;
             /// <summary>True if group owned parcel</summary>
             public bool IsGroupOwned;
@@ -1289,7 +1289,7 @@ namespace OpenMetaverse
         /// <param name="simulator">The Simulator the parcel is located in</param>
         /// <param name="localID">The parcels region specific local ID</param>
         /// <param name="forGroup">true if this parcel is being purchased by a group</param>
-        /// <param name="groupID">The groups <see cref="T:OpenMetaverse.UUID"/></param>
+        /// <param name="groupID">The groups <see cref="T:LibreMetaverse.UUID"/></param>
         /// <param name="removeContribution">true to remove tier contribution if purchase is successful</param>
         /// <param name="parcelArea">The parcels size</param>
         /// <param name="parcelPrice">The purchase price of the parcel</param>
@@ -1347,7 +1347,7 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="simulator">The simulator the parcel is in</param>
         /// <param name="localID">The parcels region specific local ID</param>
-        /// <param name="groupID">The groups <see cref="T:OpenMetaverse.UUID"/></param>
+        /// <param name="groupID">The groups <see cref="T:LibreMetaverse.UUID"/></param>
         public void DeedToGroup(Simulator simulator, int localID, UUID groupID)
         {
             ParcelDeedToGroupPacket request = new ParcelDeedToGroupPacket
@@ -1392,8 +1392,8 @@ namespace OpenMetaverse
         /// </summary>
         /// <param name="simulator">Simulator parcel is in</param>
         /// <param name="localID">The parcels region specific local ID</param>
-        /// <param name="type">the type of objects to return, <see cref="T:OpenMetaverse.ObjectReturnType"/></param>
-        /// <param name="ownerIDs">A list containing object owners <see cref="OpenMetaverse.UUID"/>s to return</param>
+        /// <param name="type">the type of objects to return, <see cref="T:LibreMetaverse.ObjectReturnType"/></param>
+        /// <param name="ownerIDs">A list containing object owners <see cref="LibreMetaverse.UUID"/>s to return</param>
         public void ReturnObjects(Simulator simulator, int localID, ObjectReturnType type, List<UUID> ownerIDs)
         {
             ParcelReturnObjectsPacket request = new ParcelReturnObjectsPacket
@@ -1749,19 +1749,11 @@ namespace OpenMetaverse
 
             try
             {
-                await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken,
-                    (response, data, error) =>
-                    {
-                        if (error != null)
-                        {
-                            Logger.Warn($"ViewerStartAuction POST failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"ViewerStartAuction non-success status: {response?.StatusCode}", Client);
-                        }
-                    }).ConfigureAwait(false);
+                var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"ViewerStartAuction non-success status: {response.StatusCode}", Client);
+                }
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
@@ -1809,17 +1801,10 @@ namespace OpenMetaverse
 
             try
             {
+                var (httpResponse, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken);
                 OSD? res = null;
-                await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken,
-                    (response, data, error) =>
-                    {
-                        if (error != null)
-                            throw error;
-
-                        if (response != null && response.IsSuccessStatusCode && data != null)
-                            res = OSDParser.Deserialize(data);
-
-                    });
+                if (httpResponse.IsSuccessStatusCode && data != null)
+                    res = OSDParser.Deserialize(data);
 
                 if (res is OSDMap result)
                 {
@@ -1858,73 +1843,62 @@ namespace OpenMetaverse
                     return;
                 }
 
-                await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, req.Serialize(),
-                    cancellationToken, ( httpResponse, data, error) =>
+                var (httpResponse, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, req.Serialize(), cancellationToken);
+                if (data == null || data.Length == 0)
+                {
+                    Logger.Error("Failed fetching land resources; response empty.", Client);
+                    callback(false, new LandResourcesInfo());
+                    return;
+                }
+
+                OSD result = OSDParser.Deserialize(data);
+                LandResourcesMessage landResourcesMessage = new LandResourcesMessage();
+                var resultMap = result as OSDMap;
+                if (resultMap == null)
+                {
+                    Logger.Error("Failed fetching land resources; unexpected payload.", Client);
+                    callback(false, new LandResourcesInfo());
+                    return;
+                }
+                landResourcesMessage.Deserialize(resultMap);
+
+                OSD? summaryResponse = null;
+                Uri? summaryCap = Client.Network.CurrentSim?.Caps?.CapabilityURI("ScriptResourceSummary");
+                if (summaryCap != null)
+                {
+                    try
+                    {
+                        var (summaryResp, summaryData) = await Client.HttpCapsClient.GetAsync(summaryCap, cancellationToken);
+                        if (summaryData != null && summaryData.Length > 0)
+                            summaryResponse = OSDParser.Deserialize(summaryData);
+                    }
+                    catch { }
+                }
+
+                LandResourcesInfo resInfo = new LandResourcesInfo();
+                if (summaryResponse is OSDMap summaryMap)
+                    resInfo.Deserialize(summaryMap);
+
+                if (landResourcesMessage.ScriptResourceDetails != null && getDetails)
+                {
+                    OSD? detailResponse = null;
+                    Uri? detailsCap = Client.Network.CurrentSim?.Caps?.CapabilityURI("ScriptResourceDetails");
+                    if (detailsCap != null)
                     {
                         try
                         {
-                            if (error != null)
-                            {
-                                callback(false, new LandResourcesInfo());
-                                return;
-                            }
-
-                            if (data == null || data.Length == 0)
-                            {
-                                Logger.Error("Failed fetching land resources; response empty.", Client);
-                                callback(false, new LandResourcesInfo());
-                                return;
-                            }
-
-                            OSD result = OSDParser.Deserialize(data);
-                            LandResourcesMessage landResourcesMessage = new LandResourcesMessage();
-                            var resultMap = result as OSDMap;
-                            if (resultMap == null)
-                            {
-                                Logger.Error("Failed fetching land resources; unexpected payload.", Client);
-                                callback(false, new LandResourcesInfo());
-                                return;
-                            }
-                            landResourcesMessage.Deserialize(resultMap);
-
-                            OSD? summaryResponse = null;
-                            Uri? summaryCap = Client.Network.CurrentSim?.Caps?.CapabilityURI("ScriptResourceSummary");
-                            if (summaryCap != null)
-                            {
-                                AsyncHelper.Sync(() => Client.HttpCapsClient.GetRequestAsync(
-                                    summaryCap,
-                                    cancellationToken,
-                                    (response, respData, err) => { if (respData != null && respData.Length > 0) summaryResponse = OSDParser.Deserialize(respData); }));
-                            }
-
-                            LandResourcesInfo resInfo = new LandResourcesInfo();
-                            if (summaryResponse is OSDMap summaryMap)
-                                resInfo.Deserialize(summaryMap);
-
-                            if (landResourcesMessage.ScriptResourceDetails != null && getDetails)
-                            {
-                                OSD? detailResponse = null;
-                                Uri? detailsCap = Client.Network.CurrentSim?.Caps?.CapabilityURI("ScriptResourceDetails");
-                                if (detailsCap != null)
-                                {
-                                    AsyncHelper.Sync(() => Client.HttpCapsClient.GetRequestAsync(
-                                        detailsCap,
-                                        cancellationToken,
-                                        (response, respData, err) => { if (respData != null && respData.Length > 0) detailResponse = OSDParser.Deserialize(respData); }));
-                                }
-
-                                if (detailResponse is OSDMap detailMap)
-                                    resInfo.Deserialize(detailMap);
-                            }
-
-                            callback(true, resInfo);
+                            var (detailResp, detailData) = await Client.HttpCapsClient.GetAsync(detailsCap, cancellationToken);
+                            if (detailData != null && detailData.Length > 0)
+                                detailResponse = OSDParser.Deserialize(detailData);
                         }
-                            catch (Exception ex)
-                            {
-                                Logger.Error("Failed fetching land resources", ex, Client);
-                                callback(false, new LandResourcesInfo());
-                            }
-                    });
+                        catch { }
+                    }
+
+                    if (detailResponse is OSDMap detailMap)
+                        resInfo.Deserialize(detailMap);
+                }
+
+                callback(true, resInfo);
             }
             catch (Exception ex)
             {

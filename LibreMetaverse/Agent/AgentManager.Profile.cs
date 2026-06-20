@@ -28,10 +28,10 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.Packets;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// AgentManager partial class - Profile
@@ -132,29 +132,13 @@ namespace OpenMetaverse
 
                 var uri = new Uri($"{capability}/{AgentID}");
 
-                await Client.HttpCapsClient.PutRequestAsync(uri, OSDFormat.Xml, payload, cancellationToken,
-                    (response, data, error) =>
-                    {
-                        if (error != null)
-                        {
-                            Logger.Warn($"AgentProfile update failed: {error.Message}", Client);
-                            return;
-                        }
-
-                        if (response == null)
-                        {
-                            Logger.Warn("AgentProfile update failed: no response from server.", Client);
-                            return;
-                        }
-
-                        if (!response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"AgentProfile update returned non-success status: {response.StatusCode}", Client);
-                            return;
-                        }
-
-                        Logger.Debug("AgentProfile update succeeded.", Client);
-                    }).ConfigureAwait(false);
+                var (response, data) = await Client.HttpCapsClient.PutAsync(uri, OSDFormat.Xml, payload, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"AgentProfile update returned non-success status: {response.StatusCode}", Client);
+                    return;
+                }
+                Logger.Debug("AgentProfile update succeeded.", Client);
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
@@ -229,29 +213,13 @@ namespace OpenMetaverse
 
                 var uri = new Uri($"{capability}/{target}");
 
-                await Client.HttpCapsClient.PutRequestAsync(uri, OSDFormat.Xml, payload, cancellationToken,
-                    (response, data, error) =>
-                    {
-                        if (error != null)
-                        {
-                            Logger.Warn($"AgentProfile notes update failed: {error.Message}", Client);
-                            return;
-                        }
-
-                        if (response == null)
-                        {
-                            Logger.Warn("AgentProfile notes update failed: no response from server.", Client);
-                            return;
-                        }
-
-                        if (!response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"AgentProfile notes update returned non-success status: {response.StatusCode}", Client);
-                            return;
-                        }
-
-                        Logger.Debug("AgentProfile notes update succeeded.", Client);
-                    }).ConfigureAwait(false);
+                var (response, data) = await Client.HttpCapsClient.PutAsync(uri, OSDFormat.Xml, payload, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"AgentProfile notes update returned non-success status: {response.StatusCode}", Client);
+                    return;
+                }
+                Logger.Debug("AgentProfile notes update succeeded.", Client);
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {

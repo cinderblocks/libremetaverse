@@ -4,7 +4,7 @@
     <Description>Vivox voice chat integration library for LibreMetaverse, enabling connection and communication with the Vivox voice service used by Second Life and other virtual worlds.</Description>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse</RootNamespace>
-    <TargetFrameworks>netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;net481;net8.0;net9.0;net10.0</TargetFrameworks>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <NoWarn>$(NoWarn);CS0419;CS1591;CS1574</NoWarn>
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -16,6 +16,9 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
     <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />

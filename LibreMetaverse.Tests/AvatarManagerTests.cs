@@ -25,7 +25,7 @@
  */
 
 using NUnit.Framework;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace LibreMetaverse.Tests
 {
@@ -77,7 +77,7 @@ namespace LibreMetaverse.Tests
 
         /// <summary>
         /// A COF version equal to the last received should not update the stored value,
-        /// matching the SL viewer's "cofVersion <= mLastUpdateReceivedCOFVersion" drop condition.
+        /// matching the SL viewer's "cofVersion &lt;= mLastUpdateReceivedCOFVersion" drop condition.
         /// </summary>
         [Test]
         public void UpdateLastReceivedCOFVersion_EqualVersion_IsNotAdvanced()

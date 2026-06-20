@@ -29,7 +29,7 @@ using System;
 using System.Reflection;
 using System.Collections.Immutable;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Static pre-defined animations available to all agents

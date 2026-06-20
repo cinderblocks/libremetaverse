@@ -29,11 +29,11 @@ using System;
 using System.Threading;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.Messages.Linden;
+using LibreMetaverse.Packets;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public partial class AgentManager
     {
@@ -173,7 +173,15 @@ namespace OpenMetaverse
                 return;
             }
 
-            await Client.HttpCapsClient.GetRequestAsync(offlineMsgsCap, cancellationToken, OfflineMessageHandlerCallback);
+            try
+            {
+                var (response, data) = await Client.HttpCapsClient.GetAsync(offlineMsgsCap, cancellationToken);
+                OfflineMessageHandlerCallback(response, data, null);
+            }
+            catch (Exception ex)
+            {
+                OfflineMessageHandlerCallback(null, null, ex);
+            }
         }
 
         private void RetrieveInstantMessagesLegacy()

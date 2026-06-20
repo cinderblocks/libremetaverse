@@ -32,10 +32,10 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse;
-using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.Messages.Linden;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse.Http
+namespace LibreMetaverse.Http
 {
     /// <summary>EventQueueClient manages the polling-based EventQueueGet capability</summary>
     public class EventQueueClient : IDisposable
@@ -149,9 +149,17 @@ namespace OpenMetaverse.Http
                         }
                     }
 
-                    await Simulator.Client.HttpCapsClient.PostRequestAsync(
-                        Address, OSDFormat.Xml, payloadSnapshot, newCts.Token, RequestCompletedHandler, ConnectedResponseHandler)
-                        .ConfigureAwait(false);
+                    try
+                    {
+                        var (response, data) = await Simulator.Client.HttpCapsClient.PostAsync(
+                            Address, OSDFormat.Xml, payloadSnapshot, newCts.Token).ConfigureAwait(false);
+                        ConnectedResponseHandler(response);
+                        RequestCompletedHandler(response, data, null);
+                    }
+                    catch (Exception innerEx) when (!(innerEx is OperationCanceledException))
+                    {
+                        RequestCompletedHandler(null, null, innerEx);
+                    }
                 }
                 catch (OperationCanceledException)
                 {

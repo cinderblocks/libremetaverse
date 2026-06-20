@@ -27,7 +27,7 @@
 
 using System;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     [Flags]
     public enum InventorySortOrder : int

@@ -29,7 +29,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using OpenMetaverse;
+using LibreMetaverse;
 using TestClient.Commands.Inventory;
 using TestClient.Commands.System;
 

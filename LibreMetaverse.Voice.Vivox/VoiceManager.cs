@@ -33,10 +33,10 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse;
-using OpenMetaverse.Interfaces;
-using OpenMetaverse.Messages.Linden;
+using LibreMetaverse.StructuredData;
+using LibreMetaverse;
+using LibreMetaverse.Interfaces;
+using LibreMetaverse.Messages.Linden;
 using System.Net.Http;
 
 namespace LibreMetaverse.Voice.Vivox

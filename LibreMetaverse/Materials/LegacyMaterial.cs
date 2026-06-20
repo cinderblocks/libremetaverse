@@ -1,6 +1,6 @@
 using System;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse;
+using LibreMetaverse.StructuredData;
 
 namespace LibreMetaverse.Materials
 {

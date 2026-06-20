@@ -29,7 +29,7 @@ using System;
 using System.Collections.Generic;
 using MessagePack;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     [MessagePackObject]
     public partial class InventoryNode

@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Text;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace TestClient.Commands.Inventory
 {
@@ -47,7 +47,7 @@ namespace TestClient.Commands.Inventory
                     body = await reader.ReadToEndAsync();
                 }
 
-                var desc = $"{file} created by OpenMetaverse TestClient {DateTime.Now}";
+                var desc = $"{file} created by LibreMetaverse TestClient {DateTime.Now}";
 
                 var createTcs = new TaskCompletionSource<InventoryItem?>(TaskCreationOptions.RunContinuationsAsynchronously);
 

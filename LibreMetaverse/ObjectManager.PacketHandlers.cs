@@ -25,14 +25,14 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using OpenMetaverse.Interfaces;
-using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.Packets;
+using LibreMetaverse.Interfaces;
+using LibreMetaverse.Messages.Linden;
+using LibreMetaverse.Packets;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public partial class ObjectManager
     {

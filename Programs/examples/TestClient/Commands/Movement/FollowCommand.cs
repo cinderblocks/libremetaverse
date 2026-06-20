@@ -1,7 +1,7 @@
 using System.Linq;
 using System.Threading.Tasks;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
+using LibreMetaverse;
+using LibreMetaverse.Packets;
 #nullable enable
 
 namespace TestClient.Commands.Movement

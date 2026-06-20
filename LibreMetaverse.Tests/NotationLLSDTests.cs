@@ -42,8 +42,8 @@ using System.IO;
 using System.Text;
 using System.Xml;
 using NUnit.Framework;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse;
+using LibreMetaverse.StructuredData;
 
 namespace LibreMetaverse.Tests
 {

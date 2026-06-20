@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Text;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace TestClient.Commands.System
 {

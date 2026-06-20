@@ -29,9 +29,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse.ImportExport
+namespace LibreMetaverse.ImportExport
 {
     /// <summary>
     /// Implements mesh upload communications with the simulator
@@ -234,44 +234,32 @@ namespace OpenMetaverse.ImportExport
                 ["next_owner_mask"] = (int) PermissionMask.All
             };
 
-            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, cancellationToken,
-                (response, data, error) =>
+            try
             {
-                if (error != null)
+                var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload, cancellationToken);
+                if (data == null)
                 {
-                    Logger.Error($"Mesh upload request failure: {error.Message}", error, Client);
+                    Logger.Error("Mesh upload request failure: response data is null", Client);
                     callback?.Invoke(null);
                     return;
                 }
-
-                try
+                OSD result = OSDParser.Deserialize(data);
+                OSDMap res = (OSDMap)result;
+                if (res["state"] != "upload")
                 {
-                    if (data == null)
-                    {
-                        Logger.Error("Mesh upload request failure: response data is null", Client);
-                        callback?.Invoke(null);
-                        return;
-                    }
-
-                    OSD result = OSDParser.Deserialize(data);
-                    OSDMap res = (OSDMap)result;
-
-                    if (res["state"] != "upload")
-                    {
-                        Logger.Error($"Mesh upload failure: {res["message"]}", Client);
-                        callback?.Invoke(null);
-                        return;
-                    }
-                    Logger.Debug($"Response from mesh upload prepare: {Environment.NewLine}" +
-                               OSDParser.SerializeLLSDNotationFormatted(result), Client);
-                    callback?.Invoke(result);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"Mesh upload request failure: {ex.Message}", ex, Client);
+                    Logger.Error($"Mesh upload failure: {res["message"]}", Client);
                     callback?.Invoke(null);
+                    return;
                 }
-            });
+                Logger.Debug($"Response from mesh upload prepare: {Environment.NewLine}" +
+                           OSDParser.SerializeLLSDNotationFormatted(result), Client);
+                callback?.Invoke(result);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Mesh upload request failure: {ex.Message}", ex, Client);
+                callback?.Invoke(null);
+            }
         }
 
         /// <summary>
@@ -290,38 +278,26 @@ namespace OpenMetaverse.ImportExport
                 return;
             }
 
-            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, AssetResources(true),
-                cancellationToken, (response, data, error) =>
+            try
+            {
+                var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, AssetResources(true), cancellationToken);
+                if (data == null)
                 {
-                    if (error != null)
-                    {
-                        Logger.Error($"Mesh upload request failure: {error.Message}", error, Client);
-                        callback?.Invoke(null);
-                        return;
-                    }
-
-                    try
-                    {
-                        if (data == null)
-                        {
-                            Logger.Error("Mesh upload request failure: response data is null", Client);
-                            callback?.Invoke(null);
-                            return;
-                        }
-
-                        OSD result = OSDParser.Deserialize(data);
-                        OSDMap res = (OSDMap)result;
-
-                        Logger.Debug($"Response from mesh upload perform: {Environment.NewLine}" +
-                                   OSDParser.SerializeLLSDNotationFormatted(result));
-                        callback?.Invoke(res);
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Error($"Mesh upload request failure: {ex.Message}", ex, Client);
-                        callback?.Invoke(null);
-                    }
-                });
+                    Logger.Error("Mesh upload request failure: response data is null", Client);
+                    callback?.Invoke(null);
+                    return;
+                }
+                OSD result = OSDParser.Deserialize(data);
+                OSDMap res = (OSDMap)result;
+                Logger.Debug($"Response from mesh upload perform: {Environment.NewLine}" +
+                           OSDParser.SerializeLLSDNotationFormatted(result));
+                callback?.Invoke(res);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Mesh upload request failure: {ex.Message}", ex, Client);
+                callback?.Invoke(null);
+            }
         }
     }
 }

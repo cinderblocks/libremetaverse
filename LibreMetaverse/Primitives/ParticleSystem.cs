@@ -25,9 +25,9 @@
  */
 
 using System;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Particle system specific enumerators, flags and methods.

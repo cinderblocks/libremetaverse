@@ -27,7 +27,7 @@
 
 using System;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public class InventoryObjectOfferedEventArgs : EventArgs
     {

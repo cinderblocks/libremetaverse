@@ -29,7 +29,7 @@ using System;
 using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Wrapper around a byte array that allows bit to be packed and unpacked

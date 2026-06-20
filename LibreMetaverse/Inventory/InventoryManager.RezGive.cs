@@ -26,10 +26,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
-using OpenMetaverse.Packets;
+using LibreMetaverse.Packets;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public partial class InventoryManager
     {
@@ -222,9 +223,13 @@ namespace OpenMetaverse
                     }
                 }
 
-#pragma warning disable CS0612 // Type or member is obsolete
-                Remove(remItems, remFolders);
-#pragma warning restore CS0612 // Type or member is obsolete
+                var rem = new RemoveInventoryObjectsPacket
+                {
+                    AgentData = { AgentID = Client.Self.AgentID, SessionID = Client.Self.SessionID }
+                };
+                rem.ItemData = remItems.Select(id => new RemoveInventoryObjectsPacket.ItemDataBlock { ItemID = id }).ToArray();
+                rem.FolderData = remFolders.Select(id => new RemoveInventoryObjectsPacket.FolderDataBlock { FolderID = id }).ToArray();
+                Client.Network.SendPacket(rem);
             }
         }
 

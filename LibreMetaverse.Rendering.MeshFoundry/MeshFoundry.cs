@@ -27,11 +27,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using SkiaSharp;
-using OpenMetaverse.Assets;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.Assets;
+using LibreMetaverse.StructuredData;
 using LibreMetaverse.PrimMesher;
 
-namespace OpenMetaverse.Rendering
+namespace LibreMetaverse.Rendering
 {
     [RendererName("MeshFoundry")]
     public class MeshFoundry : IRendering

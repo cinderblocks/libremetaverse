@@ -25,9 +25,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using OpenMetaverse.Packets;
+using LibreMetaverse.Packets;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Throttles the network traffic for various different traffic types.

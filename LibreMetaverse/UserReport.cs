@@ -29,9 +29,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse;
+using LibreMetaverse.Packets;
+using LibreMetaverse.StructuredData;
 
 namespace LibreMetaverse
 {
@@ -91,16 +91,11 @@ namespace LibreMetaverse
                 abuseCategoriesCap = builder.Uri;
             }
 
-            await Client.HttpCapsClient.GetRequestAsync(abuseCategoriesCap, CancellationToken.None, 
-                (response, data, error) =>
+            try
+            {
+                var (response, data) = await Client.HttpCapsClient.GetAsync(abuseCategoriesCap, CancellationToken.None);
+                if (data != null)
                 {
-                    if (error != null)
-                    {
-                        Logger.Info($"Could not fetch abuse categories from cap. ({error.Message}");
-                        return;
-                    }
-
-                    if (data == null) return;
                     OSD result = OSDParser.Deserialize(data);
                     if (result is OSDMap respMap && respMap.TryGetValue("categories", out var value))
                     {
@@ -114,7 +109,12 @@ namespace LibreMetaverse
                             }
                         }
                     }
-                });
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Info($"Could not fetch abuse categories from cap. ({ex.Message})");
+            }
 
             return reportCategories;
         }
@@ -159,16 +159,19 @@ namespace LibreMetaverse
 
             if (userReportCap != null)
             {
-                _ = Client.HttpCapsClient.PostRequestAsync(userReportCap, OSDFormat.Xml, report, CancellationToken.None,
-                    (response, data, error) =>
+                _ = Task.Run(async () =>
+                {
+                    try
                     {
-                        if (error != null)
-                        {
-                            Logger.Warn($"Failed to send abuse report via {userReportCap}. ({error.Message}) Falling back to legacy protocol.");
-                            SendUserReportLegacy(reportType, category, screenshotId, objectId, abuserId,
-                                abuseRegionName, abuseRegionId, pos, summary, details);
-                        }
-                    });
+                        var (response, data) = await Client.HttpCapsClient.PostAsync(userReportCap, OSDFormat.Xml, report, CancellationToken.None);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn($"Failed to send abuse report via {userReportCap}. ({ex.Message}) Falling back to legacy protocol.");
+                        SendUserReportLegacy(reportType, category, screenshotId, objectId, abuserId,
+                            abuseRegionName, abuseRegionId, pos, summary, details);
+                    }
+                });
             }
             else
             {

@@ -32,12 +32,12 @@ using System.Threading;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-using OpenMetaverse.Packets;
-using OpenMetaverse.Assets;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.Packets;
+using LibreMetaverse.Assets;
+using LibreMetaverse.StructuredData;
 using LibreMetaverse;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     #region Enums
 
@@ -425,7 +425,7 @@ namespace OpenMetaverse
         /// Collects the current float value for every visual parameter by merging all
         /// downloaded wearable parameters, falling back to each parameter's default value.
         /// The returned dictionary can be passed directly to
-        /// <see cref="OpenMetaverse.Rendering.LindenAvatarDefinition.ComputeBoneTransforms"/>.
+        /// <see cref="LibreMetaverse.Rendering.LindenAvatarDefinition.ComputeBoneTransforms"/>.
         /// </summary>
         /// <returns>
         /// A dictionary mapping every visual parameter ID to its current value.
@@ -760,18 +760,6 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Returns a List of worn items in COF. Also populates <see cref="Wearables"/>
-        /// and <see cref="Attachments"/> before firing <see cref="OnAgentWearables"/>
-        /// </summary>
-        /// <returns><see cref="List{T}"/> of <see cref="InventoryBase"/> in COF</returns>
-        [Obsolete("Use RequestAgentWornAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
-        public List<InventoryBase> RequestAgentWorn()
-        {
-            // Preserve existing blocking behavior by calling the async variant and waiting
-            return RequestAgentWornAsync(CancellationToken.None).GetAwaiter().GetResult();
-        }
-
-        /// <summary>
         /// Async-first variant returning the worn items in COF. Also populates <see cref="Wearables"/>
         /// and <see cref="Attachments"/> before firing <see cref="OnAgentWearables"/>
         /// </summary>
@@ -892,24 +880,6 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Ask the server what textures our agent is currently wearing
-        /// </summary>
-        [Obsolete("Second Life sends dummy information back post SSB. Use RequestAgentWorn")]
-        public void RequestAgentWearablesLLUDP()
-        {
-            var request = new AgentWearablesRequestPacket
-            {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                }
-            };
-
-            Client.Network.SendPacket(request);
-        }
-
-        /// <summary>
         /// Build hashes out of the texture assetIDs for each baking layer to
         /// ask the simulator whether it has cached copies of each baked texture
         /// </summary>
@@ -971,22 +941,6 @@ namespace OpenMetaverse
 
 
             Client.Network.SendPacket(cache);
-        }
-
-        /// <summary>
-        /// OBSOLETE! Returns the AssetID of the first asset that is currently 
-        /// being worn in a given WearableType slot
-        /// </summary>
-        /// <param name="type">WearableType slot to get the AssetID for</param>
-        /// <returns>The UUID of the asset being worn in the given slot, or
-        /// UUID.Zero if no wearable is attached to the given slot or wearables
-        /// have not been downloaded yet</returns>
-        [Obsolete("Returns the first asset currently being worn, prefer GetWearableAssets")]
-        public UUID GetWearableAsset(WearableType type)
-        {
-            return Wearables.TryGetValue(type, out var wearableList)
-                ? wearableList.First().AssetID
-                : UUID.Zero;
         }
 
         public IEnumerable<UUID> GetWearableAssets(WearableType type)
@@ -1351,8 +1305,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Attach an item to our agent at a specific attach point
         /// </summary>
-        /// <param name="item">A <see cref="OpenMetaverse.InventoryItem"/> to attach</param>
-        /// <param name="attachPoint">the <see cref="OpenMetaverse.AttachmentPoint"/> on the avatar to attach the item to</param>
+        /// <param name="item">A <see cref="LibreMetaverse.InventoryItem"/> to attach</param>
+        /// <param name="attachPoint">the <see cref="LibreMetaverse.AttachmentPoint"/> on the avatar to attach the item to</param>
         /// <param name="replace">If true replace existing attachment on this attachment point, otherwise add to it (multi-attachments)</param>
         public void Attach(InventoryItem item, AttachmentPoint attachPoint, bool replace = true)
         {
@@ -1363,13 +1317,13 @@ namespace OpenMetaverse
         /// <summary>
         /// Attach an item to our agent specifying attachment details
         /// </summary>
-        /// <param name="itemID">The <see cref="OpenMetaverse.UUID"/> of the item to attach</param>
-        /// <param name="ownerID">The <see cref="OpenMetaverse.UUID"/> attachments owner</param>
+        /// <param name="itemID">The <see cref="LibreMetaverse.UUID"/> of the item to attach</param>
+        /// <param name="ownerID">The <see cref="LibreMetaverse.UUID"/> attachments owner</param>
         /// <param name="name">The name of the attachment</param>
         /// <param name="description">The description of the attachment</param>
-        /// <param name="perms">The <see cref="OpenMetaverse.Permissions"/> to apply when attached</param>
-        /// <param name="itemFlags">The <see cref="OpenMetaverse.InventoryItemFlags"/> of the attachment</param>
-        /// <param name="attachPoint">The <see cref="OpenMetaverse.AttachmentPoint"/> on the agent to attach the item to</param>
+        /// <param name="perms">The <see cref="LibreMetaverse.Permissions"/> to apply when attached</param>
+        /// <param name="itemFlags">The <see cref="LibreMetaverse.InventoryItemFlags"/> of the attachment</param>
+        /// <param name="attachPoint">The <see cref="LibreMetaverse.AttachmentPoint"/> on the agent to attach the item to</param>
         /// <param name="replace">If true replace existing attachment on this attachment point, otherwise add to it (multi-attachments)</param>
         public void Attach(UUID itemID, UUID ownerID, string name, string description,
             Permissions perms, uint itemFlags, AttachmentPoint attachPoint, bool replace = true)
@@ -1401,9 +1355,9 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Detach an item from our agent by <see cref="OpenMetaverse.InventoryItem"/>
+        /// Detach an item from our agent by <see cref="LibreMetaverse.InventoryItem"/>
         /// </summary>
-        /// <param name="item"><see cref="OpenMetaverse.InventoryItem"/> to detach</param>
+        /// <param name="item"><see cref="LibreMetaverse.InventoryItem"/> to detach</param>
         public void Detach(InventoryItem item)
         {
             Detach(item.ResolvedItemID);
@@ -1513,12 +1467,6 @@ namespace OpenMetaverse
         public Dictionary<UUID, AttachmentPoint> GetAttachmentsByItemId()
         {
             return Attachments.ToDictionary(k => k.Key, v => v.Value);
-        }
-
-        [Obsolete("Use GetAttachmentsByAttachmentPointAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
-        public MultiValueDictionary<AttachmentPoint, InventoryItem> GetAttachmentsByAttachmentPoint()
-        {
-            return GetAttachmentsByAttachmentPointAsync(CancellationToken.None).GetAwaiter().GetResult();
         }
 
         public async Task<MultiValueDictionary<AttachmentPoint, InventoryItem>> GetAttachmentsByAttachmentPointAsync(CancellationToken cancellationToken = default)
@@ -2179,18 +2127,18 @@ namespace OpenMetaverse
                 var request = new OSDMap(1) { ["cof_version"] = cofVersion };
 
                 OSD? res = null;
-
-                await http.PostRequestAsync(cap, OSDFormat.Xml, request, cancellationToken, (response, data, error) =>
+                try
                 {
+                    var (response, data) = await http.PostAsync(cap, OSDFormat.Xml, request, cancellationToken);
                     if (data != null)
                     {
                         res = OSDParser.Deserialize(data);
                     }
-                    if (error != null)
-                    {
-                        Logger.Warn($"UpdateAvatarAppearance failed. Server responded: {error.Message}", Client);
-                    }
-                });
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"UpdateAvatarAppearance failed. Server responded: {ex.Message}", Client);
+                }
 
                 if (!(res is OSDMap result))
                 {
@@ -2700,16 +2648,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// OBSOLETE. Synchronous wrapper around SendOutfitToCurrentSimulatorAsync. This will block the calling thread.
-        /// </summary>
-        [Obsolete("Use SendOutfitToCurrentSimulatorAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
-        public void SendOutfitToCurrentSimulator()
-        {
-            SendOutfitToCurrentSimulatorAsync(CancellationToken.None).GetAwaiter().GetResult();
-        }
-
-        /// <summary>
-        /// Create an AgentSetAppearance packet from Wearables data and the 
+        /// Create an AgentSetAppearance packet from Wearables data and the
         /// Textures array and send it
         /// </summary>
         private void RequestAgentSetAppearance()
@@ -2828,47 +2767,6 @@ namespace OpenMetaverse
     #endregion Appearance Helpers
 
     #region Inventory Helpers
-
-    [Obsolete("Use GetFolderWearablesAsync instead (async-first). This method will block the calling thread.")]
-    private bool GetFolderWearables(UUID folder, out List<InventoryWearable> wearables, out List<InventoryItem> attachments)
-    {
-        wearables = new List<InventoryWearable>();
-        attachments = new List<InventoryItem>();
-        var objects = Client.Inventory.FolderContents(folder, Client.Self.AgentID, false, true,
-            InventorySortOrder.ByName, INVENTORY_TIMEOUT);
-
-        if (objects != null)
-        {
-            foreach (var ib in objects)
-            {
-                switch (ib)
-                {
-                    case InventoryWearable wearable:
-                        Logger.DebugLog($"Adding wearable {wearable.Name}", Client);
-                        wearables.Add(wearable);
-                        break;
-                    case InventoryAttachment attachment:
-                        Logger.DebugLog($"Adding attachment (attachment) {attachment.Name}", Client);
-                        attachments.Add(attachment);
-                        break;
-                    case InventoryObject inventoryObject:
-                        Logger.DebugLog($"Adding attachment (object) {inventoryObject.Name}", Client);
-                        attachments.Add(inventoryObject);
-                        break;
-                    default:
-                        Logger.DebugLog($"Ignoring inventory item {ib.Name}", Client);
-                        break;
-                }
-            }
-        }
-        else
-        {
-            Logger.Error($"Failed to download folder contents of {folder}", Client);
-            return false;
-        }
-
-        return true;
-    }
 
     /// <summary>
     /// Async variant of GetFolderWearables that returns the results and a success flag.

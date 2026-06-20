@@ -4,25 +4,25 @@
  * Original Author: Jeff Cesnik
  * All rights reserved.
  *
- * - Redistribution and use in source and binary forms, with or without 
+ * - Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions are met:
  *
  * - Redistributions of source code must retain the above copyright notice, this
  *   list of conditions and the following disclaimer.
- * - Neither the name of the openmetaverse.co nor the names 
+ * - Neither the name of the openmetaverse.co nor the names
  *   of its contributors may be used to endorse or promote products derived from
  *   this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -30,12 +30,15 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Channels;
+using System.Threading.Tasks;
 using Microsoft.Extensions.ObjectPool;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
-    /// 
+    ///
     /// </summary>
     public abstract class UDPBase
     {
@@ -55,10 +58,17 @@ namespace OpenMetaverse
 
         // the all important shutdownFlag.
         private volatile bool shutdownFlag = true;
-        
+
         // Packet pool for default sized packets
         private readonly ObjectPool<UDPPacketBuffer> _packetPool =
             new DefaultObjectPool<UDPPacketBuffer>(new DefaultPooledObjectPolicy<UDPPacketBuffer>());
+
+        // Channel between socket receive and packet decode — SingleWriter + SingleReader
+        // avoids locking inside the channel on the hot path.
+        private Channel<UDPPacketBuffer>? _rawChannel;
+        private CancellationTokenSource? _udpCts;
+        private Task? _receiveTask;
+        private Task? _decodeTask;
 
         /// <summary>
         /// Initialize the UDP packet handler in server mode
@@ -118,10 +128,14 @@ namespace OpenMetaverse
             // we're not shutting down, we're starting up
             shutdownFlag = false;
 
-            // kick off an async receive.  The Start() method will return, the
-            // actual receives will occur asynchronously and will be caught in
-            // AsyncEndReceive().
-            AsyncBeginReceive();
+            // Unbounded, single-writer single-reader: the receive loop is the sole writer,
+            // the decode loop is the sole reader — no lock contention inside the channel.
+            _rawChannel = Channel.CreateUnbounded<UDPPacketBuffer>(
+                new UnboundedChannelOptions { SingleWriter = true, SingleReader = true });
+
+            _udpCts = new CancellationTokenSource();
+            _receiveTask = Task.Run(() => ReceiveLoopAsync(_udpCts.Token));
+            _decodeTask  = Task.Run(() => DecodeLoopAsync(_udpCts.Token));
         }
 
         /// <summary>
@@ -131,11 +145,11 @@ namespace OpenMetaverse
         {
             if (shutdownFlag) return;
 
-            // wait indefinitely for a writer lock.  Once this is called, the .NET runtime
-            // will deny any more reader locks, in effect blocking all other send/receive
-            // threads.  Once we have the lock, we set shutdownFlag to inform the other
-            // threads that the socket is closed.
             shutdownFlag = true;
+
+            // Cancel the loops first so ReceiveLoopAsync wakes up; closing the socket
+            // will also cause the pending ReceiveFromAsync to throw ObjectDisposedException.
+            _udpCts?.Cancel();
             udpSocket?.Close();
         }
 
@@ -144,128 +158,98 @@ namespace OpenMetaverse
         /// </summary>
         public bool IsRunning => !shutdownFlag;
 
-        private void AsyncBeginReceive()
+        /// <summary>
+        /// Continuously awaits incoming UDP datagrams and writes filled buffers into
+        /// the raw channel for the decode loop to process.  One buffer per datagram —
+        /// no synchronous work is done here beyond the pool allocation.
+        /// </summary>
+        private async Task ReceiveLoopAsync(CancellationToken ct)
         {
-            // allocate a packet buffer
-            UDPPacketBuffer? buf = _packetPool.Get();
-
-            if (buf == null) return;
-
-            if (shutdownFlag)
-            {
-                // Return buffer to pool before exiting to prevent leak
-                _packetPool.Return(buf);
-                return;
-            }
+            var writer = _rawChannel!.Writer;
+            // Any non-null EndPoint is valid for ReceiveFromAsync when we don't yet know the sender.
+            EndPoint anyEP = new IPEndPoint(IPAddress.Any, 0);
 
             try
             {
-                // kick off an async read
-                udpSocket!.BeginReceiveFrom(
-                    buf.Data,
-                    0,
-                    UDPPacketBuffer.DEFAULT_BUFFER_SIZE,
-                    SocketFlags.None,
-                    ref buf.RemoteEndPoint,
-                    AsyncEndReceive,
-                    buf);
-            }
-            catch (SocketException e)
-            {
-                if (e.SocketErrorCode == SocketError.ConnectionReset)
+                while (!ct.IsCancellationRequested)
                 {
-                    Logger.Error($"SIO_UDP_CONNRESET was ignored, attempting to salvage the UDP listener on port {udpPort}");
-                    bool salvaged = false;
-                    int retryCount = 0;
-                    const int maxRetries = 100;
-
-                    while (!salvaged && retryCount < maxRetries)
+                    var buf = _packetPool.Get();
+                    try
                     {
-                        if (shutdownFlag)
-                        {
-                            _packetPool.Return(buf);
-                            return;
-                        }
+                        var result = await udpSocket!.ReceiveFromAsync(
+                            new ArraySegment<byte>(buf.Data),
+                            SocketFlags.None,
+                            anyEP).ConfigureAwait(false);
 
-                        try
-                        {
-                            udpSocket!.BeginReceiveFrom(
-                                buf.Data,
-                                0,
-                                UDPPacketBuffer.DEFAULT_BUFFER_SIZE,
-                                SocketFlags.None,
-                                ref buf.RemoteEndPoint,
-                                AsyncEndReceive,
-                                buf);
-                            salvaged = true;
-                        }
-                        catch (SocketException)
-                        {
-                            retryCount++;
-                            if (retryCount >= maxRetries)
-                            {
-                                Logger.Error($"Failed to salvage UDP listener on port {udpPort} after {maxRetries} attempts");
-                                _packetPool.Return(buf);
-                                throw;
-                            }
-                        }
-                        catch (ObjectDisposedException)
-                        {
+                        buf.DataLength = result.ReceivedBytes;
+                        buf.RemoteEndPoint = result.RemoteEndPoint;
+
+                        // TryWrite never blocks on an unbounded channel; it can only return
+                        // false if the writer has been completed, which only happens in Stop().
+                        if (!writer.TryWrite(buf))
                             _packetPool.Return(buf);
-                            return;
-                        }
                     }
-
-                    if (salvaged)
+                    catch (OperationCanceledException)
                     {
-                        Logger.Info($"Salvaged the UDP listener on port {udpPort} after {retryCount} retries");
+                        _packetPool.Return(buf);
+                        break;
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // Socket was closed by Stop() — exit cleanly.
+                        _packetPool.Return(buf);
+                        break;
+                    }
+                    catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
+                    {
+                        // ICMP port-unreachable on Windows — not fatal, retry.
+                        _packetPool.Return(buf);
+                    }
+                    catch (SocketException)
+                    {
+                        _packetPool.Return(buf);
+                        if (shutdownFlag) break;
+                        // Other transient socket errors — keep trying.
                     }
                 }
-                else
-                {
-                    // For other socket errors, return the buffer and rethrow
-                    _packetPool.Return(buf);
-                    throw;
-                }
             }
-            catch (ObjectDisposedException)
+            finally
             {
-                _packetPool.Return(buf);
+                writer.TryComplete();
             }
         }
 
-        private void AsyncEndReceive(IAsyncResult iar)
+        /// <summary>
+        /// Drains the raw channel and calls the abstract <see cref="PacketReceived"/> for
+        /// each buffer.  Runs on its own thread so the socket receive loop is never blocked
+        /// by packet decoding.
+        /// </summary>
+        private async Task DecodeLoopAsync(CancellationToken ct)
         {
-            // Asynchronous receive operations will complete here through the call
-            // to AsyncBeginReceive
-            if (shutdownFlag) return;
-
-            // start another receive - this keeps the server going!
-            AsyncBeginReceive();
-
-            // get the buffer that was created in AsyncBeginReceive
-            // this is the received data
-            //WrappedObject<UDPPacketBuffer> wrappedBuffer = (WrappedObject<UDPPacketBuffer>)iar.AsyncState;
-            //UDPPacketBuffer buffer = wrappedBuffer.Instance;
-            UDPPacketBuffer? buffer = iar.AsyncState as UDPPacketBuffer;
-
-            if (buffer == null) return;
-
+            var reader = _rawChannel!.Reader;
             try
             {
-                // get the length of data actually read from the socket, store it with the
-                // buffer
-                var socket = udpSocket;
-                if (socket == null) return;
-                buffer.DataLength = socket.EndReceiveFrom(iar, ref buffer.RemoteEndPoint);
-
-                // call the abstract method PacketReceived(), passing the buffer that
-                // has just been filled from the socket read.
-                PacketReceived(buffer);
+                await foreach (var buf in reader.ReadAllAsync(ct).ConfigureAwait(false))
+                {
+                    try
+                    {
+                        PacketReceived(buf);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("DecodeLoopAsync unhandled exception in PacketReceived: " + ex, ex);
+                    }
+                    finally
+                    {
+                        _packetPool.Return(buf);
+                    }
+                }
             }
-            catch (SocketException) { }
-            catch (ObjectDisposedException) { }
-            finally { if (buffer != null) _packetPool.Return(buffer); }
+            catch (OperationCanceledException) { }
         }
 
         public void AsyncBeginSend(UDPPacketBuffer buf)
@@ -284,33 +268,9 @@ namespace OpenMetaverse
                     buf.DataLength,
                     SocketFlags.None,
                     buf.RemoteEndPoint);
-
-                //udpSocket.BeginSendTo(
-                //    buf.Data,
-                //    0,
-                //    buf.DataLength,
-                //    SocketFlags.None,
-                //    buf.RemoteEndPoint,
-                //    AsyncEndSend,
-                //    buf);
             }
             catch (SocketException) { }
             catch (ObjectDisposedException) { }
         }
-
-        //void AsyncEndSend(IAsyncResult result)
-        //{
-        //    try
-        //    {
-        //        UDPPacketBuffer buf = (UDPPacketBuffer)result.AsyncState;
-        //        if (!udpSocket.Connected) return;
-        //        int bytesSent = udpSocket.EndSendTo(result);
-
-        //        PacketSent(buf, bytesSent);
-        //    }
-        //    catch (SocketException) { }
-        //    catch (ObjectDisposedException) { }
-        //}
     }
 }
-

@@ -30,12 +30,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.Packets;
-using OpenMetaverse.Interfaces;
-using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.Packets;
+using LibreMetaverse.Interfaces;
+using LibreMetaverse.Messages.Linden;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
 
     #region Structs
@@ -738,32 +738,27 @@ namespace OpenMetaverse
                 Query = "ids=" + string.Join("&ids=", ids)
             };
 
-            await Client.HttpCapsClient.GetRequestAsync(uri.Uri, cancellationToken, (response, data, error) =>
+            try
             {
-                try
+                var (response, data) = await Client.HttpCapsClient.GetAsync(uri.Uri, cancellationToken);
+                if (data == null)
                 {
-                    if (error != null) { throw error; }
-
-                    if (data == null)
-                    {
-                        callback(false, null, null);
-                        return;
-                    }
-
-                    GetDisplayNamesMessage msg = new GetDisplayNamesMessage();
-                    OSD result = OSDParser.Deserialize(data);
-                    if (result is OSDMap respMap)
-                    {
-                        msg.Deserialize(respMap);
-                        callback(true, msg.Agents, msg.BadIDs);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Warn("Failed to call GetDisplayNames capability: ", ex, Client);
                     callback(false, null, null);
+                    return;
                 }
-            });
+                GetDisplayNamesMessage msg = new GetDisplayNamesMessage();
+                OSD result = OSDParser.Deserialize(data);
+                if (result is OSDMap respMap)
+                {
+                    msg.Deserialize(respMap);
+                    callback(true, msg.Agents, msg.BadIDs);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn("Failed to call GetDisplayNames capability: ", ex, Client);
+                callback(false, null, null);
+            }
         }
 
         /// <summary>
@@ -843,46 +838,37 @@ namespace OpenMetaverse
 
             var uri = new Uri(baseUri, avatarid.ToString());
 
-            await Client.HttpCapsClient.GetRequestAsync(uri, cancellationToken, (response, data, error) =>
+            try
             {
-                try
+                var (response, data) = await Client.HttpCapsClient.GetAsync(uri, cancellationToken);
+                if (!response.IsSuccessStatusCode)
                 {
-                    if (error != null)
-                    {
-                        throw error;
-                    }
-
-                    if (response == null || !response.IsSuccessStatusCode)
-                    {
-                        Logger.Warn($"AgentProfile capability returned non-success status: {response?.StatusCode}", Client);
-                        callback(false, null);
-                        return;
-                    }
-
-                    if (data == null)
-                    {
-                        callback(false, null);
-                        return;
-                    }
-
-                    var msg = new AgentProfileMessage();
-                    var result = OSDParser.Deserialize(data);
-                    if (result is OSDMap respMap)
-                    {
-                        msg.Deserialize(respMap);
-                        callback(true, msg);
-                    }
-                    else
-                    {
-                        callback(false, null);
-                    }
+                    Logger.Warn($"AgentProfile capability returned non-success status: {response.StatusCode}", Client);
+                    callback(false, null);
+                    return;
                 }
-                catch (Exception ex)
+                if (data == null)
                 {
-                    Logger.Warn("Failed to call AgentProfile capability: ", ex, Client);
+                    callback(false, null);
+                    return;
+                }
+                var msg = new AgentProfileMessage();
+                var result = OSDParser.Deserialize(data);
+                if (result is OSDMap respMap)
+                {
+                    msg.Deserialize(respMap);
+                    callback(true, msg);
+                }
+                else
+                {
                     callback(false, null);
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn("Failed to call AgentProfile capability: ", ex, Client);
+                callback(false, null);
+            }
         }
 
         /// <summary>
@@ -1819,25 +1805,25 @@ namespace OpenMetaverse
         /// Decodes the compressed group-0 and group-3 visual parameters into a dictionary of parameter ID to float value,
         /// then derives driven (group-1+) parameters from their group-0 driver values.
         /// The result can be passed directly to
-        /// <see cref="OpenMetaverse.Rendering.LindenAvatarDefinition.ComputeBoneTransforms"/>.
+        /// <see cref="LibreMetaverse.Rendering.LindenAvatarDefinition.ComputeBoneTransforms"/>.
         /// </summary>
         /// <returns>
         /// A read-only dictionary mapping each visual parameter ID to its decoded or derived float value.
         /// </returns>
         public IReadOnlyDictionary<int, float> DecodeVisualParams()
         {
-            var ids    = OpenMetaverse.VisualParams.Group0ParamIds;
+            var ids    = LibreMetaverse.VisualParams.Group0ParamIds;
             var result = new Dictionary<int, float>(ids.Length);
             for (int i = 0; i < ids.Length; i++)
             {
                 if (i >= VisualParams.Count) break;
-                if (!OpenMetaverse.VisualParams.Params.TryGetValue(ids[i], out var vp)) continue;
+                if (!LibreMetaverse.VisualParams.Params.TryGetValue(ids[i], out var vp)) continue;
                 result[ids[i]] = Utils.ByteToFloat(VisualParams[i], vp.MinValue, vp.MaxValue);
             }
 
             // Derive driven params (group-1 body morphs etc.) from their group-0 driver values.
             // Mirrors LLDriverParam::setDrivenWeight in the SL viewer.
-            foreach (var kv in OpenMetaverse.VisualParams.Params)
+            foreach (var kv in LibreMetaverse.VisualParams.Params)
             {
                 var driverVp = kv.Value;
                 if (driverVp.DrivenParams == null || driverVp.DrivenParams.Length == 0) continue;
@@ -1845,7 +1831,7 @@ namespace OpenMetaverse
 
                 foreach (var driven in driverVp.DrivenParams)
                 {
-                    if (!OpenMetaverse.VisualParams.Params.TryGetValue(driven.ParamID, out var drivenVp)) continue;
+                    if (!LibreMetaverse.VisualParams.Params.TryGetValue(driven.ParamID, out var drivenVp)) continue;
 
                     float drivenNorm;
                     if (!driven.HasRange)

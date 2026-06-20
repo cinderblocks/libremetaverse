@@ -1,7 +1,7 @@
 using System;
 using System.Text;
 using System.Threading.Tasks;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace TestClient.Commands.Land
 {

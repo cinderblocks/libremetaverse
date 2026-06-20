@@ -27,10 +27,10 @@
 
 using System;
 using System.Linq;
-using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.Packets;
+using LibreMetaverse.Messages.Linden;
+using LibreMetaverse.Packets;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public partial class InventoryManager
     {

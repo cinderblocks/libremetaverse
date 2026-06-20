@@ -4,7 +4,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace LibreMetaverse.Tests.TestHelpers
 {
@@ -116,7 +116,7 @@ namespace LibreMetaverse.Tests.TestHelpers
                 try
                 {
                     var loopback = new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0);
-                    var sim = new OpenMetaverse.Simulator(this, loopback, 0);
+                    var sim = new LibreMetaverse.Simulator(this, loopback, 0);
                     Network.CurrentSim = sim;
                 }
                 catch { /* best-effort: if simulator construction fails, continue */ }

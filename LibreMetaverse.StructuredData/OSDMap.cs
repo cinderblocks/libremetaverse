@@ -30,7 +30,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OpenMetaverse.StructuredData
+namespace LibreMetaverse.StructuredData
 {
     /// <summary>
     /// OSD Map Element

@@ -26,7 +26,7 @@
 
 using System;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Attribute class that allows extra attributes to be attached to ENUMs

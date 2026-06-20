@@ -31,11 +31,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse.Materials;
-using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Messages.Linden;
+using LibreMetaverse.Packets;
+using LibreMetaverse.StructuredData;
+using LibreMetaverse.Messages.Linden;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     #region Enums
 
@@ -1125,38 +1125,6 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Perform a click action on an object
-        /// </summary>
-        /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>        
-        /// <param name="localID">The Local ID of the object</param>
-        [Obsolete("Use ClickObjectAsync(simulator, localID, CancellationToken) instead.")]
-        public void ClickObject(Simulator simulator, uint localID)
-         {
-             // Preserve synchronous API by blocking on the async implementation
-             ClickObjectAsync(simulator, localID).GetAwaiter().GetResult();
-         }
-
-        /// <summary>
-        /// Perform a click action (Grab) on a single object
-        /// </summary>
-        /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>        
-        /// <param name="localID">The Local ID of the object</param>
-        /// <param name="uvCoord">The texture coordinates to touch</param>
-        /// <param name="stCoord">The surface coordinates to touch</param>
-        /// <param name="faceIndex">The face of the position to touch</param>
-        /// <param name="position">The region coordinates of the position to touch</param>
-        /// <param name="normal">The surface normal of the position to touch (A normal is a vector perpendicular to the surface)</param>
-        /// <param name="binormal">The surface binormal of the position to touch (A binormal is a vector tangent to the surface
-        /// pointing along the U direction of the tangent space</param>
-        [Obsolete("Use ClickObjectAsync(simulator, localID, uvCoord, stCoord, faceIndex, position, normal, binormal, CancellationToken) instead.")]
-        public void ClickObject(Simulator simulator, uint localID, Vector3 uvCoord, Vector3 stCoord, int faceIndex, Vector3 position,
-            Vector3 normal, Vector3 binormal)
-         {
-             // Preserve synchronous API by blocking on the async implementation
-             ClickObjectAsync(simulator, localID, uvCoord, stCoord, faceIndex, position, normal, binormal).GetAwaiter().GetResult();
-         }
-
-        /// <summary>
         /// Async variant of ClickObject. Sends a grab packet, waits a short delay
         /// and then sends the de-grab packet. Uses Task.Delay instead of Thread.Sleep.
         /// </summary>
@@ -1238,7 +1206,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Create (rez) a new prim object in a simulator
         /// </summary>
-        /// <param name="simulator">A reference to the <seealso cref="OpenMetaverse.Simulator"/> object to place the object in</param>
+        /// <param name="simulator">A reference to the <seealso cref="LibreMetaverse.Simulator"/> object to place the object in</param>
         /// <param name="prim">Data describing the prim object to rez</param>
         /// <param name="groupID">Group ID that this prim will be set to, or UUID.Zero if you
         /// do not want the object to be associated with a specific group</param>
@@ -1325,7 +1293,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Rez a Linden tree
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="scale">The size of the tree</param>
         /// <param name="rotation">The rotation of the tree</param>
         /// <param name="position">The position of the tree</param>
@@ -1365,7 +1333,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Rez grass and ground cover
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="scale">The size of the grass</param>
         /// <param name="rotation">The rotation of the grass</param>
         /// <param name="position">The position of the grass</param>
@@ -1404,7 +1372,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Set the textures to apply to the faces of an object
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
         /// <param name="textures">The texture data to apply</param>
         public void SetTextures(Simulator simulator, uint localID, Primitive.TextureEntry textures)
@@ -1415,7 +1383,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Set the textures to apply to the faces of an object
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
         /// <param name="textures">The texture data to apply</param>
         /// <param name="mediaUrl">A media URL (not used)</param>
@@ -1444,7 +1412,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Set the Light data on an object
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
         /// <param name="light"><see cref="Primitive.LightData"/> object containing the data to set</param>
         public void SetLight(Simulator simulator, uint localID, Primitive.LightData light)
@@ -1475,7 +1443,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Set the flexible data on an object
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
         /// <param name="flexible">A <see cref="Primitive.FlexibleData"/> object containing the data to set</param>
         public void SetFlexible(Simulator simulator, uint localID, Primitive.FlexibleData flexible)
@@ -1505,7 +1473,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Set the sculptie texture and data on an object
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
         /// <param name="sculpt">A <see cref="Primitive.SculptData"/> object containing the data to set</param>
         public void SetSculpt(Simulator simulator, uint localID, Primitive.SculptData sculpt)
@@ -1556,7 +1524,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Unset additional primitive parameters on an object
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
         /// <param name="type">The extra parameters to set</param>
         public void SetExtraParamOff(Simulator simulator, uint localID, ExtraParamType type)
@@ -1586,7 +1554,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Link multiple prims into a linkset
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the objects reside</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the objects reside</param>
         /// <param name="localIDs">An array which contains the IDs of the objects to link</param>
         /// <remarks>The last object in the array will be the root object of the linkset</remarks>
         public void LinkPrims(Simulator simulator, List<uint> localIDs)
@@ -1615,7 +1583,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Delink/Unlink multiple prims from a linkset
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the objects reside</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the objects reside</param>
         /// <param name="localIDs">An array which contains the IDs of the objects to delink</param>
         public void DelinkPrims(Simulator simulator, List<uint> localIDs)
         {
@@ -1646,7 +1614,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Change the rotation of an object
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
         /// <param name="rotation">The new rotation of the object</param>
         public void SetRotation(Simulator simulator, uint localID, Quaternion rotation)
@@ -1672,7 +1640,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Set the name of an object
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
         /// <param name="name">A string containing the new name of the object</param>
         public void SetName(Simulator simulator, uint localID, string name)
@@ -1683,7 +1651,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Set the name of multiple objects
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the objects reside</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the objects reside</param>
         /// <param name="localIDs">An array which contains the IDs of the objects to change the name of</param>
         /// <param name="names">An array which contains the new names of the objects</param>
         public void SetNames(Simulator simulator, uint[] localIDs, string[] names)
@@ -1713,7 +1681,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Set the description of an object
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
         /// <param name="description">A string containing the new description of the object</param>
         public void SetDescription(Simulator simulator, uint localID, string description)
@@ -1724,7 +1692,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Set the descriptions of multiple objects
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the objects reside</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the objects reside</param>
         /// <param name="localIDs">An array which contains the IDs of the objects to change the description of</param>
         /// <param name="descriptions">An array which contains the new descriptions of the objects</param>
         public void SetDescriptions(Simulator simulator, uint[] localIDs, string[] descriptions)
@@ -1754,7 +1722,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Attach an object to this avatar
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
         /// <param name="attachPoint">The point on the avatar the object will be attached</param>
         /// <param name="rotation">The rotation of the attached object</param>
@@ -1783,7 +1751,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Drop an attached object from this avatar
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/>
         /// object where the objects reside. This will always be the simulator the avatar is currently in
         /// </param>
         /// <param name="localID">The object's ID which is local to the simulator the object is in</param>
@@ -1809,7 +1777,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Detach an object from yourself
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> 
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> 
         /// object where the objects reside
         /// 
         /// This will always be the simulator the avatar is currently in
@@ -1841,7 +1809,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Change the position of an object, Will change position of entire linkset
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
         /// <param name="position">The new position of the object</param>
         public void SetPosition(Simulator simulator, uint localID, Vector3 position)
@@ -1870,7 +1838,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Change the Scale (size) of an object
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
         /// <param name="scale">The new scale of the object</param>
         /// <param name="childOnly">If true, will change scale of this prim only, not entire linkset</param>
@@ -1891,7 +1859,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Change the Rotation of an object that is either a child or a whole linkset
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
         /// <param name="quat">The new scale of the object</param>
         /// <param name="childOnly">If true, will change rotation of this prim only, not entire linkset</param>
@@ -1925,7 +1893,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Send a Multiple Object Update packet to change the size, scale or rotation of a primitive
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
         /// <param name="data">The new rotation, size, or position of the target object</param>
         /// <param name="type">The flags from the <see cref="UpdateType"/> Enum</param>
@@ -2024,7 +1992,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Set the permissions on multiple objects
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the objects reside</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the objects reside</param>
         /// <param name="localIDs">An array which contains the IDs of the objects to set the permissions on</param>
         /// <param name="who">The new Who mask to set</param>
         /// <param name="permissions">Which permission to modify</param>
@@ -2064,7 +2032,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Request additional properties for an object
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="objectID"></param>
         public void RequestObjectPropertiesFamily(Simulator simulator, UUID objectID)
         {
@@ -2074,7 +2042,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Request additional properties for an object
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="objectID">Absolute UUID of the object</param>
         /// <param name="reliable">Whether to require server acknowledgement of this request</param>
         public void RequestObjectPropertiesFamily(Simulator simulator, UUID objectID, bool reliable)
@@ -2103,7 +2071,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Set the ownership of a list of objects to the specified group
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the objects reside</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the objects reside</param>
         /// <param name="localIds">An array which contains the IDs of the objects to set the group id on</param>
         /// <param name="groupID">The Groups ID</param>
         public void SetObjectsGroup(Simulator simulator, List<uint> localIds, UUID groupID)
@@ -2152,16 +2120,17 @@ namespace OpenMetaverse
                 PrimID = primID, URL = newURL, Face = face
             };
 
-            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(),
-                cancellationToken, (response, data, error) =>
+            _ = Task.Run(async () =>
             {
-                // If the operation was cancelled, ignore the response
-                if (cancellationToken.IsCancellationRequested)
-                    return;
-
-                if (error != null)
+                try
                 {
-                    Logger.Error($"ObjectMediaNavigate: {error.Message}", error, Client);
+                    var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload.Serialize(), cancellationToken);
+                    if (cancellationToken.IsCancellationRequested) return;
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception ex)
+                {
+                    Logger.Error($"ObjectMediaNavigate: {ex.Message}", ex, Client);
                 }
             });
         }
@@ -2185,15 +2154,17 @@ namespace OpenMetaverse
 
             ObjectMediaUpdate payload = new ObjectMediaUpdate {PrimID = primID, FaceMedia = faceMedia, Verb = "UPDATE"};
 
-            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(),
-                cancellationToken, (response, data, error) =>
+            _ = Task.Run(async () =>
             {
-                if (cancellationToken.IsCancellationRequested)
-                    return;
-
-                if (error != null)
+                try
                 {
-                    Logger.Error($"ObjectMediaUpdate: {error.Message}", error, Client);
+                    var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload.Serialize(), cancellationToken);
+                    if (cancellationToken.IsCancellationRequested) return;
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception ex)
+                {
+                    Logger.Error($"ObjectMediaUpdate: {ex.Message}", ex, Client);
                 }
             });
 
@@ -2213,10 +2184,10 @@ namespace OpenMetaverse
             {
                 ObjectMediaRequest payload = new ObjectMediaRequest {PrimID = primID, Verb = "GET"};
 
-                Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload.Serialize(),
-                    cancellationToken, (httpResponse, data, error) =>
+                _ = Task.Run(async () =>
+                {
+                    try
                     {
-                        // If cancelled, invoke callback with failure and ignore response
                         if (cancellationToken.IsCancellationRequested)
                         {
                             if (callback != null)
@@ -2225,42 +2196,29 @@ namespace OpenMetaverse
                             }
                             return;
                         }
-                        if (error != null)
+                        var (httpResponse, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload.Serialize(), cancellationToken);
+                        ObjectMediaMessage msg = new ObjectMediaMessage();
+                        if (data == null || data.Length == 0)
                         {
-                            Logger.Error("Failed retrieving ObjectMedia data", error, Client);
+                            Logger.Error("Failed retrieving ObjectMedia; response empty.", Client);
                             if (callback != null)
                             {
-                                try { callback(false, string.Empty, new MediaEntry[0]); }
-                                catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                                try { callback(false, string.Empty, null); } catch (Exception ex) { Logger.Error(ex.Message, Client); }
                             }
                             return;
                         }
-
-                         ObjectMediaMessage msg = new ObjectMediaMessage();
-                          if (data == null || data.Length == 0)
-                          {
-                              Logger.Error("Failed retrieving ObjectMedia; response empty.", Client);
-                              if (callback != null)
-                              {
-                                  try { callback(false, string.Empty, null); } catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                              }
-                              return;
-                          }
-
-                         OSD result = OSDParser.Deserialize(data);
-                         var map = result as OSDMap;
-                          if (map == null)
-                          {
-                              Logger.Error("Failed retrieving ObjectMedia; unexpected payload.", Client);
-                              if (callback != null)
-                              {
-                                  try { callback(false, string.Empty, null); } catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                              }
-                              return;
-                          }
-
-                         msg.Deserialize(map);
-
+                        OSD result = OSDParser.Deserialize(data);
+                        var map = result as OSDMap;
+                        if (map == null)
+                        {
+                            Logger.Error("Failed retrieving ObjectMedia; unexpected payload.", Client);
+                            if (callback != null)
+                            {
+                                try { callback(false, string.Empty, null); } catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                            }
+                            return;
+                        }
+                        msg.Deserialize(map);
                         if (msg.Request is ObjectMediaResponse response)
                         {
                             // Capture sim into a local to satisfy the nullable analyzer
@@ -2273,23 +2231,21 @@ namespace OpenMetaverse
                                 }
                                 return;
                             }
-
                             if (Client.Settings.OBJECT_TRACKING)
                             {
-                                 var kvp = simulator.ObjectsPrimitives.FirstOrDefault(
-                                     p => p.Value.ID == primID);
-                                 if (kvp.Key != 0)
-                                 {
-                                      Primitive? prim = kvp.Value;
-                                      if (prim is not null)
-                                      {
-                                         prim.MediaVersion = response.Version;
-                                         prim.FaceMedia = response.FaceMedia;
-                                         simulator.ObjectsPrimitives.TryUpdate(kvp.Key, prim, kvp.Value);
-                                     }
-                                 }
+                                var kvp = simulator.ObjectsPrimitives.FirstOrDefault(
+                                    p => p.Value.ID == primID);
+                                if (kvp.Key != 0)
+                                {
+                                    Primitive? prim = kvp.Value;
+                                    if (prim is not null)
+                                    {
+                                        prim.MediaVersion = response.Version;
+                                        prim.FaceMedia = response.FaceMedia;
+                                        simulator.ObjectsPrimitives.TryUpdate(kvp.Key, prim, kvp.Value);
+                                    }
+                                }
                             }
-
                             if (callback != null)
                             {
                                 try { callback(true, response.Version, response.FaceMedia); }
@@ -2304,7 +2260,24 @@ namespace OpenMetaverse
                                 catch (Exception ex) { Logger.Error(ex.Message, Client); }
                             }
                         }
-                     });
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        if (callback != null)
+                        {
+                            try { callback(false, string.Empty, null); } catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                        }
+                    }
+                    catch (Exception error)
+                    {
+                        Logger.Error("Failed retrieving ObjectMedia data", error, Client);
+                        if (callback != null)
+                        {
+                            try { callback(false, string.Empty, new MediaEntry[0]); }
+                            catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                        }
+                    }
+                });
             }
             else
             {
@@ -2351,34 +2324,27 @@ namespace OpenMetaverse
 
             Logger.Info($"Awaiting materials from {uri}", Client);
 
-            await Client.HttpCapsClient.GetRequestAsync(uri, cancellationToken,
-                   ((response, data, error) =>
-                   {
-                       if (error != null)
-                       {
-                           Logger.Error($"Failed fetching materials: {error}", Client);
-                           return;
-                       }
-
-                       if (data == null || data.Length == 0)
-                       {
-                           Logger.Error("Failed fetching materials; result was empty.", Client);
-
-                           return;
-                       }
-
-                       try
-                       {
-                           OSD result = OSDParser.Deserialize(data);
-                            RenderMaterialsMessage info = new RenderMaterialsMessage();
-                            var map = result as OSDMap;
-                            if (map == null)
-                            {
-                                Logger.Info("RenderMaterials returned unexpected payload", Client);
-                                return;
-                            }
+            try
+            {
+                var (response, data) = await Client.HttpCapsClient.GetAsync(uri, cancellationToken).ConfigureAwait(false);
+                if (data == null || data.Length == 0)
+                {
+                    Logger.Error("Failed fetching materials; result was empty.", Client);
+                }
+                else
+                {
+                    try
+                    {
+                        OSD result = OSDParser.Deserialize(data);
+                        RenderMaterialsMessage info = new RenderMaterialsMessage();
+                        var map = result as OSDMap;
+                        if (map == null)
+                        {
+                            Logger.Info("RenderMaterials returned unexpected payload", Client);
+                        }
+                        else
+                        {
                             info.Deserialize(map);
-
                             if (info.MaterialData is OSDArray mats)
                             {
                                 foreach (var entry in mats)
@@ -2393,23 +2359,27 @@ namespace OpenMetaverse
                                     }
                                 }
                             }
-                           else
-                           {
-                               Logger.Info("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(result, true), Client);
-                           }
-
-                           Logger.Info($"Fetched (x{matsToReturn.Count}) from {uri}", Client);
-                       }
-                       catch (Exception ex)
-                       {
-                           Logger.Error("Failed fetching RenderMaterials", ex, Client);
-
-                           if (data.Length > 0)
-                           {
-                               Logger.Info("Response unparsable; " + System.Text.Encoding.UTF8.GetString(data), Client);
-                           }
-                       }
-                   })).ConfigureAwait(false);
+                            else
+                            {
+                                Logger.Info("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(result, true), Client);
+                            }
+                            Logger.Info($"Fetched (x{matsToReturn.Count}) from {uri}", Client);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed fetching RenderMaterials", ex, Client);
+                        if (data.Length > 0)
+                        {
+                            Logger.Info("Response unparsable; " + System.Text.Encoding.UTF8.GetString(data), Client);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error($"Failed fetching materials: {ex}", Client);
+            }
 
             return matsToReturn;
         }
@@ -2460,72 +2430,67 @@ namespace OpenMetaverse
 
             Logger.Info($"Awaiting materials (x{array.Count}) from {uri}", Client);
 
-            await Client.HttpCapsClient.PostRequestAsync(uri, OSDFormat.Xml, request, cancellationToken,
-                       (response, data, error) =>
-                       {
-                           if (error != null)
-                           {
-                               Logger.Error("Failed fetching materials {error}", Client);
-                               return;
-                           }
-
-                           if (data == null || data.Length == 0)
-                           {
-                               Logger.Error("Failed fetching materials; result was empty.", Client);
-
-                               Logger.Info($"Sent:\n{uri}\n" +
-                                           $"{Convert.ToBase64String(OSDParser.SerializeLLSDBinary(request), Base64FormattingOptions.InsertLineBreaks)}", Client);
-
-                               return;
-                           }
-
-                           try
-                           {
-                               OSD result = OSDParser.Deserialize(data);
-                                RenderMaterialsMessage info = new RenderMaterialsMessage();
-                                var map = result as OSDMap;
-                                if (map == null)
-                                {
-                                    Logger.Info("RenderMaterials returned unexpected payload", Client);
-                                    return;
-                                }
-                                info.Deserialize(map);
-
-                               if (info.MaterialData is OSDArray mats)
-                               {
+            try
+            {
+                var (response, data) = await Client.HttpCapsClient.PostAsync(uri, OSDFormat.Xml, request, cancellationToken).ConfigureAwait(false);
+                if (data == null || data.Length == 0)
+                {
+                    Logger.Error("Failed fetching materials; result was empty.", Client);
+                    Logger.Info($"Sent:\n{uri}\n" +
+                                $"{Convert.ToBase64String(OSDParser.SerializeLLSDBinary(request), Base64FormattingOptions.InsertLineBreaks)}", Client);
+                }
+                else
+                {
+                    try
+                    {
+                        OSD result = OSDParser.Deserialize(data);
+                        RenderMaterialsMessage info = new RenderMaterialsMessage();
+                        var map = result as OSDMap;
+                        if (map == null)
+                        {
+                            Logger.Info("RenderMaterials returned unexpected payload", Client);
+                        }
+                        else
+                        {
+                            info.Deserialize(map);
+                            if (info.MaterialData is OSDArray mats)
+                            {
                                 foreach (var entry in mats)
+                                {
+                                    if (entry is OSDMap entryMap)
                                     {
-                                        if (entry is OSDMap entryMap)
-                                        {
-                                            matsToReturn.Add(new LegacyMaterial(entryMap));
-                                        }
-                                        else
-                                        {
-                                            Logger.Info("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(entry, true), Client);
-                                        }
+                                        matsToReturn.Add(new LegacyMaterial(entryMap));
                                     }
-                               }
-                               else
-                               {
-                                   Logger.Info("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(result, true), Client);
-                               }
-
-                               Logger.Info($"Fetched (x{matsToReturn.Count}) from {uri}", Client);
-                           }
-                           catch (Exception ex)
-                           {
-                               Logger.Error("Failed fetching RenderMaterials", ex, Client);
-
-                               Logger.Info($"Sent:\n{uri}\n{System.Text.Encoding.UTF8.GetString(OSDParser.SerializeLLSDXmlBytes(request))}", Client);
-
-                               Logger.Info("Requests: " + string.Join(",", materials.Select(m => m.ToString())));
-
-                               if (data.Length > 0)
-                               {
-                                   Logger.Info("Unable to parse response; " + System.Text.Encoding.UTF8.GetString(data), Client);
-                               }
-                           }
-                       }).ConfigureAwait(false);
+                                    else
+                                    {
+                                        Logger.Info("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(entry, true), Client);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                Logger.Info("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(result, true), Client);
+                            }
+                            Logger.Info($"Fetched (x{matsToReturn.Count}) from {uri}", Client);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed fetching RenderMaterials", ex, Client);
+                        Logger.Info($"Sent:\n{uri}\n{System.Text.Encoding.UTF8.GetString(OSDParser.SerializeLLSDXmlBytes(request))}", Client);
+                        Logger.Info("Requests: " + string.Join(",", materials.Select(m => m.ToString())));
+                        if (data.Length > 0)
+                        {
+                            Logger.Info("Unable to parse response; " + System.Text.Encoding.UTF8.GetString(data), Client);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error("Failed fetching materials {error}", Client);
+                Logger.Error("Exception: " + ex.Message, Client);
+            }
 
             return matsToReturn;
         }
@@ -2666,7 +2631,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Set the Shape data of an object
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
         /// <param name="prim">Data describing the prim shape</param>
         public void SetShape(Simulator simulator, uint localID, Primitive.ConstructionData prim)
@@ -2710,7 +2675,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Set the Material data of an object
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="OpenMetaverse.Simulator"/> object where the object resides</param>
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
         /// <param name="localID">The objects ID which is local to the simulator the object is in</param>
         /// <param name="material">The new material of the object</param>
         public void SetMaterial(Simulator simulator, uint localID, Material material)

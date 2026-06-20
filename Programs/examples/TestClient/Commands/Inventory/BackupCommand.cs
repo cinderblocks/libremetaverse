@@ -4,8 +4,8 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse;
-using OpenMetaverse.Assets;
+using LibreMetaverse;
+using LibreMetaverse.Assets;
 using LibreMetaverse;
 
 namespace TestClient.Commands.Inventory
@@ -278,7 +278,7 @@ namespace TestClient.Commands.Inventory
             foreach (InventoryNode i in folder.Nodes.Values)
             {
                 if (token.IsCancellationRequested) return;
-                else if (i.Data is OpenMetaverse.InventoryFolder)
+                else if (i.Data is LibreMetaverse.InventoryFolder)
                     BackupFolder(i, sPathSoFar + "\\" + MakeValid(i.Data.Name.Trim()), token);
             }
         }

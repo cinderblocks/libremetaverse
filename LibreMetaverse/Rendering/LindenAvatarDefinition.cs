@@ -29,7 +29,7 @@ using System.Globalization;
 using System.Linq;
 using System.Xml;
 
-namespace OpenMetaverse.Rendering
+namespace LibreMetaverse.Rendering
 {
     /// <summary>
     /// Represents an attachment point as defined in avatar_lad.xml.

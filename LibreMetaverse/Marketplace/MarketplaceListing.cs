@@ -26,7 +26,7 @@
 
 using System;
 
-namespace OpenMetaverse.Marketplace
+namespace LibreMetaverse.Marketplace
 {
     /// <summary>
     /// Active/inactive state of a listing as reported by the SLM backend.

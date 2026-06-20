@@ -26,9 +26,9 @@
 
 using System;
 using System.Text;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse.Assets
+namespace LibreMetaverse.Assets
 {
     public enum GltfAlphaMode : byte
     {

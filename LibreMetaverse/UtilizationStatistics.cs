@@ -28,7 +28,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OpenMetaverse.Stats
+namespace LibreMetaverse.Stats
 {
     public enum Type
     {

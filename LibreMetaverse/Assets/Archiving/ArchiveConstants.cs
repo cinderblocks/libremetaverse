@@ -26,7 +26,7 @@
 
 using System.Collections.Generic;
 
-namespace OpenMetaverse.Assets
+namespace LibreMetaverse.Assets
 {
     /// <summary>
     /// Constants for the archiving module

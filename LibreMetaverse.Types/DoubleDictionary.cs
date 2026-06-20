@@ -29,7 +29,7 @@ using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public class DoubleDictionary<TKey1, TKey2, TValue> : IDisposable
         where TKey1 : notnull

@@ -29,7 +29,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace LibreMetaverse.Appearance
 {
@@ -92,12 +92,6 @@ namespace LibreMetaverse.Appearance
             return null;
         }
 
-        [Obsolete("Use CreateFolderAsync instead", true)]
-        public UUID CreateFolder(UUID parent, string name, FolderType type)
-        {
-            throw new NotSupportedException("Synchronous CreateFolder is removed. Use CreateFolderAsync instead.");
-        }
-
         public Task<UUID> CreateFolderAsync(UUID parent, string name, FolderType type, CancellationToken cancellationToken = default)
         {
             // Inventory.CreateFolder is synchronous; run on a threadpool thread to avoid blocking callers
@@ -152,12 +146,6 @@ namespace LibreMetaverse.Appearance
             {
                 await CreateFolderAsync(Store.RootFolder.UUID, "Trash", FolderType.Trash, cancellationToken).ConfigureAwait(false);
             }
-        }
-
-        [Obsolete("Use CopyFolderAsync instead", true)]
-        public UUID CopyFolder(InventoryFolder folder, UUID destination)
-        {
-            throw new NotSupportedException("Synchronous CopyFolder is removed. Use CopyFolderAsync instead.");
         }
 
         public async Task<UUID> CopyFolderAsync(InventoryFolder folder, UUID destination, CancellationToken cancellationToken = default, IProgress<InitialOutfitProgress>? progress = null)
@@ -241,12 +229,6 @@ namespace LibreMetaverse.Appearance
                 cancellationToken.ThrowIfCancellationRequested();
                 return false;
             }, cancellationToken);
-        }
-
-        [Obsolete("Use SetInitialOutfitAsync instead", true)]
-        public void SetInitialOutfit(string outfit)
-        {
-            throw new NotSupportedException("Synchronous SetInitialOutfit is removed. Use SetInitialOutfitAsync instead.");
         }
 
         public Task SetInitialOutfitAsync(string outfit, CancellationToken cancellationToken = default, IProgress<InitialOutfitProgress>? progress = null)

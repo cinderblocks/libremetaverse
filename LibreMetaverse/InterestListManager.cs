@@ -29,10 +29,10 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.Messages.Linden;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Manages the InterestList capability, which controls how the simulator culls object
@@ -121,25 +121,16 @@ namespace OpenMetaverse
 
                 var http = Client.HttpCapsClient;
                 var msg = new InterestListMessage { InterestListMode = mode };
-                bool success = false;
-                await http.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken,
-                    (response, data, error) =>
-                    {
-                        if (error != null)
-                        {
-                            Logger.Warn($"InterestList POST mode={msg.Mode} on {simulator} failed: {error.Message}", Client);
-                            return;
-                        }
-                        success = response?.IsSuccessStatusCode ?? false;
-                        if (!success)
-                        {
-                            Logger.Warn($"InterestList POST mode={msg.Mode} on {simulator} non-success: {response?.StatusCode}", Client);
-                        }
-                        else
-                        {
-                            Logger.DebugLog($"InterestList mode set to '{msg.Mode}' on {simulator}", Client);
-                        }
-                    }).ConfigureAwait(false);
+                var (response, data) = await http.PostAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken).ConfigureAwait(false);
+                bool success = response.IsSuccessStatusCode;
+                if (!success)
+                {
+                    Logger.Warn($"InterestList POST mode={msg.Mode} on {simulator} non-success: {response.StatusCode}", Client);
+                }
+                else
+                {
+                    Logger.DebugLog($"InterestList mode set to '{msg.Mode}' on {simulator}", Client);
+                }
                 return success;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))

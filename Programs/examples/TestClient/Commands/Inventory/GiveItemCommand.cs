@@ -1,14 +1,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace TestClient.Commands.Inventory
 {
     class GiveItemCommand : Command
     {
         private InventoryManager? Manager;
-        private OpenMetaverse.Inventory? Inventory;
+        private LibreMetaverse.Inventory? Inventory;
         public GiveItemCommand(TestClient client)
         {
             Name = "give";

@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace OpenMetaverse.Marketplace
+namespace LibreMetaverse.Marketplace
 {
     /// <summary>
     /// Classifies the role a folder plays within the Second Life Marketplace inventory hierarchy.

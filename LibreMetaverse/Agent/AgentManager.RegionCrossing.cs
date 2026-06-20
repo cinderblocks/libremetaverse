@@ -28,7 +28,7 @@ using System;
 using System.Net;
 using System.Threading;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// AgentManager partial class - Region Crossing State Machine
@@ -158,7 +158,7 @@ namespace OpenMetaverse
                 _currentCrossing = new CrossingInfo
                 {
                     State = CrossingState.PreparingCross,
-                    StartTime = DateTime.UtcNow,
+                    StartTime = Client.UtcNow,
                     OldSimulator = oldSim,
                     RegionHandle = regionHandle,
                     EndPoint = endPoint,
@@ -309,7 +309,7 @@ namespace OpenMetaverse
 
                         // Update position and look direction
                         relativePosition = _currentCrossing.Position;
-                        LastPositionUpdate = DateTime.UtcNow;
+                        LastPositionUpdate = Client!.UtcNow;
                         Movement.Camera.LookDirection(_currentCrossing.LookAt);
 
                         // Mark old sim as no longer current
@@ -449,7 +449,7 @@ namespace OpenMetaverse
                 // Stop timeout timer
                 _crossingTimeoutTimer?.Change(Timeout.Infinite, Timeout.Infinite);
 
-                TimeSpan duration = DateTime.UtcNow - _currentCrossing.StartTime;
+                TimeSpan duration = Client.UtcNow - _currentCrossing.StartTime;
                 Logger.Info($"Region crossing completed successfully in {duration.TotalSeconds:F2} seconds", Client);
 
                 // Fire the RegionCrossed event
@@ -482,7 +482,7 @@ namespace OpenMetaverse
                 // Stop timeout timer
                 _crossingTimeoutTimer?.Change(Timeout.Infinite, Timeout.Infinite);
 
-                TimeSpan duration = DateTime.UtcNow - _currentCrossing.StartTime;
+                TimeSpan duration = Client.UtcNow - _currentCrossing.StartTime;
                 
                 // Build detailed failure message
                 string failureDetails = $"Region crossing failed after {duration.TotalSeconds:F2} seconds. " +
@@ -622,7 +622,7 @@ namespace OpenMetaverse
 
                 lock (_currentCrossing.SyncLock)
                 {
-                    var duration = DateTime.UtcNow - _currentCrossing.StartTime;
+                    var duration = Client.UtcNow - _currentCrossing.StartTime;
                     return $"State: {_currentCrossing.State}, " +
                            $"Duration: {duration.TotalSeconds:F2}s, " +
                            $"Retries: {_currentCrossing.RetryCount}/{CrossingInfo.MaxRetries}, " +

@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace OpenMetaverse.Assets.Gltf
+namespace LibreMetaverse.Assets.Gltf
 {
     /// <summary>An image referenced by a <see cref="GltfTexture"/>.</summary>
     public sealed class GltfImage

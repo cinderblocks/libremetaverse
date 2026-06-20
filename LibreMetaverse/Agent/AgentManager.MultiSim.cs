@@ -29,7 +29,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// AgentManager partial class - Multi-Simulator Support
@@ -163,7 +163,7 @@ namespace OpenMetaverse
                     Rotation = relativeRotation,
                     LocalID = localID,
                     IsPresent = sim.AgentMovementComplete,
-                    LastUpdate = DateTime.UtcNow
+                    LastUpdate = Client.UtcNow
                 },
                 (key, old) =>
                 {
@@ -171,7 +171,7 @@ namespace OpenMetaverse
                     old.Rotation = relativeRotation;
                     old.LocalID = localID;
                     old.IsPresent = sim.AgentMovementComplete;
-                    old.LastUpdate = DateTime.UtcNow;
+                    old.LastUpdate = Client.UtcNow;
                     return old;
                 });
         }
@@ -255,7 +255,7 @@ namespace OpenMetaverse
             if (_childAgentStatus.TryGetValue(handle, out var status))
             {
                 // Don't re-establish if recently requested (within 30 seconds)
-                if ((DateTime.UtcNow - status.RequestTime).TotalSeconds < 30)
+                if ((Client.UtcNow - status.RequestTime).TotalSeconds < 30)
                 {
                     return;
                 }
@@ -269,7 +269,7 @@ namespace OpenMetaverse
                 _childAgentStatus[handle] = new ChildAgentStatus
                 {
                     RegionHandle = handle,
-                    RequestTime = DateTime.UtcNow,
+                    RequestTime = Client.UtcNow,
                     Established = true,
                     Direction = direction
                 };
@@ -282,7 +282,7 @@ namespace OpenMetaverse
             _childAgentStatus[handle] = new ChildAgentStatus
             {
                 RegionHandle = handle,
-                RequestTime = DateTime.UtcNow,
+                RequestTime = Client.UtcNow,
                 Established = false,
                 Direction = direction
             };
@@ -298,7 +298,7 @@ namespace OpenMetaverse
             var currentSim = Client.Network.CurrentSim;
             if (currentSim == null) return;
 
-            var now = DateTime.UtcNow;
+            var now = Client.UtcNow;
             var staleThreshold = TimeSpan.FromMinutes(2);
 
             // Remove stale tracking entries

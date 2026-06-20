@@ -26,7 +26,7 @@
 
 using System.Collections.Generic;
 
-namespace OpenMetaverse.Assets.Gltf
+namespace LibreMetaverse.Assets.Gltf
 {
     /// <summary>A single draw call's geometry and material assignment.</summary>
     public sealed class GltfPrimitive

@@ -28,7 +28,7 @@ using System;
 using System.IO;
 using System.Text;
 
-namespace OpenMetaverse.Assets
+namespace LibreMetaverse.Assets
 {
     /// <summary>
     /// Temporary code to produce a tar archive in tar v7 format

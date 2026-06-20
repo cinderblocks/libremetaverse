@@ -29,7 +29,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 
-namespace OpenMetaverse.StructuredData
+namespace LibreMetaverse.StructuredData
 {
     /// <summary>
     /// 

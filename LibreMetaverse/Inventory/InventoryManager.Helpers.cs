@@ -1,8 +1,8 @@
 using System;
 using System.Threading.Tasks;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public partial class InventoryManager
     {

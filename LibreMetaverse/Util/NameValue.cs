@@ -27,7 +27,7 @@
 using System;
 using System.Text;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// A Name Value pair with additional settings, used in the protocol

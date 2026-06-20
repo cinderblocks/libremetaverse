@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace OpenMetaverse.Assets.Gltf
+namespace LibreMetaverse.Assets.Gltf
 {
     /// <summary>Raw binary data for a glTF buffer. Data may be embedded (loaded) or referenced via URI.</summary>
     public sealed class GltfBuffer

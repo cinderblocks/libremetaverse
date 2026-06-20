@@ -26,7 +26,7 @@
 
 using System;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Reads in a byte array of an Animation Asset created by the SecondLife(tm) client.

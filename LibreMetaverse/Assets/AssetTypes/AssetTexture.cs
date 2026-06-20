@@ -28,10 +28,10 @@
 using System;
 using CoreJ2K;
 using CoreJ2K.Configuration;
-using OpenMetaverse.Imaging;
+using LibreMetaverse.Imaging;
 using SkiaSharp;
 
-namespace OpenMetaverse.Assets
+namespace LibreMetaverse.Assets
 {
     /// <summary>
     /// Represents a texture

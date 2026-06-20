@@ -2,7 +2,7 @@ using MessagePack;
 using MessagePack.Formatters;
 using System.Buffers;
 
-namespace OpenMetaverse.Formatters
+namespace LibreMetaverse.Formatters
 {
     public class UUIDFormatter : IMessagePackFormatter<UUID>
     {

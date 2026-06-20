@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using OpenMetaverse;
-using Vector3 = OpenMetaverse.Vector3;
+using LibreMetaverse;
+using Vector3 = LibreMetaverse.Vector3;
 using LibreMetaverse;
 
 namespace TestClient.Commands.Prims

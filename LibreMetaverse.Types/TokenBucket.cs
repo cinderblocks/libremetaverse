@@ -26,7 +26,7 @@
 
 using System;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// A hierarchical token bucket for bandwidth throttling. See

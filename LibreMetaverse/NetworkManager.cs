@@ -32,16 +32,16 @@ using System.Linq;
 using System.Net;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using OpenMetaverse.Packets;
-using OpenMetaverse.Interfaces;
-using OpenMetaverse.Messages.Linden;
+using LibreMetaverse.Packets;
+using LibreMetaverse.Interfaces;
+using LibreMetaverse.Messages.Linden;
 using LibreMetaverse;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// NetworkManager is responsible for managing the network layer of 
-    /// OpenMetaverse. It tracks all the server connections, serializes 
+    /// LibreMetaverse. It tracks all the server connections, serializes 
     /// outgoing traffic and deserializes incoming traffic, and provides
     /// instances of delegates for network-related events.
     /// </summary>
@@ -937,12 +937,6 @@ namespace OpenMetaverse
             }
         }
 
-        /// <summary>
-        /// Searches through the list of currently connected simulators to find
-        /// one attached to the given IPEndPoint
-        /// </summary>
-        /// <param name="endPoint">IPEndPoint of the Simulator to search for</param>
-        /// <returns>A Simulator reference on success, otherwise null</returns>
         internal void RemoveSimulator(Simulator simulator)
         {
             _simulatorsLock.EnterWriteLock();

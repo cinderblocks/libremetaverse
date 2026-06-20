@@ -25,8 +25,8 @@
  */
 
 using NUnit.Framework;
-using OpenMetaverse;
-using OpenMetaverse.Marketplace;
+using LibreMetaverse;
+using LibreMetaverse.Marketplace;
 
 namespace LibreMetaverse.Tests
 {

@@ -31,7 +31,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse.Appearance;
 using NUnit.Framework;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace LibreMetaverse.Tests
 {

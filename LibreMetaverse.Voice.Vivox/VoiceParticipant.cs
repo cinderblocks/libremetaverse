@@ -28,7 +28,7 @@
 using System;
 using System.Text;
 using System.Text.RegularExpressions;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace LibreMetaverse.Voice.Vivox
 {
@@ -78,9 +78,7 @@ namespace LibreMetaverse.Voice.Vivox
                 temp = temp.Replace('_', '/');
 
                 byte[] binary = Convert.FromBase64String(temp.Substring(1));
-                UUID u = UUID.Zero;
-                u.FromBytes(binary, 0);
-                return u;
+                return new UUID(binary, 0);
             }
 
             return UUID.Zero;

@@ -30,13 +30,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Packets;
+using LibreMetaverse.Messages.Linden;
+using LibreMetaverse.StructuredData;
+using LibreMetaverse.Packets;
 using System.Collections.Concurrent;
 using LibreMetaverse.Threading;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Tools for dealing with agents inventory
@@ -187,31 +187,6 @@ namespace OpenMetaverse
 
         #region Fetch
 
-        /// <summary>
-        /// Fetch an inventory item from the dataserver
-        /// </summary>
-        /// <param name="itemID">The items <see cref="UUID"/></param>
-        /// <param name="ownerID">The item Owners <see cref="OpenMetaverse.UUID"/></param>
-        /// <param name="timeout">time to wait for results represented by <see cref="TimeSpan"/></param>
-        /// <returns>An <see cref="InventoryItem"/> object on success, or null if no item was found</returns>
-        /// <remarks>Items will also be sent to the <see cref="InventoryManager.OnItemReceived"/> event</remarks>
-        [Obsolete("Use FetchItemAsync or FetchItemHttpAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
-        public InventoryItem? FetchItem(UUID itemID, UUID ownerID, TimeSpan timeout)
-        {
-            using (var cts = new CancellationTokenSource())
-            {
-                cts.CancelAfter(timeout);
-                try
-                {
-                    return FetchItemAsync(itemID, ownerID, cts.Token).GetAwaiter().GetResult();
-                }
-                catch (OperationCanceledException)
-                {
-                    return null;
-                }
-            }
-        }
-
         public async Task<InventoryItem?> FetchItemHttpAsync(UUID itemId, UUID ownerId, CancellationToken token = default)
         {
             InventoryItem? item = null;
@@ -225,8 +200,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Request A single inventory item
         /// </summary>
-        /// <param name="itemID">The items <see cref="OpenMetaverse.UUID"/></param>
-        /// <param name="ownerID">The item Owners <see cref="OpenMetaverse.UUID"/></param>
+        /// <param name="itemID">The items <see cref="LibreMetaverse.UUID"/></param>
+        /// <param name="ownerID">The item Owners <see cref="LibreMetaverse.UUID"/></param>
         /// <param name="cancellationToken">Cancellation token to cancel the request</param>
         /// <see cref="InventoryManager.OnItemReceived"/>
         public void RequestFetchInventory(UUID itemID, UUID ownerID, CancellationToken cancellationToken = default)
@@ -285,8 +260,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Request inventory items via HTTP capability
         /// </summary>
-        /// <param name="itemID">The items <see cref="OpenMetaverse.UUID"/></param>
-        /// <param name="ownerID">The item Owners <see cref="OpenMetaverse.UUID"/></param>
+        /// <param name="itemID">The items <see cref="LibreMetaverse.UUID"/></param>
+        /// <param name="ownerID">The item Owners <see cref="LibreMetaverse.UUID"/></param>
         /// <param name="cancellationToken">Cancellation token for operation</param>
         /// <param name="callback">Action</param>
         private async Task RequestFetchInventoryHttpAsync(UUID itemID, UUID ownerID,
@@ -358,64 +333,6 @@ namespace OpenMetaverse
             catch (Exception ex)
             {
                 Logger.Error("Failed getting data from FetchInventory2 capability.", ex, Client);
-            }
-        }
-
-        /// <summary>
-        /// Retrieve contents of a folder
-        /// </summary>
-        /// <param name="folder">The <see cref="UUID"/> of the folder to search</param>
-        /// <param name="owner">The <see cref="UUID"/> of the folders owner</param>
-        /// <param name="fetchFolders">retrieve folders</param>
-        /// <param name="fetchItems">retrieve items</param>
-        /// <param name="order">sort order to return results in</param>
-        /// <param name="timeout">time given to wait for results</param>
-        /// <param name="followLinks">Resolve link items to the actual item</param>
-        /// <returns>A list of inventory items matching search criteria within folder</returns>
-        /// <see cref="RequestFolderContents(UUID,UUID,bool,bool,InventorySortOrder,CancellationToken)"/>
-        /// <remarks>InventoryFolder.DescendentCount will only be accurate if both folders and items are
-        /// requested</remarks>
-        [Obsolete("Use FolderContentsAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
-        public List<InventoryBase> FolderContents(UUID folder, UUID owner, bool fetchFolders, bool fetchItems,
-            InventorySortOrder order, TimeSpan timeout, bool followLinks = false)
-        {
-            if (_Store == null)
-            {
-                var msg = "Inventory store not initialized, cannot get folder contents.";
-                Logger.Warn(msg, Client);
-                return new List<InventoryBase>();
-            }
-
-            using (var cts = new CancellationTokenSource())
-            {
-                cts.CancelAfter(timeout);
-                List<InventoryBase> inventory = new List<InventoryBase>();
-                try
-                {
-                    inventory = FolderContentsAsync(folder, owner, fetchFolders, fetchItems, order, cts.Token, followLinks).GetAwaiter().GetResult();
-                }
-                catch (OperationCanceledException)
-                {
-                    inventory = new List<InventoryBase>();
-                }
-                catch
-                {
-                    inventory = new List<InventoryBase>();
-                }
-
-                if (inventory == null)
-                {
-                    try
-                    {
-                        inventory = _Store != null ? _Store.GetContents(folder) : new List<InventoryBase>();
-                    }
-                    catch (InventoryException)
-                    {
-                        inventory = new List<InventoryBase>();
-                    }
-                }
-
-                return inventory;
             }
         }
 
@@ -842,33 +759,6 @@ namespace OpenMetaverse
                 MoveFolder(item.UUID, newParent.UUID);
             else
                 MoveItem(item.UUID, newParent.UUID);
-        }
-
-        /// <summary>
-        /// Move an inventory item or folder to a new location and change its name
-        /// </summary>
-        /// <param name="item">The <see cref="T:InventoryBase"/> item or folder to move</param>
-        /// <param name="newParent">The <see cref="T:InventoryFolder"/> to move item or folder to</param>
-        /// <param name="newName">The name to change the item or folder to</param>
-        [Obsolete("Method broken with AISv3. Use Move(item, parent) instead.")]
-        public void Move(InventoryBase item, InventoryFolder newParent, string newName)
-        {
-            if (item is InventoryFolder)
-                MoveFolder(item.UUID, newParent.UUID, newName);
-            else
-                MoveItem(item.UUID, newParent.UUID, newName);
-        }
-
-        /// <summary>
-        /// Move and rename a folder
-        /// </summary>
-        /// <param name="folderID">The source folders <see cref="UUID"/></param>
-        /// <param name="newParentID">The destination folders <see cref="UUID"/></param>
-        /// <param name="newName">The name to change the folder to</param>
-        [Obsolete("Method broken with AISv3. Use MoveFolder(folder, parent) and UpdateFolderProperties(folder, parent, name, type) instead")]
-        public void MoveFolder(UUID folderID, UUID newParentID, string newName)
-        {
-            UpdateFolderProperties(folderID, newParentID, newName, FolderType.None);
         }
 
         /// <summary>
@@ -1362,9 +1252,16 @@ namespace OpenMetaverse
             }
             else
             {
-#pragma warning disable CS0612 // Type or member is obsolete
-                Remove(items.ToList(), new List<UUID>());
-#pragma warning restore CS0612 // Type or member is obsolete
+                var itemList = items.ToList();
+                var rem = new RemoveInventoryObjectsPacket
+                {
+                    AgentData = { AgentID = Client.Self.AgentID, SessionID = Client.Self.SessionID }
+                };
+                rem.ItemData = itemList.Select(id => new RemoveInventoryObjectsPacket.ItemDataBlock { ItemID = id }).ToArray();
+                rem.FolderData = new RemoveInventoryObjectsPacket.FolderDataBlock[0];
+                Client.Network.SendPacket(rem);
+                foreach (var id in itemList)
+                    RemoveLocalUi(true, id);
             }
         }
 
@@ -1397,10 +1294,14 @@ namespace OpenMetaverse
             }
             else
             {
-                var items = new List<UUID>(1) { item };
-#pragma warning disable CS0612 // Type or member is obsolete
-                Remove(items, null);
-#pragma warning restore CS0612 // Type or member is obsolete
+                var rem = new RemoveInventoryObjectsPacket
+                {
+                    AgentData = { AgentID = Client.Self.AgentID, SessionID = Client.Self.SessionID }
+                };
+                rem.ItemData = new RemoveInventoryObjectsPacket.ItemDataBlock[] { new RemoveInventoryObjectsPacket.ItemDataBlock { ItemID = item } };
+                rem.FolderData = new RemoveInventoryObjectsPacket.FolderDataBlock[0];
+                Client.Network.SendPacket(rem);
+                RemoveLocalUi(true, item);
             }
         }
 
@@ -1433,78 +1334,25 @@ namespace OpenMetaverse
             }
             else
             {
-                var folders = new List<UUID>(1) { folder };
-#pragma warning disable CS0612 // Type or member is obsolete
-                Remove(null, folders);
-#pragma warning restore CS0612 // Type or member is obsolete
-            }
-        }
-
-        /// <summary>
-        /// Remove multiple items or folders from inventory. Note that this uses the LLUDP method
-        /// which Second Life has deprecated and removed.
-        /// </summary>
-        /// <param name="items">A List containing the <see cref="UUID"/>s of items to remove</param>
-        /// <param name="folders">A List containing the <see cref="UUID"/>s of the folders to remove</param>
-        [Obsolete]
-        public void Remove(List<UUID>? items, List<UUID>? folders)
-        {
-            if ((items == null || items.Count == 0) && (folders == null || folders.Count == 0))
-                return;
-
-            var rem = new RemoveInventoryObjectsPacket
-            {
-                AgentData =
+                var rem = new RemoveInventoryObjectsPacket
                 {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                }
-            };
-
-            if (items == null || items.Count == 0)
-            {
-                // To indicate that we want no items removed:
+                    AgentData =
+                    {
+                        AgentID = Client.Self.AgentID,
+                        SessionID = Client.Self.SessionID
+                    }
+                };
                 rem.ItemData = new RemoveInventoryObjectsPacket.ItemDataBlock[1];
                 rem.ItemData[0] = new RemoveInventoryObjectsPacket.ItemDataBlock { ItemID = UUID.Zero };
-            }
-            else
-            {
                 using (var writeLock = _storeLock.WriteLock())
                 {
-                    rem.ItemData = new RemoveInventoryObjectsPacket.ItemDataBlock[items.Count];
-                    for (var i = 0; i < items.Count; i++)
-                    {
-                        rem.ItemData[i] = new RemoveInventoryObjectsPacket.ItemDataBlock { ItemID = items[i] };
-
-                        // Update local copy
-                        if (_Store != null && _Store.TryGetValue(items[i], out var storeItem))
-                            _Store.RemoveNodeFor(storeItem!);
-                    }
+                    rem.FolderData = new RemoveInventoryObjectsPacket.FolderDataBlock[1];
+                    rem.FolderData[0] = new RemoveInventoryObjectsPacket.FolderDataBlock { FolderID = folder };
+                    if (_Store != null && _Store.TryGetValue(folder, out var storeItem))
+                        _Store.RemoveNodeFor(storeItem!);
                 }
+                Client.Network.SendPacket(rem);
             }
-
-            if (folders == null || folders.Count == 0)
-            {
-                // To indicate we want no folders removed:
-                rem.FolderData = new RemoveInventoryObjectsPacket.FolderDataBlock[1];
-                rem.FolderData[0] = new RemoveInventoryObjectsPacket.FolderDataBlock { FolderID = UUID.Zero };
-            }
-            else
-            {
-                using (var writeLock = _storeLock.WriteLock())
-                {
-                    rem.FolderData = new RemoveInventoryObjectsPacket.FolderDataBlock[folders.Count];
-                    for (var i = 0; i < folders.Count; i++)
-                    {
-                        rem.FolderData[i] = new RemoveInventoryObjectsPacket.FolderDataBlock { FolderID = folders[i] };
-
-                        // Update local copy
-                        if (_Store != null && _Store.TryGetValue(folders[i], out var storeItem))
-                            _Store.RemoveNodeFor(storeItem!);
-                    }
-                }
-            }
-            Client.Network.SendPacket(rem);
         }
 
         /// <summary>
@@ -1674,9 +1522,15 @@ namespace OpenMetaverse
                     }
                 }
 
-#pragma warning disable CS0612 // Type or member is obsolete
-                Remove(remItems, remFolders);
-#pragma warning restore CS0612 // Type or member is obsolete
+                var rem = new RemoveInventoryObjectsPacket
+                {
+                    AgentData = { AgentID = Client.Self.AgentID, SessionID = Client.Self.SessionID }
+                };
+                rem.ItemData = remItems.Select(id => new RemoveInventoryObjectsPacket.ItemDataBlock { ItemID = id }).ToArray();
+                rem.FolderData = remFolders.Select(id => new RemoveInventoryObjectsPacket.FolderDataBlock { FolderID = id }).ToArray();
+                Client.Network.SendPacket(rem);
+                foreach (var id in remItems) RemoveLocalUi(true, id);
+                foreach (var id in remFolders) RemoveLocalUi(true, id);
             }
         }
         #endregion Remove
@@ -1883,57 +1737,6 @@ namespace OpenMetaverse
             {
                 Logger.Warn($"RequestCreateItemFromAsset failed: {ex.Message}", ex, Client);
             }
-        }
-
-        /// <summary>
-        /// Create an inventory item and upload asset data
-        /// </summary>
-        /// <param name="data">Asset data</param>
-        /// <param name="name">Inventory item name</param>
-        /// <param name="description">Inventory item description</param>
-        /// <param name="assetType">Asset type</param>
-        /// <param name="invType">Inventory type</param>
-        /// <param name="folderID">Put newly created inventory in this folder</param>
-        /// <param name="permissions">Permission of the newly created item
-        /// (EveryoneMask, GroupMask, and NextOwnerMask of Permissions struct are supported)</param>
-        /// <param name="callback">Delegate that will receive feedback on success or failure</param>
-        /// <param name="cancellationToken"></param>
-        [Obsolete("Use RequestCreateItemFromAssetAsync")]
-        public void RequestCreateItemFromAsset(byte[] data, string name, string description, AssetType assetType,
-            InventoryType invType, UUID folderID, Permissions permissions, ItemCreatedFromAssetCallback callback, CancellationToken cancellationToken = default)
-        {
-            var cap = GetCapabilityURI("NewFileAgentInventory", false);
-            if (cap == null)
-            {
-                throw new Exception("NewFileAgentInventory capability is not currently available");
-            }
-
-            var query = new OSDMap
-            {
-                {"folder_id", OSD.FromUUID(folderID)},
-                {"asset_type", OSD.FromString(Utils.AssetTypeToString(assetType))},
-                {"inventory_type", OSD.FromString(Utils.InventoryTypeToString(invType))},
-                {"name", OSD.FromString(name)},
-                {"description", OSD.FromString(description)},
-                {"everyone_mask", OSD.FromInteger((int) permissions.EveryoneMask)},
-                {"group_mask", OSD.FromInteger((int) permissions.GroupMask)},
-                {"next_owner_mask", OSD.FromInteger((int) permissions.NextOwnerMask)},
-                {"expected_upload_cost", OSD.FromInteger(Client.Settings.UPLOAD_COST)}
-            };
-
-            // Fire-and-forget using the async helper to preserve original non-blocking behavior
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    var res = await PostCapAsync(cap, query, cancellationToken).ConfigureAwait(false);
-                    CreateItemFromAssetResponse(callback, data, query, res, null, cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    CreateItemFromAssetResponse(callback, data, query, null, ex, cancellationToken);
-                }
-            }, cancellationToken);
         }
 
         /// <summary>
@@ -2356,21 +2159,6 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Update an existing script in an agents Inventory
-        /// </summary>
-        /// <param name="data">A byte[] array containing the encoded scripts contents</param>
-        /// <param name="itemID">the itemID of the script</param>
-        /// <param name="mono">if true, sets the script content to run on the mono interpreter</param>
-        /// <param name="callback"></param>
-        /// <param name="cancellationToken"></param>
-        [Obsolete("Use RequestUpdateScriptAgentInventoryAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
-        public void RequestUpdateScriptAgentInventory(byte[] data, UUID itemID, bool mono, ScriptUpdatedCallback callback, CancellationToken cancellationToken = default)
-        {
-            // Forward to the async-first implementation and fire-and-forget to preserve original non-blocking behavior
-            _ = RequestUpdateScriptAgentInventoryAsync(data, itemID, mono, callback, cancellationToken);
-        }
-
-        /// <summary>
         /// Send an upload notecard request
         /// </summary>
         /// <param name="data"></param>
@@ -2389,28 +2177,6 @@ namespace OpenMetaverse
 
             // Fire-and-forget the async-first implementation which will invoke the upload response handling
             _ = RequestUploadNotecardAssetAsync(data, notecardID, callback, cancellationToken);
-        }
-
-        /// <summary>
-        /// Send an upload gesture request (synchronous wrapper preserved for compatibility)
-        /// </summary>
-        /// <param name="data">Gesture asset bytes</param>
-        /// <param name="gestureID">UUID of the gesture item</param>
-        /// <param name="callback">Callback invoked when upload completes</param>
-        /// <param name="cancellationToken">Cancellation token for operation</param>
-        [Obsolete("Use RequestUploadGestureAssetAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
-        public void RequestUploadGestureAsset(byte[] data, UUID gestureID, InventoryUploadedAssetCallback callback, CancellationToken cancellationToken = default)
-        {
-            var cap = GetCapabilityURI("UpdateGestureAgentInventory", false);
-            if (cap == null)
-            {
-                throw new Exception("UpdateGestureAgentInventory capability is not currently available");
-            }
-
-            var query = new OSDMap { { "item_id", OSD.FromUUID(gestureID) } };
-
-            // Fire-and-forget the async-first implementation which will invoke the upload response handling
-            _ = RequestUploadGestureAssetAsync(data, gestureID, callback, cancellationToken);
         }
 
         #endregion Update

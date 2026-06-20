@@ -25,10 +25,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using OpenMetaverse.Interfaces;
-using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.Interfaces;
+using LibreMetaverse.Messages.Linden;
+using LibreMetaverse.Packets;
+using LibreMetaverse.StructuredData;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -38,7 +38,7 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public partial class AgentManager
     {
@@ -284,7 +284,7 @@ namespace OpenMetaverse
             AgentMovementCompletePacket movement = (AgentMovementCompletePacket)packet;
 
             relativePosition = movement.Data.Position;
-            LastPositionUpdate = DateTime.UtcNow;
+            LastPositionUpdate = Client.UtcNow;
             Movement.Camera.LookDirection(movement.Data.LookAt);
             
             if (simulator != null)
@@ -499,7 +499,7 @@ namespace OpenMetaverse
                 flags = (TeleportFlags)local.Info.TeleportFlags;
                 teleportStatus = TeleportStatus.Finished;
                 relativePosition = local.Info.Position;
-                LastPositionUpdate = DateTime.UtcNow;
+                LastPositionUpdate = Client.UtcNow;
                 Movement.Camera.LookDirection(local.Info.LookAt);
                 // This field is apparently not used for anything
                 //local.Info.LocationID;

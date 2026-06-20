@@ -26,10 +26,10 @@
 
 using System;
 using System.Collections.Generic;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.StructuredData;
 using System.Reflection;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     #region Enums
 
@@ -495,7 +495,7 @@ namespace OpenMetaverse
         /// into a dictionary of parameter ID to float value, then derives driven (group-1+)
         /// parameters from their group-0 driver values.
         /// The result can be passed directly to
-        /// <see cref="OpenMetaverse.Rendering.LindenAvatarDefinition.ComputeBoneTransforms"/>.
+        /// <see cref="LibreMetaverse.Rendering.LindenAvatarDefinition.ComputeBoneTransforms"/>.
         /// </summary>
         /// <remarks>
         /// The AvatarAppearance packet transmits both TWEAKABLE (group-0) and

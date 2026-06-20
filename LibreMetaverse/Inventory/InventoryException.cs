@@ -27,7 +27,7 @@
 
 using System;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Exception class to identify inventory exceptions

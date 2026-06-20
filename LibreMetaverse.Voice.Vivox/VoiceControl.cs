@@ -31,8 +31,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
+using System.Threading.Tasks;
+using LibreMetaverse;
+using LibreMetaverse.StructuredData;
 using System.Net.Http;
 
 namespace LibreMetaverse.Voice.Vivox
@@ -327,7 +328,15 @@ namespace LibreMetaverse.Voice.Vivox
         {
             Logger.Info("Requesting voice capability");
             var token = _posTokenSource?.Token ?? CancellationToken.None;
-            _ = _client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(), token, cClient_OnComplete);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var (response, data) = await _client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, new OSD(), token);
+                    cClient_OnComplete(response, data, null);
+                }
+                catch (Exception ex) { cClient_OnComplete(null, null, ex); }
+            });
         }
 
         private void Network_OnSimChanged(object? sender, SimChangedEventArgs e)
@@ -890,7 +899,15 @@ namespace LibreMetaverse.Voice.Vivox
 
             _currentParcelCap = cap;
             var token = _posTokenSource?.Token ?? CancellationToken.None;
-            var req = _client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(), token, pCap_OnComplete);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var (response, data) = await _client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, new OSD(), token);
+                    pCap_OnComplete(response, data, null);
+                }
+                catch (Exception ex) { pCap_OnComplete(null, null, ex); }
+            });
         }
 
         /// <summary>

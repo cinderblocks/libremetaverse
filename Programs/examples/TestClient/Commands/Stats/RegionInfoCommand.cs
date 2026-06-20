@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Text;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace TestClient.Commands.Stats
 {

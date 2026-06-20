@@ -4,7 +4,7 @@
     <PackageId>LibreMetaverse.Rendering.Meshmerizer</PackageId>
     <Description>Advanced mesh rendering library for LibreMetaverse that uses the Meshmerizer engine to generate renderable geometry from Second Life prims, sculpts, and mesh assets.</Description>
     <RootNamespace>LibreMetaverse.Rendering.Meshmerizer</RootNamespace>
-    <TargetFrameworks>netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;net481;net8.0;net9.0;net10.0</TargetFrameworks>
     <OutputType>Library</OutputType>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <NoWarn>$(NoWarn);CS0419;CS1591;CS1574</NoWarn>

@@ -30,9 +30,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Represents the three possible login outcomes previously expressed as strings

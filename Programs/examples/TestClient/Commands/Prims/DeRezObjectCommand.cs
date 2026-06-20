@@ -1,6 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace TestClient.Commands.Prims
 {

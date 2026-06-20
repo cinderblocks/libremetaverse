@@ -29,7 +29,7 @@ using System;
 using System.IO;
 using System.Text;
 
-namespace OpenMetaverse.StructuredData
+namespace LibreMetaverse.StructuredData
 {
     public partial class OSDParser
     {

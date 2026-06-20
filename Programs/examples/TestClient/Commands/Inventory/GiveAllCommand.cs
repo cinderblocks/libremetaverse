@@ -1,4 +1,4 @@
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace TestClient.Commands.Inventory
 {

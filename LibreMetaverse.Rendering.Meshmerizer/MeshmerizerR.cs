@@ -29,7 +29,7 @@
  * The Idealist viewer is licensed under the three clause BSD license.
  */
 /*
- * MeshmerizerR class implements OpenMetaverse.Rendering.IRendering interface
+ * MeshmerizerR class implements LibreMetaverse.Rendering.IRendering interface
  * using PrimMesher (http://forge.opensimulator.org/projects/primmesher).
  */
 
@@ -37,10 +37,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using SkiaSharp;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.StructuredData;
 using LibreMetaverse.PrimMesher;
 
-namespace OpenMetaverse.Rendering
+namespace LibreMetaverse.Rendering
 {
     /// <summary>
     /// Meshing code based on the Idealist Viewer (20081213).
@@ -333,7 +333,7 @@ namespace OpenMetaverse.Rendering
 
         /// <summary>
         /// Apply texture coordinate modifications from a
-        /// <see cref="OpenMetaverse.Primative.TextureEntryFace"/> to a list of vertices
+        /// <see cref="LibreMetaverse.Primative.TextureEntryFace"/> to a list of vertices
         /// </summary>
         /// <param name="vertices">Vertex list to modify texture coordinates for</param>
         /// <param name="center">Center-point of the face</param>

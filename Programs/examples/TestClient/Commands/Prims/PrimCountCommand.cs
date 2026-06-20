@@ -1,5 +1,5 @@
 using System;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace TestClient.Commands.Prims
 {

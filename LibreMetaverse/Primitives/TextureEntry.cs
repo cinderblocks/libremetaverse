@@ -28,9 +28,9 @@
 using System;
 using System.IO;
 using System.Linq;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     #region Enumerations
 

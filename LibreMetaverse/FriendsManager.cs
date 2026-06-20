@@ -30,10 +30,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.Packets;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     [Flags]
     public enum FriendRights : int
@@ -545,32 +545,27 @@ namespace OpenMetaverse
             };
             acceptFriendshipCap = builder.Uri;
 
-            await Client.HttpCapsClient.PostRequestAsync(acceptFriendshipCap, OSDFormat.Xml, new OSD(), cancellationToken,
-                (response, data, error) =>
+            try
+            {
+                var (response, data) = await Client.HttpCapsClient.PostAsync(acceptFriendshipCap, OSDFormat.Xml, new OSD(), cancellationToken);
+                if (data == null)
                 {
-                    if (error != null)
-                    {
-                        Logger.Warn($"AcceptFriendship failed for {fromAgentID}. ({error.Message})");
-                        return;
-                    }
-
-                    if (data == null)
-                    {
-                        Logger.Warn($"AcceptFriendship: null response data for {fromAgentID}");
-                        return;
-                    }
-
-                    OSD result = OSDParser.Deserialize(data);
-                    if (result is OSDMap resMap && resMap.ContainsKey("success") && resMap["success"].AsBoolean())
-                    {
-                        FriendInfo friend = new FriendInfo(fromAgentID, FriendRights.CanSeeOnline, FriendRights.CanSeeOnline);
-
-                        m_FriendList.TryAdd(friend.UUID, friend);
-                        m_FriendRequests.TryRemove(fromAgentID, out _);
-
-                        Client.Avatars.RequestAvatarName(fromAgentID);
-                    }
-                });
+                    Logger.Warn($"AcceptFriendship: null response data for {fromAgentID}");
+                    return;
+                }
+                OSD result = OSDParser.Deserialize(data);
+                if (result is OSDMap resMap && resMap.ContainsKey("success") && resMap["success"].AsBoolean())
+                {
+                    FriendInfo friend = new FriendInfo(fromAgentID, FriendRights.CanSeeOnline, FriendRights.CanSeeOnline);
+                    m_FriendList.TryAdd(friend.UUID, friend);
+                    m_FriendRequests.TryRemove(fromAgentID, out _);
+                    Client.Avatars.RequestAvatarName(fromAgentID);
+                }
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Warn($"AcceptFriendship failed for {fromAgentID}. ({ex.Message})");
+            }
         }
 
         /// <summary>
@@ -619,27 +614,24 @@ namespace OpenMetaverse
             };
             declineFriendshipCap = builder.Uri;
 
-            await Client.HttpCapsClient.DeleteRequestAsync(declineFriendshipCap, OSDFormat.Xml, new OSD(), cancellationToken,
-                (response, data, error) =>
+            try
+            {
+                var (response, data) = await Client.HttpCapsClient.DeleteAsync(declineFriendshipCap, OSDFormat.Xml, new OSD(), cancellationToken);
+                if (data == null)
                 {
-                    if (error != null)
-                    {
-                        Logger.Warn($"DeclineFriendship failed for {fromAgentID}. ({error.Message})");
-                        return;
-                    }
-
-                    if (data == null)
-                    {
-                        Logger.Warn($"DeclineFriendship: null response data for {fromAgentID}");
-                        return;
-                    }
-
-                    OSD result = OSDParser.Deserialize(data);
-                    if (result is OSDMap resMap && resMap.ContainsKey("success") && resMap["success"].AsBoolean())
-                    {
-                        m_FriendRequests.TryRemove(fromAgentID, out _);
-                    }
-                });
+                    Logger.Warn($"DeclineFriendship: null response data for {fromAgentID}");
+                    return;
+                }
+                OSD result = OSDParser.Deserialize(data);
+                if (result is OSDMap resMap && resMap.ContainsKey("success") && resMap["success"].AsBoolean())
+                {
+                    m_FriendRequests.TryRemove(fromAgentID, out _);
+                }
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Warn($"DeclineFriendship failed for {fromAgentID}. ({ex.Message})");
+            }
         }
 
         /// <summary>

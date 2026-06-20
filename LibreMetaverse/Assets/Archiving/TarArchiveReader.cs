@@ -27,7 +27,7 @@
 using System.IO;
 using System.Text;
 
-namespace OpenMetaverse.Assets
+namespace LibreMetaverse.Assets
 {
     /// <summary>
     /// Temporary code to do the bare minimum required to read a tar archive for our purposes

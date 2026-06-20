@@ -34,7 +34,7 @@ using System.Threading.Tasks;
 using ZLogger;
 #endif
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Singleton logging class for the entire library
@@ -57,26 +57,6 @@ namespace OpenMetaverse
         private static ILogger? _logger;
         private static ILoggerFactory? _loggerFactory;
         private static readonly object _sync = new object();
-
-#pragma warning disable CS0618 // Type or member is obsolete
-        // Map library log levels to Microsoft.Extensions.Logging.LogLevel
-        private static LogLevel MapLevel(Helpers.LogLevel level)
-        {
-            switch (level)
-            {
-                case Helpers.LogLevel.Debug:
-                    return LogLevel.Debug;
-                case Helpers.LogLevel.Info:
-                    return LogLevel.Information;
-                case Helpers.LogLevel.Warning:
-                    return LogLevel.Warning;
-                case Helpers.LogLevel.Error:
-                    return LogLevel.Error;
-                default:
-                    return LogLevel.Trace;
-            }
-        }
-#pragma warning restore CS0618 // Type or member is obsolete
 
         static Logger()
         {
@@ -305,18 +285,6 @@ namespace OpenMetaverse
         /// <param name="message">The log message</param>
         /// <param name="level">The severity of the log entry</param>
         /// <param name="client">Instance of the client</param>
-        [Obsolete("Use Microsoft.Extensions.Logging.LogLevel")]
-        public static void Log(object message, Helpers.LogLevel level, GridClient? client = null)
-        {
-            Log(message, MapLevel(level), client, null);
-        }
-
-        /// <summary>
-        /// Send a log message to the logging engine
-        /// </summary>
-        /// <param name="message">The log message</param>
-        /// <param name="level">The severity of the log entry</param>
-        /// <param name="client">Instance of the client</param>
         public static void Log(object message, LogLevel level, GridClient? client = null)
         {
             Log(message, level, client, null);
@@ -328,34 +296,9 @@ namespace OpenMetaverse
         /// <param name="message">The log message</param>
         /// <param name="level">The severity of the log entry</param>
         /// <param name="exception">Exception that was raised</param>
-        [Obsolete("Use Microsoft.Extensions.Logging.LogLevel")]
-        public static void Log(object message, Helpers.LogLevel level, Exception exception)
-        {
-            Log(message, MapLevel(level), null, exception);
-        }
-
-        /// <summary>
-        /// Send a log message to the logging engine
-        /// </summary>
-        /// <param name="message">The log message</param>
-        /// <param name="level">The severity of the log entry</param>
-        /// <param name="exception">Exception that was raised</param>
         public static void Log(object message, LogLevel level, Exception exception)
         {
             Log(message, level, null, exception);
-        }
-
-        /// <summary>
-        /// Send a log message to the logging engine
-        /// </summary>
-        /// <param name="message">The log message</param>
-        /// <param name="level">The severity of the log entry</param>
-        /// <param name="client">Instance of the client</param>
-        /// <param name="exception">Exception that was raised</param>
-        [Obsolete("Use Microsoft.Extensions.Logging.LogLevel")]
-        public static void Log(object message, Helpers.LogLevel level, GridClient? client, Exception? exception)
-        {
-            Log(message, MapLevel(level), client, exception);
         }
 
         /// <summary>

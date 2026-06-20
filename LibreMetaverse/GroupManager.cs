@@ -30,13 +30,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.Interfaces;
+using LibreMetaverse.Packets;
+using LibreMetaverse.StructuredData;
+using LibreMetaverse.Messages.Linden;
+using LibreMetaverse.Interfaces;
 using System.Collections.Concurrent;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     #region Structs
 
@@ -1227,18 +1227,23 @@ namespace OpenMetaverse
             if (cap != null)
             {
                 OSDMap payload = new OSDMap(1) { ["group_id"] = @group };
-                Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, CancellationToken.None,
-                (response, data, error) =>
+                _ = Task.Run(async () =>
                 {
-                    if (error != null) { return; }
-                    if (data == null)
+                    try
                     {
-                        Logger.Warn("Group members request returned no data", Client);
-                        return;
+                        var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload, CancellationToken.None);
+                        if (data == null)
+                        {
+                            Logger.Warn("Group members request returned no data", Client);
+                            return;
+                        }
+                        OSD result = OSDParser.Deserialize(data);
+                        GroupMembersHandlerCaps(requestID, result);
                     }
-
-                    OSD result = OSDParser.Deserialize(data);
-                    GroupMembersHandlerCaps(requestID, result);
+                    catch (Exception)
+                    {
+                        // Ignore errors for fire-and-forget group member requests
+                    }
                 });
             }
             else // fallback to LLUDP
@@ -1830,45 +1835,42 @@ namespace OpenMetaverse
                 return;
             }
             var uri = new UriBuilder(capUri.ToString()) { Query = $"group_id={groupID}" }.Uri;
-            await Client!.HttpCapsClient.GetRequestAsync(uri, cancellationToken, (response, data, error) =>
+            try
             {
-                try
+                var (response, data) = await Client!.HttpCapsClient.GetAsync(uri, cancellationToken);
+                if (data == null) throw new Exception("No data returned from GroupAPIv1");
+
+                OSD? resultOsd = OSDParser.Deserialize(data);
+                if (resultOsd == null || resultOsd.Type != OSDType.Map) throw new Exception("Invalid response from GroupAPIv1");
+                OSDMap result = (OSDMap)resultOsd;
+                UUID gid = result.ContainsKey("group_id") ? result["group_id"] : UUID.Zero;
+                var banList = result.ContainsKey("ban_list") ? (OSDMap)result["ban_list"] : new OSDMap();
+                var bannedAgents = new Dictionary<UUID, DateTime>(banList.Count);
+
+                foreach (var id in banList.Keys)
                 {
-                    if (error != null) { throw error; }
-                    if (data == null) throw new Exception("No data returned from GroupAPIv1");
-
-                    OSD? resultOsd = OSDParser.Deserialize(data);
-                    if (resultOsd == null || resultOsd.Type != OSDType.Map) throw new Exception("Invalid response from GroupAPIv1");
-                    OSDMap result = (OSDMap)resultOsd;
-                    UUID gid = result.ContainsKey("group_id") ? result["group_id"] : UUID.Zero;
-                    var banList = result.ContainsKey("ban_list") ? (OSDMap)result["ban_list"] : new OSDMap();
-                    var bannedAgents = new Dictionary<UUID, DateTime>(banList.Count);
-
-                    foreach (var id in banList.Keys)
-                    {
-                        bannedAgents[new UUID(id)] = ((OSDMap)banList[id])["ban_date"].AsDate();
-                    }
-
-                    var ret = new BannedAgentsEventArgs(groupID, true, bannedAgents);
-                    OnBannedAgents(ret);
-                    if (callback != null)
-                    {
-                        try { callback(this, ret); }
-                        catch { }
-                    }
+                    bannedAgents[new UUID(id)] = ((OSDMap)banList[id])["ban_date"].AsDate();
                 }
-                catch (Exception ex)
+
+                var ret = new BannedAgentsEventArgs(groupID, true, bannedAgents);
+                OnBannedAgents(ret);
+                if (callback != null)
                 {
-                    Logger.Warn($"Failed to fetch group ban list for {groupID}: {ex.Message}", Client);
-                    var ret = new BannedAgentsEventArgs(groupID, false, null);
-                    OnBannedAgents(ret);
-                    if (callback != null)
-                    {
-                        try { callback(this, ret); }
-                        catch { }
-                    }
+                    try { callback(this, ret); }
+                    catch { }
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to fetch group ban list for {groupID}: {ex.Message}", Client);
+                var ret = new BannedAgentsEventArgs(groupID, false, null);
+                OnBannedAgents(ret);
+                if (callback != null)
+                {
+                    try { callback(this, ret); }
+                    catch { }
+                }
+            }
         }
 
         /// <summary>
@@ -1903,20 +1905,19 @@ namespace OpenMetaverse
             }
             payload["ban_ids"] = banIDs;
 
-            await Client!.HttpCapsClient.PostRequestAsync(uri, OSDFormat.Xml, payload, cancellationToken,
-                (response, data, error) =>
+            try
             {
-                if (error != null)
-                {
-                    Logger.Warn($"Failed to ban members from {groupID}: {error.Message}", Client);
-                    return;
-                }
+                var (response, data) = await Client!.HttpCapsClient.PostAsync(uri, OSDFormat.Xml, payload, cancellationToken);
                 if (callback != null)
                 {
                     try { callback(this, EventArgs.Empty); }
                     catch { }
                 }
-            });
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Warn($"Failed to ban members from {groupID}: {ex.Message}", Client);
+            }
         }
 
         #endregion

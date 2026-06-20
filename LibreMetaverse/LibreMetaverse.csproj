@@ -11,7 +11,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>enable</Nullable>
     <NoWarn>$(NoWarn);CS0419;CS8981;CS1591;CS1574</NoWarn>
-    <TargetFrameworks>netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;net481;net8.0;net9.0;net10.0</TargetFrameworks>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <OutputPath>..\bin\</OutputPath>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
@@ -33,6 +33,14 @@
     <PackageReference Include="Pfim" />
     <PackageReference Include="System.Threading.Channels" />
     <PackageReference Include="zlib.net-mutliplatform" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
+    <Reference Include="System.Net.Http" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
+    <PackageReference Include="Microsoft.Bcl.TimeProvider" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+    <PackageReference Include="Microsoft.Bcl.TimeProvider" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />

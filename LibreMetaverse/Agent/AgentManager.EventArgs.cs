@@ -27,10 +27,10 @@
 
 using System;
 using System.Collections.Generic;
-using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.Messages.Linden;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public class AgentAccessEventArgs : EventArgs
     {

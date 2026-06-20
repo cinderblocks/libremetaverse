@@ -28,7 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace OpenMetaverse.Rendering
+namespace LibreMetaverse.Rendering
 {
     /// <summary>
     /// Load and handle Linden Lab binary meshes.
@@ -211,48 +211,6 @@ namespace OpenMetaverse.Rendering
             }
         }
 
-        /// <summary>
-        /// Level of Detail mesh
-        /// </summary>
-        [Obsolete("Renamed to: ReferenceMesh")]
-        public class LODMesh
-        {
-            public float MinPixelWidth;
-
-            protected string _header = string.Empty;
-            protected bool _hasWeights;
-            protected bool _hasDetailTexCoords;
-            protected Vector3 _position;
-            protected Vector3 _rotationAngles;
-            protected byte _rotationOrder;
-            protected Vector3 _scale;
-            protected ushort _numFaces;
-            protected Face[] _faces = Array.Empty<Face>();
-
-            public virtual void LoadMesh(string filename)
-            {
-                byte[] buffer = File.ReadAllBytes(filename);
-                BitPack input = new BitPack(buffer, 0);
-
-                _header = TrimAt0(input.UnpackString(24));
-                if (!string.Equals(_header, MeshHeader))
-                    return;
-
-                // Populate base mesh variables
-                _hasWeights = (input.UnpackByte() != 0);
-                _hasDetailTexCoords = (input.UnpackByte() != 0);
-                _position = new Vector3(input.UnpackFloat(), input.UnpackFloat(), input.UnpackFloat());
-                _rotationAngles = new Vector3(input.UnpackFloat(), input.UnpackFloat(), input.UnpackFloat());
-                _rotationOrder = input.UnpackByte();
-                _scale = new Vector3(input.UnpackFloat(), input.UnpackFloat(), input.UnpackFloat());
-                _numFaces = input.UnpackUShort();
-
-                _faces = new Face[_numFaces];
-
-                for (int i = 0; i < _numFaces; i++)
-                    _faces[i].Indices = new short[] { input.UnpackShort(), input.UnpackShort(), input.UnpackShort() };
-            }
-        }
         #endregion lod mesh
 
         public float MinPixelWidth;                                             //!< Width of rendered avatar, before moving to a coarser LOD
@@ -503,17 +461,6 @@ namespace OpenMetaverse.Rendering
             }
         }
         #endregion Skin weight
-
-        [Obsolete("Use LoadLodMesh")]
-        public virtual void LoadLODMesh(int level, string filename)
-        {
-            if (filename == "avatar_eye_1.llm")
-                throw new ArgumentException("Eyeballs are not LOD Meshes", nameof(filename));
-
-            LODMesh lod = new LODMesh();
-            lod.LoadMesh(filename);
-            LodMeshes[level] = lod;
-        }
 
         public virtual object LoadLodMesh(int level, string filename)
         {

@@ -29,9 +29,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using OpenMetaverse.Assets;
+using LibreMetaverse.Assets;
 
-namespace OpenMetaverse.Imaging
+namespace LibreMetaverse.Imaging
 {
     /// <summary>
     /// A set of textures that are layered on texture of each other and "baked"

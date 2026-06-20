@@ -25,11 +25,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using OpenMetaverse.Packets;
+using LibreMetaverse.Packets;
 using System;
 using System.Collections.Generic;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>Provides data for the <see cref="ObjectManager.ObjectUpdate"/> event</summary>
     /// <remarks><para>The <see cref="ObjectManager.ObjectUpdate"/> event occurs when the simulator sends

@@ -29,10 +29,10 @@ using System;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Collections.Generic;
-using OpenMetaverse.Assets;
-using OpenMetaverse.Packets;
+using LibreMetaverse.Assets;
+using LibreMetaverse.Packets;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public partial class AgentManager
     {

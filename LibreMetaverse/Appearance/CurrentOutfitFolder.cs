@@ -25,7 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using OpenMetaverse;
+using LibreMetaverse;
 using System;
 using System.Collections.Generic;
 using System.Linq;

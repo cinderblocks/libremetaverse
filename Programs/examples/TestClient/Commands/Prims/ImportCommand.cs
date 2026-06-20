@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse;
+using LibreMetaverse.StructuredData;
 
 namespace TestClient.Commands.Prims
 {
@@ -103,8 +103,8 @@ namespace TestClient.Commands.Prims
                     currentPrim = linkset.RootPrim;
                     // HACK: Import the structure just above our head
                     // We need a more elaborate solution for importing with relative or absolute offsets
-                    linkset.RootPrim.Position = Client.Self.SimPosition;
-                    linkset.RootPrim.Position.Z += 3.0f;
+                    var simPos = Client.Self.SimPosition;
+                    linkset.RootPrim.Position = new Vector3(simPos.X, simPos.Y, simPos.Z + 3.0f);
                     currentPosition = linkset.RootPrim.Position;
 
                     // Rez the root prim with no rotation

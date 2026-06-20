@@ -33,9 +33,9 @@ using System.Threading.Tasks;
 #nullable enable
 using LibreMetaverse.Voice.Vivox;
 using Microsoft.Extensions.Logging;
-using OpenMetaverse;
+using LibreMetaverse;
 using LibreMetaverse.Appearance;
-using OpenMetaverse.Packets;
+using LibreMetaverse.Packets;
 using TestClient.Commands.Appearance;
 
 namespace TestClient

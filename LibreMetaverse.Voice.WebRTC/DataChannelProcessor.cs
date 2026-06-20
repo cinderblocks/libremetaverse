@@ -25,8 +25,8 @@
  */
 
 using LitJson;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse;
+using LibreMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
 

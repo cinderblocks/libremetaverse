@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace OpenMetaverse.Assets.Gltf
+namespace LibreMetaverse.Assets.Gltf
 {
     public enum GltfPrimitiveMode : byte
     {

@@ -34,7 +34,7 @@ using LibreMetaverse;
 using System.Threading.Tasks;
 #endif
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Main class to expose grid functionality to clients. All managers needed
@@ -47,7 +47,7 @@ namespace OpenMetaverse
     /// using System;
     /// using System.Collections.Generic;
     /// using System.Text;
-    /// using OpenMetaverse;
+    /// using LibreMetaverse;
     /// 
     /// namespace FirstBot
     /// {
@@ -128,6 +128,15 @@ namespace OpenMetaverse
         public EnvironmentManager Environment;
         /// <summary>Interest list mode subsystem (controls simulator object update culling)</summary>
         public InterestListManager InterestList;
+
+        /// <summary>
+        /// Time provider used for all time-dependent operations (throttling, timeouts, retry back-off).
+        /// Override with a fake implementation in tests to control time deterministically.
+        /// </summary>
+        public TimeProvider TimeProvider { get; set; } = TimeProvider.System;
+
+        /// <summary>Current UTC time from the configured <see cref="TimeProvider"/>.</summary>
+        internal DateTime UtcNow => TimeProvider.GetUtcNow().UtcDateTime;
 
         /// <summary>
         /// Default constructor

@@ -27,8 +27,8 @@
 
 using System;
 using System.Collections.Generic;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse;
+using LibreMetaverse.StructuredData;
 using NUnit.Framework;
 
 namespace LibreMetaverse.Tests

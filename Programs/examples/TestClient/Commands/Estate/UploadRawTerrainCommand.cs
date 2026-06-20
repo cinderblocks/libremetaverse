@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace TestClient.Commands.Estate
 {

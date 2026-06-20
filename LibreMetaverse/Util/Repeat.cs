@@ -101,24 +101,4 @@ namespace LibreMetaverse
             }, token);
         }
     }
-
-    public static class CancellationTokenExtensions
-    {
-        [Obsolete("Use cancellation-aware async waits (for example, await Task.Delay(timeout, token)) or CancellationToken.Register. WaitHandle-based waiting is unsafe because the CancellationTokenSource may be disposed while waiting.")]
-        public static bool WaitCancellationRequested(
-            this CancellationToken token,
-            TimeSpan timeout)
-        {
-            try
-            {
-                return token.WaitHandle.WaitOne(timeout);
-            }
-            catch (ObjectDisposedException)
-            {
-                // The CancellationTokenSource has been disposed. Treat this as a cancellation request
-                // so that any waiting loops will exit cleanly instead of throwing.
-                return true;
-            }
-        }
-    }
 }

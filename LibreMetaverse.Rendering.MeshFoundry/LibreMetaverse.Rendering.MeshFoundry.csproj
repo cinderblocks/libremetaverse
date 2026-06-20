@@ -3,8 +3,8 @@
     <AssemblyName>LibreMetaverse.Rendering.MeshFoundry</AssemblyName>
     <PackageId>LibreMetaverse.Rendering.MeshFoundry</PackageId>
     <Description>Modern mesh rendering library for LibreMetaverse. Generates renderable geometry from Second Life prims, sculpts, and mesh assets with correct normal decoding, skin weight support, and TexCoord1/NormalizedScale for PBR.</Description>
-    <RootNamespace>OpenMetaverse.Rendering</RootNamespace>
-    <TargetFrameworks>netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
+    <RootNamespace>LibreMetaverse.Rendering</RootNamespace>
+    <TargetFrameworks>netstandard2.1;net481;net8.0;net9.0;net10.0</TargetFrameworks>
     <OutputType>Library</OutputType>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <NoWarn>$(NoWarn);CS0419;CS1591;CS1574;CS8600;CS8601;CS8602;CS8603;CS8618;CS8625</NoWarn>
@@ -21,7 +21,7 @@
   <ItemGroup>
     <PackageReference Include="SkiaSharp" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
     <PackageReference Include="System.Buffers" />
     <PackageReference Include="System.Memory" />
   </ItemGroup>

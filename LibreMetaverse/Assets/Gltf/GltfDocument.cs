@@ -28,9 +28,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse.Assets.Gltf
+namespace LibreMetaverse.Assets.Gltf
 {
     /// <summary>
     /// A parsed glTF 2.0 document. Supports loading from both JSON (.gltf) and binary GLB (.glb)
@@ -505,13 +505,13 @@ namespace OpenMetaverse.Assets.Gltf
                     {
                         int o = base0 + i * stride;
                         result[i] = isVec3
-                            ? new Color4(BitConverter.ToSingle(data, o),
-                                         BitConverter.ToSingle(data, o + 4),
-                                         BitConverter.ToSingle(data, o + 8), 1f)
-                            : new Color4(BitConverter.ToSingle(data, o),
-                                         BitConverter.ToSingle(data, o + 4),
-                                         BitConverter.ToSingle(data, o + 8),
-                                         BitConverter.ToSingle(data, o + 12));
+                            ? new Color4(Utils.Clamp(BitConverter.ToSingle(data, o), 0f, 1f),
+                                         Utils.Clamp(BitConverter.ToSingle(data, o + 4), 0f, 1f),
+                                         Utils.Clamp(BitConverter.ToSingle(data, o + 8), 0f, 1f), 1f)
+                            : new Color4(Utils.Clamp(BitConverter.ToSingle(data, o), 0f, 1f),
+                                         Utils.Clamp(BitConverter.ToSingle(data, o + 4), 0f, 1f),
+                                         Utils.Clamp(BitConverter.ToSingle(data, o + 8), 0f, 1f),
+                                         Utils.Clamp(BitConverter.ToSingle(data, o + 12), 0f, 1f));
                     }
                     break;
                 case GltfComponentType.UnsignedByte:

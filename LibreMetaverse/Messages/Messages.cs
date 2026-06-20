@@ -27,9 +27,9 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse.Messages
+namespace LibreMetaverse.Messages
 {
     public static partial class MessageUtils
     {

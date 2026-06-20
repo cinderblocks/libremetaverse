@@ -32,9 +32,9 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse.Marketplace
+namespace LibreMetaverse.Marketplace
 {
     /// <summary>
     /// Manages communication with the Second Life Marketplace REST API.

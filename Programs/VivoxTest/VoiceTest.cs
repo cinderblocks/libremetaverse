@@ -27,7 +27,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using OpenMetaverse;
+using System.Threading.Tasks;
+using LibreMetaverse;
 using LibreMetaverse.Voice.Vivox;
 
 namespace VoiceTest
@@ -58,7 +59,7 @@ namespace VoiceTest
         static int VoiceLocalID = 0;
         static string VoiceChannelURI = string.Empty;
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             if (args.Length < 3)
             {
@@ -114,7 +115,7 @@ namespace VoiceTest
                 LoginParams loginParams = 
                     client.Network.DefaultLoginParams(firstName, lastName, password, "Voice Test", "1.0.0");
                 loginParams.URI = loginURI;
-                if (!client.Network.Login(loginParams))
+                if (!await client.Network.LoginAsync(loginParams))
                     throw new VoiceException("Login to SL failed: " + client.Network.LoginMessage);
                 Console.WriteLine("Logged in: " + client.Network.LoginMessage);
 

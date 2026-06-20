@@ -27,20 +27,20 @@
 using System;
 using System.IO;
 using System.Text;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse;
+using LibreMetaverse.StructuredData;
 
 namespace OSDInspector
 {
     /// <summary>
-    /// A utility for inspecting, converting, and validating OSD (OpenMetaverse Structured Data) files.
+    /// A utility for inspecting, converting, and validating OSD (LibreMetaverse Structured Data) files.
     /// Demonstrates OSD serialization formats and Primitive OSD serialization.
     /// </summary>
     internal class OSDInspector
     {
         static int Main(string[] args)
         {
-            Console.WriteLine("OSDInspector - OpenMetaverse Structured Data Tool");
+            Console.WriteLine("OSDInspector - LibreMetaverse Structured Data Tool");
             Console.WriteLine();
 
             if (args.Length == 0)

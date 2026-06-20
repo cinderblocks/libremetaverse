@@ -30,7 +30,7 @@ using System.Runtime.InteropServices;
 using Pfim;
 using SkiaSharp;
 
-namespace OpenMetaverse.Imaging
+namespace LibreMetaverse.Imaging
 {
     public static class Targa
     {

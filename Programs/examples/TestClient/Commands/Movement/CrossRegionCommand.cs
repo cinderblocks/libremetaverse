@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace TestClient.Commands.Movement
 {
@@ -71,25 +71,25 @@ namespace TestClient.Commands.Movement
                 case "ne":
                 case "northeast":
                     directionVector = new Vector3(1, 1, 0);
-                    directionVector.Normalize();
+                    directionVector = Vector3.Normalize(directionVector);
                     directionName = "Northeast";
                     break;
                 case "nw":
                 case "northwest":
                     directionVector = new Vector3(-1, 1, 0);
-                    directionVector.Normalize();
+                    directionVector = Vector3.Normalize(directionVector);
                     directionName = "Northwest";
                     break;
                 case "se":
                 case "southeast":
                     directionVector = new Vector3(1, -1, 0);
-                    directionVector.Normalize();
+                    directionVector = Vector3.Normalize(directionVector);
                     directionName = "Southeast";
                     break;
                 case "sw":
                 case "southwest":
                     directionVector = new Vector3(-1, -1, 0);
-                    directionVector.Normalize();
+                    directionVector = Vector3.Normalize(directionVector);
                     directionName = "Southwest";
                     break;
                 default:
@@ -224,42 +224,23 @@ namespace TestClient.Commands.Movement
         /// </summary>
         private Vector3 CalculateTargetPosition(Vector3 currentPosition, Vector3 direction)
         {
-            Vector3 target = currentPosition;
+            float x = currentPosition.X;
+            float y = currentPosition.Y;
 
-            // Move to just past the border based on direction
-            if (direction.X > 0) // East
-            {
-                target.X = BORDER_DISTANCE + CROSSING_BUFFER;
-            }
-            else if (direction.X < 0) // West
-            {
-                target.X = -CROSSING_BUFFER;
-            }
+            if (direction.X > 0) x = BORDER_DISTANCE + CROSSING_BUFFER;       // East
+            else if (direction.X < 0) x = -CROSSING_BUFFER;                    // West
 
-            if (direction.Y > 0) // North
-            {
-                target.Y = BORDER_DISTANCE + CROSSING_BUFFER;
-            }
-            else if (direction.Y < 0) // South
-            {
-                target.Y = -CROSSING_BUFFER;
-            }
+            if (direction.Y > 0) y = BORDER_DISTANCE + CROSSING_BUFFER;        // North
+            else if (direction.Y < 0) y = -CROSSING_BUFFER;                    // South
 
-            // For diagonal movement, we need to be careful
+            // For diagonal, aim for the corner
             if (Math.Abs(direction.X) > 0 && Math.Abs(direction.Y) > 0)
             {
-                // For diagonal, aim for the corner
-                if (direction.X > 0) target.X = BORDER_DISTANCE + CROSSING_BUFFER;
-                else target.X = -CROSSING_BUFFER;
-
-                if (direction.Y > 0) target.Y = BORDER_DISTANCE + CROSSING_BUFFER;
-                else target.Y = -CROSSING_BUFFER;
+                x = direction.X > 0 ? BORDER_DISTANCE + CROSSING_BUFFER : -CROSSING_BUFFER;
+                y = direction.Y > 0 ? BORDER_DISTANCE + CROSSING_BUFFER : -CROSSING_BUFFER;
             }
 
-            // Keep current Z height (with slight buffer for flying)
-            target.Z = currentPosition.Z;
-
-            return target;
+            return new Vector3(x, y, currentPosition.Z);
         }
 
         /// <summary>

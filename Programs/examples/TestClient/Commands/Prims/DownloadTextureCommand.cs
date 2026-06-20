@@ -1,8 +1,8 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using OpenMetaverse;
-using OpenMetaverse.Assets;
+using LibreMetaverse;
+using LibreMetaverse.Assets;
 
 namespace TestClient.Commands.Prims
 {

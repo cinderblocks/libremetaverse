@@ -29,10 +29,10 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.Messages.Linden;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// AgentManager partial class - Experience API
@@ -170,39 +170,35 @@ namespace OpenMetaverse
                 if (http == null) { return null; }
 
                 ExperienceListMessage? result = null;
-                await http.GetRequestAsync(cap, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(cap, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"AgentExperiences non-success status: {response.StatusCode}", Client);
+                }
+                else if (data == null)
+                {
+                    Logger.Warn("AgentExperiences returned no data.", Client);
+                }
+                else
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"AgentExperiences request failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"AgentExperiences non-success status: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null)
-                        {
-                            Logger.Warn("AgentExperiences returned no data.", Client);
-                            return;
-                        }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             ExperienceListMessage msg = new ExperienceListMessage();
                             msg.Deserialize(map);
                             result = msg;
                             AgentExperienceList = msg;
                             OnAgentExperiencesUpdated(new AgentExperiencesEventArgs(msg));
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse AgentExperiences response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse AgentExperiences response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -249,38 +245,34 @@ namespace OpenMetaverse
                 var requestUri = new Uri($"{cap}?{qs}");
 
                 ExperienceInfoMessage? result = null;
-                await http.GetRequestAsync(requestUri, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"GetExperienceInfo non-success status: {response.StatusCode}", Client);
+                }
+                else if (data == null)
+                {
+                    Logger.Warn("GetExperienceInfo returned no data.", Client);
+                }
+                else
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"GetExperienceInfo request failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"GetExperienceInfo non-success status: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null)
-                        {
-                            Logger.Warn("GetExperienceInfo returned no data.", Client);
-                            return;
-                        }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             ExperienceInfoMessage msg = new ExperienceInfoMessage();
                             msg.Deserialize(map);
                             result = msg;
                             OnExperienceInfoReceived(new ExperienceInfoEventArgs(msg));
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse GetExperienceInfo response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse GetExperienceInfo response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -318,38 +310,34 @@ namespace OpenMetaverse
                 var requestUri = new Uri($"{cap}?page_size={pageSize}&query={Uri.EscapeDataString(query)}");
 
                 ExperienceInfoMessage? result = null;
-                await http.GetRequestAsync(requestUri, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"FindExperienceByName non-success status: {response.StatusCode}", Client);
+                }
+                else if (data == null)
+                {
+                    Logger.Warn("FindExperienceByName returned no data.", Client);
+                }
+                else
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"FindExperienceByName request failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"FindExperienceByName non-success status: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null)
-                        {
-                            Logger.Warn("FindExperienceByName returned no data.", Client);
-                            return;
-                        }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             ExperienceInfoMessage msg = new ExperienceInfoMessage();
                             msg.Deserialize(map);
                             result = msg;
                             OnExperienceInfoReceived(new ExperienceInfoEventArgs(msg));
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse FindExperienceByName response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse FindExperienceByName response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -381,37 +369,33 @@ namespace OpenMetaverse
                 if (http == null) { return null; }
 
                 ExperienceListMessage? result = null;
-                await http.GetRequestAsync(cap, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(cap, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"GetAdminExperiences non-success status: {response.StatusCode}", Client);
+                }
+                else if (data == null)
+                {
+                    Logger.Warn("GetAdminExperiences returned no data.", Client);
+                }
+                else
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"GetAdminExperiences request failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"GetAdminExperiences non-success status: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null)
-                        {
-                            Logger.Warn("GetAdminExperiences returned no data.", Client);
-                            return;
-                        }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             ExperienceListMessage msg = new ExperienceListMessage();
                             msg.Deserialize(map);
                             result = msg;
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse GetAdminExperiences response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse GetAdminExperiences response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -442,37 +426,33 @@ namespace OpenMetaverse
                 if (http == null) { return null; }
 
                 ExperienceListMessage? result = null;
-                await http.GetRequestAsync(cap, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(cap, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"GetCreatorExperiences non-success status: {response.StatusCode}", Client);
+                }
+                else if (data == null)
+                {
+                    Logger.Warn("GetCreatorExperiences returned no data.", Client);
+                }
+                else
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"GetCreatorExperiences request failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"GetCreatorExperiences non-success status: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null)
-                        {
-                            Logger.Warn("GetCreatorExperiences returned no data.", Client);
-                            return;
-                        }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             ExperienceListMessage msg = new ExperienceListMessage();
                             msg.Deserialize(map);
                             result = msg;
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse GetCreatorExperiences response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse GetCreatorExperiences response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -504,39 +484,35 @@ namespace OpenMetaverse
                 if (http == null) { return null; }
 
                 ExperiencePreferencesMessage? result = null;
-                await http.GetRequestAsync(cap, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(cap, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"GetExperiences non-success status: {response.StatusCode}", Client);
+                }
+                else if (data == null)
+                {
+                    Logger.Warn("GetExperiences returned no data.", Client);
+                }
+                else
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"GetExperiences request failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"GetExperiences non-success status: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null)
-                        {
-                            Logger.Warn("GetExperiences returned no data.", Client);
-                            return;
-                        }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             ExperiencePreferencesMessage msg = new ExperiencePreferencesMessage();
                             msg.Deserialize(map);
                             result = msg;
                             ExperiencePreferences = msg;
                             OnExperiencePreferencesUpdated(new ExperiencePreferencesEventArgs(msg));
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse GetExperiences response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse GetExperiences response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -568,39 +544,35 @@ namespace OpenMetaverse
                 if (http == null) { return null; }
 
                 ExperiencePreferencesMessage? result = null;
-                await http.GetRequestAsync(cap, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(cap, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"ExperiencePreferences non-success status: {response.StatusCode}", Client);
+                }
+                else if (data == null)
+                {
+                    Logger.Warn("ExperiencePreferences returned no data.", Client);
+                }
+                else
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"ExperiencePreferences GET failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"ExperiencePreferences non-success status: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null)
-                        {
-                            Logger.Warn("ExperiencePreferences returned no data.", Client);
-                            return;
-                        }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             ExperiencePreferencesMessage msg = new ExperiencePreferencesMessage();
                             msg.Deserialize(map);
                             result = msg;
                             ExperiencePreferences = msg;
                             OnExperiencePreferencesUpdated(new ExperiencePreferencesEventArgs(msg));
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse ExperiencePreferences response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse ExperiencePreferences response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -632,19 +604,11 @@ namespace OpenMetaverse
                 var http = Client?.HttpCapsClient;
                 if (http == null) { return; }
 
-                await http.PostRequestAsync(cap, OSDFormat.Xml, preferences.Serialize(), cancellationToken,
-                    (response, data, error) =>
-                    {
-                        if (error != null)
-                        {
-                            Logger.Warn($"ExperiencePreferences POST failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"ExperiencePreferences POST non-success status: {response?.StatusCode}", Client);
-                        }
-                    }).ConfigureAwait(false);
+                var (response, data) = await http.PostAsync(cap, OSDFormat.Xml, preferences.Serialize(), cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"ExperiencePreferences POST non-success status: {response.StatusCode}", Client);
+                }
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
@@ -677,37 +641,33 @@ namespace OpenMetaverse
                 var requestUri = new Uri($"{cap}?group_id={groupId}");
 
                 ExperienceListMessage? result = null;
-                await http.GetRequestAsync(requestUri, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"GroupExperiences non-success status: {response.StatusCode}", Client);
+                }
+                else if (data == null)
+                {
+                    Logger.Warn("GroupExperiences returned no data.", Client);
+                }
+                else
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"GroupExperiences request failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"GroupExperiences non-success status: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null)
-                        {
-                            Logger.Warn("GroupExperiences returned no data.", Client);
-                            return;
-                        }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             ExperienceListMessage msg = new ExperienceListMessage();
                             msg.Deserialize(map);
                             result = msg;
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse GroupExperiences response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse GroupExperiences response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -741,34 +701,30 @@ namespace OpenMetaverse
                 if (http == null) { return null; }
 
                 ExperienceInfo? result = null;
-                await http.PostRequestAsync(cap, OSDFormat.Xml, info.Serialize(), cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.PostAsync(cap, OSDFormat.Xml, info.Serialize(), cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"UpdateExperience non-success status: {response.StatusCode}", Client);
+                }
+                else if (data != null)
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"UpdateExperience POST failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"UpdateExperience non-success status: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null) { return; }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             ExperienceInfoMessage msg = new ExperienceInfoMessage();
                             msg.Deserialize(map);
                             if (msg.Experiences.Count > 0)
                                 result = msg.Experiences[0];
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse UpdateExperience response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse UpdateExperience response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -803,31 +759,24 @@ namespace OpenMetaverse
                 var requestUri = new Uri($"{cap}?experience_id={experienceId}");
 
                 bool result = false;
-                await http.GetRequestAsync(requestUri, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"IsExperienceAdmin non-success status: {response.StatusCode}", Client);
+                }
+                else if (data != null)
+                {
+                    try
                     {
-                        if (error != null)
-                        {
-                            Logger.Warn($"IsExperienceAdmin request failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"IsExperienceAdmin non-success status: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null) { return; }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (osd is OSDMap map)
-                                result = map["status"].AsBoolean();
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse IsExperienceAdmin response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (osd is OSDMap map)
+                            result = map["status"].AsBoolean();
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse IsExperienceAdmin response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -862,31 +811,24 @@ namespace OpenMetaverse
                 var requestUri = new Uri($"{cap}?experience_id={experienceId}");
 
                 bool result = false;
-                await http.GetRequestAsync(requestUri, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"IsExperienceContributor non-success status: {response.StatusCode}", Client);
+                }
+                else if (data != null)
+                {
+                    try
                     {
-                        if (error != null)
-                        {
-                            Logger.Warn($"IsExperienceContributor request failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"IsExperienceContributor non-success status: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null) { return; }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (osd is OSDMap map)
-                                result = map["status"].AsBoolean();
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse IsExperienceContributor response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (osd is OSDMap map)
+                            result = map["status"].AsBoolean();
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse IsExperienceContributor response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -919,39 +861,35 @@ namespace OpenMetaverse
                 if (http == null) { return null; }
 
                 RegionExperiencesMessage? result = null;
-                await http.GetRequestAsync(cap, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(cap, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"RegionExperiences non-success status: {response.StatusCode}", Client);
+                }
+                else if (data == null)
+                {
+                    Logger.Warn("RegionExperiences returned no data.", Client);
+                }
+                else
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"RegionExperiences request failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"RegionExperiences non-success status: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null)
-                        {
-                            Logger.Warn("RegionExperiences returned no data.", Client);
-                            return;
-                        }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             RegionExperiencesMessage msg = new RegionExperiencesMessage();
                             msg.Deserialize(map);
                             result = msg;
                             LastRegionExperiences = msg;
                             OnRegionExperiencesUpdated(new RegionExperiencesEventArgs(msg));
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse RegionExperiences response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse RegionExperiences response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -998,38 +936,34 @@ namespace OpenMetaverse
                 var requestUri = new Uri($"{cap}?{qs}");
 
                 ExperienceInfoMessage? result = null;
-                await http.GetRequestAsync(requestUri, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"ExperienceQuery non-success status: {response.StatusCode}", Client);
+                }
+                else if (data == null)
+                {
+                    Logger.Warn("ExperienceQuery returned no data.", Client);
+                }
+                else
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"ExperienceQuery request failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"ExperienceQuery non-success status: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null)
-                        {
-                            Logger.Warn("ExperienceQuery returned no data.", Client);
-                            return;
-                        }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             ExperienceInfoMessage msg = new ExperienceInfoMessage();
                             msg.Deserialize(map);
                             result = msg;
                             OnExperienceInfoReceived(new ExperienceInfoEventArgs(msg));
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse ExperienceQuery response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse ExperienceQuery response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))

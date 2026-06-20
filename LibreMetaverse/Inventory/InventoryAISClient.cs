@@ -32,8 +32,8 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse;
+using LibreMetaverse.StructuredData;
 
 namespace LibreMetaverse
 {
@@ -224,7 +224,7 @@ namespace LibreMetaverse
 #else
                 var osd = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false));
 #endif
-                return ParseLinksFromEmbedded(osd as OSDMap);
+                return osd is OSDMap osdMap ? ParseLinksFromEmbedded(osdMap) : Array.Empty<InventoryItem>();
             }
             catch (OperationCanceledException) { throw; }
             catch (Exception ex)

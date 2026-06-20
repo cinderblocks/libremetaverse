@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
-using OpenMetaverse;
-using OpenMetaverse.Assets;
+using LibreMetaverse;
+using LibreMetaverse.Assets;
 
 namespace TestClient.Commands.Inventory
 {
@@ -82,7 +82,7 @@ namespace TestClient.Commands.Inventory
             var createTcs = new TaskCompletionSource<InventoryItem?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             Client.Inventory.RequestCreateItem(Client.Inventory.FindFolderForType(AssetType.Notecard),
-                filename, filename + " created by OpenMetaverse TestClient " + DateTime.Now, AssetType.Notecard,
+                filename, filename + " created by LibreMetaverse TestClient " + DateTime.Now, AssetType.Notecard,
                 UUID.Random(), InventoryType.Notecard, PermissionMask.All,
                 (createSuccess, item) =>
                 {

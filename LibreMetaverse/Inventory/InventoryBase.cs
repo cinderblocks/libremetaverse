@@ -26,10 +26,10 @@
  */
 
 using System;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.StructuredData;
 using MessagePack;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Base Class for Inventory Items
@@ -54,23 +54,23 @@ namespace OpenMetaverse
     [Union(16, typeof(InventoryWearable))]
     public abstract partial class InventoryBase
     {
-        /// <summary><see cref="OpenMetaverse.UUID"/> of item/folder</summary>
+        /// <summary><see cref="LibreMetaverse.UUID"/> of item/folder</summary>
         [Key("UUID")]
         public UUID UUID;
-        /// <summary><see cref="OpenMetaverse.UUID"/> of parent folder</summary>
+        /// <summary><see cref="LibreMetaverse.UUID"/> of parent folder</summary>
         [Key("ParentUUID")]
         public UUID ParentUUID;
         /// <summary>Name of item/folder</summary>
         [Key("Name")]
         public string Name = string.Empty;
-        /// <summary>Item/Folder Owners <see cref="OpenMetaverse.UUID"/></summary>
+        /// <summary>Item/Folder Owners <see cref="LibreMetaverse.UUID"/></summary>
         [Key("OwnerID")]
         public UUID OwnerID;
 
         /// <summary>
         /// Constructor, takes an itemID as a parameter
         /// </summary>
-        /// <param name="UUID">The <see cref="OpenMetaverse.UUID"/> of the item</param>
+        /// <param name="UUID">The <see cref="LibreMetaverse.UUID"/> of the item</param>
         protected InventoryBase(UUID UUID)
         {
             if (UUID == UUID.Zero)
@@ -131,13 +131,13 @@ namespace OpenMetaverse
         /// <summary><see cref="UUID"/> of the underlying asset</summary>
         [Key("AssetUUID")]
         public UUID AssetUUID;
-        /// <summary>Combined <see cref="OpenMetaverse.Permissions"/> of the item</summary>
+        /// <summary>Combined <see cref="LibreMetaverse.Permissions"/> of the item</summary>
         [Key("Permissions")]
         public Permissions Permissions;
-        /// <summary><see cref="OpenMetaverse.AssetType"/> of the underlying asset</summary>
+        /// <summary><see cref="LibreMetaverse.AssetType"/> of the underlying asset</summary>
         [Key("AssetType")]
         public AssetType AssetType;
-        /// <summary><see cref="OpenMetaverse.InventoryType"/> of the item</summary>
+        /// <summary><see cref="LibreMetaverse.InventoryType"/> of the item</summary>
         [Key("InventoryType")]
         public InventoryType InventoryType;
         /// <summary><see cref="UUID"/> of the creator of the item</summary>
@@ -155,7 +155,7 @@ namespace OpenMetaverse
         /// <summary>Price the item can be purchased for</summary>
         [Key("SalePrice")]
         public int SalePrice;
-        /// <summary><see cref="OpenMetaverse.SaleType"/> of the item</summary>
+        /// <summary><see cref="LibreMetaverse.SaleType"/> of the item</summary>
         [Key("SaleType")]
         public SaleType SaleType;
         /// <summary>Combined flags from <see cref="InventoryItemFlags"/></summary>
@@ -188,11 +188,6 @@ namespace OpenMetaverse
         [IgnoreMember]
         public UUID ResolvedAssetID => IsLink() ? UUID.Zero : AssetUUID;
 
-        /// <summary>inventoryID that this item points to, else this item's inventoryID</summary>
-        [IgnoreMember]
-        [Obsolete("Use ResolvedItemID to get the target inventory UUID, or ResolvedAssetID for the underlying asset UUID.")]
-        public UUID ActualUUID => ResolvedItemID;
-
         /// <summary>
         ///  Construct a new InventoryItem object
         /// </summary>
@@ -203,8 +198,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct a new InventoryItem object of a specific Type
         /// </summary>
-        /// <param name="type">The type of item from <see cref="T:OpenMetaverse.InventoryType" /></param>
-        /// <param name="itemID"><see cref="T:OpenMetaverse.UUID" /> of the item</param>
+        /// <param name="type">The type of item from <see cref="T:LibreMetaverse.InventoryType" /></param>
+        /// <param name="itemID"><see cref="T:LibreMetaverse.UUID" /> of the item</param>
         public InventoryItem(InventoryType type, UUID itemID) : base(itemID) { InventoryType = type; }
 
         /// <summary>
@@ -242,9 +237,9 @@ namespace OpenMetaverse
 
         /// <inheritdoc />
         /// <summary>
-        /// Determine whether the specified <see cref="T:OpenMetaverse.InventoryBase" /> object is equal to the current object
+        /// Determine whether the specified <see cref="T:LibreMetaverse.InventoryBase" /> object is equal to the current object
         /// </summary>
-        /// <param name="o">The <see cref="T:OpenMetaverse.InventoryBase" /> object to compare against</param>
+        /// <param name="o">The <see cref="T:LibreMetaverse.InventoryBase" /> object to compare against</param>
         /// <returns>true if objects are the same</returns>
         public override bool Equals(InventoryBase o)
         {
@@ -454,7 +449,7 @@ namespace OpenMetaverse
     /// <summary>
     /// InventoryTexture Class representing a graphical image
     /// </summary>
-    /// <seealso cref="T:OpenMetaverse.Imaging.ManagedImage" />
+    /// <seealso cref="T:LibreMetaverse.Imaging.ManagedImage" />
     [MessagePackObject]
     public partial class InventoryTexture : InventoryItem
     {
@@ -648,8 +643,8 @@ namespace OpenMetaverse
         /// <summary>
         /// Construct an InventorySnapshot object
         /// </summary>
-        /// <param name="UUID">A <see cref="T:OpenMetaverse.UUID" /> which becomes the 
-        /// <seealso cref="T:OpenMetaverse.InventoryItem" /> objects UUID</param>
+        /// <param name="UUID">A <see cref="T:LibreMetaverse.UUID" /> which becomes the 
+        /// <seealso cref="T:LibreMetaverse.InventoryItem" /> objects UUID</param>
         public InventorySnapshot(UUID UUID)
             : base(UUID)
         {
@@ -700,7 +695,7 @@ namespace OpenMetaverse
         public InventoryWearable(UUID UUID) : base(UUID) { InventoryType = InventoryType.Wearable; }
 
         /// <summary>
-        /// The <see cref="OpenMetaverse.WearableType"/>, Skin, Shape, Skirt, Etc
+        /// The <see cref="LibreMetaverse.WearableType"/>, Skin, Shape, Skirt, Etc
         /// </summary>
         [IgnoreMember]
         public WearableType WearableType
@@ -786,7 +781,7 @@ namespace OpenMetaverse
 
     /// <inheritdoc />
     /// <summary>
-    /// A folder contains <see cref="T:OpenMetaverse.InventoryItem" />s and has certain attributes specific 
+    /// A folder contains <see cref="T:LibreMetaverse.InventoryItem" />s and has certain attributes specific 
     /// to itself
     /// </summary>
     [MessagePackObject]
@@ -794,7 +789,7 @@ namespace OpenMetaverse
     {
         public const int VERSION_UNKNOWN = -1;
 
-        /// <summary>The Preferred <see cref="T:OpenMetaverse.FolderType"/> for a folder.</summary>
+        /// <summary>The Preferred <see cref="T:LibreMetaverse.FolderType"/> for a folder.</summary>
         [Key("PreferredType")]
         public FolderType PreferredType;
 

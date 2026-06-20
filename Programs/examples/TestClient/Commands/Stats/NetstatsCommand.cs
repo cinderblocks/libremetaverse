@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace TestClient.Commands.Stats
 {
@@ -42,9 +42,9 @@ namespace TestClient.Commands.Stats
             long capsBytesSent = 0;
             long capsBytesRecv = 0;
 
-            foreach (KeyValuePair<string, OpenMetaverse.Stats.UtilizationStatistics.Stat> kvp in Client.Stats.GetStatistics())
+            foreach (KeyValuePair<string, LibreMetaverse.Stats.UtilizationStatistics.Stat> kvp in Client.Stats.GetStatistics())
             {
-                if (kvp.Value.Type == OpenMetaverse.Stats.Type.Message)
+                if (kvp.Value.Type == LibreMetaverse.Stats.Type.Message)
                 {                              
                     capsOutput.AppendFormat("{0,-30}|{1,4}|{2,4}|{3,-10}|{4,-10}|" + global::System.Environment.NewLine, kvp.Key, kvp.Value.TxCount, kvp.Value.RxCount,
                         FormatBytes(kvp.Value.TxBytes), FormatBytes(kvp.Value.RxBytes));
@@ -54,7 +54,7 @@ namespace TestClient.Commands.Stats
                     capsBytesSent += kvp.Value.TxBytes;
                     capsBytesRecv += kvp.Value.RxBytes;
                 }
-                else if (kvp.Value.Type == OpenMetaverse.Stats.Type.Packet)
+                else if (kvp.Value.Type == LibreMetaverse.Stats.Type.Packet)
                 {
                     packetOutput.AppendFormat("{0,-30}|{1,4}|{2,4}|{3,-10}|{4,-10}|" + global::System.Environment.NewLine, kvp.Key, kvp.Value.TxCount, kvp.Value.RxCount, 
                         FormatBytes(kvp.Value.TxBytes), FormatBytes(kvp.Value.RxBytes));

@@ -26,7 +26,7 @@
 
 using System;
 
-namespace OpenMetaverse.Assets
+namespace LibreMetaverse.Assets
 {
     /// <summary>
     /// Represents a Landmark with RegionID and Position vector

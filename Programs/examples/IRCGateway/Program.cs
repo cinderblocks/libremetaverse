@@ -1,4 +1,4 @@
-using OpenMetaverse;
+using LibreMetaverse;
 using System;
 
 namespace IRCGateway

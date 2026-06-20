@@ -27,9 +27,9 @@
 using System;
 using System.Collections;
 using System.Reflection;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse.Packets
+namespace LibreMetaverse.Packets
 {
     public abstract partial class Packet
     {
@@ -112,7 +112,7 @@ namespace OpenMetaverse.Packets
             Assembly assembly = Assembly.GetExecutingAssembly();
 
             // Check if we have a subclass of packet with the same name as this event
-            Type? type = assembly.GetType("OpenMetaverse.Packets." + capsEventName + "Packet", false);
+            Type? type = assembly.GetType("LibreMetaverse.Packets." + capsEventName + "Packet", false);
             if (type == null)
                 return null;
 

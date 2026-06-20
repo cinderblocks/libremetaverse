@@ -25,10 +25,10 @@
  */
 
 using MessagePack;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.StructuredData;
 using System;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     [Flags]
     public enum PermissionMask : uint

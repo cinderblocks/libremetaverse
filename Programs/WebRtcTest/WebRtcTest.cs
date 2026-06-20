@@ -25,7 +25,7 @@
  */
 
 using LibreMetaverse.Voice.WebRTC;
-using OpenMetaverse;
+using LibreMetaverse;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -108,7 +108,7 @@ namespace WebRtcTest
                     client.Network.DefaultLoginParams(firstName, lastName, password, "WebRtc Test", "1.0.0");
                 loginParams.URI = loginURI;
                 loginParams.LoginLocation = "WebRTC Voice 1/128/128/50";
-                if (!client.Network.Login(loginParams))
+                if (!await client.Network.LoginAsync(loginParams))
                     throw new VoiceTestException("Login to SL failed: " + client.Network.LoginMessage);
                 Console.WriteLine("Logged in: " + client.Network.LoginMessage);
 

@@ -28,9 +28,9 @@ using System;
 using System.IO;
 using System.Text;
 using NUnit.Framework;
-using OpenMetaverse;
-using OpenMetaverse.Assets;
-using OpenMetaverse.Assets.Gltf;
+using LibreMetaverse;
+using LibreMetaverse.Assets;
+using LibreMetaverse.Assets.Gltf;
 
 namespace LibreMetaverse.Tests
 {

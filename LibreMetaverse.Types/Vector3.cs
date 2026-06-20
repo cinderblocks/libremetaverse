@@ -28,23 +28,23 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// A three-dimensional vector with floating-point values
     /// </summary>
     [Serializable]
     [StructLayout(LayoutKind.Sequential)]
-    public struct Vector3 : IComparable<Vector3>, IEquatable<Vector3>
+    public readonly struct Vector3 : IComparable<Vector3>, IEquatable<Vector3>
     {
         /// <summary>X value</summary>
-        public float X;
+        public readonly float X;
 
         /// <summary>Y value</summary>
-        public float Y;
+        public readonly float Y;
 
         /// <summary>Z value</summary>
-        public float Z;
+        public readonly float Z;
 
         #region Constructors
 
@@ -83,15 +83,9 @@ namespace OpenMetaverse
         /// <param name="pos">Beginning position in the byte array</param>
         public Vector3(byte[] byteArray, int pos)
         {
-            X = Y = Z = 0f;
-            FromBytes(byteArray, pos);
-        }
-
-        public Vector3(Vector3 vector)
-        {
-            X = vector.X;
-            Y = vector.Y;
-            Z = vector.Z;
+            X = Utils.ReadSingleLittleEndian(byteArray, pos);
+            Y = Utils.ReadSingleLittleEndian(byteArray, pos + 4);
+            Z = Utils.ReadSingleLittleEndian(byteArray, pos + 8);
         }
 
         #endregion Constructors
@@ -108,20 +102,10 @@ namespace OpenMetaverse
             return DistanceSquared(this, Zero);
         }
 
-        public void Normalize()
-        {
-            this = Normalize(this);
-        }
-
         /// <summary>
         /// Test if this vector is equal to another vector, within a given
         /// tolerance range
         /// </summary>
-        /// <param name="vec">Vector to test against</param>
-        /// <param name="tolerance">The acceptable magnitude of difference
-        /// between the two vectors</param>
-        /// <returns>True if the magnitude of difference between the two vectors
-        /// is less than the given tolerance, otherwise false</returns>
         public bool ApproxEquals(Vector3 vec, float tolerance)
         {
             Vector3 diff = this - vec;
@@ -145,21 +129,13 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Builds a vector from a byte array
+        /// Returns a new Vector3 parsed from 12 bytes starting at <paramref name="pos"/> in the source array.
         /// </summary>
-        /// <param name="byteArray">Byte array containing a 12 byte vector</param>
-        /// <param name="pos">Beginning position in the byte array</param>
-        public void FromBytes(byte[] byteArray, int pos)
-        {
-            X = Utils.ReadSingleLittleEndian(byteArray, pos);
-            Y = Utils.ReadSingleLittleEndian(byteArray, pos + 4);
-            Z = Utils.ReadSingleLittleEndian(byteArray, pos + 8);
-        }
+        public static Vector3 FromBytes(byte[] byteArray, int pos) => new Vector3(byteArray, pos);
 
         /// <summary>
         /// Returns the raw bytes for this vector
         /// </summary>
-        /// <returns>A 12 byte array containing X, Y, and Z</returns>
         public byte[] GetBytes()
         {
             byte[] byteArray = new byte[12];
@@ -170,9 +146,6 @@ namespace OpenMetaverse
         /// <summary>
         /// Writes the raw bytes for this vector to a byte array
         /// </summary>
-        /// <param name="dest">Destination byte array</param>
-        /// <param name="pos">Position in the destination array to start
-        /// writing. Must be at least 12 bytes before the end of the array</param>
         public void ToBytes(byte[] dest, int pos)
         {
             Utils.WriteSingleLittleEndian(dest, pos, X);
@@ -186,10 +159,7 @@ namespace OpenMetaverse
 
         public static Vector3 Add(Vector3 value1, Vector3 value2)
         {
-            value1.X += value2.X;
-            value1.Y += value2.Y;
-            value1.Z += value2.Z;
-            return value1;
+            return new Vector3(value1.X + value2.X, value1.Y + value2.Y, value1.Z + value2.Z);
         }
 
         public static Vector3 Clamp(Vector3 value1, Vector3 min, Vector3 max)
@@ -223,19 +193,13 @@ namespace OpenMetaverse
 
         public static Vector3 Divide(Vector3 value1, Vector3 value2)
         {
-            value1.X /= value2.X;
-            value1.Y /= value2.Y;
-            value1.Z /= value2.Z;
-            return value1;
+            return new Vector3(value1.X / value2.X, value1.Y / value2.Y, value1.Z / value2.Z);
         }
 
         public static Vector3 Divide(Vector3 value1, float value2)
         {
             float factor = 1f / value2;
-            value1.X *= factor;
-            value1.Y *= factor;
-            value1.Z *= factor;
-            return value1;
+            return new Vector3(value1.X * factor, value1.Y * factor, value1.Z * factor);
         }
 
         public static float Dot(Vector3 value1, Vector3 value2)
@@ -274,26 +238,17 @@ namespace OpenMetaverse
 
         public static Vector3 Multiply(Vector3 value1, Vector3 value2)
         {
-            value1.X *= value2.X;
-            value1.Y *= value2.Y;
-            value1.Z *= value2.Z;
-            return value1;
+            return new Vector3(value1.X * value2.X, value1.Y * value2.Y, value1.Z * value2.Z);
         }
 
         public static Vector3 Multiply(Vector3 value1, float scaleFactor)
         {
-            value1.X *= scaleFactor;
-            value1.Y *= scaleFactor;
-            value1.Z *= scaleFactor;
-            return value1;
+            return new Vector3(value1.X * scaleFactor, value1.Y * scaleFactor, value1.Z * scaleFactor);
         }
 
         public static Vector3 Negate(Vector3 value)
         {
-            value.X = -value.X;
-            value.Y = -value.Y;
-            value.Z = -value.Z;
-            return value;
+            return new Vector3(-value.X, -value.Y, -value.Z);
         }
 
         public static Vector3 Normalize(Vector3 value)
@@ -303,24 +258,14 @@ namespace OpenMetaverse
             if (factor > MAG_THRESHOLD)
             {
                 factor = 1f / factor;
-                value.X *= factor;
-                value.Y *= factor;
-                value.Z *= factor;
+                return new Vector3(value.X * factor, value.Y * factor, value.Z * factor);
             }
-            else
-            {
-                value.X = 0f;
-                value.Y = 0f;
-                value.Z = 0f;
-            }
-            return value;
+            return Zero;
         }
 
         /// <summary>
         /// Parse a vector from a string
         /// </summary>
-        /// <param name="val">A string representation of a 3D vector, enclosed 
-        /// in arrow brackets and separated by commas</param>
         public static Vector3 Parse(string val)
         {
             if (val == null) throw new ArgumentNullException(nameof(val));
@@ -354,8 +299,6 @@ namespace OpenMetaverse
         /// <summary>
         /// Calculate the rotation between two vectors
         /// </summary>
-        /// <param name="a">Normalized directional vector (such as 1,0,0 for forward facing)</param>
-        /// <param name="b">Normalized target vector</param>
         public static Quaternion RotationBetween(Vector3 a, Vector3 b)
         {
             float dotProduct = Dot(a, b);
@@ -385,10 +328,7 @@ namespace OpenMetaverse
 
         public static Vector3 Subtract(Vector3 value1, Vector3 value2)
         {
-            value1.X -= value2.X;
-            value1.Y -= value2.Y;
-            value1.Z -= value2.Z;
-            return value1;
+            return new Vector3(value1.X - value2.X, value1.Y - value2.Y, value1.Z - value2.Z);
         }
 
         public static Vector3 Transform(Vector3 position, Matrix4 matrix)
@@ -429,20 +369,11 @@ namespace OpenMetaverse
             return hash;
         }
 
-        /// <summary>
-        /// Get a formatted string representation of the vector
-        /// </summary>
-        /// <returns>A string representation of the vector</returns>
         public override string ToString()
         {
             return string.Format(Utils.EnUsCulture, "<{0}, {1}, {2}>", X, Y, Z);
         }
 
-        /// <summary>
-        /// Get a string representation of the vector elements with up to three
-        /// decimal digits and separated by spaces only
-        /// </summary>
-        /// <returns>Raw string representation of the vector</returns>
         public string ToRawString()
         {
             return string.Format(Utils.EnUsCulture, "{0:F3} {1:F3} {2:F3}", X, Y, Z);
@@ -464,45 +395,15 @@ namespace OpenMetaverse
             return !(value1 == value2);
         }
 
-        public static Vector3 operator +(Vector3 value1, Vector3 value2)
-        {
-            value1.X += value2.X;
-            value1.Y += value2.Y;
-            value1.Z += value2.Z;
-            return value1;
-        }
+        public static Vector3 operator +(Vector3 value1, Vector3 value2) => Add(value1, value2);
 
-        public static Vector3 operator -(Vector3 value)
-        {
-            value.X = -value.X;
-            value.Y = -value.Y;
-            value.Z = -value.Z;
-            return value;
-        }
+        public static Vector3 operator -(Vector3 value) => Negate(value);
 
-        public static Vector3 operator -(Vector3 value1, Vector3 value2)
-        {
-            value1.X -= value2.X;
-            value1.Y -= value2.Y;
-            value1.Z -= value2.Z;
-            return value1;
-        }
+        public static Vector3 operator -(Vector3 value1, Vector3 value2) => Subtract(value1, value2);
 
-        public static Vector3 operator *(Vector3 value1, Vector3 value2)
-        {
-            value1.X *= value2.X;
-            value1.Y *= value2.Y;
-            value1.Z *= value2.Z;
-            return value1;
-        }
+        public static Vector3 operator *(Vector3 value1, Vector3 value2) => Multiply(value1, value2);
 
-        public static Vector3 operator *(Vector3 value, float scaleFactor)
-        {
-            value.X *= scaleFactor;
-            value.Y *= scaleFactor;
-            value.Z *= scaleFactor;
-            return value;
-        }
+        public static Vector3 operator *(Vector3 value, float scaleFactor) => Multiply(value, scaleFactor);
 
         public static Vector3 operator *(Vector3 vec, Quaternion rot)
         {
@@ -511,53 +412,22 @@ namespace OpenMetaverse
             float ry = rot.W * vec.Y + rot.Z * vec.X - rot.X * vec.Z;
             float rz = rot.W * vec.Z + rot.X * vec.Y - rot.Y * vec.X;
 
-            vec.X = -rw * rot.X + rx * rot.W - ry * rot.Z + rz * rot.Y;
-            vec.Y = -rw * rot.Y + ry * rot.W - rz * rot.X + rx * rot.Z;
-            vec.Z = -rw * rot.Z + rz * rot.W - rx * rot.Y + ry * rot.X;
-
-            return vec;
+            return new Vector3(
+                -rw * rot.X + rx * rot.W - ry * rot.Z + rz * rot.Y,
+                -rw * rot.Y + ry * rot.W - rz * rot.X + rx * rot.Z,
+                -rw * rot.Z + rz * rot.W - rx * rot.Y + ry * rot.X);
         }
 
-        public static Vector3 operator *(Vector3 vector, Matrix4 matrix)
-        {
-            return Transform(vector, matrix);
-        }
+        public static Vector3 operator *(Vector3 vector, Matrix4 matrix) => Transform(vector, matrix);
 
-        public static Vector3 operator /(Vector3 value1, Vector3 value2)
-        {
-            value1.X /= value2.X;
-            value1.Y /= value2.Y;
-            value1.Z /= value2.Z;
-            return value1;
-        }
+        public static Vector3 operator /(Vector3 value1, Vector3 value2) => Divide(value1, value2);
 
-        public static Vector3 operator /(Vector3 value, float divider)
-        {
-            float factor = 1f / divider;
-            value.X *= factor;
-            value.Y *= factor;
-            value.Z *= factor;
-            return value;
-        }
+        public static Vector3 operator /(Vector3 value, float divider) => Divide(value, divider);
 
-        /// <summary>
-        /// Cross product between two vectors
-        /// </summary>
-        public static Vector3 operator %(Vector3 value1, Vector3 value2)
-        {
-            return Cross(value1, value2);
-        }
+        /// <summary>Cross product between two vectors</summary>
+        public static Vector3 operator %(Vector3 value1, Vector3 value2) => Cross(value1, value2);
 
-        /// <summary>
-        /// Explicit casting for Vector3d > Vector3
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        public static explicit operator Vector3(Vector3d value)
-        {
-            Vector3d foo = (Vector3d)Vector3.Zero;
-            return new Vector3(value);
-        }
+        public static explicit operator Vector3(Vector3d value) => new Vector3(value);
 
         #endregion Operators
 

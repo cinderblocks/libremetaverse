@@ -28,7 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OpenMetaverse.Marketplace
+namespace LibreMetaverse.Marketplace
 {
     /// <summary>
     /// Pure-logic utilities for classifying inventory folders within the Second Life

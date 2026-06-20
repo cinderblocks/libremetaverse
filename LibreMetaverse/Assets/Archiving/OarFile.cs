@@ -32,7 +32,7 @@ using System.IO.Compression;
 using System.Xml;
 using System.Threading;
 
-namespace OpenMetaverse.Assets
+namespace LibreMetaverse.Assets
 {
     public static class OarFile
     {

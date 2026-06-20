@@ -6,8 +6,8 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse;
+using LibreMetaverse.StructuredData;
 using LibreMetaverse.Appearance;
 using LibreMetaverse.Tests.TestHelpers;
 

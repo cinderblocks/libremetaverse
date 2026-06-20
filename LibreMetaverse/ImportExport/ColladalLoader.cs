@@ -34,11 +34,11 @@ using System.Xml;
 using System.Linq;
 using System.Xml.Serialization;
 using CoreJ2K.Configuration;
-using OpenMetaverse.ImportExport.Collada14;
-using OpenMetaverse.Rendering;
+using LibreMetaverse.ImportExport.Collada14;
+using LibreMetaverse.Rendering;
 using SkiaSharp;
 
-namespace OpenMetaverse.ImportExport
+namespace LibreMetaverse.ImportExport
 {
     /// <summary>
     /// Parsing Collada model files into data structures
@@ -200,7 +200,11 @@ namespace OpenMetaverse.ImportExport
             ModelMaterial ret = new ModelMaterial();
             if (diffuse is common_color_or_texture_typeColor color)
             {
-                ret.DiffuseColor = new Color4((float)color.Values[0], (float)color.Values[1], (float)color.Values[2], (float)color.Values[3]);
+                ret.DiffuseColor = new Color4(
+                    Utils.Clamp((float)color.Values[0], 0f, 1f),
+                    Utils.Clamp((float)color.Values[1], 0f, 1f),
+                    Utils.Clamp((float)color.Values[2], 0f, 1f),
+                    Utils.Clamp((float)color.Values[3], 0f, 1f));
             }
             else if (diffuse is common_color_or_texture_typeTexture tex)
             {
@@ -332,13 +336,11 @@ namespace OpenMetaverse.ImportExport
                 {
                     if (i is matrix mtx)
                     {
-                        for (int a = 0; a < 4; a++)
-                        {
-                            for (int b = 0; b < 4; b++)
-                            {
-                                n.Transform[b, a] = (float)mtx.Values[a * 4 + b];
-                            }
-                        }
+                        n.Transform = new Matrix4(
+                            (float)mtx.Values[0],  (float)mtx.Values[4],  (float)mtx.Values[8],  (float)mtx.Values[12],
+                            (float)mtx.Values[1],  (float)mtx.Values[5],  (float)mtx.Values[9],  (float)mtx.Values[13],
+                            (float)mtx.Values[2],  (float)mtx.Values[6],  (float)mtx.Values[10], (float)mtx.Values[14],
+                            (float)mtx.Values[3],  (float)mtx.Values[7],  (float)mtx.Values[11], (float)mtx.Values[15]);
                     }
                 }
             }
@@ -414,9 +416,11 @@ namespace OpenMetaverse.ImportExport
                 if (asset.unit != null)
                 {
                     float meter = (float)asset.unit.meter;
-                    transform[0, 0] = meter;
-                    transform[1, 1] = meter;
-                    transform[2, 2] = meter;
+                    transform = new Matrix4(
+                        meter, transform.M12, transform.M13, transform.M14,
+                        transform.M21, meter, transform.M23, transform.M24,
+                        transform.M31, transform.M32, meter, transform.M34,
+                        transform.M41, transform.M42, transform.M43, transform.M44);
                 }
             }
 
@@ -527,13 +531,14 @@ namespace OpenMetaverse.ImportExport
 
             foreach (var pos in prim.Positions)
             {
-                if (pos.X > prim.BoundMax.X) prim.BoundMax.X = pos.X;
-                if (pos.Y > prim.BoundMax.Y) prim.BoundMax.Y = pos.Y;
-                if (pos.Z > prim.BoundMax.Z) prim.BoundMax.Z = pos.Z;
-
-                if (pos.X < prim.BoundMin.X) prim.BoundMin.X = pos.X;
-                if (pos.Y < prim.BoundMin.Y) prim.BoundMin.Y = pos.Y;
-                if (pos.Z < prim.BoundMin.Z) prim.BoundMin.Z = pos.Z;
+                prim.BoundMax = new Vector3(
+                    Math.Max(prim.BoundMax.X, pos.X),
+                    Math.Max(prim.BoundMax.Y, pos.Y),
+                    Math.Max(prim.BoundMax.Z, pos.Z));
+                prim.BoundMin = new Vector3(
+                    Math.Min(prim.BoundMin.X, pos.X),
+                    Math.Min(prim.BoundMin.Y, pos.Y),
+                    Math.Min(prim.BoundMin.Z, pos.Z));
             }
 
             scale = prim.BoundMax - prim.BoundMin;
@@ -613,8 +618,7 @@ namespace OpenMetaverse.ImportExport
                 for (int i = 0; i < normals.Length; i++)
                 {
                     normals[i] = new Vector3((float)norVal[i * 3 + 0], (float)norVal[i * 3 + 1], (float)norVal[i * 3 + 2]);
-                    normals[i] = Vector3.TransformNormal(normals[i], transform);
-                    normals[i].Normalize();
+                    normals[i] = Vector3.Normalize(Vector3.TransformNormal(normals[i], transform));
                 }
             }
 

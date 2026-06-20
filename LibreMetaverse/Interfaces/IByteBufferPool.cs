@@ -1,4 +1,4 @@
-namespace OpenMetaverse.Interfaces
+namespace LibreMetaverse.Interfaces
 {
     /// <summary>
     /// Interface to a class that can supply cached byte arrays

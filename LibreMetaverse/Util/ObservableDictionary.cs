@@ -28,7 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
 
     /// <summary>
@@ -149,7 +149,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:OpenMetaverse.ObservableDictionary"/> Class
+        /// Initializes a new instance of the <see cref="T:LibreMetaverse.ObservableDictionary"/> Class
         /// with the specified key/value, With its initial capacity specified.
         /// </summary>
         /// <param name="capacity">Initial size of dictionary</param>

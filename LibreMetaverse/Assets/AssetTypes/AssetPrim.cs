@@ -30,9 +30,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse.Assets
+namespace LibreMetaverse.Assets
 {
     /// <summary>
     /// A linkset asset, containing a parent primitive and zero or more children
@@ -268,10 +268,11 @@ namespace OpenMetaverse.Assets
             reader.ReadStartElement("Color");
             if (reader.Name == "R")
             {
-                obj.TextColor.R = reader.ReadElementContentAsFloat("R", string.Empty);
-                obj.TextColor.G = reader.ReadElementContentAsFloat("G", string.Empty);
-                obj.TextColor.B = reader.ReadElementContentAsFloat("B", string.Empty);
-                obj.TextColor.A = reader.ReadElementContentAsFloat("A", string.Empty);
+                float r = reader.ReadElementContentAsFloat("R", string.Empty);
+                float g = reader.ReadElementContentAsFloat("G", string.Empty);
+                float b = reader.ReadElementContentAsFloat("B", string.Empty);
+                float a = reader.ReadElementContentAsFloat("A", string.Empty);
+                obj.TextColor = new Color4(Utils.Clamp(r, 0f, 1f), Utils.Clamp(g, 0f, 1f), Utils.Clamp(b, 0f, 1f), Utils.Clamp(a, 0f, 1f));
                 reader.ReadEndElement();
             }
             obj.Text = reader.ReadElementString("Text", string.Empty);
@@ -335,14 +336,20 @@ namespace OpenMetaverse.Assets
             flexible.Drag = reader.ReadElementContentAsFloat("FlexiDrag", string.Empty);
             flexible.Gravity = reader.ReadElementContentAsFloat("FlexiGravity", string.Empty);
             flexible.Wind = reader.ReadElementContentAsFloat("FlexiWind", string.Empty);
-            flexible.Force.X = reader.ReadElementContentAsFloat("FlexiForceX", string.Empty);
-            flexible.Force.Y = reader.ReadElementContentAsFloat("FlexiForceY", string.Empty);
-            flexible.Force.Z = reader.ReadElementContentAsFloat("FlexiForceZ", string.Empty);
+            {
+                float fx = reader.ReadElementContentAsFloat("FlexiForceX", string.Empty);
+                float fy = reader.ReadElementContentAsFloat("FlexiForceY", string.Empty);
+                float fz = reader.ReadElementContentAsFloat("FlexiForceZ", string.Empty);
+                flexible.Force = new Vector3(fx, fy, fz);
+            }
 
-            light.Color.R = reader.ReadElementContentAsFloat("LightColorR", string.Empty);
-            light.Color.G = reader.ReadElementContentAsFloat("LightColorG", string.Empty);
-            light.Color.B = reader.ReadElementContentAsFloat("LightColorB", string.Empty);
-            light.Color.A = reader.ReadElementContentAsFloat("LightColorA", string.Empty);
+            {
+                float lr = reader.ReadElementContentAsFloat("LightColorR", string.Empty);
+                float lg = reader.ReadElementContentAsFloat("LightColorG", string.Empty);
+                float lb = reader.ReadElementContentAsFloat("LightColorB", string.Empty);
+                float la = reader.ReadElementContentAsFloat("LightColorA", string.Empty);
+                light.Color = new Color4(Utils.Clamp(lr, 0f, 1f), Utils.Clamp(lg, 0f, 1f), Utils.Clamp(lb, 0f, 1f), Utils.Clamp(la, 0f, 1f));
+            }
             light.Radius = reader.ReadElementContentAsFloat("LightRadius", string.Empty);
             light.Cutoff = reader.ReadElementContentAsFloat("LightCutoff", string.Empty);
             light.Falloff = reader.ReadElementContentAsFloat("LightFalloff", string.Empty);
@@ -407,29 +414,23 @@ namespace OpenMetaverse.Assets
 
         static Vector3 ReadVector(XmlTextReader reader, string name)
         {
-            Vector3 vec;
-
             reader.ReadStartElement(name);
-            vec.X = reader.ReadElementContentAsFloat("X", string.Empty);
-            vec.Y = reader.ReadElementContentAsFloat("Y", string.Empty);
-            vec.Z = reader.ReadElementContentAsFloat("Z", string.Empty);
+            float x = reader.ReadElementContentAsFloat("X", string.Empty);
+            float y = reader.ReadElementContentAsFloat("Y", string.Empty);
+            float z = reader.ReadElementContentAsFloat("Z", string.Empty);
             reader.ReadEndElement();
-
-            return vec;
+            return new Vector3(x, y, z);
         }
 
         static Quaternion ReadQuaternion(XmlTextReader reader, string name)
         {
-            Quaternion quat;
-
             reader.ReadStartElement(name);
-            quat.X = reader.ReadElementContentAsFloat("X", string.Empty);
-            quat.Y = reader.ReadElementContentAsFloat("Y", string.Empty);
-            quat.Z = reader.ReadElementContentAsFloat("Z", string.Empty);
-            quat.W = reader.ReadElementContentAsFloat("W", string.Empty);
+            float x = reader.ReadElementContentAsFloat("X", string.Empty);
+            float y = reader.ReadElementContentAsFloat("Y", string.Empty);
+            float z = reader.ReadElementContentAsFloat("Z", string.Empty);
+            float w = reader.ReadElementContentAsFloat("W", string.Empty);
             reader.ReadEndElement();
-
-            return quat;
+            return new Quaternion(x, y, z, w);
         }
     }
 

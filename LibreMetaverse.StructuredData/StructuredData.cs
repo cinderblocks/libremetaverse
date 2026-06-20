@@ -30,7 +30,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 
-namespace OpenMetaverse.StructuredData
+namespace LibreMetaverse.StructuredData
 {
     public enum OSDType : byte
     {

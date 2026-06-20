@@ -32,9 +32,9 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using ComponentAce.Compression.Libs.zlib;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Static helper functions and global variables
@@ -50,32 +50,6 @@ namespace OpenMetaverse
         /// <summary>This header flag signals that the message is compressed using zerocoding</summary>
         public const byte MSG_ZEROCODED = 0x80;
 
-        /// <summary>
-        /// Passed to Logger.Log() to identify the severity of a log entry
-        /// </summary>
-        [Obsolete("Use Microsoft.Extensions.Logging.LogLevel")]
-        public enum LogLevel
-        {
-            /// <summary>No logging information will be output</summary>
-            None,
-            /// <summary>Non-noisy useful information, may be helpful in 
-            /// debugging a problem</summary>
-            Info,
-            /// <summary>A non-critical error occurred. A warning will not 
-            /// prevent the rest of the library from operating as usual, 
-            /// although it may be indicative of an underlying issue</summary>
-            Warning,
-            /// <summary>A critical error has occurred. Generally this will 
-            /// be followed by the network layer shutting down, although the 
-            /// stability of the library after an error is uncertain</summary>
-            Error,
-            /// <summary>Used for internal testing, this logging level can 
-            /// generate very noisy (long and/or repetitive) messages. Don't
-            /// pass this to the Log() function, use DebugLog() instead.
-            /// </summary>
-            Debug,
-            Trace
-        }
 
         /// <summary>
         /// 
@@ -573,7 +547,7 @@ namespace OpenMetaverse
                 try
                 {
                     Assembly a = Assembly.GetExecutingAssembly();
-                    Stream? s = a.GetManifestResourceStream("OpenMetaverse.Resources." + resourceName);
+                    Stream? s = a.GetManifestResourceStream("LibreMetaverse.Resources." + resourceName);
                     if (s != null) return s;
                 }
                 catch (Exception ex)

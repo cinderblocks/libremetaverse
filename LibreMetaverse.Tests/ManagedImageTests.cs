@@ -3,7 +3,7 @@
  */
 
 using NUnit.Framework;
-using OpenMetaverse.Imaging;
+using LibreMetaverse.Imaging;
 
 namespace LibreMetaverse.Tests
 {

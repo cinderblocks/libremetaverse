@@ -28,7 +28,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace LibreMetaverse.Appearance
 {

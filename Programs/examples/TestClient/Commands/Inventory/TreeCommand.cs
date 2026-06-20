@@ -1,5 +1,5 @@
 using System;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace TestClient.Commands.Inventory
 {
@@ -21,8 +21,8 @@ namespace TestClient.Commands.Inventory
                 string treeName = args[0].Trim(new[] { ' ' });
                 Tree tree = (Tree)Enum.Parse(typeof(Tree), treeName);
 
-                Vector3 treePosition = Client.Self.SimPosition;
-                treePosition.Z += 3.0f;
+                var treePos0 = Client.Self.SimPosition;
+                Vector3 treePosition = new Vector3(treePos0.X, treePos0.Y, treePos0.Z + 3.0f);
 
                 var currentSim = Client.Network?.CurrentSim;
                 if (currentSim == null) return "No current simulator available";

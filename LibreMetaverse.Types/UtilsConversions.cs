@@ -30,7 +30,7 @@ using System.Net;
 using System.Text;
 using System.Reflection;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public static partial class Utils
     {

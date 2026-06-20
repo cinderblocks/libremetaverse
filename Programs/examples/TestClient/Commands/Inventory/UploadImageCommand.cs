@@ -28,7 +28,7 @@
 using System;
 using System.Threading.Tasks;
 using CoreJ2K.Configuration;
-using OpenMetaverse;
+using LibreMetaverse;
 using SkiaSharp;
 
 namespace TestClient.Commands.Inventory
@@ -136,7 +136,7 @@ namespace TestClient.Commands.Inventory
                 {
                     if (lowfilename.EndsWith(".tga") || lowfilename.EndsWith(".targa"))
                     {
-                        bitmap = OpenMetaverse.Imaging.Targa.Decode(fileName);
+                        bitmap = LibreMetaverse.Imaging.Targa.Decode(fileName);
                     }
                     else
                     {

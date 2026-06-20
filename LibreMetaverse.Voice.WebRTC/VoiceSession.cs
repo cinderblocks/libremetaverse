@@ -25,8 +25,8 @@
  */
 
 using LitJson;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse;
+using LibreMetaverse.StructuredData;
 using SIPSorcery.Net;
 using SIPSorcery.SIP.App;
 using SIPSorcery.Sys;
@@ -205,7 +205,7 @@ namespace LibreMetaverse.Voice.WebRTC
             _audioDevice = audioDeviceDevice;
             SessionType = type;
             SessionId = UUID.Zero;
-            _log = logger ?? new OpenMetaverseVoiceLogger();
+            _log = logger ?? new LibreMetaverseVoiceLogger();
 
             // Initialize peer manager and forward its events to existing VoiceSession events
             _peerManager = new PeerManager(_audioDevice, _client, _log);
@@ -253,69 +253,31 @@ namespace LibreMetaverse.Voice.WebRTC
             while (attempt < maxAttempts)
             {
                 attempt++;
-                var tcs = new TaskCompletionSource<(object? response, byte[]? data, Exception? err)>();
                 try
                 {
-                    _ = _client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, token, (response, data, error) =>
-                    {
-                        tcs.TrySetResult((response, data, error));
-                    });
-
+                    var postTask = _client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload, token);
                     var delayTask = Task.Delay(timeout.Value, token);
-                    var completed = await Task.WhenAny(tcs.Task, delayTask).ConfigureAwait(false);
+                    var completed = await Task.WhenAny(postTask, delayTask).ConfigureAwait(false);
                     if (completed == delayTask)
                     {
                         lastEx = new TimeoutException($"POST to {cap} timed out.");
                     }
                     else
                     {
-                        var (response, data, err) = await tcs.Task.ConfigureAwait(false);
-                        if (err != null)
+                        var (response, data) = await postTask.ConfigureAwait(false);
+                        try
                         {
-                            lastEx = err;
+                            // Attempt to deserialize LLSD/OSD. If parsing fails, capture raw response for diagnostics.
+                            var osd = OSDParser.Deserialize(data ?? Array.Empty<byte>());
+                            return osd;
                         }
-                        else
+                        catch (Exception parseEx)
                         {
-                            try
-                            {
-                                // Attempt to deserialize LLSD/OSD. If parsing fails, capture raw response for diagnostics.
-                                var osd = OSDParser.Deserialize(data ?? Array.Empty<byte>());
-                                return osd;
-                            }
-                            catch (Exception parseEx)
-                            {
-                                string respText = string.Empty;
-                                try { respText = data != null ? Encoding.UTF8.GetString(data) : string.Empty; } catch { }
+                            string respText = string.Empty;
+                            try { respText = data != null ? Encoding.UTF8.GetString(data) : string.Empty; } catch { }
 
-                                // Try to infer HTTP status code or status text from the response object if available
-                                int? statusCode = null;
-                                string? statusText = null;
-                                try
-                                {
-                                    if (response != null)
-                                    {
-                                        var respType = response.GetType();
-                                        var statusProp = respType.GetProperty("StatusCode") ?? respType.GetProperty("Status");
-                                        if (statusProp != null)
-                                        {
-                                            var val = statusProp.GetValue(response);
-                                            if (val != null)
-                                            {
-                                                statusText = val.ToString();
-                                                if (int.TryParse(statusText, out var si)) statusCode = si;
-                                            }
-                                        }
-
-                                        // Some HttpResponseMessage-like types expose ReasonPhrase
-                                        var reasonProp = respType.GetProperty("ReasonPhrase") ?? respType.GetProperty("StatusDescription");
-                                        if (reasonProp != null && statusText == null)
-                                        {
-                                            var rv = reasonProp.GetValue(response);
-                                            if (rv != null) statusText = rv.ToString();
-                                        }
-                                    }
-                                }
-                                catch { }
+                            int? statusCode = (int)response.StatusCode;
+                            string? statusText = response.ReasonPhrase;
 
                                 var preview = respText;
                                 if (preview != null && preview.Length > 1000) preview = preview.Substring(0, 1000) + "...";
@@ -359,7 +321,6 @@ namespace LibreMetaverse.Voice.WebRTC
 
                                 // Otherwise keep the parsing exception for possible retry, but include the raw response for diagnostics
                                 lastEx = new Exception($"Failed to parse capability response: {parseEx.Message}. Raw response: {preview}");
-                            }
                         }
                     }
                 }

@@ -25,8 +25,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.Packets;
+using LibreMetaverse.StructuredData;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -38,7 +38,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     #region Enums
 
@@ -695,23 +695,6 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Simplified login that takes the most common and required fields
-        /// </summary>
-        /// <param name="firstName">Account first name</param>
-        /// <param name="lastName">Account last name</param>
-        /// <param name="password">Account password</param>
-        /// <param name="channel">Client application name (channel)</param>
-        /// <param name="version">Version string (typically x.x.x)</param>
-        /// <returns>Whether the login was successful or not. On failure the
-        /// LoginErrorKey string will contain the error code and LoginMessage
-        /// will contain a description of the error</returns>
-        [Obsolete("Use LoginAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
-        public bool Login(string firstName, string lastName, string password, string channel, string version)
-        {
-            return Login(firstName, lastName, password, channel, "last", version);
-        }
-
-        /// <summary>
         /// Login that works via an existing login response
         /// </summary>
         /// <returns>Whether we are able to connect to a simulator using this data</returns>
@@ -735,125 +718,6 @@ namespace OpenMetaverse
             else
             {
                 UpdateLoginStatus(LoginStatus.Failed, "Unable to connect to simulator");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Login that works via a SeedCap to allow logins to occur on another host with the details passed in here.
-        /// </summary>
-        /// <returns>Whether we are able to connect to a simulator using this data</returns>
-        [Obsolete("Use LoginWithResponseAsync or LoginAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
-        public bool Login(string fullLLSD, string seedcap, string username, UUID agentID, UUID sessionID,
-                          UUID secureSessionID, string host, uint port, int circuitCode, uint regionX, uint regionY)
-        {
-            if (string.IsNullOrEmpty(fullLLSD))
-            {
-                LoginResponseData = new LoginResponseData
-                {
-                    AgentID = agentID, SessionID = sessionID, SecureSessionID = secureSessionID,
-                    CircuitCode = circuitCode,
-                    RegionX = regionX, RegionY = regionY, SeedCapability = seedcap, SimIP = IPAddress.Parse(host),
-                    SimPort = (ushort)port, Login = LoginState.True
-                 };
-            }
-            else
-            {
-                LoginResponseData = new LoginResponseData();
-                var osdMap = OSDParser.DeserializeLLSDXml(fullLLSD) as OSDMap;
-                if (osdMap != null)
-                    LoginResponseData.Parse(osdMap);
-            }
-
-            // Login succeeded
-
-            // Fire the login callback
-            if (OnLoginResponse != null)
-            {
-                try { OnLoginResponse(LoginResponseData.Success, false, "Login Message", LoginResponseData.Reason, LoginResponseData); }
-                catch (Exception ex) { Logger.Error(ex.Message, ex, Client); }
-            }
-
-            // These parameters are stored in NetworkManager, so instead of registering
-            // another callback for them, we set the values here
-            Client.Network.CircuitCode = (uint)circuitCode;
-            LoginSeedCapability = new Uri(seedcap);
-
-            UpdateLoginStatus(LoginStatus.ConnectingToSim, "Connecting to simulator...");
-
-            var handle = Utils.UIntsToLong(regionX, regionY);
-
-            if (LoginResponseData.SimIP != null && LoginResponseData.SimPort != 0)
-            {
-                // Connect to the sim given in the login reply
-                if (Connect(LoginResponseData.SimIP, LoginResponseData.SimPort, handle, true, LoginSeedCapability) != null)
-                {
-                    // Request the economy data right after login
-                    SendPacket(new EconomyDataRequestPacket());
-
-                    // Update the login message with the MOTD returned from the server
-                    UpdateLoginStatus(LoginStatus.Success, "Login Success");
-                    return true;
-                }
-                else
-                {
-                    UpdateLoginStatus(LoginStatus.Failed,
-                                      "Unable to establish a UDP connection to the simulator");
-                    return false;
-                }
-            }
-            else
-            {
-                UpdateLoginStatus(LoginStatus.Failed,
-                                  "Login server did not return a simulator address");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Simplified login that takes the most common fields along with a
-        /// starting location URI, and can accept an MD5 string instead of a
-        /// plaintext password
-        /// </summary>
-        /// <param name="firstName">Account first name</param>
-        /// <param name="lastName">Account last name</param>
-        /// <param name="password">Account password or MD5 hash of the password
-        /// such as $1$1682a1e45e9f957dcdf0bb56eb43319c</param>
-        /// <param name="channel">Client application name (channel)</param>
-        /// <param name="start">Starting location URI that can be built with
-        /// StartLocation()</param>
-        /// <param name="version">Version string (typically x.x.x)</param>
-        /// <returns>Whether the login was successful or not. On failure the
-        /// LoginErrorKey string will contain the error code and LoginMessage
-        /// will contain a description of the error</returns>
-        [Obsolete("Use LoginAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
-        public bool Login(string firstName, string lastName, string password, string channel, string start,
-            string version)
-        {
-            var loginParams = DefaultLoginParams(firstName, lastName, password, channel, version);
-            loginParams.Start = start;
-
-            return Login(loginParams);
-        }
-
-        /// <summary>
-        /// Login that takes a struct of all the values that will be passed to
-        /// the login server
-        /// </summary>
-        /// <param name="loginParams">The values that will be passed to the login
-        /// server, all fields must be set even if they are String.Empty</param>
-        /// <returns>Whether the login was successful or not. On failure the
-        /// LoginErrorKey string will contain the error code and LoginMessage
-        /// will contain a description of the error</returns>
-        [Obsolete("Use LoginAsync(LoginParams) or LoginWithResponseAsync(LoginParams) instead (async-first). This synchronous wrapper will block the calling thread.")]
-        public bool Login(LoginParams loginParams)
-        {
-            try
-            {
-                return LoginAsync(loginParams).GetAwaiter().GetResult();
-            }
-            catch
-            {
                 return false;
             }
         }

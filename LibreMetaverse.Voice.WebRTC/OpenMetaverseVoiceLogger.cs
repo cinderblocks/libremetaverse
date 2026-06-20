@@ -25,11 +25,11 @@
  */
 
 using Microsoft.Extensions.Logging;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace LibreMetaverse.Voice.WebRTC
 {
-    public class OpenMetaverseVoiceLogger : IVoiceLogger
+    public class LibreMetaverseVoiceLogger : IVoiceLogger
     {
         private const string _prefix = "[Voice.WebRTC] ";
 

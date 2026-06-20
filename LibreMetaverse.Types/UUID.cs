@@ -28,18 +28,15 @@
 using System;
 using System.Security.Cryptography;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// A 128-bit Universally Unique Identifier, used throughout the Second
     /// Life networking protocol
     /// </summary>
     [Serializable]
-    public struct UUID : IComparable<UUID>, IEquatable<UUID>
+    public readonly record struct UUID(Guid Guid) : IComparable<UUID>
     {
-        /// <summary>The System.Guid object this struct wraps around</summary>
-        public Guid Guid { get; set; }
-
         #region Constructors
 
         /// <summary>
@@ -48,54 +45,21 @@ namespace OpenMetaverse
         /// <param name="val">A string representation of a UUID, case-insensitive
         /// and can either be hyphenated or non-hyphenated</param>
         /// <example>UUID("11f8aa9c-b071-4242-836b-13b7abe0d489")</example>
-        public UUID(string val)
-        {
-            Guid = string.IsNullOrEmpty(val) ? Guid.Empty : new Guid(val);
-        }
-
-        /// <summary>
-        /// Constructor that takes a System.Guid object
-        /// </summary>
-        /// <param name="val">A Guid object that contains the unique identifier
-        /// to be represented by this UUID</param>
-        public UUID(Guid val)
-        {
-            Guid = val;
-        }
+        public UUID(string val) : this(string.IsNullOrEmpty(val) ? Guid.Empty : new Guid(val)) { }
 
         /// <summary>
         /// Constructor that takes a byte array containing a UUID
         /// </summary>
         /// <param name="source">Byte array containing a 16 byte UUID</param>
         /// <param name="pos">Beginning offset in the array</param>
-        public UUID(byte[] source, int pos)
-        {
-            Guid = UUID.Zero.Guid;
-            FromBytes(source, pos);
-        }
+        public UUID(byte[] source, int pos) : this(GuidFromNetworkBytes(source, pos)) { }
 
         /// <summary>
-        /// Constructor that takes an unsigned 64-bit unsigned integer to 
+        /// Constructor that takes an unsigned 64-bit unsigned integer to
         /// convert to a UUID
         /// </summary>
         /// <param name="val">64-bit unsigned integer to convert to a UUID</param>
-        public UUID(ulong val)
-        {
-            byte[] end = BitConverter.GetBytes(val);
-            if (!BitConverter.IsLittleEndian)
-                Array.Reverse(end);
-
-            Guid = new Guid(0, 0, 0, end);
-        }
-
-        /// <summary>
-        /// Copy constructor
-        /// </summary>
-        /// <param name="val">UUID to copy</param>
-        public UUID(UUID val)
-        {
-            Guid = val.Guid;
-        }
+        public UUID(ulong val) : this(GuidFromULong(val)) { }
 
         #endregion Constructors
 
@@ -110,19 +74,9 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Assigns this UUID from 16 bytes out of a byte array
+        /// Returns a new UUID parsed from 16 bytes starting at <paramref name="pos"/> in the source array.
         /// </summary>
-        /// <param name="source">Byte array containing the UUID to assign this UUID to</param>
-        /// <param name="pos">Starting position of the UUID in the byte array</param>
-        public void FromBytes(byte[] source, int pos)
-        {
-            int a = (source[pos + 0] << 24) | (source[pos + 1] << 16) | (source[pos + 2] << 8) | source[pos + 3];
-            short b = (short)((source[pos + 4] << 8) | source[pos + 5]);
-            short c = (short)((source[pos + 6] << 8) | source[pos + 7]);
-
-            Guid = new Guid(a, b, c, source[pos + 8], source[pos + 9], source[pos + 10], source[pos + 11],
-                source[pos + 12], source[pos + 13], source[pos + 14], source[pos + 15]);
-        }
+        public static UUID FromBytes(byte[] source, int pos) => new UUID(source, pos);
 
         /// <summary>
         /// Returns a copy of the raw bytes for this UUID (network byte order)
@@ -191,7 +145,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Generate a UUID from a string
         /// </summary>
-        /// <param name="val">A string representation of a UUID, case 
+        /// <param name="val">A string representation of a UUID, case
         /// insensitive and can either be hyphenated or non-hyphenated</param>
         /// <example>UUID.Parse("11f8aa9c-b071-4242-836b-13b7abe0d489")</example>
         public static UUID Parse(string val)
@@ -202,7 +156,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Generate a UUID from a string
         /// </summary>
-        /// <param name="val">A string representation of a UUID, case 
+        /// <param name="val">A string representation of a UUID, case
         /// insensitive and can either be hyphenated or non-hyphenated</param>
         /// <param name="result">Will contain the parsed UUID if successful,
         /// otherwise null</param>
@@ -245,7 +199,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <returns>UUID</returns>
         public static UUID Random()
@@ -275,40 +229,9 @@ namespace OpenMetaverse
         #region Overrides
 
         /// <summary>
-        /// Return a hash code for this UUID, used by .NET for hash tables
-        /// </summary>
-        /// <returns>An integer composed of all the UUID bytes XORed together</returns>
-        public override int GetHashCode()
-        {
-            return Guid.GetHashCode();
-        }
-
-        /// <summary>
-        /// Comparison function
-        /// </summary>
-        /// <param name="o">An object to compare to this UUID</param>
-        /// <returns>True if the object is a UUID and both UUIDs are equal</returns>
-        public override bool Equals(object? o)
-        {
-            if (!(o is UUID uuid)) return false;
-
-            return Guid == uuid.Guid;
-        }
-
-        /// <summary>
-        /// Comparison function
-        /// </summary>
-        /// <param name="uuid">UUID to compare to</param>
-        /// <returns>True if the UUIDs are equal, otherwise false</returns>
-        public bool Equals(UUID uuid)
-        {
-            return Guid == uuid.Guid;
-        }
-
-        /// <summary>
         /// Get a hyphenated string representation of this UUID
         /// </summary>
-        /// <returns>A string representation of this UUID, lowercase and 
+        /// <returns>A string representation of this UUID, lowercase and
         /// with hyphens</returns>
         /// <example>11f8aa9c-b071-4242-836b-13b7abe0d489</example>
         public override string ToString()
@@ -319,28 +242,6 @@ namespace OpenMetaverse
         #endregion Overrides
 
         #region Operators
-
-        /// <summary>
-        /// Equals operator
-        /// </summary>
-        /// <param name="lhs">First UUID for comparison</param>
-        /// <param name="rhs">Second UUID for comparison</param>
-        /// <returns>True if the UUIDs are byte for byte equal, otherwise false</returns>
-        public static bool operator ==(UUID lhs, UUID rhs)
-        {
-            return lhs.Guid == rhs.Guid;
-        }
-
-        /// <summary>
-        /// Not equals operator
-        /// </summary>
-        /// <param name="lhs">First UUID for comparison</param>
-        /// <param name="rhs">Second UUID for comparison</param>
-        /// <returns>True if the UUIDs are not equal, otherwise true</returns>
-        public static bool operator !=(UUID lhs, UUID rhs)
-        {
-            return !(lhs == rhs);
-        }
 
         /// <summary>
         /// XOR operator
@@ -378,7 +279,7 @@ namespace OpenMetaverse
         /// <summary>
         /// String typecasting operator
         /// </summary>
-        /// <param name="val">A UUID in string form. Case insensitive, 
+        /// <param name="val">A UUID in string form. Case insensitive,
         /// hyphenated or non-hyphenated</param>
         /// <returns>A UUID built from the string representation</returns>
         public static explicit operator UUID(string val)
@@ -395,6 +296,23 @@ namespace OpenMetaverse
         private static readonly string ZeroString = Guid.Empty.ToString();
 
         #region Helpers
+
+        private static Guid GuidFromNetworkBytes(byte[] source, int pos)
+        {
+            int a = (source[pos + 0] << 24) | (source[pos + 1] << 16) | (source[pos + 2] << 8) | source[pos + 3];
+            short b = (short)((source[pos + 4] << 8) | source[pos + 5]);
+            short c = (short)((source[pos + 6] << 8) | source[pos + 7]);
+            return new Guid(a, b, c, source[pos + 8], source[pos + 9], source[pos + 10], source[pos + 11],
+                source[pos + 12], source[pos + 13], source[pos + 14], source[pos + 15]);
+        }
+
+        private static Guid GuidFromULong(ulong val)
+        {
+            byte[] end = BitConverter.GetBytes(val);
+            if (!BitConverter.IsLittleEndian)
+                Array.Reverse(end);
+            return new Guid(0, 0, 0, end);
+        }
 
         /// <summary>
         /// Convert a Guid to network-order (big-endian) bytes like original ToBytes did.

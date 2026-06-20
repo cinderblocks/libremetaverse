@@ -26,9 +26,9 @@
 
 using System;
 using System.IO;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse.Assets
+namespace LibreMetaverse.Assets
 {
     /// <summary>
     /// Represents Mesh asset
@@ -60,7 +60,7 @@ namespace OpenMetaverse.Assets
         public sealed override void Encode() { }
 
         /// <summary>
-        /// Decodes mesh asset. See <see cref="OpenMetaverse.Rendering.FacetedMesh.TryDecodeFromAsset"/>
+        /// Decodes mesh asset. See <see cref="LibreMetaverse.Rendering.FacetedMesh.TryDecodeFromAsset"/>
         /// to furter decode it for rendering</summary>
         /// <returns>true</returns>
         public sealed override bool Decode()

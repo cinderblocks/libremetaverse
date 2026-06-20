@@ -29,16 +29,16 @@ using System;
 using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
-using OpenMetaverse.Packets;
-using OpenMetaverse.Interfaces;
-using OpenMetaverse.Messages.Linden;
+using LibreMetaverse.Packets;
+using LibreMetaverse.Interfaces;
+using LibreMetaverse.Messages.Linden;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Access to the data server which allows searching for land, events, people, etc
     /// </summary>
-    public class DirectoryManager : IDisposable
+    public partial class DirectoryManager : IDisposable
     {
         #region Enums
         /// <summary>Classified Ad categories</summary>
@@ -775,13 +775,6 @@ namespace OpenMetaverse
         #endregion
 
         #region Public Methods
-        // Obsoleted due to new Adult search option
-        [Obsolete("Use Overload with ClassifiedQueryFlags option instead")]
-        public UUID StartClassifiedSearch(string searchText, ClassifiedCategories category, bool mature)
-        {
-            return UUID.Zero;
-        }
-
         /// <summary>
         /// Query the data server for a list of classified ads containing the specified string.
         /// Defaults to searching for classified placed in any category, and includes PG, Adult and Mature 
@@ -1220,34 +1213,6 @@ namespace OpenMetaverse
         #endregion
 
         #region Blocking Functions
-
-        [Obsolete("Use the async StartPeopleSearch method instead")]
-        public bool PeopleSearch(DirFindFlags findFlags, string searchText, int queryStart,
-            int timeoutMS, out List<AgentSearchData> results)
-        {
-            AutoResetEvent searchEvent = new AutoResetEvent(false);
-            UUID id = UUID.Zero;
-            List<AgentSearchData>? people = null;
-
-            EventHandler<DirPeopleReplyEventArgs> callback =
-                delegate(object? sender, DirPeopleReplyEventArgs e)
-                {
-                    if (id == e.QueryID)
-                    {
-                        people = e.MatchedPeople;
-                        searchEvent.Set();
-                    }
-                };
-
-            DirPeopleReply += callback;
-            
-            id = StartPeopleSearch(searchText, queryStart);
-            searchEvent.WaitOne(timeoutMS, false);
-            DirPeopleReply -= callback;
-
-            results = people ?? new List<AgentSearchData>();
-            return (people != null);
-        }
 
         #endregion Blocking Functions
 

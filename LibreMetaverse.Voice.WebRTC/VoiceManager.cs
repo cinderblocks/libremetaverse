@@ -29,10 +29,10 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using LitJson;
-using OpenMetaverse;
-using OpenMetaverse.Interfaces;
-using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse;
+using LibreMetaverse.Interfaces;
+using LibreMetaverse.Messages.Linden;
+using LibreMetaverse.StructuredData;
 using System.IO;
 using System.Linq;
 using System.Collections.Concurrent;
@@ -170,7 +170,7 @@ namespace LibreMetaverse.Voice.WebRTC
         {
             Client = client;
             AudioDevice = new AudioDevice();
-            _log = logger ?? new OpenMetaverseVoiceLogger();
+            _log = logger ?? new LibreMetaverseVoiceLogger();
             Client.Network.RegisterEventCallback("RequiredVoiceVersion", RequiredVoiceVersionEventHandler);
 
             // Register for P2P voice call invitations via ChatterBox
@@ -549,8 +549,8 @@ namespace LibreMetaverse.Voice.WebRTC
 
             // Check parcel flags (mirrors SL C++ parcel->getParcelFlagAllowVoice()
             // and parcel->getParcelFlagUseEstateVoiceChannel())
-            const OpenMetaverse.ParcelFlags allowVoice      = OpenMetaverse.ParcelFlags.AllowVoiceChat;
-            const OpenMetaverse.ParcelFlags useEstateFlag   = OpenMetaverse.ParcelFlags.UseEstateVoiceChan;
+            const LibreMetaverse.ParcelFlags allowVoice      = LibreMetaverse.ParcelFlags.AllowVoiceChat;
+            const LibreMetaverse.ParcelFlags useEstateFlag   = LibreMetaverse.ParcelFlags.UseEstateVoiceChan;
 
             if (!parcel.Flags.HasFlag(allowVoice))
             {
@@ -644,7 +644,7 @@ namespace LibreMetaverse.Voice.WebRTC
             // We iterate the known connected simulators exactly as SL C++ iterates region objects.
             var desired = new HashSet<ulong>();
             List<Simulator> allSims;
-            lock (Client.Network.Simulators)
+            lock (Client.Network!.Simulators)
             {
                 allSims = new List<Simulator>(Client.Network.Simulators);
             }
@@ -811,23 +811,10 @@ namespace LibreMetaverse.Voice.WebRTC
                 return false;
             }
 
-            var tcs = new TaskCompletionSource<OSD?>();
-            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, new OSD(), CancellationToken.None, (response, data, error) =>
-            {
-                if (error != null)
-                {
-                    tcs.TrySetException(error);
-                }
-                else
-                {
-                    var osd = data != null ? OSDParser.Deserialize(data) : null;
-                    tcs.TrySetResult(osd);
-                }
-            });
-
             try
             {
-                var osd = await tcs.Task;
+                var (_, responseData) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, new OSD(), CancellationToken.None);
+                var osd = responseData != null ? OSDParser.Deserialize(responseData) : null;
                 if (osd is OSDMap map)
                 {
                     var regionName = map.ContainsKey("region_name") ? map["region_name"].AsString() : "";
@@ -1286,23 +1273,10 @@ namespace LibreMetaverse.Voice.WebRTC
                 ["session-id"] = groupId
             };
 
-            var tcs = new TaskCompletionSource<OSD?>();
-            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, CancellationToken.None, (response, data, error) =>
-            {
-                if (error != null)
-                {
-                    tcs.TrySetException(error);
-                }
-                else
-                {
-                    var osd = data != null ? OSDParser.Deserialize(data) : null;
-                    tcs.TrySetResult(osd);
-                }
-            });
-
             try
             {
-                var osd = await tcs.Task;
+                var (_, responseData) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload, CancellationToken.None);
+                var osd = responseData != null ? OSDParser.Deserialize(responseData) : null;
                 if (osd is OSDMap map)
                 {
                     var channelUri = "";
@@ -1703,18 +1677,11 @@ namespace LibreMetaverse.Voice.WebRTC
                 ["session-id"] = sessionId
             };
 
-            var tcs = new TaskCompletionSource<bool>();
-            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, CancellationToken.None,
-                (response, data, error) =>
-                {
-                    if (error != null)
-                        _log.Warn($"ChatSessionRequest {method} failed: {error.Message}", Client);
-                    else
-                        _log.Debug($"ChatSessionRequest {method} OK", Client);
-                    tcs.TrySetResult(true);
-                });
-
-            try { await tcs.Task.ConfigureAwait(false); }
+            try
+            {
+                await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload, CancellationToken.None).ConfigureAwait(false);
+                _log.Debug($"ChatSessionRequest {method} OK", Client);
+            }
             catch (Exception ex) { _log.Warn($"ChatSessionRequest {method} exception: {ex.Message}", Client); }
         }
 
@@ -1746,23 +1713,10 @@ namespace LibreMetaverse.Voice.WebRTC
                 ["alt_params"] = altParams
             };
 
-            var tcs = new TaskCompletionSource<OSD>();
-            _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, CancellationToken.None, (response, data, error) =>
-            {
-                if (error != null)
-                {
-                    tcs.TrySetException(error);
-                }
-                else
-                {
-                    var osd = data != null ? OSDParser.Deserialize(data) : null;
-                    tcs.TrySetResult(osd!);
-                }
-            });
-
             try
             {
-                var osd = await tcs.Task;
+                var (_, responseData) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload, CancellationToken.None);
+                var osd = responseData != null ? OSDParser.Deserialize(responseData) : null;
                 if (osd is OSDMap map)
                 {
                     var channelUri = "";

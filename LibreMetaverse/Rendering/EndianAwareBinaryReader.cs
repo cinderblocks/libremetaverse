@@ -27,7 +27,7 @@
 using System;
 using System.IO;
 
-namespace OpenMetaverse.Rendering
+namespace LibreMetaverse.Rendering
 {
     /// <summary>
     /// Binary reader, which is endian aware

@@ -26,7 +26,7 @@
 
 using System;
 
-namespace OpenMetaverse.Assets
+namespace LibreMetaverse.Assets
 {
     /// <summary>
     /// Represents a Callingcard with AvatarID and Position vector

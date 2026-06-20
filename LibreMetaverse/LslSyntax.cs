@@ -32,9 +32,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
-using Logger = OpenMetaverse.Logger;
+using LibreMetaverse;
+using LibreMetaverse.StructuredData;
+using Logger = LibreMetaverse.Logger;
 
 namespace LibreMetaverse
 {
@@ -147,30 +147,23 @@ namespace LibreMetaverse
                             var sim = net.CurrentSim;
                             if (sim != null)
                             {
-                                Task fetch = sim.Client.HttpCapsClient.GetRequestAsync(uri,
-                                    CancellationToken.None, (response, data, error) =>
+                                Task fetch = Task.Run(async () =>
                                 {
-                                    if (error != null)
+                                    try
                                     {
-                                        Logger.Warn($"Failed to retrieve syntax file. Error: {error.Message}", clientLocal);
-                                        return;
-                                    }
-
-                                        if (response == null || !response.IsSuccessStatusCode)
+                                        var (response, data) = await sim.Client.HttpCapsClient.GetAsync(uri, CancellationToken.None);
+                                        if (!response.IsSuccessStatusCode)
                                         {
-                                            Logger.Warn($"Failed to retrieve syntax file. Status: {(response == null ? "null response" : response.StatusCode.ToString())}", _client);
+                                            Logger.Warn($"Failed to retrieve syntax file. Status: {response.StatusCode}", _client);
                                             return;
                                         }
-
                                         if (data == null) return;
-
-                                        var des = OSDParser.Deserialize(data ?? Utils.EmptyBytes);
+                                        var des = OSDParser.Deserialize(data);
                                         if (des.Type != OSDType.Map)
                                         {
                                             Logger.Warn("Invalid format for syntax file. Root element is not a map.");
                                             return;
                                         }
-
                                         Parse((OSDMap)des);
                                         _syntaxId = syntaxId.AsUUID();
                                         using (FileStream writer =
@@ -182,7 +175,12 @@ namespace LibreMetaverse
                                             var bytes = OSDParser.SerializeLLSDXmlBytes(des);
                                             writer.Write(bytes, 0, bytes.Length);
                                         }
-                                    });
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Logger.Warn($"Failed to retrieve syntax file. Error: {ex.Message}", clientLocal);
+                                    }
+                                });
                                 fetch.Wait(TimeSpan.FromSeconds(20));
                                 return;
                             }
@@ -229,34 +227,37 @@ namespace LibreMetaverse
             if (uri == null || syntaxId == null || syntaxId.Type != OSDType.UUID) { return; }
             if (syntaxId.AsUUID() == _syntaxId) { return; }
             
-            _ = e.Simulator.Client.HttpCapsClient.GetRequestAsync(uri, CancellationToken.None, (response, data, error) =>
+            _ = Task.Run(async () =>
             {
-                if (error != null)
+                try
                 {
-                    Logger.Warn($"Failed to retrieve syntax file. Error: {error.Message}", _client!);
-                    return;
+                    var (response, data) = await e.Simulator.Client.HttpCapsClient.GetAsync(uri, CancellationToken.None);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var status = $"{response.StatusCode} {response.ReasonPhrase}";
+                        Logger.Warn($"Failed to retrieve syntax file. Status: {status}", _client!);
+                        return;
+                    }
+                    if (data == null) return;
+                    OSD features = OSDParser.Deserialize(data);
+                    if (features.Type != OSDType.Map)
+                    {
+                        Logger.Warn("Invalid format for syntax file. Root element is not a map.");
+                        return;
+                    }
+                    Parse((OSDMap)features);
+                    _syntaxId = syntaxId.AsUUID();
+                    using (FileStream writer =
+                           new FileStream(Path.Combine(_client!.Settings.ASSET_CACHE_DIR, $"keywords_lsl_{syntaxId}.xml"),
+                               FileMode.Create, FileAccess.Write))
+                    {
+                        var bytes = OSDParser.SerializeLLSDXmlBytes(features);
+                        writer.Write(bytes, 0, bytes.Length);
+                    }
                 }
-                if (response == null || !response.IsSuccessStatusCode)
+                catch (Exception ex)
                 {
-                    var status = response == null ? "null response" : $"{response.StatusCode} {response.ReasonPhrase}";
-                    Logger.Warn($"Failed to retrieve syntax file. Status: {status}", _client!);
-                    return;
-                }
-                if (data == null) return;
-                OSD features = OSDParser.Deserialize(data ?? Utils.EmptyBytes);
-                if (features.Type != OSDType.Map)
-                {
-                    Logger.Warn("Invalid format for syntax file. Root element is not a map.");
-                    return;
-                }
-                Parse((OSDMap)features);
-                _syntaxId = syntaxId.AsUUID();
-                using (FileStream writer =
-                       new FileStream(Path.Combine(_client!.Settings.ASSET_CACHE_DIR, $"keywords_lsl_{syntaxId}.xml"), 
-                           FileMode.Create, FileAccess.Write))
-                {
-                    var bytes = OSDParser.SerializeLLSDXmlBytes(features);
-                    writer.Write(bytes, 0, bytes.Length);
+                    Logger.Warn($"Failed to retrieve syntax file. Error: {ex.Message}", _client!);
                 }
             });
         }

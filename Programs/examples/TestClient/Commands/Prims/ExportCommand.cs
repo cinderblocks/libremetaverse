@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using OpenMetaverse;
-using OpenMetaverse.Assets;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse;
+using LibreMetaverse.Assets;
+using LibreMetaverse.StructuredData;
 
 namespace TestClient.Commands.Prims
 {
@@ -253,7 +253,7 @@ namespace TestClient.Commands.Prims
 
                 if (asset.Decode() && asset.Image != null)
                 {
-                    try { File.WriteAllBytes(asset.AssetID + ".tga", OpenMetaverse.Imaging.Targa.Encode(asset.Image)); }
+                    try { File.WriteAllBytes(asset.AssetID + ".tga", LibreMetaverse.Imaging.Targa.Encode(asset.Image)); }
                     catch (Exception ex) { Logger.Error(ex.Message, Client); }
                 }
                 else

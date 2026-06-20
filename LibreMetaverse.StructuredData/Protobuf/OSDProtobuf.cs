@@ -27,7 +27,7 @@
 using System;
 using System.IO;
 
-namespace OpenMetaverse.StructuredData
+namespace LibreMetaverse.StructuredData
 {
     /// <summary>
     /// Protobuf serialization for OSD

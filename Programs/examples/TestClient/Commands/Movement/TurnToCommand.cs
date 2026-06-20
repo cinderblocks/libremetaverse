@@ -25,7 +25,7 @@
  */
 
 using System.Threading.Tasks;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace TestClient.Commands.Movement
 {
@@ -53,10 +53,7 @@ namespace TestClient.Commands.Movement
                 return Task.FromResult("Usage: turnto x y z");
             }
 
-            Vector3 newDirection;
-            newDirection.X = (float)x;
-            newDirection.Y = (float)y;
-            newDirection.Z = (float)z;
+            Vector3 newDirection = new Vector3((float)x, (float)y, (float)z);
             Client.Self.Movement.TurnToward(newDirection);
             Client.Self.Movement.SendUpdate(false);
             return Task.FromResult("Turned to ");

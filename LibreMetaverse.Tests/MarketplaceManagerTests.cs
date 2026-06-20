@@ -30,8 +30,8 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using NUnit.Framework;
-using OpenMetaverse;
-using OpenMetaverse.Marketplace;
+using LibreMetaverse;
+using LibreMetaverse.Marketplace;
 using LibreMetaverse.Tests.TestHelpers;
 
 namespace LibreMetaverse.Tests

@@ -28,7 +28,7 @@ using System;
 using System.Collections.Generic;
 using SkiaSharp;
 
-namespace OpenMetaverse.Rendering
+namespace LibreMetaverse.Rendering
 {
     [AttributeUsage(AttributeTargets.Class)]
     public class RendererNameAttribute : System.Attribute

@@ -1,6 +1,6 @@
 using System.Text;
 using System.Threading.Tasks;
-using OpenMetaverse;
+using LibreMetaverse;
 
 // the Namespace used for all TestClient commands
 namespace TestClient.Commands.Friends
@@ -27,7 +27,7 @@ namespace TestClient.Commands.Friends
         /// Get a list of current friends
         /// </summary>
         /// <param name="args">optional testClient command arguments</param>
-        /// <param name="fromAgentID">The <seealso cref="OpenMetaverse.UUID"/>
+        /// <param name="fromAgentID">The <seealso cref="LibreMetaverse.UUID"/>
         /// of the agent making the request</param>
         /// <returns></returns>
         public override string Execute(string[] args, UUID fromAgentID)

@@ -1,7 +1,7 @@
 using System;
 using System.Net;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     // this class encapsulates a single packet that
     // is either sent or received by a UDP socket

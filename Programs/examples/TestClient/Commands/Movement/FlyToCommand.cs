@@ -1,5 +1,5 @@
 using System;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace TestClient.Commands.Movement
 {
@@ -27,9 +27,9 @@ namespace TestClient.Commands.Movement
             if (args.Length > 4 || args.Length < 3)
                 return "Usage: FlyTo x y z [seconds]";
 
-            if (!float.TryParse(args[0], out target.X) ||
-                !float.TryParse(args[1], out target.Y) ||
-                !float.TryParse(args[2], out target.Z))
+            if (!float.TryParse(args[0], out float tx) ||
+                !float.TryParse(args[1], out float ty) ||
+                !float.TryParse(args[2], out float tz))
             {
                 return "Usage: FlyTo x y z [seconds]";
             }
@@ -37,6 +37,7 @@ namespace TestClient.Commands.Movement
             if (running)
                 return "Already in progress, wait for the previous FlyTo to finish";
 
+            target = new Vector3(tx, ty, tz);
             running = true;
 
             // Subscribe to terse update events while this command is running

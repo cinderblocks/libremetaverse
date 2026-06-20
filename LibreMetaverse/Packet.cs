@@ -27,7 +27,7 @@
 
 using System;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public enum PacketFrequency : byte
     {
@@ -40,7 +40,7 @@ namespace OpenMetaverse
     }
 }
 
-namespace OpenMetaverse.Packets
+namespace LibreMetaverse.Packets
 {
     /// <summary>
     /// Thrown when a packet could not be successfully deserialized

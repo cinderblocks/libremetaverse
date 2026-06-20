@@ -26,9 +26,9 @@
  */
 
 using System;
-using OpenMetaverse.Packets;
+using LibreMetaverse.Packets;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public partial class AgentManager
     {

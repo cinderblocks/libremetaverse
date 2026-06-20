@@ -4,7 +4,7 @@
     <Description>WebRTC-based voice client library for LibreMetaverse, enabling real-time audio communication with Second Life's WebRTC voice service via SIPSorcery.</Description>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse</RootNamespace>
-    <TargetFrameworks>netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;net481;net8.0;net9.0;net10.0</TargetFrameworks>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <NoWarn>$(NoWarn)</NoWarn>
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -23,11 +23,12 @@
   <ItemGroup>
     <PackageReference Include="SIPSorcery" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
+    <Reference Include="System.Net.Http" />
     <PackageReference Include="SIPSorceryMedia.SDL3" />
     <PackageReference Include="SIPSorceryMedia.SDL3.Native" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">
+  <ItemGroup Condition="!$(TargetFramework.Contains('standard')) And '$(TargetFramework)' != 'net481'">
     <PackageReference Include="SIPSorceryMedia.SoundFlow" />
   </ItemGroup>
 </Project>

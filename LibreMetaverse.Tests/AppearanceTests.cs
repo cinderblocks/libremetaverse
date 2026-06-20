@@ -27,7 +27,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace LibreMetaverse.Tests
 {

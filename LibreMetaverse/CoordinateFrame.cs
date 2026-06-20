@@ -27,7 +27,7 @@
 
 using System;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public class CoordinateFrame
     {
@@ -223,11 +223,11 @@ namespace OpenMetaverse
             if (left == Vector3.Zero)
             {
                 // Prevent left from being zero
-                at.X += 0.01f;
-                at.Normalize();
+                at = new Vector3(at.X + 0.01f, at.Y, at.Z);
+                at = Vector3.Normalize(at);
                 left = Vector3.Cross(upDirection, at);
             }
-            left.Normalize();
+            left = Vector3.Normalize(left);
 
             xAxis = at;
             yAxis = left;
@@ -242,10 +242,8 @@ namespace OpenMetaverse
         /// radians</param>
         public void LookDirection(double heading)
         {
-            yAxis.X = (float)Math.Cos(heading);
-            yAxis.Y = (float)Math.Sin(heading);
-            xAxis.X = (float)-Math.Sin(heading);
-            xAxis.Y = (float)Math.Cos(heading);
+            yAxis = new Vector3((float)Math.Cos(heading), (float)Math.Sin(heading), yAxis.Z);
+            xAxis = new Vector3((float)-Math.Sin(heading), (float)Math.Cos(heading), xAxis.Z);
         }
 
         public void LookAt(Vector3 origin, Vector3 target)
@@ -256,8 +254,7 @@ namespace OpenMetaverse
         public void LookAt(Vector3 origin, Vector3 target, Vector3 upDirection)
         {
             this.origin = origin;
-            Vector3 at = new Vector3(target - origin);
-            at.Normalize();
+            Vector3 at = Vector3.Normalize(target - origin);
 
             LookDirection(at, upDirection);
         }
@@ -272,9 +269,9 @@ namespace OpenMetaverse
         protected void Orthonormalize()
         {
             // Make sure the axis are orthogonal and normalized
-            xAxis.Normalize();
+            xAxis = Vector3.Normalize(xAxis);
             yAxis -= xAxis * (xAxis * yAxis);
-            yAxis.Normalize();
+            yAxis = Vector3.Normalize(yAxis);
             zAxis = Vector3.Cross(xAxis, yAxis);
         }
     }

@@ -1,6 +1,6 @@
 using NUnit.Framework;
-using OpenMetaverse;
-using OpenMetaverse.Http;
+using LibreMetaverse;
+using LibreMetaverse.Http;
 using System;
 using System.Net;
 using System.Net.Http;

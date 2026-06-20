@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using LibreMetaverse;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace LibreMetaverse.Tests
 {
@@ -37,7 +37,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ObservableDictionary_Events_FireOnAddRemoveAndClear()
         {
-            var dict = new OpenMetaverse.ObservableDictionary<string, int>();
+            var dict = new LibreMetaverse.ObservableDictionary<string, int>();
             int adds = 0, removes = 0, changes = 0;
 
             DictionaryChangeCallback addCb = (action, entry) => { if (action == DictionaryEventAction.Add) adds++; };
@@ -145,19 +145,19 @@ namespace LibreMetaverse.Tests
         [Test]
         public void NameValue_ParseAndToString()
         {
-            var nv = new OpenMetaverse.NameValue("greeting STRING R S Hello");
+            var nv = new LibreMetaverse.NameValue("greeting STRING R S Hello");
             Assert.That(nv.Name, Is.EqualTo("greeting"));
             Assert.That(nv.Value, Is.EqualTo("Hello"));
 
-            var arr = new[] { new OpenMetaverse.NameValue("n1", OpenMetaverse.NameValue.ValueType.String, OpenMetaverse.NameValue.ClassType.ReadOnly, OpenMetaverse.NameValue.SendtoType.Sim, "v1") };
-            var s = OpenMetaverse.NameValue.NameValuesToString(arr);
+            var arr = new[] { new LibreMetaverse.NameValue("n1", LibreMetaverse.NameValue.ValueType.String, LibreMetaverse.NameValue.ClassType.ReadOnly, LibreMetaverse.NameValue.SendtoType.Sim, "v1") };
+            var s = LibreMetaverse.NameValue.NameValuesToString(arr);
             Assert.That(s, Does.Contain("n1").And.Contains("v1"));
         }
 
         [Test]
         public void LockingDictionary_BasicOperations()
         {
-            var ld = new OpenMetaverse.LockingDictionary<string, int>();
+            var ld = new LibreMetaverse.LockingDictionary<string, int>();
             ((IDictionary<string,int>)ld).Add("x", 10);
             Assert.That(ld.ContainsKey("x"), Is.True);
 

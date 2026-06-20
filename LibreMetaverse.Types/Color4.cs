@@ -27,33 +27,26 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// An 8-bit color structure including an alpha channel
     /// </summary>
     [Serializable]
     [StructLayout(LayoutKind.Sequential)]
-    public struct Color4 : IComparable<Color4>, IEquatable<Color4>
+    public readonly struct Color4 : IComparable<Color4>, IEquatable<Color4>
     {
         /// <summary>Red</summary>
-        public float R;
+        public readonly float R;
         /// <summary>Green</summary>
-        public float G;
+        public readonly float G;
         /// <summary>Blue</summary>
-        public float B;
+        public readonly float B;
         /// <summary>Alpha</summary>
-        public float A;
+        public readonly float A;
 
         #region Constructors
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="r"></param>
-        /// <param name="g"></param>
-        /// <param name="b"></param>
-        /// <param name="a"></param>
         public Color4(byte r, byte g, byte b, byte a)
         {
             const float quanta = 1.0f / 255.0f;
@@ -66,13 +59,10 @@ namespace OpenMetaverse
 
         public Color4(float r, float g, float b, float a)
         {
-            // Quick check to see if someone is doing something obviously wrong
-            // like using float values from 0.0 - 255.0
             if (r > 1f || g > 1f || b > 1f || a > 1f)
                 throw new ArgumentException(
                     $"Attempting to initialize Color4 with out of range values <{r},{g},{b},{a}>");
 
-            // Valid range is from 0.0 to 1.0
             R = Utils.Clamp(r, 0f, 1f);
             G = Utils.Clamp(g, 0f, 1f);
             B = Utils.Clamp(b, 0f, 1f);
@@ -82,74 +72,12 @@ namespace OpenMetaverse
         /// <summary>
         /// Builds a color from a byte array
         /// </summary>
-        /// <param name="byteArray">Byte array containing a 16 byte color</param>
+        /// <param name="byteArray">Byte array containing a 4 byte color</param>
         /// <param name="pos">Beginning position in the byte array</param>
-        /// <param name="inverted">True if the byte array stores inverted values,
-        /// otherwise false. For example the color black (fully opaque) inverted
-        /// would be 0xFF 0xFF 0xFF 0x00</param>
+        /// <param name="inverted">True if the byte array stores inverted values</param>
         public Color4(byte[] byteArray, int pos, bool inverted)
         {
-            R = G = B = A = 0f;
-            FromBytes(byteArray, pos, inverted);
-        }
-
-        /// <summary>
-        /// Returns the raw bytes for this vector
-        /// </summary>
-        /// <param name="byteArray">Byte array containing a 16 byte color</param>
-        /// <param name="pos">Beginning position in the byte array</param>
-        /// <param name="inverted">True if the byte array stores inverted values,
-        /// otherwise false. For example the color black (fully opaque) inverted
-        /// would be 0xFF 0xFF 0xFF 0x00</param>
-        /// <param name="alphaInverted">True if the alpha value is inverted in
-        /// addition to whatever the inverted parameter is. Setting inverted true
-        /// and alphaInverted true will flip the alpha value back to non-inverted,
-        /// but keep the other color bytes inverted</param>
-        /// <returns>A 16 byte array containing R, G, B, and A</returns>
-        public Color4(byte[] byteArray, int pos, bool inverted, bool alphaInverted)
-        {
-            R = G = B = A = 0f;
-            FromBytes(byteArray, pos, inverted, alphaInverted);
-        }
-
-        /// <summary>
-        /// Copy constructor
-        /// </summary>
-        /// <param name="color">Color to copy</param>
-        public Color4(Color4 color)
-        {
-            R = color.R;
-            G = color.G;
-            B = color.B;
-            A = color.A;
-        }
-
-        #endregion Constructors
-
-        #region Public Methods
-
-        /// <summary>
-        /// IComparable.CompareTo implementation
-        /// </summary>
-        /// <remarks>Sorting ends up like this: |--Grayscale--||--Color--|.
-        /// Alpha is only used when the colors are otherwise equivalent</remarks>
-        public int CompareTo(Color4 color)
-        {
-            var thisHue = GetHue();
-            var thatHue = color.GetHue();
-
-            if (thisHue < 0f && thatHue < 0f)
-            {
-                // Both monochromatic
-                return R == color.R ? A.CompareTo(color.A) : R.CompareTo(R);
-            }
-            return thisHue == thatHue ? A.CompareTo(color.A) : thisHue.CompareTo(thatHue);
-        }
-
-        public void FromBytes(byte[] byteArray, int pos, bool inverted)
-        {
             const float quanta = 1.0f / 255.0f;
-
             if (inverted)
             {
                 R = (255 - byteArray[pos]) * quanta;
@@ -167,24 +95,56 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Builds a color from a byte array
+        /// Builds a color from a byte array with optional alpha inversion
         /// </summary>
-        /// <param name="byteArray">Byte array containing a 16 byte color</param>
-        /// <param name="pos">Beginning position in the byte array</param>
-        /// <param name="inverted">True if the byte array stores inverted values,
-        /// otherwise false. For example the color black (fully opaque) inverted
-        /// would be 0xFF 0xFF 0xFF 0x00</param>
-        /// <param name="alphaInverted">True if the alpha value is inverted in
-        /// addition to whatever the inverted parameter is. Setting inverted true
-        /// and alphaInverted true will flip the alpha value back to non-inverted,
-        /// but keep the other color bytes inverted</param>
-        public void FromBytes(byte[] byteArray, int pos, bool inverted, bool alphaInverted)
+        public Color4(byte[] byteArray, int pos, bool inverted, bool alphaInverted)
         {
-            FromBytes(byteArray, pos, inverted);
+            const float quanta = 1.0f / 255.0f;
+            if (inverted)
+            {
+                R = (255 - byteArray[pos]) * quanta;
+                G = (255 - byteArray[pos + 1]) * quanta;
+                B = (255 - byteArray[pos + 2]) * quanta;
+                A = (255 - byteArray[pos + 3]) * quanta;
+            }
+            else
+            {
+                R = byteArray[pos] * quanta;
+                G = byteArray[pos + 1] * quanta;
+                B = byteArray[pos + 2] * quanta;
+                A = byteArray[pos + 3] * quanta;
+            }
 
             if (alphaInverted)
                 A = 1.0f - A;
         }
+
+        #endregion Constructors
+
+        #region Public Methods
+
+        /// <summary>IComparable.CompareTo implementation</summary>
+        public int CompareTo(Color4 color)
+        {
+            var thisHue = GetHue();
+            var thatHue = color.GetHue();
+
+            if (thisHue < 0f && thatHue < 0f)
+                return R == color.R ? A.CompareTo(color.A) : R.CompareTo(color.R);
+            return thisHue == thatHue ? A.CompareTo(color.A) : thisHue.CompareTo(thatHue);
+        }
+
+        /// <summary>
+        /// Returns a new Color4 parsed from 4 bytes starting at <paramref name="pos"/>.
+        /// </summary>
+        public static Color4 FromBytes(byte[] byteArray, int pos, bool inverted)
+            => new Color4(byteArray, pos, inverted);
+
+        /// <summary>
+        /// Returns a new Color4 parsed from 4 bytes starting at <paramref name="pos"/>.
+        /// </summary>
+        public static Color4 FromBytes(byte[] byteArray, int pos, bool inverted, bool alphaInverted)
+            => new Color4(byteArray, pos, inverted, alphaInverted);
 
         public byte[] GetBytes()
         {
@@ -205,25 +165,12 @@ namespace OpenMetaverse
             return bytes;
         }
 
-        /// <summary>
-        /// Writes the raw bytes for this color to a byte array
-        /// </summary>
-        /// <param name="dest">Destination byte array</param>
-        /// <param name="pos">Position in the destination array to start
-        /// writing. Must be at least 16 bytes before the end of the array</param>
         public void ToBytes(byte[] dest, int pos)
         {
             ToBytes(dest, pos, false);
         }
 
-        /// <summary>
-        /// Serializes this color into four bytes in a byte array
-        /// </summary>
-        /// <param name="dest">Destination byte array</param>
-        /// <param name="pos">Position in the destination array to start
-        /// writing. Must be at least 4 bytes before the end of the array</param>
-        /// <param name="inverted">True to invert the output (1.0 becomes 0
-        /// instead of 255)</param>
+        /// <summary>Serializes this color into four bytes in a byte array</summary>
         public void ToBytes(byte[] dest, int pos, bool inverted)
         {
             dest[pos + 0] = Utils.FloatToByte(R, 0f, 1f);
@@ -232,19 +179,13 @@ namespace OpenMetaverse
             dest[pos + 3] = Utils.FloatToByte(A, 0f, 1f);
 
             if (!inverted) return;
-            
+
             dest[pos + 0] = (byte)(255 - dest[pos + 0]);
             dest[pos + 1] = (byte)(255 - dest[pos + 1]);
             dest[pos + 2] = (byte)(255 - dest[pos + 2]);
             dest[pos + 3] = (byte)(255 - dest[pos + 3]);
         }
 
-        /// <summary>
-        /// Writes the raw bytes for this color to a byte array
-        /// </summary>
-        /// <param name="dest">Destination byte array</param>
-        /// <param name="pos">Position in the destination array to start
-        /// writing. Must be at least 16 bytes before the end of the array</param>
         public void ToFloatBytes(byte[] dest, int pos)
         {
             Buffer.BlockCopy(BitConverter.GetBytes(R), 0, dest, pos + 0, 4);
@@ -258,15 +199,12 @@ namespace OpenMetaverse
             const float HUE_MAX = 360f;
 
             var max = Math.Max(Math.Max(R, G), B);
-            var min = Math.Min(Math.Min(R, B), B);
+            var min = Math.Min(Math.Min(R, G), B);
 
             double TOLERANCE = Math.Abs(max * .00001);
 
             if (Math.Abs(max - min) < TOLERANCE)
-            {
-                // Achromatic, hue is undefined
                 return -1f;
-            }
             if (Math.Abs(R - max) < TOLERANCE)
             {
                 var bDelta = (((max - B) * (HUE_MAX / 6f)) + ((max - min) / 2f)) / (max - min);
@@ -279,7 +217,7 @@ namespace OpenMetaverse
                 var bDelta = (((max - B) * (HUE_MAX / 6f)) + ((max - min) / 2f)) / (max - min);
                 return (HUE_MAX / 3f) + rDelta - bDelta;
             }
-            else // B == max
+            else
             {
                 var gDelta = (((max - G) * (HUE_MAX / 6f)) + ((max - min) / 2f)) / (max - min);
                 var rDelta = (((max - R) * (HUE_MAX / 6f)) + ((max - min) / 2f)) / (max - min);
@@ -287,40 +225,11 @@ namespace OpenMetaverse
             }
         }
 
-        /// <summary>
-        /// Ensures that values are in range 0-1
-        /// </summary>
-        public void ClampValues()
-        {
-            if (R < 0f)
-                R = 0f;
-            if (G < 0f)
-                G = 0f;
-            if (B < 0f)
-                B = 0f;
-            if (A < 0f)
-                A = 0f;
-            if (R > 1f)
-                R = 1f;
-            if (G > 1f)
-                G = 1f;
-            if (B > 1f)
-                B = 1f;
-            if (A > 1f)
-                A = 1f;
-        }
-
         #endregion Public Methods
 
         #region Static Methods
 
-        /// <summary>
-        /// Create an RGB color from a hue, saturation, value combination
-        /// </summary>
-        /// <param name="hue">Hue</param>
-        /// <param name="saturation">Saturation</param>
-        /// <param name="value">Value</param>
-        /// <returns>An fully opaque RGB color (alpha is 1.0)</returns>
+        /// <summary>Create an RGB color from a hue, saturation, value combination</summary>
         public static Color4 FromHSV(double hue, double saturation, double value)
         {
             var r = 0d;
@@ -329,84 +238,42 @@ namespace OpenMetaverse
 
             if (saturation == 0d)
             {
-                // If s is 0, all colors are the same.
-                // This is some flavor of gray.
                 r = value;
                 g = value;
                 b = value;
             }
             else
             {
-                // The color wheel consists of 6 sectors.
-                // Figure out which sector you//re in.
                 var sectorPos = hue / 60d;
                 var sectorNumber = (int)(Math.Floor(sectorPos));
-
-                // get the fractional part of the sector.
-                // That is, how many degrees into the sector
-                // are you?
                 var fractionalSector = sectorPos - sectorNumber;
 
-                // Calculate values for the three axes
-                // of the color. 
                 var p = value * (1d - saturation);
                 var q = value * (1d - (saturation * fractionalSector));
                 var t = value * (1d - (saturation * (1d - fractionalSector)));
 
-                // Assign the fractional colors to r, g, and b
-                // based on the sector the angle is in.
                 switch (sectorNumber)
                 {
-                    case 0:
-                        r = value;
-                        g = t;
-                        b = p;
-                        break;
-                    case 1:
-                        r = q;
-                        g = value;
-                        b = p;
-                        break;
-                    case 2:
-                        r = p;
-                        g = value;
-                        b = t;
-                        break;
-                    case 3:
-                        r = p;
-                        g = q;
-                        b = value;
-                        break;
-                    case 4:
-                        r = t;
-                        g = p;
-                        b = value;
-                        break;
-                    case 5:
-                        r = value;
-                        g = p;
-                        b = q;
-                        break;
+                    case 0: r = value; g = t; b = p; break;
+                    case 1: r = q; g = value; b = p; break;
+                    case 2: r = p; g = value; b = t; break;
+                    case 3: r = p; g = q; b = value; break;
+                    case 4: r = t; g = p; b = value; break;
+                    case 5: r = value; g = p; b = q; break;
                 }
             }
 
             return new Color4((float)r, (float)g, (float)b, 1f);
         }
 
-        /// <summary>
-        /// Performs linear interpolation between two colors
-        /// </summary>
-        /// <param name="value1">Color to start at</param>
-        /// <param name="value2">Color to end at</param>
-        /// <param name="amount">Amount to interpolate</param>
-        /// <returns>The interpolated color</returns>
+        /// <summary>Performs linear interpolation between two colors</summary>
         public static Color4 Lerp(Color4 value1, Color4 value2, float amount)
         {
             return new Color4(
-                Utils.Lerp(value1.R, value2.R, amount),
-                Utils.Lerp(value1.G, value2.G, amount),
-                Utils.Lerp(value1.B, value2.B, amount),
-                Utils.Lerp(value1.A, value2.A, amount));
+                Utils.Clamp(Utils.Lerp(value1.R, value2.R, amount), 0f, 1f),
+                Utils.Clamp(Utils.Lerp(value1.G, value2.G, amount), 0f, 1f),
+                Utils.Clamp(Utils.Lerp(value1.B, value2.B, amount), 0f, 1f),
+                Utils.Clamp(Utils.Lerp(value1.A, value2.A, amount), 0f, 1f));
         }
 
         #endregion Static Methods
@@ -454,35 +321,29 @@ namespace OpenMetaverse
 
         public static Color4 operator +(Color4 lhs, Color4 rhs)
         {
-            lhs.R += rhs.R;
-            lhs.G += rhs.G;
-            lhs.B += rhs.B;
-            lhs.A += rhs.A;
-            lhs.ClampValues();
-
-            return lhs;
+            return new Color4(
+                Utils.Clamp(lhs.R + rhs.R, 0f, 1f),
+                Utils.Clamp(lhs.G + rhs.G, 0f, 1f),
+                Utils.Clamp(lhs.B + rhs.B, 0f, 1f),
+                Utils.Clamp(lhs.A + rhs.A, 0f, 1f));
         }
 
         public static Color4 operator -(Color4 lhs, Color4 rhs)
         {
-            lhs.R -= rhs.R;
-            lhs.G -= rhs.G;
-            lhs.B -= rhs.B;
-            lhs.A -= rhs.A;
-            lhs.ClampValues();
-
-            return lhs;
+            return new Color4(
+                Utils.Clamp(lhs.R - rhs.R, 0f, 1f),
+                Utils.Clamp(lhs.G - rhs.G, 0f, 1f),
+                Utils.Clamp(lhs.B - rhs.B, 0f, 1f),
+                Utils.Clamp(lhs.A - rhs.A, 0f, 1f));
         }
 
         public static Color4 operator *(Color4 lhs, Color4 rhs)
         {
-            lhs.R *= rhs.R;
-            lhs.G *= rhs.G;
-            lhs.B *= rhs.B;
-            lhs.A *= rhs.A;
-            lhs.ClampValues();
-
-            return lhs;
+            return new Color4(
+                Utils.Clamp(lhs.R * rhs.R, 0f, 1f),
+                Utils.Clamp(lhs.G * rhs.G, 0f, 1f),
+                Utils.Clamp(lhs.B * rhs.B, 0f, 1f),
+                Utils.Clamp(lhs.A * rhs.A, 0f, 1f));
         }
 
         #endregion Operators

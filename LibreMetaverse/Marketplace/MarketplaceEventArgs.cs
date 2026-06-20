@@ -27,7 +27,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace OpenMetaverse.Marketplace
+namespace LibreMetaverse.Marketplace
 {
     /// <summary>Raised after a successful fetch of all listings from the SLM backend.</summary>
     public class MarketplaceListingsSyncedEventArgs : EventArgs

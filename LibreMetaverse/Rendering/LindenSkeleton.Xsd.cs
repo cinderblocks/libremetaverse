@@ -1,4 +1,4 @@
-namespace OpenMetaverse.Rendering
+namespace LibreMetaverse.Rendering
 {
     using System;
     using System.Xml.Serialization;

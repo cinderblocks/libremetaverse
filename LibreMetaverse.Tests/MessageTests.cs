@@ -30,9 +30,9 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Xml.Serialization;
-using OpenMetaverse;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Messages.Linden;
+using LibreMetaverse;
+using LibreMetaverse.StructuredData;
+using LibreMetaverse.Messages.Linden;
 using NUnit.Framework;
 
 namespace LibreMetaverse.Tests

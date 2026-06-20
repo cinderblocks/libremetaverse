@@ -24,7 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-namespace OpenMetaverse.Assets
+namespace LibreMetaverse.Assets
 {
     /// <summary>
     /// Base class for all Asset types
@@ -32,7 +32,7 @@ namespace OpenMetaverse.Assets
     public abstract class Asset
     {
         /// <summary>A byte array containing the raw asset data</summary>
-        public byte[] AssetData = OpenMetaverse.Utils.EmptyBytes;
+        public byte[] AssetData = LibreMetaverse.Utils.EmptyBytes;
         /// <summary>True if the asset it only stored on the server temporarily</summary>
         public bool Temporary;
 

@@ -30,7 +30,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OpenMetaverse.StructuredData
+namespace LibreMetaverse.StructuredData
 {
     /// <summary>
     /// OSD Array Element
@@ -99,16 +99,9 @@ namespace OpenMetaverse.StructuredData
 
         public override Vector3 AsVector3()
         {
-            Vector3 vector = Vector3.Zero;
-
             if (Count == 3)
-            {
-                vector.X = (float)this[0].AsReal();
-                vector.Y = (float)this[1].AsReal();
-                vector.Z = (float)this[2].AsReal();
-            }
-
-            return vector;
+                return new Vector3((float)this[0].AsReal(), (float)this[1].AsReal(), (float)this[2].AsReal());
+            return Vector3.Zero;
         }
 
         public override Vector3d AsVector3d()
@@ -142,32 +135,22 @@ namespace OpenMetaverse.StructuredData
 
         public override Quaternion AsQuaternion()
         {
-            Quaternion quaternion = Quaternion.Identity;
-
             if (Count == 4)
-            {
-                quaternion.X = (float)this[0].AsReal();
-                quaternion.Y = (float)this[1].AsReal();
-                quaternion.Z = (float)this[2].AsReal();
-                quaternion.W = (float)this[3].AsReal();
-            }
-
-            return quaternion;
+                return new Quaternion((float)this[0].AsReal(), (float)this[1].AsReal(), (float)this[2].AsReal(), (float)this[3].AsReal());
+            return Quaternion.Identity;
         }
 
         public override Color4 AsColor4()
         {
-            Color4 color = Color4.Black;
-
             if (Count == 4)
             {
-                color.R = (float)this[0].AsReal();
-                color.G = (float)this[1].AsReal();
-                color.B = (float)this[2].AsReal();
-                color.A = (float)this[3].AsReal();
+                return new Color4(
+                    Utils.Clamp((float)this[0].AsReal(), 0f, 1f),
+                    Utils.Clamp((float)this[1].AsReal(), 0f, 1f),
+                    Utils.Clamp((float)this[2].AsReal(), 0f, 1f),
+                    Utils.Clamp((float)this[3].AsReal(), 0f, 1f));
             }
-
-            return color;
+            return Color4.Black;
         }
 
         public override OSD Copy()

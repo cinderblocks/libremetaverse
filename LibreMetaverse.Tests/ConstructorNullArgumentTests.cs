@@ -1,6 +1,6 @@
 using System;
 using NUnit.Framework;
-using OpenMetaverse;
+using LibreMetaverse;
 using LibreMetaverse;
 
 namespace LibreMetaverse.Tests
@@ -23,7 +23,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void InventoryManager_Null_Throws()
         {
-            Assert.Throws<ArgumentNullException>(() => new OpenMetaverse.InventoryManager(null));
+            Assert.Throws<ArgumentNullException>(() => new LibreMetaverse.InventoryManager(null));
         }
 
         [Test]
@@ -35,25 +35,25 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ObjectManager_Null_Throws()
         {
-            Assert.Throws<ArgumentNullException>(() => new OpenMetaverse.ObjectManager(null));
+            Assert.Throws<ArgumentNullException>(() => new LibreMetaverse.ObjectManager(null));
         }
 
         [Test]
         public void AgentManager_Null_Throws()
         {
-            Assert.Throws<ArgumentNullException>(() => new OpenMetaverse.AgentManager(null));
+            Assert.Throws<ArgumentNullException>(() => new LibreMetaverse.AgentManager(null));
         }
 
         [Test]
         public void AvatarManager_Null_Throws()
         {
-            Assert.Throws<ArgumentNullException>(() => new OpenMetaverse.AvatarManager(null));
+            Assert.Throws<ArgumentNullException>(() => new LibreMetaverse.AvatarManager(null));
         }
 
         [Test]
         public void AssetManager_Null_Throws()
         {
-            Assert.Throws<ArgumentNullException>(() => new OpenMetaverse.AssetManager(null));
+            Assert.Throws<ArgumentNullException>(() => new LibreMetaverse.AssetManager(null));
         }
     }
 }

@@ -31,7 +31,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// The LockingDictionary class is used through the library for storing key/value pairs.

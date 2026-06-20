@@ -1,5 +1,5 @@
 using NUnit.Framework;
-using OpenMetaverse;
+using LibreMetaverse;
 using LibreMetaverse;
 
 namespace LibreMetaverse.Tests

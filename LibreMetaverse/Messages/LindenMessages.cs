@@ -29,12 +29,12 @@ using System;
 #nullable enable
 using System.Collections.Generic;
 using System.Net;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Interfaces;
+using LibreMetaverse.StructuredData;
+using LibreMetaverse.Interfaces;
 
 #pragma warning disable CS8618 // Non-nullable field is uninitialized. Generated message classes initialize during deserialization.
 
-namespace OpenMetaverse.Messages.Linden
+namespace LibreMetaverse.Messages.Linden
 {
     #region Teleport/Region/Movement Messages
 

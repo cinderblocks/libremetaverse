@@ -30,13 +30,13 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.Packets;
-using OpenMetaverse.Assets;
-using OpenMetaverse.Http;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Messages.Linden;
+using LibreMetaverse.Packets;
+using LibreMetaverse.Assets;
+using LibreMetaverse.Http;
+using LibreMetaverse.StructuredData;
+using LibreMetaverse.Messages.Linden;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     #region Enums
 
@@ -675,7 +675,6 @@ namespace OpenMetaverse
             var req = new DownloadRequest(
                 BuildFetchRequestUri(transfer.AssetType, assetID),
                 string.Empty,
-                null,
                 null
             ) { CancellationToken = cancellationToken };
 
@@ -909,7 +908,7 @@ namespace OpenMetaverse
         /// <param name="callback"></param>
         private async Task RequestInventoryAssetHTTP(UUID assetID, AssetDownload transfer, AssetReceivedCallback? callback)
         {
-            var req = new DownloadRequest(BuildFetchRequestUri(transfer.AssetType, assetID), string.Empty, null, null);
+            var req = new DownloadRequest(BuildFetchRequestUri(transfer.AssetType, assetID), string.Empty, null);
             try
             {
                 var (response, responseData) = await HttpDownloads.QueueDownloadAsync(req).ConfigureAwait(false);
@@ -1390,7 +1389,7 @@ namespace OpenMetaverse
                     // Cache entry exists but read failed; fall through to network fetch
                     Logger.Warn($"Mesh cache entry exists for {meshID} but reading failed; fetching from server", Client);
                 }
-                var req = new DownloadRequest(new Uri($"{Client.Network.CurrentSim.Caps.GetMeshCapURI()}?mesh_id={meshID}"), string.Empty, null, null)
+                var req = new DownloadRequest(new Uri($"{Client.Network.CurrentSim.Caps.GetMeshCapURI()}?mesh_id={meshID}"), string.Empty, null)
                 {
                     CancellationToken = cancellationToken
                 };
@@ -1596,7 +1595,7 @@ namespace OpenMetaverse
 
             Uri url = new Uri($"{Client.Network.AgentAppearanceServiceURL}texture/{avatarID}/{bakeName}/{textureID}");
 
-            var req = new DownloadRequest(url, "image/x-j2c", null, null) { CancellationToken = cancellationToken };
+            var req = new DownloadRequest(url, "image/x-j2c", null) { CancellationToken = cancellationToken };
 
             _ = Task.Run(async () =>
             {
@@ -1695,8 +1694,7 @@ namespace OpenMetaverse
             var req = new DownloadRequest(
                  new Uri($"{capUri}?texture_id={textureID}"),
                  "image/x-j2c",
-                 progressReporter,
-                 null
+                 progressReporter
             );
 
             try

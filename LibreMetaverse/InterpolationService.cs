@@ -29,7 +29,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     internal sealed class InterpolationService : IDisposable
     {

@@ -29,7 +29,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Viewer URI Name Space types (SLURL/SLAPP)
@@ -408,19 +408,4 @@ namespace OpenMetaverse
         public bool IsApplication => UriType == ViewerUriType.Application;
     }
 
-    /// <summary>
-    /// Legacy name for SlurlParser. Use SlurlParser instead.
-    /// Parser and generator for Second Life Viewer URI Name Space (SLURL/SLAPP)
-    /// </summary>
-    [Obsolete("Use SlurlParser instead. LocationParser is kept for backward compatibility.", false)]
-    public class LocationParser : SlurlParser
-    {
-        /// <summary>
-        /// Parse a Second Life location string or SLURL/SLAPP URI
-        /// </summary>
-        /// <param name="location">Location string to parse</param>
-        public LocationParser(string location) : base(location)
-        {
-        }
-    }
 }

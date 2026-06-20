@@ -24,10 +24,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.StructuredData;
 
 
-namespace OpenMetaverse.Interfaces
+namespace LibreMetaverse.Interfaces
 {
     /// <summary>
     /// Interface requirements for Messaging system

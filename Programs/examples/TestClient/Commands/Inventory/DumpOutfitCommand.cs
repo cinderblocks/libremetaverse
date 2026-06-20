@@ -31,11 +31,11 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using CoreJ2K;
-using OpenMetaverse;
-using OpenMetaverse.Assets;
-using OpenMetaverse.Imaging;
+using LibreMetaverse;
+using LibreMetaverse.Assets;
+using LibreMetaverse.Imaging;
 using SkiaSharp;
-using Targa = OpenMetaverse.Imaging.Targa;
+using Targa = LibreMetaverse.Imaging.Targa;
 
 namespace TestClient.Commands.Inventory
 {

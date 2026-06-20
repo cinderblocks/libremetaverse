@@ -32,11 +32,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.Packets;
-using OpenMetaverse.Assets;
+using LibreMetaverse.Packets;
+using LibreMetaverse.Assets;
 using System.Collections.Concurrent;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// The current status of a texture request as it moves through the pipeline or final result of a texture request. 
@@ -320,7 +320,7 @@ public delegate void TextureDownloadCallback(TextureRequestState state, AssetTex
 
                 request.Transfer = downloadParams;
 #if DEBUG_TIMING
-                    request.StartTime = DateTime.UtcNow;
+                    request.StartTime = _Client.UtcNow;
 #endif
 
                 var existing = _Transfers.GetOrAdd(textureID, request);
@@ -532,7 +532,7 @@ public delegate void TextureDownloadCallback(TextureRequestState state, AssetTex
             task.State = TextureRequestState.Progress;
 
 #if DEBUG_TIMING
-            task.NetworkTime = DateTime.UtcNow;
+            task.NetworkTime = _Client.UtcNow;
 #endif
             // Find the first missing packet in the download
             ushort packet = 0;
@@ -712,7 +712,7 @@ public delegate void TextureDownloadCallback(TextureRequestState state, AssetTex
                 if (task.Transfer.Transferred >= task.Transfer.Size)
                 {
 #if DEBUG_TIMING
-                        DateTime stopTime = DateTime.UtcNow;
+                        DateTime stopTime = _Client.UtcNow;
                         TimeSpan requestDuration = stopTime - task.StartTime;
 
                         TimeSpan networkDuration = stopTime - task.NetworkTime;
@@ -784,7 +784,7 @@ public delegate void TextureDownloadCallback(TextureRequestState state, AssetTex
                 if (task.Transfer.Transferred >= task.Transfer.Size)
                 {
 #if DEBUG_TIMING
-                    DateTime stopTime = DateTime.UtcNow;
+                    DateTime stopTime = _Client.UtcNow;
                     TimeSpan requestDuration = stopTime - task.StartTime;
 
                     TimeSpan networkDuration = stopTime - task.NetworkTime;

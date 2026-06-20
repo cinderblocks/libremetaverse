@@ -27,9 +27,9 @@
 
 using System.IO;
 using Microsoft.Extensions.Logging;
-using OpenMetaverse.Packets;
+using LibreMetaverse.Packets;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Class for controlling various system settings.

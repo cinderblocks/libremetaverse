@@ -25,10 +25,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using OpenMetaverse.Interfaces;
-using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.Interfaces;
+using LibreMetaverse.Messages.Linden;
+using LibreMetaverse.Packets;
+using LibreMetaverse.StructuredData;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -38,7 +38,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>Describes tasks returned in LandStatReply</summary>
     public class EstateTask
@@ -615,15 +615,6 @@ namespace OpenMetaverse
             EstateOwnerMessage("restart", "-1");
         }
 
-        [Obsolete("Use SetRegionInfo with new arguments or SetRegionInfoUdp")]
-        public void SetRegionInfo(bool blockTerraform, bool blockFly, bool allowDamage, bool allowLandResell,
-            bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus,
-            RegionMaturity maturity)
-        {
-            SetRegionInfo(blockTerraform, blockFly, false, allowDamage, allowLandResell, restrictPushing,
-                allowParcelJoinDivide, agentLimit, objectBonus, false, maturity);
-        }
-        
         public void SetRegionInfo(bool blockTerraform, bool blockFly, bool blockFlyOver, bool allowDamage, 
             bool allowLandResell, bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, 
             bool blockParcelSearch, RegionMaturity maturity)
@@ -1282,15 +1273,11 @@ namespace OpenMetaverse
             var msg = new SimConsoleAsyncMessage { Command = command };
             string? output = null;
 
-            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken,
-                (response, data, error) =>
+            try
+            {
+                var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken).ConfigureAwait(false);
+                if (response.IsSuccessStatusCode && data != null)
                 {
-                    if (error != null)
-                    {
-                        Logger.Warn($"SimConsoleAsync failed: {error.Message}", Client);
-                        return;
-                    }
-                    if (!(response?.IsSuccessStatusCode ?? false) || data == null) { return; }
                     try
                     {
                         if (OSDParser.Deserialize(data) is OSDMap map)
@@ -1304,7 +1291,12 @@ namespace OpenMetaverse
                     {
                         Logger.Error("Failed to parse SimConsoleAsync response", ex, Client);
                     }
-                }).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Warn($"SimConsoleAsync failed: {ex.Message}", Client);
+            }
 
             return output;
         }

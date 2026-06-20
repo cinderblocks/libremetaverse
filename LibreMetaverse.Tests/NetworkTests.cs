@@ -27,8 +27,8 @@
 
 using System;
 using System.Threading.Tasks;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
+using LibreMetaverse;
+using LibreMetaverse.Packets;
 #nullable enable
 using NUnit.Framework;
 

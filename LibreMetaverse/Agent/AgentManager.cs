@@ -30,12 +30,12 @@ using System.Threading;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Packets;
-using OpenMetaverse.Messages.Linden;
+using LibreMetaverse.StructuredData;
+using LibreMetaverse.Packets;
+using LibreMetaverse.Messages.Linden;
 using System.Threading.Tasks;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Manager class for our own avatar
@@ -701,7 +701,7 @@ namespace OpenMetaverse
         public uint LocalID => localID;
 
         /// <summary>Where the avatar started at login. Can be "last", "home" 
-        /// or a login <see cref="T:OpenMetaverse.URI"/></summary>
+        /// or a login <see cref="T:LibreMetaverse.URI"/></summary>
         public string StartLocation { get; private set; } = string.Empty;
 
         /// <summary>The access level of this agent, usually M, PG or A</summary>
@@ -786,7 +786,7 @@ namespace OpenMetaverse
         /// </summary>
         public Vector3 RelativePositionEstimate
         {
-            get => relativePosition + (velocity * (float)(DateTime.UtcNow - LastPositionUpdate).TotalSeconds);
+            get => relativePosition + (velocity * (float)(Client.UtcNow - LastPositionUpdate).TotalSeconds);
             set => relativePosition = value;
         }
         /// <summary>Current rotation of the agent as a relative rotation from
@@ -835,7 +835,7 @@ namespace OpenMetaverse
                     if (sim != null && sim.ObjectsAvatars.TryGetValue(localID, out Avatar? self) && self != null)
                     {
                         // Apply the hover height Z offset from appearance data
-                        position.Z += self.HoverHeight.Z;
+                        position = new Vector3(position.X, position.Y, position.Z + self.HoverHeight.Z);
                     }
 
                     return position;
@@ -976,7 +976,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Constructor, setup callbacks for packets related to our avatar
         /// </summary>
-        /// <param name="client">A reference to the <see cref="T:OpenMetaverse.GridClient"/> Class</param>
+        /// <param name="client">A reference to the <see cref="T:LibreMetaverse.GridClient"/> Class</param>
         public AgentManager(GridClient client)
         {
             Client = client ?? throw new ArgumentNullException(nameof(client));
@@ -1664,7 +1664,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Sets home location to agents current position
         /// </summary>
-        /// <remarks>will fire an AlertMessage (<see cref="OpenMetaverse.AgentManager.OnAlertMessage"/>) with 
+        /// <remarks>will fire an AlertMessage (<see cref="LibreMetaverse.AgentManager.OnAlertMessage"/>) with 
         /// success or failure message</remarks>
         public void SetHome()
         {
@@ -1690,7 +1690,7 @@ namespace OpenMetaverse
         /// Move an agent in to a simulator. This packet is the last packet
         /// needed to complete the transition in to a new simulator
         /// </summary>
-        /// <param name="simulator"><see cref="OpenMetaverse.Simulator"/> Object</param>
+        /// <param name="simulator"><see cref="LibreMetaverse.Simulator"/> Object</param>
         public void CompleteAgentMovement(Simulator simulator)
         {
             CompleteAgentMovementPacket move = new CompleteAgentMovementPacket
@@ -1710,7 +1710,7 @@ namespace OpenMetaverse
         /// <summary>
         /// Reply to script permissions request
         /// </summary>
-        /// <param name="simulator"><see cref="OpenMetaverse.Simulator"/> Object</param>
+        /// <param name="simulator"><see cref="LibreMetaverse.Simulator"/> Object</param>
         /// <param name="itemID"><see cref="UUID"/> of the itemID requesting permissions</param>
         /// <param name="taskID"><see cref="UUID"/> of the taskID requesting permissions</param>
         /// <param name="permissions"><see cref="ScriptPermission"/> list of permissions to allow</param>
@@ -1806,49 +1806,30 @@ namespace OpenMetaverse
                     return;
                 }
 
-                await http.GetRequestAsync(cap, cancellationToken,
-                    (response, data, error) =>
-                    {
-                        if (error != null)
-                        {
-                            callback(false, null);
-                            return;
-                        }
-
-                        if (response == null)
-                        {
-                            Logger.Warn("AttachmentResources request failed: no response.", Client);
-                            callback(false, null);
-                            return;
-                        }
-
-                        if (!response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"AttachmentResources request returned non-success status: {response.StatusCode}", Client);
-                            callback(false, null);
-                            return;
-                        }
-
-                        try
-                        {
-                            if (data == null)
-                            {
-                                Logger.Warn("AttachmentResources request returned no data.", Client);
-                                callback(false, null);
-                                return;
-                            }
-
-                            OSD result = OSDParser.Deserialize(data);
-                            AttachmentResourcesMessage info = AttachmentResourcesMessage.FromOSD(result);
-                            callback(true, info);
-
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed fetching AttachmentResources", ex, Client);
-                            callback(false, null);
-                        }
-                    }).ConfigureAwait(false);
+                var (response, data) = await http.GetAsync(cap, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"AttachmentResources request returned non-success status: {response.StatusCode}", Client);
+                    callback(false, null);
+                    return;
+                }
+                if (data == null)
+                {
+                    Logger.Warn("AttachmentResources request returned no data.", Client);
+                    callback(false, null);
+                    return;
+                }
+                try
+                {
+                    OSD result = OSDParser.Deserialize(data);
+                    AttachmentResourcesMessage info = AttachmentResourcesMessage.FromOSD(result);
+                    callback(true, info);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error("Failed fetching AttachmentResources", ex, Client);
+                    callback(false, null);
+                }
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
@@ -1856,19 +1837,6 @@ namespace OpenMetaverse
                 callback(false, null);
                 throw;
             }
-        }
-
-        /// <summary>
-        /// Initiates request to set a new display name
-        /// </summary>
-        /// <param name="oldName">Previous display name</param>
-        /// <param name="newName">Desired new display name</param>
-        /// <param name="cancellationToken"></param>
-        [Obsolete("Use SetDisplayNameAsync instead", false)]
-        public void SetDisplayName(string oldName, string newName, CancellationToken cancellationToken = default)
-        {
-            // Synchronous wrapper for compatibility
-            SetDisplayNameAsync(oldName, newName, cancellationToken).GetAwaiter().GetResult();
         }
 
         /// <summary>Initiates request to set a new display name (async)</summary>
@@ -1899,18 +1867,6 @@ namespace OpenMetaverse
             };
 
             await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Tells the sim what UI language is used, and if it's ok to share that with scripts
-        /// </summary>
-        /// <param name="language">Two letter language code</param>
-        /// <param name="isPublic">Share language info with scripts</param>
-        /// <param name="cancellationToken"></param>
-        [Obsolete("Use UpdateAgentLanguageAsync instead", false)]
-        public void UpdateAgentLanguage(string language, bool isPublic, CancellationToken cancellationToken = default)
-        {
-            UpdateAgentLanguageAsync(language, isPublic, cancellationToken).GetAwaiter().GetResult();
         }
 
         public async Task UpdateAgentLanguageAsync(string language, bool isPublic, CancellationToken cancellationToken = default)
@@ -1955,73 +1911,56 @@ namespace OpenMetaverse
             Uri? cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateAgentInformation");
             if (cap == null) { return; }
 
-            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, cancellationToken,
-                (response, data, error) =>
+            bool success = true;
+            try
+            {
+                var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
                 {
-                    bool success = true;
-
-                    if (error != null)
+                    Logger.Warn($"UpdateAgentInformation returned non-success status: {response.StatusCode}", Client);
+                    success = false;
+                }
+                else
+                {
+                    try
                     {
-                        Logger.Warn("Failed setting max maturity access.", Client);
-                        success = false;
-                    }
-                    else if (response == null)
-                    {
-                        Logger.Warn("UpdateAgentInformation returned no response.", Client);
-                        success = false;
-                    }
-                    else if (!response.IsSuccessStatusCode)
-                    {
-                        Logger.Warn($"UpdateAgentInformation returned non-success status: {response.StatusCode}", Client);
-                        success = false;
-                    }
-                    else
-                    {
-                        try
+                        if (data == null)
                         {
-                            if (data == null)
+                            Logger.Warn("UpdateAgentInformation returned no data.", Client);
+                            success = false;
+                        }
+                        else
+                        {
+                            OSD result = OSDParser.Deserialize(data);
+                            if (result is OSDMap osdMap && osdMap.TryGetValue("access_prefs", out var mapObj) && mapObj is OSDMap accessMap && accessMap.TryGetValue("max", out var maxVal))
                             {
-                                Logger.Warn("UpdateAgentInformation returned no data.", Client);
-                                success = false;
+                                AgentAccess = maxVal;
+                                Logger.Info($"Max maturity access set to {AgentAccess}", Client);
                             }
                             else
                             {
-                                OSD result = OSDParser.Deserialize(data);
-                                if (result is OSDMap osdMap && osdMap.TryGetValue("access_prefs", out var mapObj) && mapObj is OSDMap accessMap && accessMap.TryGetValue("max", out var maxVal))
-                                {
-                                    AgentAccess = maxVal;
-                                    Logger.Info($"Max maturity access set to {AgentAccess}", Client);
-                                }
-                                else
-                                {
-                                    Logger.Info($"Max maturity unchanged at {AgentAccess}", Client);
-                                }
+                                Logger.Info($"Max maturity unchanged at {AgentAccess}", Client);
                             }
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Warn($"Failed to parse UpdateAgentInformation response: {ex.Message}", Client);
-                            success = false;
-                        }
                     }
-
-                    if (callback != null)
+                    catch (Exception ex)
                     {
-                        try { callback(new AgentAccessEventArgs(success, AgentAccess)); }
-                        catch (Exception ex) { Logger.Error("Exception in AgentAccess callback", ex, Client); }
+                        Logger.Warn($"Failed to parse UpdateAgentInformation response: {ex.Message}", Client);
+                        success = false;
                     }
-                }).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Sets agents hover height.
-        /// </summary>
-        /// <param name="hoverHeight">Hover height [-2.0, 2.0]</param>
-        /// <param name="cancellationToken"></param>
-        [Obsolete("Use SetHoverHeightAsync instead", false)]
-        public void SetHoverHeight(double hoverHeight, CancellationToken cancellationToken = default)
-        {
-            SetHoverHeightAsync(hoverHeight, cancellationToken).GetAwaiter().GetResult();
+                }
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Warn("Failed setting max maturity access.", Client);
+                Logger.Error("SetAgentAccessAsync failed", ex, Client);
+                success = false;
+            }
+            if (callback != null)
+            {
+                try { callback(new AgentAccessEventArgs(success, AgentAccess)); }
+                catch (Exception ex) { Logger.Error("Exception in AgentAccess callback", ex, Client); }
+            }
         }
 
         /// <summary>
@@ -2046,29 +1985,23 @@ namespace OpenMetaverse
                 if (http == null) { return null; }
 
                 ViewerBenefitsMessage? result = null;
-#pragma warning disable CS0618
-                await http.GetRequestAsync(cap, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(cap, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"ViewerBenefits non-success status: {response.StatusCode}", Client);
+                }
+                else if (data == null)
+                {
+                    Logger.Warn("ViewerBenefits returned no data.", Client);
+                }
+                else
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"ViewerBenefits request failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"ViewerBenefits non-success status: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null)
-                        {
-                            Logger.Warn("ViewerBenefits returned no data.", Client);
-                            return;
-                        }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             ViewerBenefitsMessage msg = new ViewerBenefitsMessage();
                             msg.Deserialize(map);
                             result = msg;
@@ -2081,12 +2014,12 @@ namespace OpenMetaverse
                             }
                             OnViewerBenefitsUpdated(new ViewerBenefitsEventArgs(msg));
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse ViewerBenefits response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
-#pragma warning restore CS0618
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse ViewerBenefits response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -2131,18 +2064,17 @@ namespace OpenMetaverse
             };
 
             bool success = false;
-            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken,
-                (response, data, error) =>
-                {
-                    if (error != null)
-                    {
-                        Logger.Warn($"SendPostcard failed: {error.Message}", Client);
-                        return;
-                    }
-                    success = response?.IsSuccessStatusCode ?? false;
-                    if (!success)
-                        Logger.Warn($"SendPostcard non-success status: {response?.StatusCode}", Client);
-                }).ConfigureAwait(false);
+            try
+            {
+                var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken).ConfigureAwait(false);
+                success = response.IsSuccessStatusCode;
+                if (!success)
+                    Logger.Warn($"SendPostcard non-success status: {response.StatusCode}", Client);
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Warn($"SendPostcard failed: {ex.Message}", Client);
+            }
 
             return success;
         }
@@ -2158,54 +2090,43 @@ namespace OpenMetaverse
             Uri? cap = Client.Network.CurrentSim.Caps.CapabilityURI("AgentPreferences");
             if (cap == null) { return; }
 
-            await Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, postData, cancellationToken,
-                 (response, data, error) =>
-                 {
-                     if (error != null)
-                     {
-                         Logger.Warn($"Failed to set hover height: {error}.", Client);
-                         return;
-                     }
-
-                     if (response == null)
-                     {
-                         Logger.Warn("Failed to set hover height: no response.", Client);
-                         return;
-                     }
-
-                     if (!response.IsSuccessStatusCode)
-                     {
-                         Logger.Warn($"Failed to set hover height: status {response.StatusCode}.", Client);
-                         return;
-                     }
-
-                     if (data == null)
-                     {
-                         Logger.Warn("Failed to set hover height: no data.", Client);
-                         return;
-                     }
-
-                     OSD result;
-                     try
-                     {
-                         result = OSDParser.Deserialize(data);
-                     }
-                     catch (Exception ex)
-                     {
-                         Logger.Warn($"Failed to parse hover height response: {ex.Message}", Client);
-                         return;
-                     }
-
-                     if (!(result is OSDMap resultMap))
-                     {
-                         Logger.Warn($"Failed to set hover height: Expected {nameof(OSDMap)} response, but got {result.Type}", Client);
-                     }
-                     else
-                     {
-                         var confirmedHeight = resultMap["hover_height"];
-                         Logger.Debug($"Hover height set to {confirmedHeight}", Client);
-                     }
-                 }).ConfigureAwait(false);
+            try
+            {
+                var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, postData, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"Failed to set hover height: status {response.StatusCode}.", Client);
+                    return;
+                }
+                if (data == null)
+                {
+                    Logger.Warn("Failed to set hover height: no data.", Client);
+                    return;
+                }
+                OSD result;
+                try
+                {
+                    result = OSDParser.Deserialize(data);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"Failed to parse hover height response: {ex.Message}", Client);
+                    return;
+                }
+                if (!(result is OSDMap resultMap))
+                {
+                    Logger.Warn($"Failed to set hover height: Expected {nameof(OSDMap)} response, but got {result.Type}", Client);
+                }
+                else
+                {
+                    var confirmedHeight = resultMap["hover_height"];
+                    Logger.Debug($"Hover height set to {confirmedHeight}", Client);
+                }
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Warn($"Failed to set hover height: {ex}.", Client);
+            }
         }
 
         /// <summary>
@@ -2230,41 +2151,35 @@ namespace OpenMetaverse
                 if (http == null) { return null; }
 
                 AgentPreferencesMessage? result = null;
-#pragma warning disable CS0618
-                await http.GetRequestAsync(cap, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(cap, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"AgentPreferences non-success status: {response.StatusCode}", Client);
+                }
+                else if (data == null)
+                {
+                    Logger.Warn("AgentPreferences returned no data.", Client);
+                }
+                else
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"AgentPreferences request failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"AgentPreferences non-success status: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null)
-                        {
-                            Logger.Warn("AgentPreferences returned no data.", Client);
-                            return;
-                        }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             AgentPreferencesMessage msg = new AgentPreferencesMessage();
                             msg.Deserialize(map);
                             result = msg;
                             HoverHeight = msg.HoverHeight;
                             OnAgentPreferencesUpdated(new AgentPreferencesEventArgs(msg));
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse AgentPreferences response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
-#pragma warning restore CS0618
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse AgentPreferences response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -2296,41 +2211,35 @@ namespace OpenMetaverse
                 if (http == null) { return null; }
 
                 AvatarRenderInfoMessage? result = null;
-#pragma warning disable CS0618
-                await http.GetRequestAsync(cap, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(cap, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"AvatarRenderInfo non-success status: {response.StatusCode}", Client);
+                }
+                else if (data == null)
+                {
+                    Logger.Warn("AvatarRenderInfo returned no data.", Client);
+                }
+                else
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"AvatarRenderInfo request failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"AvatarRenderInfo non-success status: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null)
-                        {
-                            Logger.Warn("AvatarRenderInfo returned no data.", Client);
-                            return;
-                        }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             AvatarRenderInfoMessage msg = new AvatarRenderInfoMessage();
                             msg.Deserialize(map);
                             result = msg;
                             AvatarRenderInfo = msg;
                             OnAvatarRenderInfoUpdated(new AvatarRenderInfoEventArgs(msg));
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse AvatarRenderInfo response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
-#pragma warning restore CS0618
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse AvatarRenderInfo response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -2394,40 +2303,34 @@ namespace OpenMetaverse
                 if (http == null) { return null; }
 
                 NavMeshStatusUpdateMessage? result = null;
-#pragma warning disable CS0618
-                await http.GetRequestAsync(cap, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(cap, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"NavMeshGenerationStatus non-success status: {response.StatusCode}", Client);
+                }
+                else if (data == null)
+                {
+                    Logger.Warn("NavMeshGenerationStatus returned no data.", Client);
+                }
+                else
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"NavMeshGenerationStatus request failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"NavMeshGenerationStatus non-success status: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null)
-                        {
-                            Logger.Warn("NavMeshGenerationStatus returned no data.", Client);
-                            return;
-                        }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             NavMeshStatusUpdateMessage msg = new NavMeshStatusUpdateMessage();
                             msg.Deserialize(map);
                             result = msg;
                             LastNavMeshStatus = msg;
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse NavMeshGenerationStatus response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
-#pragma warning restore CS0618
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse NavMeshGenerationStatus response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -2457,19 +2360,11 @@ namespace OpenMetaverse
                 var http = Client?.HttpCapsClient;
                 if (http == null) { return; }
 
-                await http.PostRequestAsync(cap, OSDFormat.Xml, new OSDMap(), cancellationToken,
-                    (response, data, error) =>
-                    {
-                        if (error != null)
-                        {
-                            Logger.Warn($"NavMesh rebake request failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"NavMesh rebake non-success status: {response?.StatusCode}", Client);
-                        }
-                    }).ConfigureAwait(false);
+                var (response, data) = await http.PostAsync(cap, OSDFormat.Xml, new OSDMap(), cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"NavMesh rebake non-success status: {response.StatusCode}", Client);
+                }
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
@@ -2499,19 +2394,11 @@ namespace OpenMetaverse
                 var http = Client?.HttpCapsClient;
                 if (http == null) { return; }
 
-                await http.PostRequestAsync(cap, OSDFormat.Xml, stats.Serialize(), cancellationToken,
-                    (response, data, error) =>
-                    {
-                        if (error != null)
-                        {
-                            Logger.Warn($"ViewerStats POST failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"ViewerStats non-success status: {response?.StatusCode}", Client);
-                        }
-                    }).ConfigureAwait(false);
+                var (response, data) = await http.PostAsync(cap, OSDFormat.Xml, stats.Serialize(), cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"ViewerStats non-success status: {response.StatusCode}", Client);
+                }
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
@@ -2542,41 +2429,35 @@ namespace OpenMetaverse
                 if (http == null) { return null; }
 
                 NotificationPreferencesMessage? result = null;
-#pragma warning disable CS0618
-                await http.GetRequestAsync(cap, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(cap, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"UpdateNotificationPreferences non-success status: {response.StatusCode}", Client);
+                }
+                else if (data == null)
+                {
+                    Logger.Warn("UpdateNotificationPreferences returned no data.", Client);
+                }
+                else
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"UpdateNotificationPreferences GET failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"UpdateNotificationPreferences non-success status: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null)
-                        {
-                            Logger.Warn("UpdateNotificationPreferences returned no data.", Client);
-                            return;
-                        }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             NotificationPreferencesMessage msg = new NotificationPreferencesMessage();
                             msg.Deserialize(map);
                             result = msg;
                             NotificationPreferences = msg;
                             OnNotificationPreferencesUpdated(new NotificationPreferencesEventArgs(msg));
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse UpdateNotificationPreferences response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
-#pragma warning restore CS0618
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse UpdateNotificationPreferences response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -2608,19 +2489,11 @@ namespace OpenMetaverse
                 var http = Client?.HttpCapsClient;
                 if (http == null) { return; }
 
-                await http.PostRequestAsync(cap, OSDFormat.Xml, preferences.Serialize(), cancellationToken,
-                    (response, data, error) =>
-                    {
-                        if (error != null)
-                        {
-                            Logger.Warn($"UpdateNotificationPreferences POST failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"UpdateNotificationPreferences POST non-success status: {response?.StatusCode}", Client);
-                        }
-                    }).ConfigureAwait(false);
+                var (response, data) = await http.PostAsync(cap, OSDFormat.Xml, preferences.Serialize(), cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"UpdateNotificationPreferences POST non-success status: {response.StatusCode}", Client);
+                }
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
@@ -2651,49 +2524,40 @@ namespace OpenMetaverse
                 if (http == null) { return null; }
 
                 ProductInfoRequestMessage? result = null;
-#pragma warning disable CS0618
-                await http.GetRequestAsync(cap, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(cap, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"ProductInfoRequest non-success status: {response.StatusCode}", Client);
+                }
+                else if (data == null)
+                {
+                    Logger.Warn("ProductInfoRequest returned no data.", Client);
+                }
+                else
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        ProductInfoRequestMessage msg = new ProductInfoRequestMessage();
+                        if (osd is OSDArray arr)
                         {
-                            Logger.Warn($"ProductInfoRequest failed: {error.Message}", Client);
-                            return;
+                            // Server may return a bare array rather than a wrapped map
+                            msg.Deserialize(new OSDMap(1) { ["products"] = arr });
                         }
-                        if (response == null || !response.IsSuccessStatusCode)
+                        else if (osd is OSDMap map)
                         {
-                            Logger.Warn($"ProductInfoRequest non-success status: {response?.StatusCode}", Client);
-                            return;
+                            msg.Deserialize(map);
                         }
-                        if (data == null)
-                        {
-                            Logger.Warn("ProductInfoRequest returned no data.", Client);
-                            return;
-                        }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            ProductInfoRequestMessage msg = new ProductInfoRequestMessage();
-                            if (osd is OSDArray arr)
-                            {
-                                // Server may return a bare array rather than a wrapped map
-                                msg.Deserialize(new OSDMap(1) { ["products"] = arr });
-                            }
-                            else if (osd is OSDMap map)
-                            {
-                                msg.Deserialize(map);
-                            }
-                            else { return; }
-                            result = msg;
-                            ProductInfo = msg;
-                            OnProductInfoUpdated(new ProductInfoEventArgs(msg));
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse ProductInfoRequest response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
-#pragma warning restore CS0618
+                        else { }
+                        result = msg;
+                        ProductInfo = msg;
+                        OnProductInfoUpdated(new ProductInfoEventArgs(msg));
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse ProductInfoRequest response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))

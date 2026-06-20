@@ -1,7 +1,7 @@
 using System;
 using System.IO;
-using OpenMetaverse;
-using OpenMetaverse.Packets;
+using LibreMetaverse;
+using LibreMetaverse.Packets;
 
 namespace TestClient.Commands.System
 {

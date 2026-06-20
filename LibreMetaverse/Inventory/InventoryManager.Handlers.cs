@@ -31,10 +31,10 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.Packets;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public partial class InventoryManager
     {
@@ -42,7 +42,7 @@ namespace OpenMetaverse
         {
             if (uri == null) { throw new ArgumentNullException(nameof(uri)); }
 
-            var result = await Client.HttpCapsClient.PostAsync(uri, OSDFormat.Xml, payload, cancellationToken, progress, connectedHandler: null).ConfigureAwait(false);
+            var result = await Client.HttpCapsClient.PostAsync(uri, OSDFormat.Xml, payload, cancellationToken, progress).ConfigureAwait(false);
             var responseData = result.data ?? throw new InvalidOperationException("Empty response from capability POST");
 
             try { return OSDParser.Deserialize(responseData); }
@@ -62,7 +62,7 @@ namespace OpenMetaverse
             if (uri == null) { throw new ArgumentNullException(nameof(uri)); }
  
             // Use the newer Task-based PostAsync overload for raw bytes
-            var result = await Client.HttpCapsClient.PostAsync(uri, contentType, data, cancellationToken, progress, connectedHandler: null).ConfigureAwait(false);
+            var result = await Client.HttpCapsClient.PostAsync(uri, contentType, data, cancellationToken, progress).ConfigureAwait(false);
             var responseData = result.data ?? throw new InvalidOperationException("Empty response from capability POST");
 
             try { return OSDParser.Deserialize(responseData); }
@@ -85,7 +85,7 @@ namespace OpenMetaverse
             // The Task-based API does not provide a string overload; convert to bytes and post with the XML LLSD content type
             var payload = System.Text.Encoding.UTF8.GetBytes(content ?? string.Empty);
 
-            var result = await Client.HttpCapsClient.PostAsync(uri, LibreMetaverse.HttpCapsClient.LLSD_XML, payload, cancellationToken, progress, connectedHandler: null).ConfigureAwait(false);
+            var result = await Client.HttpCapsClient.PostAsync(uri, LibreMetaverse.HttpCapsClient.LLSD_XML, payload, cancellationToken, progress).ConfigureAwait(false);
             var responseData = result.data ?? throw new InvalidOperationException("Empty response from capability POST");
 
             try { return OSDParser.Deserialize(responseData); }

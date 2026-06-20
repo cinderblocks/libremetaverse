@@ -31,7 +31,7 @@ using System.Collections.Specialized;
 using System.IO;
 using LitJson;
 
-namespace OpenMetaverse.StructuredData
+namespace LibreMetaverse.StructuredData
 {
     public static partial class OSDParser
     {

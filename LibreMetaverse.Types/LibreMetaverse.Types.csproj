@@ -3,7 +3,7 @@
     <AssemblyName>LibreMetaverse.Types</AssemblyName>
     <PackageId>LibreMetaverse.Types</PackageId>
     <Description>Core type library for LibreMetaverse, providing foundational data types such as UUID, Vector2/3/4, Quaternion, Color4, and other primitives used across the LibreMetaverse ecosystem.</Description>
-    <TargetFrameworks>netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;net481;net8.0;net9.0;net10.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <OutputType>Library</OutputType>
     <RootNamespace>LibreMetaverse</RootNamespace>
@@ -19,7 +19,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
     <PackageReference Include="System.Buffers" />
     <PackageReference Include="System.Memory" />
   </ItemGroup>

@@ -29,7 +29,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public partial class InventoryNodeDictionary: IComparer<UUID>
     {

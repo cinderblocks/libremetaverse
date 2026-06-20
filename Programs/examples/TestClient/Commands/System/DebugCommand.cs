@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using OpenMetaverse;
+using LibreMetaverse;
 
 namespace TestClient.Commands.System
 {

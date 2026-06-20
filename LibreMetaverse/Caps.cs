@@ -31,14 +31,14 @@ using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.Packets;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Interfaces;
-using OpenMetaverse.Http;
+using LibreMetaverse.Packets;
+using LibreMetaverse.StructuredData;
+using LibreMetaverse.Interfaces;
+using LibreMetaverse.Http;
 using System.Net.Http;
 using LibreMetaverse;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Capabilities is the name of the bidirectional HTTP REST protocol
@@ -113,17 +113,6 @@ namespace OpenMetaverse
         public Dictionary<string, Uri>.KeyCollection Capabilities()
         {
             return _Caps.Keys;
-        }
-
-        /// <summary>
-        /// Create a new CapsClient for specified capability
-        /// </summary>
-        /// <param name="capability">Capability name</param>
-        /// <returns>Newly created CapsClient or null of capability does not exist</returns>
-        [Obsolete("CapsClient is obsolete. Use HttpCapsClient instead.")]
-        public CapsClient? CreateCapsClient(string capability)
-        {
-            return _Caps.TryGetValue(capability, out var uri) ? new CapsClient(uri, capability) : null;
         }
 
         /// <summary>
@@ -274,8 +263,18 @@ namespace OpenMetaverse
         {
             if (Simulator == null || !Simulator.Client.Network.Connected) { return; }
 
-            Task loginReq = Simulator.Client.HttpCapsClient.PostRequestAsync(_SeedCapsURI, OSDFormat.Xml, Caps.AllCapabilities, 
-                _HttpCts.Token, SeedRequestCompleteHandler);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var (response, data) = await Simulator.Client.HttpCapsClient.PostAsync(_SeedCapsURI, OSDFormat.Xml, Caps.AllCapabilities, _HttpCts.Token);
+                    SeedRequestCompleteHandler(response, data, null);
+                }
+                catch (Exception ex)
+                {
+                    SeedRequestCompleteHandler(null, null, ex);
+                }
+            });
         }
 
         private void SeedRequestCompleteHandler(HttpResponseMessage? response, byte[]? responseData, Exception? error)
@@ -327,8 +326,18 @@ namespace OpenMetaverse
                     {
                         Logger.DebugLog($"Retrieving Simulator Features", Simulator.Client);
                         Simulator.Features = new SimulatorFeatures(Simulator);
-                        _ = Simulator.Client.HttpCapsClient.GetRequestAsync(
-                            simFeaturesCap, _HttpCts.Token, Simulator.Features.SetFeatures);
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                var (response, data) = await Simulator.Client.HttpCapsClient.GetAsync(simFeaturesCap, _HttpCts.Token);
+                                Simulator.Features.SetFeatures(response, data, null);
+                            }
+                            catch (Exception ex)
+                            {
+                                Simulator.Features.SetFeatures(null, null, ex);
+                            }
+                        });
                     }
 
                     OnCapabilitiesReceived(Simulator);
@@ -361,7 +370,7 @@ namespace OpenMetaverse
                 #region Stats Tracking
                 if (Simulator.Client.Settings.TRACK_UTILIZATION)
                 {
-                    Simulator.Client.Stats.Update(eventName, OpenMetaverse.Stats.Type.Message, 0, body.ToString().Length);
+                    Simulator.Client.Stats.Update(eventName, LibreMetaverse.Stats.Type.Message, 0, body.ToString().Length);
                 }
                 #endregion
             }

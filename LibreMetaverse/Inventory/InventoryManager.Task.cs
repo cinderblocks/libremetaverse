@@ -28,9 +28,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using OpenMetaverse.Packets;
+using LibreMetaverse.Packets;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public partial class InventoryManager
     {
@@ -92,84 +92,7 @@ namespace OpenMetaverse
         }
 
         /// <summary>
-        /// Update an existing notecard in a task (primitive) inventory (synchronous wrapper)
-        /// </summary>
-        /// <param name="data">Notecard asset bytes</param>
-        /// <param name="notecardID">UUID of the notecard item</param>
-        /// <param name="taskID">UUID of the task (primitive)</param>
-        /// <param name="callback">Callback invoked when upload completes</param>
-        [Obsolete("Use RequestUpdateNotecardTaskAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
-        public void RequestUpdateNotecardTask(byte[] data, UUID notecardID, UUID taskID, InventoryUploadedAssetCallback callback)
-        {
-            try
-            {
-                RequestUpdateNotecardTaskAsync(data, notecardID, taskID, callback, CancellationToken.None).GetAwaiter().GetResult();
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn($"RequestUpdateNotecardTask failed: {ex.Message}", ex, Client);
-            }
-        }
-
-        /// <summary>
-        /// Update an existing script in a task Inventory (synchronous wrapper)
-        /// </summary>
-        /// <param name="data">A byte[] array containing the encoded scripts contents</param>
-        /// <param name="itemID">the itemID of the script</param>
-        /// <param name="taskID">UUID of the prim containing the script</param>
-        /// <param name="mono">if true, sets the script content to run on the mono interpreter</param>
-        /// <param name="running">if true, sets the script to running</param>
-        /// <param name="callback"></param>
-        /// <param name="cancellationToken"></param>
-        [Obsolete("Use RequestUpdateScriptTaskAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
-        public void RequestUpdateScriptTask(byte[] data, UUID itemID, UUID taskID, bool mono, bool running, ScriptUpdatedCallback callback, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                RequestUpdateScriptTaskAsync(data, itemID, taskID, mono, running, callback, cancellationToken).GetAwaiter().GetResult();
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn($"RequestUpdateScriptTask failed: {ex.Message}", ex, Client);
-            }
-        }
-
-        /// <summary>
-        /// Retrieve a listing of the items contained in a task (Primitive)
-        /// </summary>
-        /// <param name="objectID">The tasks <see cref="UUID"/></param>
-        /// <param name="objectLocalID">The tasks simulator local ID</param>
-        /// <param name="timeout">time to wait for reply from simulator</param>
-        /// <returns>A list containing the inventory items inside the task or null
-        /// if a timeout occurs</returns>
-        /// <remarks>This request blocks until the response from the simulator arrives 
-        /// before timeout is exceeded</remarks>
-        [Obsolete("Use GetTaskInventoryAsync instead (async-first). This synchronous wrapper will block the calling thread.")]
-        public List<InventoryBase> GetTaskInventory(UUID objectID, uint objectLocalID, TimeSpan timeout)
-        {
-            try
-            {
-                using (var cts = new CancellationTokenSource())
-                {
-                    if (timeout != TimeSpan.Zero)
-                        cts.CancelAfter(timeout);
-
-                    var task = GetTaskInventoryAsync(objectID, objectLocalID, cancellationToken: cts.Token);
-                    return task.GetAwaiter().GetResult();
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                return new List<InventoryBase>();
-            }
-            catch (Exception)
-            {
-                return new List<InventoryBase>();
-            }
-        }
-
-        /// <summary>
-        /// Request the contents of a tasks (primitives) inventory from the 
+        /// Request the contents of a tasks (primitives) inventory from the
         /// current simulator
         /// </summary>
         /// <param name="objectLocalID">The LocalID of the object</param>

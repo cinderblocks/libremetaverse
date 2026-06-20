@@ -27,9 +27,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public partial class Primitive : IEquatable<Primitive>
     {
@@ -387,7 +387,7 @@ namespace OpenMetaverse
 
                     // Alpha in color is actually intensity
                     Intensity = Color.A;
-                    Color.A = 1f;
+                    Color = new Color4(Color.R, Color.G, Color.B, 1f);
                 }
                 else
                 {
@@ -408,8 +408,7 @@ namespace OpenMetaverse
                 byte[] data = new byte[16];
 
                 // Alpha channel in color is intensity
-                Color4 tmpColor = Color;
-                tmpColor.A = Intensity;
+                Color4 tmpColor = new Color4(Color.R, Color.G, Color.B, Utils.Clamp(Intensity, 0f, 1f));
                 tmpColor.GetBytes().CopyTo(data, 0);
                 Utils.FloatToBytes(Radius, data, 4);
                 Utils.FloatToBytes(Cutoff, data, 8);

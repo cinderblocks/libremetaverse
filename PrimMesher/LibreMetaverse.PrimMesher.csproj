@@ -4,7 +4,7 @@
     <AssemblyName>LibreMetaverse.PrimMesher</AssemblyName>
     <PackageId>LibreMetaverse.PrimMesher</PackageId>
     <OutputType>Library</OutputType>
-    <TargetFrameworks>netstandard2.0;net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;net481;net8.0;net9.0;net10.0</TargetFrameworks>
     <Nullable>disable</Nullable>
     <Description>Prim meshing library for LibreMetaverse that generates 3D geometry from Second Life primitive object parameters, supporting box, cylinder, torus, sphere, ring, tube, and sculpt prim types.</Description>
     <Authors>Dhalia Trimble, Sjofn LLC, OpenMetaverse Developers</Authors>
@@ -24,7 +24,7 @@
   <ItemGroup>
     <PackageReference Include="SkiaSharp" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
     <PackageReference Include="System.Buffers" />
     <PackageReference Include="System.Memory" />
   </ItemGroup>

@@ -31,7 +31,7 @@ using System.Linq;
 using System.Xml;
 using System.Xml.Serialization;
 
-namespace OpenMetaverse.Rendering
+namespace LibreMetaverse.Rendering
 {
     /// <summary>
     /// Indicates whether a skeleton joint is part of the original base avatar skeleton

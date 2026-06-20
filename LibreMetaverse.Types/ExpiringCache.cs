@@ -29,7 +29,7 @@ using System.Threading;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     #region TimedCacheKey Class
 

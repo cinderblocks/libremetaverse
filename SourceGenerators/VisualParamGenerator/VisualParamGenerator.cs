@@ -59,7 +59,7 @@ namespace VisualParamGenerator
 using System;
 using System.Collections.Generic;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// Operation to apply when applying color to texture

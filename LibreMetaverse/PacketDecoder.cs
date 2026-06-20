@@ -33,7 +33,7 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 
-namespace OpenMetaverse.Packets
+namespace LibreMetaverse.Packets
 {
     public static class PacketDecoder
     {
@@ -677,11 +677,11 @@ namespace OpenMetaverse.Packets
                 Vector3 angvel = Vector3.Zero;
 
                 col.FromBytes(data, 0);
-                offset.FromBytes(data, 16);
-                vel.FromBytes(data, 28);
-                acc.FromBytes(data, 40);
-                q.FromBytes(data, 52, true);
-                angvel.FromBytes(data, 64);
+                offset = new Vector3(data, 16);
+                vel = new Vector3(data, 28);
+                acc = new Vector3(data, 40);
+                q = new Quaternion(data, 52, true);
+                angvel = new Vector3(data, 64);
 
                 StringBuilder result = new StringBuilder();
                 result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,
@@ -718,11 +718,11 @@ namespace OpenMetaverse.Packets
                 Quaternion q = Quaternion.Identity;
                 Vector3 angvel = Vector3.Zero;
 
-                offset.FromBytes(data, 0);
-                vel.FromBytes(data, 12);
-                acc.FromBytes(data, 24);
-                q.FromBytes(data, 36, true);
-                angvel.FromBytes(data, 48);
+                offset = new Vector3(data, 0);
+                vel = new Vector3(data, 12);
+                acc = new Vector3(data, 24);
+                q = new Quaternion(data, 36, true);
+                angvel = new Vector3(data, 48);
 
                 StringBuilder result = new StringBuilder();
                 result.AppendFormat("{0,30}: {1,-40} [{2}]" + Environment.NewLine,

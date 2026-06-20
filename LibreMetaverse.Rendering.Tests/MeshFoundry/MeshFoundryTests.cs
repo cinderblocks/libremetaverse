@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using NUnit.Framework;
-using OpenMetaverse;
-using OpenMetaverse.Rendering;
+using LibreMetaverse;
+using LibreMetaverse.Rendering;
 
 namespace LibreMetaverse.Rendering.Tests.MeshFoundry
 {
@@ -128,7 +128,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void GenerateSimpleMesh_Box_ReturnsNonNull()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateSimpleMesh(MakeBoxPrim(), DetailLevel.High);
             Assert.That(mesh, Is.Not.Null);
         }
@@ -136,7 +136,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void GenerateSimpleMesh_Box_HasVerticesAndIndices()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateSimpleMesh(MakeBoxPrim(), DetailLevel.High);
             Assert.That(mesh, Is.Not.Null);
             Assert.That(mesh.Vertices.Count, Is.GreaterThan(0));
@@ -146,7 +146,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void GenerateSimpleMesh_Box_AllIndicesInRange()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateSimpleMesh(MakeBoxPrim(), DetailLevel.High);
             Assert.That(mesh, Is.Not.Null);
             var vertCount = mesh.Vertices.Count;
@@ -157,7 +157,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void GenerateSimpleMesh_Box_IndicesAreMultipleOfThree()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateSimpleMesh(MakeBoxPrim(), DetailLevel.High);
             Assert.That(mesh, Is.Not.Null);
             Assert.That(mesh.Indices.Count % 3, Is.EqualTo(0), "Index count must be a multiple of 3 for triangles");
@@ -166,7 +166,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void GenerateSimpleMesh_Cylinder_HasGeometry()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateSimpleMesh(MakeCylinderPrim(), DetailLevel.High);
             Assert.That(mesh, Is.Not.Null);
             Assert.That(mesh.Vertices.Count, Is.GreaterThan(0));
@@ -175,7 +175,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void GenerateSimpleMesh_Torus_HasGeometry()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateSimpleMesh(MakeTorusPrim(), DetailLevel.High);
             Assert.That(mesh, Is.Not.Null);
             Assert.That(mesh.Vertices.Count, Is.GreaterThan(0));
@@ -184,7 +184,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void GenerateSimpleMesh_VertexPositions_AreFinite()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateSimpleMesh(MakeBoxPrim(), DetailLevel.High);
             Assert.That(mesh, Is.Not.Null);
             foreach (var v in mesh.Vertices)
@@ -199,7 +199,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void GenerateFacetedMesh_Box_ReturnsNonNull()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateFacetedMesh(MakeBoxPrim(), DetailLevel.High);
             Assert.That(mesh, Is.Not.Null);
         }
@@ -210,7 +210,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void GenerateFacetedMesh_Box_Has6Faces()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateFacetedMesh(MakeBoxPrim(), DetailLevel.High);
             Assert.That(mesh, Is.Not.Null);
             Assert.That(mesh.Faces.Count, Is.EqualTo(6),
@@ -220,7 +220,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void GenerateFacetedMesh_Prism_Has5Faces()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateFacetedMesh(MakePrismPrim(), DetailLevel.High);
             Assert.That(mesh, Is.Not.Null);
             Assert.That(mesh.Faces.Count, Is.EqualTo(5),
@@ -230,7 +230,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void GenerateFacetedMesh_Cylinder_HasAtLeast2Faces()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateFacetedMesh(MakeCylinderPrim(), DetailLevel.High);
             Assert.That(mesh, Is.Not.Null);
             // SL expects 3 (top, bottom, side); current implementation produces 2 (missing bottom cap ViewerFace)
@@ -244,7 +244,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void GenerateFacetedMesh_Torus_Has1Face()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateFacetedMesh(MakeTorusPrim(), DetailLevel.High);
             Assert.That(mesh, Is.Not.Null);
             Assert.That(mesh.Faces.Count, Is.EqualTo(1),
@@ -259,7 +259,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void GenerateFacetedMesh_Sphere_HasAtLeast1Face()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateFacetedMesh(MakeSpherePrim(), DetailLevel.High);
             Assert.That(mesh, Is.Not.Null);
             Assert.That(mesh.Faces.Count, Is.GreaterThanOrEqualTo(1),
@@ -269,7 +269,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void GenerateFacetedMesh_Box_AllFaces_HaveVerticesAndIndices()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateFacetedMesh(MakeBoxPrim(), DetailLevel.High);
             Assert.That(mesh, Is.Not.Null);
             foreach (var face in mesh.Faces)
@@ -282,7 +282,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void GenerateFacetedMesh_Box_AllFaces_IndicesReferenceValidVertices()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateFacetedMesh(MakeBoxPrim(), DetailLevel.High);
             Assert.That(mesh, Is.Not.Null);
             foreach (var face in mesh.Faces)
@@ -297,7 +297,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void GenerateFacetedMesh_AllFaces_IndicesAreMultipleOfThree()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateFacetedMesh(MakeBoxPrim(), DetailLevel.High);
             Assert.That(mesh, Is.Not.Null);
             foreach (var face in mesh.Faces)
@@ -307,7 +307,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void GenerateFacetedMesh_Box_Normals_AreApproximatelyNormalized()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateFacetedMesh(MakeBoxPrim(), DetailLevel.High);
             Assert.That(mesh, Is.Not.Null);
             foreach (var face in mesh.Faces)
@@ -325,7 +325,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void GenerateFacetedMesh_Box_VertexPositions_AreFinite()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateFacetedMesh(MakeBoxPrim(), DetailLevel.High);
             Assert.That(mesh, Is.Not.Null);
             foreach (var face in mesh.Faces)
@@ -343,7 +343,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [TestCase(DetailLevel.Highest)]
         public void GenerateFacetedMesh_Box_AllLods_ReturnNonNull(DetailLevel lod)
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateFacetedMesh(MakeBoxPrim(), lod);
             Assert.That(mesh, Is.Not.Null);
         }
@@ -353,7 +353,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void TransformTexCoords_IdentityTransform_PreservesUVs()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
 
             var vertices = new List<Vertex>
             {
@@ -388,7 +388,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void TransformTexCoords_Repeat2x_DoublesUVOffset()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
 
             // A vertex with UV (0.5, 0.5) — distance from 0.5 in each axis is 0.
             // With rotation=0 and offset=0, the result should be 0.5 regardless of repeat.
@@ -425,7 +425,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void TransformTexCoords_EmptyList_DoesNotThrow()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var vertices = new List<Vertex>();
             var teFace = new Primitive.TextureEntryFace(null)
             {
@@ -439,7 +439,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void TerrainMesh_FlatHeightmap_HasGeometry()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var zMap = new float[16, 16];
             for (var y = 0; y < 16; y++)
                 for (var x = 0; x < 16; x++)
@@ -454,7 +454,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void TerrainMesh_AllIndicesInRange()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var zMap = new float[16, 16];
             for (var y = 0; y < 16; y++)
                 for (var x = 0; x < 16; x++)
@@ -470,7 +470,7 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
         [Test]
         public void TerrainMesh_IndicesAreMultipleOfThree()
         {
-            var renderer = new OpenMetaverse.Rendering.MeshFoundry();
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var zMap = new float[8, 8];
             var face = renderer.TerrainMesh(zMap, 0f, 128f, 0f, 128f);
             Assert.That(face.Indices.Count % 3, Is.EqualTo(0));

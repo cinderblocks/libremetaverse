@@ -27,9 +27,9 @@
 
 using System;
 using System.Threading;
-using OpenMetaverse.Packets;
+using LibreMetaverse.Packets;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     public partial class AgentManager
     {
@@ -494,8 +494,8 @@ namespace OpenMetaverse
                 Camera.Position = Client.Self.SimPosition;
                 Camera.LookDirection(heading);
                 
-                BodyRotation.Z = (float)Math.Sin(heading / 2.0d);
-                BodyRotation.W = (float)Math.Cos(heading / 2.0d);
+                BodyRotation = new Quaternion(BodyRotation.X, BodyRotation.Y,
+                    (float)Math.Sin(heading / 2.0d), (float)Math.Cos(heading / 2.0d));
                 HeadRotation = BodyRotation;
 
                 SendUpdate(reliable);

@@ -34,6 +34,15 @@ using System.Collections.Concurrent;
 
 namespace LibreMetaverse.PrimMesher
 {
+#if NETFRAMEWORK
+    internal static class MathF
+    {
+        public static float Cos(float x) => (float)Math.Cos(x);
+        public static float Sin(float x) => (float)Math.Sin(x);
+        public static float Sqrt(float x) => (float)Math.Sqrt(x);
+    }
+#endif
+
     public struct Quat
     {
         /// <summary>X value</summary>
@@ -61,13 +70,8 @@ namespace LibreMetaverse.PrimMesher
             axis = axis.Normalize();
 
             angle *= 0.5f;
-#if NETSTANDARD2_0
-            var c = (float)Math.Cos(angle);
-            var s = (float)Math.Sin(angle);
-#else
             var c = MathF.Cos(angle);
             var s = MathF.Sin(angle);
-#endif
 
             X = axis.X * s;
             Y = axis.Y * s;
@@ -79,11 +83,7 @@ namespace LibreMetaverse.PrimMesher
 
         public float Length()
         {
-#if NETSTANDARD2_0
-            return (float)Math.Sqrt(X * X + Y * Y + Z * Z + W * W);
-#else
             return MathF.Sqrt(X * X + Y * Y + Z * Z + W * W);
-#endif
         }
 
         public Quat Normalize()
@@ -141,11 +141,7 @@ namespace LibreMetaverse.PrimMesher
 
         public float Length()
         {
-#if NETSTANDARD2_0
-            return (float)Math.Sqrt(X * X + Y * Y + Z * Z);
-#else
             return MathF.Sqrt(X * X + Y * Y + Z * Z);
-#endif
         }
 
         public Coord Invert()
@@ -637,13 +633,8 @@ namespace LibreMetaverse.PrimMesher
                 {
                     Angle newAngle;
                     newAngle.angle = (float)angle;
-#if NETSTANDARD2_0
-                    newAngle.X = (float)Math.Cos(angle);
-                    newAngle.Y = (float)Math.Sin(angle);
-#else
                     newAngle.X = MathF.Cos((float)angle);
                     newAngle.Y = MathF.Sin((float)angle);
-#endif
                     angles.Add(newAngle);
                     step += 1;
                     angle = stepSize * step;
@@ -653,11 +644,7 @@ namespace LibreMetaverse.PrimMesher
                 {
                     Angle newAngle;
                     intersection(angles[0].X, angles[0].Y, angles[1].X, angles[1].Y, 0.0f, 0.0f,
-#if NETSTANDARD2_0
-                        (float)Math.Cos(startAngle), (float)Math.Sin(startAngle));
-#else
                         MathF.Cos(startAngle), MathF.Sin(startAngle));
-#endif
                     newAngle.angle = startAngle;
                     newAngle.X = iX;
                     newAngle.Y = iY;
@@ -669,11 +656,7 @@ namespace LibreMetaverse.PrimMesher
                 {
                     Angle newAngle;
                     intersection(angles[index - 1].X, angles[index - 1].Y, angles[index].X, angles[index].Y, 0.0f, 0.0f,
-#if NETSTANDARD2_0
-                        (float)Math.Cos(stopAngle), (float)Math.Sin(stopAngle));
-#else
                         MathF.Cos(stopAngle), MathF.Sin(stopAngle));
-#endif
                     newAngle.angle = stopAngle;
                     newAngle.X = iX;
                     newAngle.Y = iY;
@@ -1515,19 +1498,11 @@ namespace LibreMetaverse.PrimMesher
                     var twist = twistBegin + twistTotal * percentOfPath;
 
                     var xOffset = 0.5f * (skewStart + totalSkew * percentOfAngles);
-#if NETSTANDARD2_0
-                    xOffset += (float)Math.Sin(angle) * xOffsetTopShearXFactor;
-
-                    var yOffset = yShearCompensation * (float)Math.Cos(angle) * (0.5f - yPathScale) * radiusScale;
-
-                    var zOffset = (float)Math.Sin(angle + topShearY) * (0.5f - yPathScale) * radiusScale;
-#else
                     xOffset += MathF.Sin((float)angle) * xOffsetTopShearXFactor;
 
                     var yOffset = yShearCompensation * MathF.Cos((float)angle) * (0.5f - yPathScale) * radiusScale;
 
                     var zOffset = MathF.Sin((float)(angle + topShearY)) * (0.5f - yPathScale) * radiusScale;
-#endif
 
                     newNode.position = new Coord(xOffset, yOffset, zOffset);
 
@@ -2120,24 +2095,6 @@ namespace LibreMetaverse.PrimMesher
                 }
                 finally { pool.Return(tmp); }
             }
-        }
-
-        /// <summary>
-        ///     Extrudes a profile along a straight line path. Used for prim types box, cylinder, and prism.
-        /// </summary>
-        [Obsolete("Use Extrude(PathType.Linear")]
-        public void ExtrudeLinear()
-        {
-            Extrude(PathType.Linear);
-        }
-
-        /// <summary>
-        ///     Extrude a profile into a circular path prim mesh. Used for prim types torus, tube, and ring.
-        /// </summary>
-        [Obsolete("Use Extrude(PathType.Circular")]
-        public void ExtrudeCircular()
-        {
-            Extrude(PathType.Circular);
         }
 
         private static Coord SurfaceNormal(Coord c1, Coord c2, Coord c3)

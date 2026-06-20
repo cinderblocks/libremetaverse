@@ -27,10 +27,10 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenMetaverse.Messages.Linden;
-using OpenMetaverse.StructuredData;
+using LibreMetaverse.Messages.Linden;
+using LibreMetaverse.StructuredData;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     /// <summary>
     /// EEP sky altitude track indices (from llenvironment.h ETrackType).
@@ -174,35 +174,31 @@ namespace OpenMetaverse
                 if (http == null) { return null; }
 
                 ExtEnvironmentMessage? result = null;
-                await http.GetRequestAsync(cap, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(cap, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"ExtEnvironment GET region non-success: {response.StatusCode}", Client);
+                }
+                else if (data != null)
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"ExtEnvironment GET region failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"ExtEnvironment GET region non-success: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null) { return; }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             var msg = new ExtEnvironmentMessage();
                             msg.Deserialize(map);
                             result = msg;
                             RegionEnvironment = msg;
                             OnRegionEnvironmentUpdated(new RegionEnvironmentEventArgs(msg));
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse ExtEnvironment region response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse ExtEnvironment region response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -240,34 +236,30 @@ namespace OpenMetaverse
                 var requestUri = new Uri($"{cap}?parcel_id={parcelId}");
 
                 ExtEnvironmentMessage? result = null;
-                await http.GetRequestAsync(requestUri, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"ExtEnvironment GET parcel {parcelId} non-success: {response.StatusCode}", Client);
+                }
+                else if (data != null)
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"ExtEnvironment GET parcel {parcelId} failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"ExtEnvironment GET parcel {parcelId} non-success: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null) { return; }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             var msg = new ExtEnvironmentMessage();
                             msg.Deserialize(map);
                             result = msg;
                             OnParcelEnvironmentUpdated(new ParcelEnvironmentEventArgs(parcelId, msg));
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error($"Failed to parse ExtEnvironment parcel {parcelId} response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error($"Failed to parse ExtEnvironment parcel {parcelId} response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -354,33 +346,29 @@ namespace OpenMetaverse
                     body["environment"] = environment.Serialize();
 
                 ExtEnvironmentMessage? result = null;
-                await http.PostRequestAsync(cap, OSDFormat.Xml, body, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.PostAsync(cap, OSDFormat.Xml, body, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"ExtEnvironment POST parcel_id={parcelId} non-success: {response.StatusCode}", Client);
+                }
+                else if (data != null)
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"ExtEnvironment POST parcel_id={parcelId} failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"ExtEnvironment POST parcel_id={parcelId} non-success: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null) { return; }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             var msg = new ExtEnvironmentMessage();
                             msg.Deserialize(map);
                             result = msg;
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse ExtEnvironment POST response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse ExtEnvironment POST response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -418,35 +406,31 @@ namespace OpenMetaverse
                 if (http == null) { return null; }
 
                 LegacyEnvironmentMessage? result = null;
-                await http.GetRequestAsync(cap, cancellationToken,
-                    (response, data, error) =>
+                var (response, data) = await http.GetAsync(cap, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"EnvironmentSettings GET non-success: {response.StatusCode}", Client);
+                }
+                else if (data != null)
+                {
+                    try
                     {
-                        if (error != null)
+                        OSD osd = OSDParser.Deserialize(data);
+                        if (!(osd is OSDMap map)) { }
+                        else
                         {
-                            Logger.Warn($"EnvironmentSettings GET failed: {error.Message}", Client);
-                            return;
-                        }
-                        if (response == null || !response.IsSuccessStatusCode)
-                        {
-                            Logger.Warn($"EnvironmentSettings GET non-success: {response?.StatusCode}", Client);
-                            return;
-                        }
-                        if (data == null) { return; }
-                        try
-                        {
-                            OSD osd = OSDParser.Deserialize(data);
-                            if (!(osd is OSDMap map)) { return; }
                             var msg = new LegacyEnvironmentMessage();
                             msg.Deserialize(map);
                             result = msg;
                             LegacyEnvironment = msg;
                             OnLegacyEnvironmentUpdated(new LegacyEnvironmentEventArgs(msg));
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Failed to parse EnvironmentSettings response", ex, Client);
-                        }
-                    }).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse EnvironmentSettings response", ex, Client);
+                    }
+                }
                 return result;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
@@ -481,21 +465,12 @@ namespace OpenMetaverse
                 if (http == null) { return false; }
 
                 OSDMap body = settings is OSDMap settingsMap ? settingsMap : new OSDMap();
-                bool success = false;
-                await http.PostRequestAsync(cap, OSDFormat.Xml, body, cancellationToken,
-                    (response, data, error) =>
-                    {
-                        if (error != null)
-                        {
-                            Logger.Warn($"EnvironmentSettings POST failed: {error.Message}", Client);
-                            return;
-                        }
-                        success = response?.IsSuccessStatusCode ?? false;
-                        if (!success)
-                        {
-                            Logger.Warn($"EnvironmentSettings POST non-success: {response?.StatusCode}", Client);
-                        }
-                    }).ConfigureAwait(false);
+                var (response, data) = await http.PostAsync(cap, OSDFormat.Xml, body, cancellationToken).ConfigureAwait(false);
+                bool success = response.IsSuccessStatusCode;
+                if (!success)
+                {
+                    Logger.Warn($"EnvironmentSettings POST non-success: {response.StatusCode}", Client);
+                }
                 return success;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))

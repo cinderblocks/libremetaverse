@@ -28,7 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace OpenMetaverse.Assets
+namespace LibreMetaverse.Assets
 {
     /// <summary>
     /// Represents a Wearable Asset, Clothing, Hair, Skin, Etc

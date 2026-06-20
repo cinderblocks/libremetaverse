@@ -29,15 +29,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using OpenMetaverse.StructuredData;
-using OpenMetaverse.Packets;
+using LibreMetaverse.StructuredData;
+using LibreMetaverse.Packets;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using LibreMetaverse;
 
-namespace OpenMetaverse
+namespace LibreMetaverse
 {
     #region Enums
 
@@ -432,8 +432,18 @@ namespace OpenMetaverse
                 return;
             
             OSDMap payload = new OSDMap {["Flags"] = OSD.FromInteger((int) layer)};
-            Task req = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, payload, 
-                CancellationToken.None, MapLayerResponseHandler);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload, CancellationToken.None);
+                    MapLayerResponseHandler(response, data, null);
+                }
+                catch (Exception ex)
+                {
+                    MapLayerResponseHandler(null, null, ex);
+                }
+            });
         }
 
         /// <summary>
