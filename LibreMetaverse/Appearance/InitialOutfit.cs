@@ -200,35 +200,21 @@ namespace LibreMetaverse.Appearance
             return newFolderID;
         }
 
-        private Task<bool> CopyItemAsync(UUID itemId, UUID destFolderId, string name, UUID ownerId, TimeSpan timeout, CancellationToken cancellationToken)
+        private async Task<bool> CopyItemAsync(UUID itemId, UUID destFolderId, string name, UUID ownerId, TimeSpan timeout, CancellationToken cancellationToken)
         {
-            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            void Callback(InventoryBase? newItem)
-            {
-                try { tcs.TrySetResult(newItem != null); } catch { }
-            }
-
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(timeout);
             try
             {
-                client.Inventory.RequestCopyItem(itemId, destFolderId, name, ownerId, Callback);
+                var copied = await client.Inventory.CopyItemAsync(itemId, destFolderId, name, ownerId, cts.Token)
+                    .ConfigureAwait(false);
+                return copied != null;
             }
-            catch (Exception ex)
+            catch (OperationCanceledException)
             {
-                tcs.TrySetException(ex);
-            }
-
-            var delayTask = Task.Delay(timeout, cancellationToken);
-            return Task.Run(async () =>
-            {
-                var completed = await Task.WhenAny(tcs.Task, delayTask).ConfigureAwait(false);
-                if (completed == tcs.Task)
-                {
-                    return await tcs.Task.ConfigureAwait(false);
-                }
                 cancellationToken.ThrowIfCancellationRequested();
                 return false;
-            }, cancellationToken);
+            }
         }
 
         public Task SetInitialOutfitAsync(string outfit, CancellationToken cancellationToken = default, IProgress<InitialOutfitProgress>? progress = null)

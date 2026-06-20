@@ -346,25 +346,6 @@ namespace LibreMetaverse
             }
         }
 
-        /// <summary>
-        /// Give an inventory Folder with contents to another avatar
-        /// </summary>
-        /// <param name="folderID">The <see cref="UUID"/> of the Folder to give</param>
-        /// <param name="folderName">The name of the folder</param>
-        /// <param name="recipient">The <see cref="UUID"/> of the recipient</param>
-        /// <param name="doEffect">true to generate a beam-effect during transfer</param>
-        /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
-        public void GiveFolder(UUID folderID, string folderName, UUID recipient, bool doEffect, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                GiveFolderAsync(folderID, folderName, recipient, doEffect, cancellationToken).GetAwaiter().GetResult();
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex.Message, ex, Client);
-            }
-        }
     }
 }
 

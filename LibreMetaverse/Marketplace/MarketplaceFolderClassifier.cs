@@ -51,7 +51,7 @@ namespace LibreMetaverse.Marketplace
             if (!inventory.TryGetValue<InventoryFolder>(folderId, out var folder))
                 return MarketplaceFolderRole.None;
 
-            switch (folder.PreferredType)
+            switch (folder!.PreferredType)
             {
                 case FolderType.MarketplaceListings:
                     return MarketplaceFolderRole.ListingsRoot;
@@ -66,14 +66,14 @@ namespace LibreMetaverse.Marketplace
 
             // Direct child of the listings root → listing folder
             if (inventory.TryGetValue<InventoryFolder>(folder.ParentUUID, out var parent)
-                && parent.PreferredType == FolderType.MarketplaceListings)
+                && parent!.PreferredType == FolderType.MarketplaceListings)
             {
                 return MarketplaceFolderRole.Listing;
             }
 
             // Child of a version folder → content/stock folder
             if (inventory.TryGetValue<InventoryFolder>(folder.ParentUUID, out var parentFolder)
-                && parentFolder.PreferredType == FolderType.MarketplaceVersion)
+                && parentFolder!.PreferredType == FolderType.MarketplaceVersion)
             {
                 return MarketplaceFolderRole.Content;
             }
@@ -125,7 +125,7 @@ namespace LibreMetaverse.Marketplace
                 if (role == MarketplaceFolderRole.ListingsRoot || role == MarketplaceFolderRole.None)
                     break;
 
-                current = folder.ParentUUID;
+                current = folder!.ParentUUID;
                 if (current == UUID.Zero) break;
             }
             return UUID.Zero;

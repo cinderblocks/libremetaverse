@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse;
 using LibreMetaverse.Assets;
@@ -79,28 +80,17 @@ namespace TestClient.Commands.Inventory
 
             #endregion Notecard asset data
 
-            var createTcs = new TaskCompletionSource<InventoryItem?>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            Client.Inventory.RequestCreateItem(Client.Inventory.FindFolderForType(AssetType.Notecard),
-                filename, filename + " created by LibreMetaverse TestClient " + DateTime.Now, AssetType.Notecard,
-                UUID.Random(), InventoryType.Notecard, PermissionMask.All,
-                (createSuccess, item) =>
-                {
-                    if (createSuccess)
-                        createTcs.TrySetResult(item);
-                    else
-                        createTcs.TrySetException(new Exception("Item creation failed"));
-                }
-            );
-
             InventoryItem? createdItem;
             try
             {
-                createdItem = await Task.WhenAny(createTcs.Task, Task.Delay(NOTECARD_CREATE_TIMEOUT)).ConfigureAwait(false) == createTcs.Task
-                    ? await createTcs.Task.ConfigureAwait(false)
-                    : null;
+                using var createCts = new CancellationTokenSource(NOTECARD_CREATE_TIMEOUT);
+                createdItem = await Client.Inventory.CreateItemAsync(
+                    Client.Inventory.FindFolderForType(AssetType.Notecard),
+                    filename, filename + " created by LibreMetaverse TestClient " + DateTime.Now,
+                    AssetType.Notecard, UUID.Random(), InventoryType.Notecard, PermissionMask.All,
+                    createCts.Token).ConfigureAwait(false);
             }
-            catch
+            catch (OperationCanceledException)
             {
                 createdItem = null;
             }
@@ -112,15 +102,15 @@ namespace TestClient.Commands.Inventory
 
             // Upload the notecard asset
             var uploadTcs = new TaskCompletionSource<(bool success, UUID assetID)>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var uploadCts = new CancellationTokenSource(NOTECARD_CREATE_TIMEOUT);
 
-            Client.Inventory.RequestUploadNotecardAsset(notecard.AssetData, createdItem.UUID,
+            await Client.Inventory.RequestUploadNotecardAssetAsync(notecard.AssetData, createdItem.UUID,
                 (uploadSuccess, status, itemID, assetID) =>
                 {
                     uploadTcs.TrySetResult((uploadSuccess, assetID));
-                });
+                }, uploadCts.Token).ConfigureAwait(false);
 
-            var uploadCompleted = await Task.WhenAny(uploadTcs.Task, Task.Delay(NOTECARD_CREATE_TIMEOUT)).ConfigureAwait(false);
-            if (uploadCompleted != uploadTcs.Task)
+            if (!uploadTcs.Task.IsCompleted)
                 return "Notecard upload timed out";
 
             var uploadResult = await uploadTcs.Task.ConfigureAwait(false);

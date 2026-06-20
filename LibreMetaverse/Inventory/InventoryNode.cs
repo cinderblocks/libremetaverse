@@ -26,7 +26,6 @@
  */
 
 using System;
-using System.Collections.Generic;
 using MessagePack;
 
 namespace LibreMetaverse
@@ -38,10 +37,6 @@ namespace LibreMetaverse
 
         [Key("Data")]
         public InventoryBase? Data { get; set; }
-
-        /// <summary>User data</summary>
-        [IgnoreMember]
-        public object? Tag { get; set; }
 
         [IgnoreMember]
         public InventoryNode? Parent { get; set; }
@@ -60,59 +55,31 @@ namespace LibreMetaverse
         [IgnoreMember]
         public bool NeedsUpdate { get; set; } = true;
 
+        /// <summary>
+        /// For items: the item's creation date.
+        /// For folders: the newest creation date among direct children (not recursive).
+        /// </summary>
         [IgnoreMember]
         public DateTime ModifyTime
         {
             get
             {
                 if (Data is InventoryItem item)
-                {
                     return item.CreationDate;
-                }
 
                 if (Data is InventoryFolder)
                 {
-                    var visitedFolders = new HashSet<UUID>();
-                    return GetLatestModifyTimeRecursive(this, visitedFolders, 0);
+                    var latest = default(DateTime);
+                    foreach (var child in Nodes.Values)
+                    {
+                        if (child.Data is InventoryItem childItem && childItem.CreationDate > latest)
+                            latest = childItem.CreationDate;
+                    }
+                    return latest;
                 }
 
                 return default;
             }
-        }
-
-        private static DateTime GetLatestModifyTimeRecursive(InventoryNode node, HashSet<UUID> visitedFolders, int depth)
-        {
-            const int maxDepth = 512;
-
-            var latestModifyTime = default(DateTime);
-
-            if (node.Data is InventoryItem item)
-            {
-                return item.CreationDate;
-            }
-            else if(node.Data is InventoryFolder)
-            {
-                if(!visitedFolders.Add(node.Data.UUID) || depth > maxDepth)
-                {
-                    return latestModifyTime;
-                }
-
-                foreach (var childNode in node.Nodes.Values)
-                {
-                    var childModifyTime = GetLatestModifyTimeRecursive(childNode, visitedFolders, depth + 1);
-                    if (childModifyTime > latestModifyTime)
-                    {
-                        latestModifyTime = childModifyTime;
-                    }
-                }
-            }
-
-            return latestModifyTime;
-        }
-
-        public void Sort()
-        {
-            Nodes.Sort();
         }
 
         public InventoryNode()

@@ -443,7 +443,7 @@ namespace LibreMetaverse.Appearance
             }
 
             List<InventoryBase> cofContents;
-            if (cofNode.NeedsUpdate)
+            if (cofNode!.NeedsUpdate)
             {
                 cofContents = await client.Inventory.RequestFolderContents(
                     COF.UUID, COF.OwnerID, true, true, InventorySortOrder.ByName,
@@ -1397,7 +1397,7 @@ namespace LibreMetaverse.Appearance
                 return fetchedParent;
             }
 
-            return parent.Data;
+            return parent!.Data;
         }
 
         /// <summary>

@@ -28,6 +28,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -460,12 +461,9 @@ namespace LibreMetaverse
             return node;
         }
 
-        public bool TryGetNodeFor(UUID uuid, out InventoryNode node)
+        public bool TryGetNodeFor(UUID uuid, [NotNullWhen(true)] out InventoryNode? node)
         {
-            // TryGetValue can assign a possibly-null reference; null-forgive when assigning to out parameter
-            var result = Items.TryGetValue(uuid, out var tmp);
-            node = tmp!;
-            return result;
+            return Items.TryGetValue(uuid, out node);
         }
 
         /// <summary>
@@ -536,17 +534,16 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="uuid">The unique identifier of the item to retrieve.</param>
         /// <param name="item">When this method returns <c>true</c>, contains the <see cref="InventoryBase"/> item if found; otherwise, <c>null</c>.</param>
-        /// <returns><c>true</c> if an item with the specified UUID was found; otherwise, <c>false</c>.</returns>
+        /// <returns><c>true</c> if a node with the specified UUID exists; otherwise, <c>false</c>.</returns>
         public bool TryGetValue(UUID uuid, out InventoryBase? item)
         {
-            item = null;
-
             if (TryGetNodeFor(uuid, out var node))
             {
-                item = node.Data;
+                item = node!.Data;
+                return true;
             }
-
-            return item != null;
+            item = null;
+            return false;
         }
 
         /// <summary>
@@ -554,32 +551,30 @@ namespace LibreMetaverse
         /// </summary>
         public InventoryBase? GetValueOrDefault(UUID uuid)
         {
-            return TryGetNodeFor(uuid, out var node) ? node.Data : null;
+            return TryGetNodeFor(uuid, out var node) ? node!.Data : null;
         }
 
         /// <summary>
         /// Attempts to retrieve an item of type <typeparamref name="T"/> associated with the specified UUID.
         /// </summary>
-        public bool TryGetValue<T>(UUID uuid, out T item)
+        public bool TryGetValue<T>(UUID uuid, out T? item) where T : class
         {
-            if (TryGetNodeFor(uuid, out var node) && node.Data is T requestedItem)
+            if (TryGetNodeFor(uuid, out var node) && node!.Data is T requestedItem)
             {
                 item = requestedItem;
                 return true;
             }
 
-            item = default!;
+            item = default;
             return false;
         }
 
         /// <summary>
-        /// Non-throwing convenience getter that returns the item of type <typeparamref name="T"/> or default if not found or not compatible.
+        /// Non-throwing convenience getter that returns the item of type <typeparamref name="T"/> or null if not found or not compatible.
         /// </summary>
-        public T GetValueOrDefault<T>(UUID uuid)
+        public T? GetValueOrDefault<T>(UUID uuid) where T : class
         {
-            if (TryGetNodeFor(uuid, out var node) && node.Data is T requestedItem)
-                return requestedItem;
-            return default!;
+            return TryGetNodeFor(uuid, out var node) && node!.Data is T requestedItem ? requestedItem : null;
         }
 
         /// <summary>
@@ -883,24 +878,9 @@ namespace LibreMetaverse
                     break;
                 }
 
-                AtomicallyAdjustDescendentCount(folder, delta);
+                folder.AdjustDescendentCount(delta);
                 node = node.Parent;
             }
-        }
-
-        // Atomically adjust a folder's DescendentCount by delta and clamp to >= 0
-        private static void AtomicallyAdjustDescendentCount(InventoryFolder folder, int delta)
-        {
-            if (folder == null || delta == 0) return;
-
-            int initial, newVal;
-            do
-            {
-                initial = folder.DescendentCount;
-                newVal = initial + delta;
-                if (newVal < 0) newVal = 0;
-            }
-            while (Interlocked.CompareExchange(ref folder.DescendentCount, newVal, initial) != initial);
         }
     }
     #region EventArgs classes

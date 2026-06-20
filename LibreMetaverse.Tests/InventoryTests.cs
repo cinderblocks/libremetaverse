@@ -191,7 +191,7 @@ namespace LibreMetaverse.Tests
 
             Assert.That(inventory.TryGetValue<InventoryItem>(item.UUID, out var got), Is.True);
             Assert.That(got, Is.Not.Null);
-            Assert.That(got.UUID, Is.EqualTo(item.UUID));
+            Assert.That(got!.UUID, Is.EqualTo(item.UUID));
         }
 
         [Test]

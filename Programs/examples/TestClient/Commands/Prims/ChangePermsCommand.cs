@@ -152,7 +152,9 @@ namespace TestClient.Commands.Prims
                 if (items == null) continue;
                 foreach (var item in items.Where(i => !(i is InventoryFolder)).Cast<InventoryItem>())
                 {
-                    item.Permissions.NextOwnerMask = Perms;
+                    var perms = item.Permissions;
+                    perms.NextOwnerMask = Perms;
+                    item.Permissions = perms;
 
                     Client.Inventory.UpdateTaskInventory(prim.LocalID, item);
                     ++taskItems;

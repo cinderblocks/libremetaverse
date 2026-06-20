@@ -419,11 +419,7 @@ namespace LibreMetaverse
                 item.Name = newItem.Name;
                 item.OwnerID = newItem.OwnerID;
                 item.ParentUUID = newItem.FolderID;
-                item.Permissions.BaseMask = newItem.BaseMask;
-                item.Permissions.EveryoneMask = newItem.EveryoneMask;
-                item.Permissions.GroupMask = newItem.GroupMask;
-                item.Permissions.NextOwnerMask = newItem.NextOwnerMask;
-                item.Permissions.OwnerMask = newItem.OwnerMask;
+                item.Permissions = new Permissions((uint)newItem.BaseMask, (uint)newItem.EveryoneMask, (uint)newItem.GroupMask, (uint)newItem.NextOwnerMask, (uint)newItem.OwnerMask);
                 item.SalePrice = newItem.SalePrice;
                 item.SaleType = newItem.SaleType;
 

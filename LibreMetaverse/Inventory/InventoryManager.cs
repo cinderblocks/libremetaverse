@@ -430,7 +430,7 @@ namespace LibreMetaverse
                         fetchedFolder.OwnerID = res["owner_id"];
                         if (_Store != null && _Store.TryGetNodeFor(fetchedFolder.UUID, out var fetchedNode))
                         {
-                            fetchedNode.NeedsUpdate = false;
+                            fetchedNode!.NeedsUpdate = false;
                         }
 
                         // Do we have any descendants
@@ -552,7 +552,7 @@ namespace LibreMetaverse
             foreach (var kv in meta.CategoryVersionUpdates)
             {
                 if (store.TryGetValue<InventoryFolder>(kv.Key, out var folder))
-                    folder.Version = kv.Value;
+                    folder!.Version = kv.Value;
             }
         }
 
@@ -1175,12 +1175,6 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="folder">The <see cref="UUID"/> of the folder</param>
         /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
-        public void RemoveDescendants(UUID folder, CancellationToken cancellationToken = default)
-        {
-            // Preserve synchronous API by delegating to async-first implementation
-            RemoveDescendantsAsync(folder, cancellationToken).GetAwaiter().GetResult();
-        }
-
         public async Task RemoveDescendantsAsync(UUID folder, CancellationToken cancellationToken = default)
         {
             if (Client.AisClient.IsAvailable)
@@ -1210,12 +1204,6 @@ namespace LibreMetaverse
                 Client.Network.SendPacket(purge);
                 RemoveLocalUi(true, folder);
             }
-        }
-
-        public void RemoveItems(UUID[] items, CancellationToken cancellationToken = default)
-        {
-            // Preserve synchronous API by delegating to async-first implementation
-            RemoveItemsAsync(items, cancellationToken).GetAwaiter().GetResult();
         }
 
         public async Task RemoveItemsAsync(IEnumerable<UUID> items, CancellationToken cancellationToken = default)
@@ -1265,11 +1253,6 @@ namespace LibreMetaverse
             }
         }
 
-        public void RemoveItem(UUID item, CancellationToken cancellationToken = default)
-        {
-            RemoveItemAsync(item, cancellationToken).GetAwaiter().GetResult();
-        }
-
         public async Task RemoveItemAsync(UUID item, CancellationToken cancellationToken = default)
         {
             if (Client.AisClient.IsAvailable)
@@ -1303,11 +1286,6 @@ namespace LibreMetaverse
                 Client.Network.SendPacket(rem);
                 RemoveLocalUi(true, item);
             }
-        }
-
-        public void RemoveFolder(UUID folder, CancellationToken cancellationToken = default)
-        {
-            RemoveFolderAsync(folder, cancellationToken).GetAwaiter().GetResult();
         }
 
         public async Task RemoveFolderAsync(UUID folder, CancellationToken cancellationToken = default)
@@ -1359,12 +1337,6 @@ namespace LibreMetaverse
         /// Empty the Lost and Found folder
         /// </summary>
         /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
-        public void EmptyLostAndFound(CancellationToken cancellationToken = default)
-        {
-            // Preserve synchronous API by delegating to async-first implementation
-            EmptyLostAndFoundAsync(cancellationToken).GetAwaiter().GetResult();
-        }
-
         public async Task EmptyLostAndFoundAsync(CancellationToken cancellationToken = default)
         {
             // Try to locate the Lost and Found system folder in local store so we can update UI after successful server-side empty
@@ -1423,11 +1395,6 @@ namespace LibreMetaverse
         /// Empty the Trash folder
         /// </summary>
         /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
-        public void EmptyTrash(CancellationToken cancellationToken = default)
-        {
-            EmptyTrashAsync(cancellationToken).GetAwaiter().GetResult();
-        }
-
         public async Task EmptyTrashAsync(CancellationToken cancellationToken = default)
         {
             // Try to locate the Trash system folder in local store so we can update UI after successful server-side empty
@@ -1538,61 +1505,56 @@ namespace LibreMetaverse
         #region Create
 
         /// <summary>
-        /// Send a create item request
+        /// Creates a new inventory item and returns it when confirmed by the server.
+        /// Uses the UDP protocol path; for capabilities-based uploads use <see cref="CreateItemFromAssetAsync"/>.
         /// </summary>
-        /// <param name="parentFolder"></param>
-        /// <param name="name"></param>
-        /// <param name="description"></param>
-        /// <param name="type"></param>
-        /// <param name="assetTransactionID">Proper use is to upload the inventory's asset first, then provide the Asset's TransactionID here.</param>
-        /// <param name="invType"></param>
-        /// <param name="nextOwnerMask"></param>
-        /// <param name="callback"></param>
-        public void RequestCreateItem(UUID parentFolder, string name, string description, AssetType type, UUID assetTransactionID,
-            InventoryType invType, PermissionMask nextOwnerMask, ItemCreatedCallback callback)
+        public Task<InventoryItem?> CreateItemAsync(UUID parentFolder, string name, string description, AssetType type,
+            UUID assetTransactionID, InventoryType invType, PermissionMask nextOwnerMask,
+            CancellationToken cancellationToken = default)
         {
-            // Even though WearableType 0 is Shape, in this context it is treated as NOT_WEARABLE
-            RequestCreateItem(parentFolder, name, description, type, assetTransactionID, invType, (WearableType)0, nextOwnerMask,
-                callback);
+            return CreateItemAsync(parentFolder, name, description, type, assetTransactionID, invType,
+                (WearableType)0, nextOwnerMask, cancellationToken);
         }
 
         /// <summary>
-        /// Send a create item request
+        /// Creates a new inventory item and returns it when confirmed by the server.
+        /// Uses the UDP protocol path; for capabilities-based uploads use <see cref="CreateItemFromAssetAsync"/>.
         /// </summary>
-        /// <param name="parentFolder"></param>
-        /// <param name="name"></param>
-        /// <param name="description"></param>
-        /// <param name="type"></param>
-        /// <param name="assetTransactionID">Proper use is to upload the inventory's asset first, then provide the Asset's TransactionID here.</param>
-        /// <param name="invType"></param>
-        /// <param name="wearableType"></param>
-        /// <param name="nextOwnerMask"></param>
-        /// <param name="callback"></param>
-        public void RequestCreateItem(UUID parentFolder, string name, string description, AssetType type, UUID assetTransactionID,
-            InventoryType invType, WearableType wearableType, PermissionMask nextOwnerMask, ItemCreatedCallback callback)
+        public Task<InventoryItem?> CreateItemAsync(UUID parentFolder, string name, string description, AssetType type,
+            UUID assetTransactionID, InventoryType invType, WearableType wearableType, PermissionMask nextOwnerMask,
+            CancellationToken cancellationToken = default)
         {
-            var create = new CreateInventoryItemPacket
+            var tcs = new TaskCompletionSource<InventoryItem?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            ItemCreatedCallback callback = (success, item) =>
             {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                },
-                InventoryBlock =
-                {
-                    CallbackID = RegisterItemCreatedCallback(callback),
-                    FolderID = parentFolder,
-                    TransactionID = assetTransactionID,
-                    NextOwnerMask = (uint) nextOwnerMask,
-                    Type = (sbyte) type,
-                    InvType = (sbyte) invType,
-                    WearableType = (byte) wearableType,
-                    Name = Utils.StringToBytes(name),
-                    Description = Utils.StringToBytes(description)
-                }
+                if (success) tcs.TrySetResult(item);
+                else tcs.TrySetResult(null);
             };
-
-            Client.Network.SendPacket(create);
+            using (cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken)))
+            {
+                var create = new CreateInventoryItemPacket
+                {
+                    AgentData =
+                    {
+                        AgentID = Client.Self.AgentID,
+                        SessionID = Client.Self.SessionID
+                    },
+                    InventoryBlock =
+                    {
+                        CallbackID = RegisterItemCreatedCallback(callback),
+                        FolderID = parentFolder,
+                        TransactionID = assetTransactionID,
+                        NextOwnerMask = (uint)nextOwnerMask,
+                        Type = (sbyte)type,
+                        InvType = (sbyte)invType,
+                        WearableType = (byte)wearableType,
+                        Name = Utils.StringToBytes(name),
+                        Description = Utils.StringToBytes(description)
+                    }
+                };
+                Client.Network.SendPacket(create);
+                return tcs.Task;
+            }
         }
 
         /// <summary>
@@ -1706,99 +1668,6 @@ namespace LibreMetaverse
             Client.Network.SendPacket(create);
 
             return id;
-        }
-
-        /// <summary>
-        /// Create an inventory item and upload asset data
-        /// </summary>
-        /// <param name="data">Asset data</param>
-        /// <param name="name">Inventory item name</param>
-        /// <param name="description">Inventory item description</param>
-        /// <param name="assetType">Asset type</param>
-        /// <param name="invType">Inventory type</param>
-        /// <param name="folderID">Put newly created inventory in this folder</param>
-        /// <param name="callback">Delegate that will receive feedback on success or failure</param>
-        public void RequestCreateItemFromAsset(byte[] data, string name, string description, AssetType assetType,
-            InventoryType invType, UUID folderID, ItemCreatedFromAssetCallback callback)
-        {
-            var permissions = new Permissions
-            {
-                EveryoneMask = PermissionMask.None,
-                GroupMask = PermissionMask.None,
-                NextOwnerMask = PermissionMask.All
-            };
-
-            try
-            {
-                // Forward to async-first implementation
-                RequestCreateItemFromAssetAsync(data, name, description, assetType, invType, folderID, permissions, callback, CancellationToken.None).GetAwaiter().GetResult();
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn($"RequestCreateItemFromAsset failed: {ex.Message}", ex, Client);
-            }
-        }
-
-        /// <summary>
-        /// Creates inventory link to another inventory item or folder
-        /// </summary>
-        /// <param name="folderID">Put newly created link in folder with this UUID</param>
-        /// <param name="bse">Inventory item or folder</param>
-        /// <param name="callback">Method to call upon creation of the link</param>
-        /// <param name="cancellationToken"></param>
-        public void CreateLink(UUID folderID, InventoryBase bse, ItemCreatedCallback callback, CancellationToken cancellationToken = default)
-        {
-            switch (bse)
-            {
-                case InventoryFolder folder:
-                    CreateLink(folderID, folder, callback, cancellationToken);
-                    break;
-                case InventoryItem item:
-                    CreateLink(folderID, item.UUID, item.Name, item.Description, item.InventoryType, UUID.Random(), callback, cancellationToken);
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// Creates inventory link to another inventory item
-        /// </summary>
-        /// <param name="folderID">Put newly created link in folder with this UUID</param>
-        /// <param name="item">Original inventory item</param>
-        /// <param name="callback">Method to call upon creation of the link</param>
-        /// <param name="cancellationToken"></param>
-        public void CreateLink(UUID folderID, InventoryItem item, ItemCreatedCallback callback, CancellationToken cancellationToken = default)
-        {
-            CreateLink(folderID, item.UUID, item.Name, item.Description, item.InventoryType, UUID.Random(), callback, cancellationToken);
-        }
-
-        /// <summary>
-        /// Creates inventory link to another inventory folder
-        /// </summary>
-        /// <param name="folderID">Put newly created link in folder with this UUID</param>
-        /// <param name="folder">Original inventory folder</param>
-        /// <param name="callback">Method to call upon creation of the link</param>
-        /// <param name="cancellationToken"></param>
-        public void CreateLink(UUID folderID, InventoryFolder folder, ItemCreatedCallback callback, CancellationToken cancellationToken = default)
-        {
-            CreateLink(folderID, folder.UUID, folder.Name, "", InventoryType.Folder, UUID.Random(), callback, cancellationToken);
-        }
-
-        /// <summary>
-        /// Creates inventory link to another inventory item or folder
-        /// </summary>
-        /// <param name="folderID">Put newly created link in folder with this UUID</param>
-        /// <param name="itemID">Original item's UUID</param>
-        /// <param name="name">Name</param>
-        /// <param name="description">Description</param>
-        /// <param name="invType">Inventory Type</param>
-        /// <param name="transactionID">Transaction UUID</param>
-        /// <param name="callback">Method to call upon creation of the link</param>
-        /// <param name="cancellationToken"></param>
-        public void CreateLink(UUID folderID, UUID itemID, string name, string description,
-             InventoryType invType, UUID transactionID, ItemCreatedCallback callback, CancellationToken cancellationToken = default)
-         {
-            // preserve synchronous API by delegating to async-first implementation
-            CreateLinkAsync(folderID, itemID, name, description, invType, transactionID, callback, cancellationToken).GetAwaiter().GetResult();
         }
 
         public async Task CreateLinkAsync(UUID folderID, UUID itemID, string name, string description,
@@ -1947,54 +1816,30 @@ namespace LibreMetaverse
         #region Copy
 
         /// <summary>
-        /// Send a copy item request
+        /// Copies a single inventory item to a new folder and returns the copy.
         /// </summary>
-        /// <param name="item"></param>
-        /// <param name="newParent"></param>
-        /// <param name="newName"></param>
-        /// <param name="callback"></param>
-        public void RequestCopyItem(UUID item, UUID newParent, string newName, ItemCopiedCallback callback)
+        public Task<InventoryBase?> CopyItemAsync(UUID item, UUID newParent, string newName,
+            CancellationToken cancellationToken = default)
         {
-            RequestCopyItem(item, newParent, newName, Client.Self.AgentID, callback);
+            return CopyItemAsync(item, newParent, newName, Client.Self.AgentID, cancellationToken);
         }
 
         /// <summary>
-        /// Send a copy item request
+        /// Copies a single inventory item to a new folder and returns the copy.
         /// </summary>
-        /// <param name="item"></param>
-        /// <param name="newParent"></param>
-        /// <param name="newName"></param>
-        /// <param name="oldOwnerID"></param>
-        /// <param name="callback"></param>
-        public void RequestCopyItem(UUID item, UUID newParent, string newName, UUID oldOwnerID,
-            ItemCopiedCallback callback)
+        public Task<InventoryBase?> CopyItemAsync(UUID item, UUID newParent, string newName, UUID oldOwnerID,
+            CancellationToken cancellationToken = default)
         {
-            var items = new List<UUID>(1) { item };
-            var folders = new List<UUID>(1) { newParent };
-            var names = new List<string>(1) { newName };
-
-            RequestCopyItems(items, folders, names, oldOwnerID, callback);
-        }
-
-        /// <summary>
-        /// Send a copy items request
-        /// </summary>
-        /// <param name="items"></param>
-        /// <param name="targetFolders"></param>
-        /// <param name="newNames"></param>
-        /// <param name="oldOwnerID"></param>
-        /// <param name="callback"></param>
-        public void RequestCopyItems(List<UUID> items, List<UUID> targetFolders, List<string> newNames,
-            UUID oldOwnerID, ItemCopiedCallback callback)
-        {
-            // Forward to async-first implementation for consistency. Execute synchronously to preserve original API semantics.
-            try
+            var tcs = new TaskCompletionSource<InventoryBase?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            ItemCopiedCallback callback = copied => tcs.TrySetResult(copied);
+            using (cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken)))
             {
-                RequestCopyItemsAsync(items, targetFolders, newNames, oldOwnerID, callback).GetAwaiter().GetResult();
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn($"RequestCopyItems failed: {ex.Message}", ex, Client);
+                RequestCopyItemsAsync(
+                    new List<UUID>(1) { item },
+                    new List<UUID>(1) { newParent },
+                    new List<string>(1) { newName },
+                    oldOwnerID, callback, cancellationToken);
+                return tcs.Task;
             }
         }
 

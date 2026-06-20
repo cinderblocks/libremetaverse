@@ -2064,7 +2064,7 @@ namespace LibreMetaverse
                 var cofVersion = currentOutfitFolder.Version;
                 if (Client?.Inventory?.Store != null &&
                     Client.Inventory.Store.TryGetNodeFor(currentOutfitFolder.UUID, out var cofNode) &&
-                    cofNode.Data is InventoryFolder updatedFolder)
+                    cofNode!.Data is InventoryFolder updatedFolder)
                 {
                     cofVersion = updatedFolder.Version;
                 }

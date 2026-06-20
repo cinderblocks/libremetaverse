@@ -38,33 +38,131 @@ namespace LibreMetaverse
 {
     public partial class InventoryManager
     {
-        /// <summary>
-        /// Async wrappers that delegate to existing synchronous implementations by running them on the threadpool.
-        /// These provide an async-first surface while preserving existing sync behavior.
-        /// </summary>
-        public Task MoveFolderAsync(UUID folderID, UUID newParentID, CancellationToken cancellationToken = default)
+        public async Task MoveFolderAsync(UUID folderID, UUID newParentID, CancellationToken cancellationToken = default)
         {
-            return Task.Run(() => MoveFolder(folderID, newParentID, cancellationToken), cancellationToken);
+            using (var writeLock = _storeLock.WriteLock())
+            {
+                if (_Store != null && _Store.TryGetValue(folderID, out var storeItem) && storeItem is InventoryFolder inv)
+                {
+                    inv.ParentUUID = newParentID;
+                    _Store.UpdateNodeFor(inv);
+                }
+            }
+
+            if (Client.AisClient.IsAvailable)
+            {
+                await Client.AisClient.MoveCategoryAsync(folderID, newParentID, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            var move = new MoveInventoryFolderPacket
+            {
+                AgentData = { AgentID = Client.Self.AgentID, SessionID = Client.Self.SessionID, Stamp = false },
+                InventoryData = new MoveInventoryFolderPacket.InventoryDataBlock[1]
+            };
+            move.InventoryData[0] = new MoveInventoryFolderPacket.InventoryDataBlock { FolderID = folderID, ParentID = newParentID };
+            Client.Network.SendPacket(move);
         }
 
-        public Task MoveFoldersAsync(Dictionary<UUID, UUID> foldersNewParents, CancellationToken cancellationToken = default)
+        public async Task MoveFoldersAsync(Dictionary<UUID, UUID> foldersNewParents, CancellationToken cancellationToken = default)
         {
-            return Task.Run(() => MoveFolders(foldersNewParents, cancellationToken), cancellationToken);
+            using (var writeLock = _storeLock.WriteLock())
+            {
+                foreach (var entry in foldersNewParents)
+                {
+                    if (_Store != null && _Store.TryGetValue(entry.Key, out var storeItem) && storeItem is InventoryFolder inv)
+                    {
+                        inv.ParentUUID = entry.Value;
+                        _Store.UpdateNodeFor(inv);
+                    }
+                }
+            }
+
+            if (Client.AisClient.IsAvailable)
+            {
+                var tasks = foldersNewParents.Select(kv => Client.AisClient.MoveCategoryAsync(kv.Key, kv.Value, cancellationToken)).ToArray();
+                await Task.WhenAll(tasks).ConfigureAwait(false);
+                return;
+            }
+
+            var move = new MoveInventoryFolderPacket
+            {
+                AgentData = { AgentID = Client.Self.AgentID, SessionID = Client.Self.SessionID, Stamp = false },
+                InventoryData = new MoveInventoryFolderPacket.InventoryDataBlock[foldersNewParents.Count]
+            };
+            var index = 0;
+            foreach (var folder in foldersNewParents)
+                move.InventoryData[index++] = new MoveInventoryFolderPacket.InventoryDataBlock { FolderID = folder.Key, ParentID = folder.Value };
+            Client.Network.SendPacket(move);
         }
 
         public Task MoveItemAsync(UUID itemID, UUID folderID, CancellationToken cancellationToken = default)
+            => MoveItemAsync(itemID, folderID, string.Empty, cancellationToken);
+
+        public async Task MoveItemAsync(UUID itemID, UUID folderID, string newName, CancellationToken cancellationToken = default)
         {
-            return Task.Run(() => MoveItem(itemID, folderID, cancellationToken), cancellationToken);
+            try
+            {
+                using (_storeLock.WriteLock())
+                {
+                    if (_Store != null && _Store.TryGetValue(itemID, out var storeItem) && storeItem is InventoryItem inv)
+                    {
+                        if (!string.IsNullOrEmpty(newName)) inv.Name = newName;
+                        inv.ParentUUID = folderID;
+                        _Store.UpdateNodeFor(inv);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"MoveItemAsync local update failed: {ex.Message}", Client);
+            }
+
+            if (string.IsNullOrEmpty(newName) && Client.AisClient.IsAvailable)
+            {
+                await Client.AisClient.MoveItemAsync(itemID, folderID, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            var move = new MoveInventoryItemPacket
+            {
+                AgentData = { AgentID = Client.Self.AgentID, SessionID = Client.Self.SessionID, Stamp = false },
+                InventoryData = new MoveInventoryItemPacket.InventoryDataBlock[1]
+            };
+            move.InventoryData[0] = new MoveInventoryItemPacket.InventoryDataBlock { ItemID = itemID, FolderID = folderID, NewName = Utils.StringToBytes(newName) };
+            Client.Network.SendPacket(move);
         }
 
-        public Task MoveItemAsync(UUID itemID, UUID folderID, string newName, CancellationToken cancellationToken = default)
+        public async Task MoveItemsAsync(Dictionary<UUID, UUID> itemsNewFolders, CancellationToken cancellationToken = default)
         {
-            return Task.Run(() => MoveItem(itemID, folderID, newName, cancellationToken), cancellationToken);
-        }
+            using (var writeLock = _storeLock.WriteLock())
+            {
+                foreach (var entry in itemsNewFolders)
+                {
+                    if (_Store != null && _Store.TryGetValue(entry.Key, out var storeItem) && storeItem is InventoryItem inv)
+                    {
+                        inv.ParentUUID = entry.Value;
+                        _Store.UpdateNodeFor(inv);
+                    }
+                }
+            }
 
-        public Task MoveItemsAsync(Dictionary<UUID, UUID> itemsNewFolders, CancellationToken cancellationToken = default)
-        {
-            return Task.Run(() => MoveItems(itemsNewFolders, cancellationToken), cancellationToken);
+            if (Client.AisClient.IsAvailable)
+            {
+                var tasks = itemsNewFolders.Select(kv => Client.AisClient.MoveItemAsync(kv.Key, kv.Value, cancellationToken)).ToArray();
+                await Task.WhenAll(tasks).ConfigureAwait(false);
+                return;
+            }
+
+            var move = new MoveInventoryItemPacket
+            {
+                AgentData = { AgentID = Client.Self.AgentID, SessionID = Client.Self.SessionID, Stamp = false },
+                InventoryData = new MoveInventoryItemPacket.InventoryDataBlock[itemsNewFolders.Count]
+            };
+            var idx = 0;
+            foreach (var item in itemsNewFolders)
+                move.InventoryData[idx++] = new MoveInventoryItemPacket.InventoryDataBlock { ItemID = item.Key, FolderID = item.Value };
+            Client.Network.SendPacket(move);
         }
 
         

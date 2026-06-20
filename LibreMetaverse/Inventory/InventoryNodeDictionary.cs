@@ -25,58 +25,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace LibreMetaverse
 {
-    public partial class InventoryNodeDictionary: IComparer<UUID>
+    public partial class InventoryNodeDictionary
     {
-        protected readonly SortedDictionary<UUID, InventoryNode>? SDictionary;
         protected readonly Dictionary<UUID, InventoryNode> Dictionary = new Dictionary<UUID, InventoryNode>();
         protected InventoryNode parent;
 
         protected readonly object syncRoot = new object();
-        public int Compare(UUID x, UUID y)
-        {
-            InventoryNode? n1 = Get(x);
-            InventoryNode? n2 = Get(y);
-            int diff = NullCompare(n1, n2);
-            if (diff != 0) return diff;
-            if (n1 == null) return x.CompareTo(y);
-            DateTime t1 = n1.ModifyTime;
-            DateTime t2 = n2!.ModifyTime;
-            diff = t1.CompareTo(t2);
-            if (diff != 0) return diff;
-            var d1 = n1.Data;
-            var d2 = n2.Data;
-            diff = NullCompare(d1, d2);
-            if (diff != 0) return diff;
-            if (d1 != null)
-            {
-                diff = NullCompare(d1.Name, d2?.Name);
-                if (diff != 0) return diff;
-                if (d1.Name != null)
-                {
-                    // both are not null.. due to NullCompare code
-                    diff = string.Compare(d1.Name, d2!.Name, StringComparison.Ordinal);
-                    if (diff != 0) return diff;
-                }
-            }
-            return x.CompareTo(y);
-        }
-
-        private InventoryNode? Get(UUID uuid)
-        {
-            InventoryNode? val;
-            return Dictionary.TryGetValue(uuid, out val) ? val : null;
-        }
-
-        static int NullCompare(object? o1, object? o2)
-        {
-            return ReferenceEquals(o1, null).CompareTo(ReferenceEquals(o2, null));
-        }
 
         public InventoryNode Parent
         {
@@ -90,20 +49,18 @@ namespace LibreMetaverse
 
         public InventoryNodeDictionary(InventoryNode parent)
         {
-            if (Settings.SORT_INVENTORY) SDictionary = new SortedDictionary<UUID, InventoryNode>(this);
             this.parent = parent;
         }
 
         public InventoryNode this[UUID key]
         {
-            get => (InventoryNode)Dictionary[key];
+            get => Dictionary[key];
             set
             {
                 value.Parent = parent;
                 lock (syncRoot)
                 {
                     Dictionary[key] = value;
-                    if (Settings.SORT_INVENTORY && SDictionary != null) SDictionary[key] = value;
                 }
             }
         }
@@ -114,18 +71,17 @@ namespace LibreMetaverse
             {
                 lock (syncRoot)
                 {
-                    if (Settings.SORT_INVENTORY && SDictionary != null) return SDictionary.Keys.ToList();
                     return Dictionary.Keys.ToList();
                 }
             }
         }
+
         public ICollection<InventoryNode> Values
         {
             get
             {
                 lock (syncRoot)
                 {
-                    if (Settings.SORT_INVENTORY && SDictionary != null) return SDictionary.Values.ToList();
                     return Dictionary.Values.ToList();
                 }
             }
@@ -137,8 +93,7 @@ namespace LibreMetaverse
             lock (syncRoot)
             {
                 Dictionary[key] = value;
-                if (Settings.SORT_INVENTORY && SDictionary != null) SDictionary.Add(key, value);
-            } 
+            }
         }
 
         public void Remove(UUID key)
@@ -146,7 +101,6 @@ namespace LibreMetaverse
             lock (syncRoot)
             {
                 Dictionary.Remove(key);
-                if (Settings.SORT_INVENTORY && SDictionary != null) SDictionary.Remove(key);
             }
         }
 
@@ -155,18 +109,6 @@ namespace LibreMetaverse
             lock (syncRoot)
             {
                 return Dictionary.ContainsKey(key);
-            }
-        }
-
-        internal void Sort()
-        {
-            if (!Settings.SORT_INVENTORY) return;
-            lock (syncRoot)
-            {
-                if (SDictionary == null) return;
-                SDictionary.Clear();
-                foreach (var pair in Dictionary)
-                    SDictionary.Add(pair.Key, pair.Value);
             }
         }
     }

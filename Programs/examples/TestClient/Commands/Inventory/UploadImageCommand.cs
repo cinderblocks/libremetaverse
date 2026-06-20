@@ -26,6 +26,7 @@
  */
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using CoreJ2K.Configuration;
 using LibreMetaverse;
@@ -79,45 +80,30 @@ namespace TestClient.Commands.Inventory
             }
         }
 
-        private Task<UUID> UploadAsync(byte[]? uploadData, string fileName, int timeoutMs)
+        private async Task<UUID> UploadAsync(byte[]? uploadData, string fileName, int timeoutMs)
         {
-            var tcs = new TaskCompletionSource<UUID>(TaskCreationOptions.RunContinuationsAsynchronously);
-
             if (uploadData == null)
-            {
-                tcs.TrySetResult(UUID.Zero);
-                return tcs.Task;
-            }
+                return UUID.Zero;
 
             string name = global::System.IO.Path.GetFileNameWithoutExtension(fileName);
-
-            Client.Inventory.RequestCreateItemFromAsset(uploadData, name, "Uploaded with TestClient",
-                AssetType.Texture, InventoryType.Texture, Client.Inventory.FindFolderForType(AssetType.Texture),
-                (success, status, itemID, assetID) =>
-                {
-                    try
-                    {
-                        Console.WriteLine("RequestCreateItemFromAsset() returned: Success={0}, Status={1}, ItemID={2}, AssetID={3}", success, status, itemID, assetID);
-                        if (success)
-                            tcs.TrySetResult(assetID);
-                        else
-                            tcs.TrySetResult(UUID.Zero);
-                    }
-                    catch (Exception ex)
-                    {
-                        tcs.TrySetException(ex);
-                    }
-                }
-            );
-
-            // Timeout handling
-            var delay = Task.Delay(timeoutMs);
-            return Task.WhenAny(tcs.Task, delay).ContinueWith(t =>
+            var permissions = new Permissions
             {
-                if (t.Result == tcs.Task && tcs.Task.Status == TaskStatus.RanToCompletion)
-                    return tcs.Task.Result;
-                return UUID.Zero;
-            }, TaskScheduler.Default);
+                EveryoneMask = PermissionMask.None,
+                GroupMask = PermissionMask.None,
+                NextOwnerMask = PermissionMask.All
+            };
+
+            using var cts = new CancellationTokenSource(timeoutMs);
+            var result = await Client.Inventory.CreateItemFromAssetAsync(
+                uploadData, name, "Uploaded with TestClient",
+                AssetType.Texture, InventoryType.Texture,
+                Client.Inventory.FindFolderForType(AssetType.Texture),
+                permissions, cts.Token).ConfigureAwait(false);
+
+            Console.WriteLine("CreateItemFromAssetAsync() returned: Success={0}, Status={1}, ItemID={2}, AssetID={3}",
+                result.Success, result.Status, result.ItemID, result.AssetID);
+
+            return result.Success ? result.AssetID : UUID.Zero;
         }
 
         private byte[]? LoadImage(string fileName)
