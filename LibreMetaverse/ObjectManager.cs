@@ -2170,115 +2170,62 @@ namespace LibreMetaverse
         /// <param name="sim">Simulator where prim is located</param>
         /// <param name="callback">Call this callback when done</param>
         /// <param name="cancellationToken">Cancellation token for the request</param>
-        public async Task RequestObjectMediaAsync(UUID primID, Simulator sim, ObjectMediaCallback? callback, CancellationToken cancellationToken = default)
+        public async Task<(bool success, string version, MediaEntry[]? faceMedia)> RequestObjectMediaAsync(UUID primID, Simulator sim, CancellationToken cancellationToken = default)
         {
             Uri? cap = sim?.Caps?.CapabilityURI("ObjectMedia");
-            if (cap != null)
-            {
-                ObjectMediaRequest payload = new ObjectMediaRequest {PrimID = primID, Verb = "GET"};
-
-                {
-                    try
-                    {
-                        if (cancellationToken.IsCancellationRequested)
-                        {
-                            if (callback != null)
-                            {
-                                try { callback(false, string.Empty, null); } catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                            }
-                            return;
-                        }
-                        var (httpResponse, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload.Serialize(), cancellationToken);
-                        ObjectMediaMessage msg = new ObjectMediaMessage();
-                        if (data == null || data.Length == 0)
-                        {
-                            Logger.Error("Failed retrieving ObjectMedia; response empty.", Client);
-                            if (callback != null)
-                            {
-                                try { callback(false, string.Empty, null); } catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                            }
-                            return;
-                        }
-                        OSD result = OSDParser.Deserialize(data);
-                        var map = result as OSDMap;
-                        if (map == null)
-                        {
-                            Logger.Error("Failed retrieving ObjectMedia; unexpected payload.", Client);
-                            if (callback != null)
-                            {
-                                try { callback(false, string.Empty, null); } catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                            }
-                            return;
-                        }
-                        msg.Deserialize(map);
-                        if (msg.Request is ObjectMediaResponse response)
-                        {
-                            // Capture sim into a local to satisfy the nullable analyzer
-                            var simulator = sim;
-                            if (simulator == null)
-                            {
-                                if (callback != null)
-                                {
-                                    try { callback(false, string.Empty, null); } catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                                }
-                                return;
-                            }
-                            if (Client.Settings.OBJECT_TRACKING)
-                            {
-                                var kvp = simulator.ObjectsPrimitives.FirstOrDefault(
-                                    p => p.Value.ID == primID);
-                                if (kvp.Key != 0)
-                                {
-                                    Primitive? prim = kvp.Value;
-                                    if (prim is not null)
-                                    {
-                                        prim.MediaVersion = response.Version;
-                                        prim.FaceMedia = response.FaceMedia;
-                                        simulator.ObjectsPrimitives.TryUpdate(kvp.Key, prim, kvp.Value);
-                                    }
-                                }
-                            }
-                            if (callback != null)
-                            {
-                                try { callback(true, response.Version, response.FaceMedia); }
-                                catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                            }
-                        }
-                        else
-                        {
-                            if (callback != null)
-                            {
-                                try { callback(false, string.Empty, null); }
-                                catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                            }
-                        }
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        if (callback != null)
-                        {
-                            try { callback(false, string.Empty, null); } catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                        }
-                    }
-                    catch (Exception error)
-                    {
-                        Logger.Error("Failed retrieving ObjectMedia data", error, Client);
-                        if (callback != null)
-                        {
-                            try { callback(false, string.Empty, new MediaEntry[0]); }
-                            catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                        }
-                    }
-                }
-            }
-            else
+            if (cap == null)
             {
                 Logger.Error("ObjectMedia capability not available", Client);
-                if (callback != null)
+                return (false, string.Empty, null);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            ObjectMediaRequest payload = new ObjectMediaRequest {PrimID = primID, Verb = "GET"};
+            try
+            {
+                var (httpResponse, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload.Serialize(), cancellationToken);
+                if (data == null || data.Length == 0)
                 {
-                    try { callback(false, string.Empty, null); }
-                    catch (Exception ex) { Logger.Error("RequestObjectMedia callback failed", ex, Client); }
+                    Logger.Error("Failed retrieving ObjectMedia; response empty.", Client);
+                    return (false, string.Empty, null);
                 }
+                OSD result = OSDParser.Deserialize(data);
+                if (result is not OSDMap map)
+                {
+                    Logger.Error("Failed retrieving ObjectMedia; unexpected payload.", Client);
+                    return (false, string.Empty, null);
+                }
+                ObjectMediaMessage msg = new ObjectMediaMessage();
+                msg.Deserialize(map);
+                if (msg.Request is ObjectMediaResponse response)
+                {
+                    if (Client.Settings.OBJECT_TRACKING)
+                    {
+                        var kvp = sim.ObjectsPrimitives.FirstOrDefault(p => p.Value.ID == primID);
+                        if (kvp.Key != 0)
+                        {
+                            Primitive? prim = kvp.Value;
+                            if (prim is not null)
+                            {
+                                prim.MediaVersion = response.Version;
+                                prim.FaceMedia = response.FaceMedia;
+                                sim.ObjectsPrimitives.TryUpdate(kvp.Key, prim, kvp.Value);
+                            }
+                        }
+                    }
+                    return (true, response.Version, response.FaceMedia);
+                }
+                return (false, string.Empty, null);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception error)
+            {
+                Logger.Error("Failed retrieving ObjectMedia data", error, Client);
+                return (false, string.Empty, null);
             }
         }
 

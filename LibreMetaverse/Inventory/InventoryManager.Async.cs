@@ -276,134 +276,89 @@ namespace LibreMetaverse
             }
         }
 
-        public async Task RequestUploadNotecardAssetAsync(byte[] data, UUID notecardID, InventoryUploadedAssetCallback callback, 
+        public async Task<(bool success, string status, UUID itemID, UUID assetID)> RequestUploadNotecardAssetAsync(byte[] data, UUID notecardID,
             CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
             var cap = GetCapabilityURI("UpdateNotecardAgentInventory", false);
             if (cap == null)
-            {
                 throw new InvalidOperationException("Capability system not initialized to send asset");
-            }
 
             var query = new OSDMap { { "item_id", OSD.FromUUID(notecardID) } };
-
             try
             {
                 var result = await PostCapAsync(cap, query, cancellationToken, progress).ConfigureAwait(false);
-                UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data),
-                    notecardID, result, null, cancellationToken, progress);
+                return await PerformInventoryUploadAsync(data, notecardID, result, cancellationToken, progress).ConfigureAwait(false);
             }
-            catch (Exception ex)
-            {
-                UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data),
-                    notecardID, null, ex, cancellationToken, progress);
-            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { return (false, ex.Message, UUID.Zero, UUID.Zero); }
         }
 
-        public async Task RequestUpdateNotecardTaskAsync(byte[] data, UUID notecardID, UUID taskID, InventoryUploadedAssetCallback callback, 
+        public async Task<(bool success, string status, UUID itemID, UUID assetID)> RequestUpdateNotecardTaskAsync(byte[] data, UUID notecardID, UUID taskID,
             CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
             var cap = GetCapabilityURI("UpdateNotecardTaskInventory", false);
             if (cap == null)
-            {
                 throw new InvalidOperationException("UpdateNotecardTaskInventory capability is not currently available");
-            }
 
-            var query = new OSDMap
-            {
-                {"item_id", OSD.FromUUID(notecardID)},
-                { "task_id", OSD.FromUUID(taskID)}
-            };
-
+            var query = new OSDMap { {"item_id", OSD.FromUUID(notecardID)}, {"task_id", OSD.FromUUID(taskID)} };
             try
             {
                 var result = await PostCapAsync(cap, query, cancellationToken, progress).ConfigureAwait(false);
-                UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), 
-                    notecardID, result, null, cancellationToken, progress);
+                return await PerformInventoryUploadAsync(data, notecardID, result, cancellationToken, progress).ConfigureAwait(false);
             }
-            catch (Exception ex)
-            {
-                UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data),
-                    notecardID, null, ex, cancellationToken, progress);
-            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { return (false, ex.Message, UUID.Zero, UUID.Zero); }
         }
 
-        public async Task RequestUploadGestureAssetAsync(byte[] data, UUID gestureID, InventoryUploadedAssetCallback callback,
+        public async Task<(bool success, string status, UUID itemID, UUID assetID)> RequestUploadGestureAssetAsync(byte[] data, UUID gestureID,
             CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
             var cap = GetCapabilityURI("UpdateGestureAgentInventory", false);
             if (cap == null)
-            {
                 throw new InvalidOperationException("UpdateGestureAgentInventory capability is not currently available");
-            }
 
             var query = new OSDMap { { "item_id", OSD.FromUUID(gestureID) } };
-
             try
             {
                 var result = await PostCapAsync(cap, query, cancellationToken, progress).ConfigureAwait(false);
-                UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), 
-                    gestureID, result, null, cancellationToken, progress);
+                return await PerformInventoryUploadAsync(data, gestureID, result, cancellationToken, progress).ConfigureAwait(false);
             }
-            catch (Exception ex)
-            {
-                UploadInventoryAssetResponse(new KeyValuePair<InventoryUploadedAssetCallback, byte[]>(callback, data), 
-                    gestureID, null, ex, cancellationToken, progress);
-            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { return (false, ex.Message, UUID.Zero, UUID.Zero); }
         }
 
-        public async Task RequestUpdateScriptAgentInventoryAsync(byte[] data, UUID itemID, bool mono, ScriptUpdatedCallback callback, 
-            CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
+        public async Task<(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string>? compileMessages, UUID itemID, UUID assetID)> RequestUpdateScriptAgentInventoryAsync(
+            byte[] data, UUID itemID, bool mono, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
             var cap = GetCapabilityURI("UpdateScriptAgent");
             if (cap == null)
                 throw new InvalidOperationException("UpdateScriptAgent capability is not currently available");
 
-            var request = new UpdateScriptAgentRequestMessage
-            {
-                ItemID = itemID,
-                Target = mono ? "mono" : "lsl2"
-            };
-
+            var request = new UpdateScriptAgentRequestMessage { ItemID = itemID, Target = mono ? "mono" : "lsl2" };
             try
             {
                 var result = await PostCapAsync(cap, request.Serialize(), cancellationToken, progress).ConfigureAwait(false);
-                UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data),
-                    itemID, result, null, cancellationToken, progress);
+                return await PerformScriptUploadAsync(data, itemID, result, cancellationToken, progress).ConfigureAwait(false);
             }
-            catch (Exception ex)
-            {
-                UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data),
-                    itemID, null, ex, cancellationToken, progress);
-            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { return (false, ex.Message, false, null, UUID.Zero, UUID.Zero); }
         }
 
-        public async Task RequestUpdateScriptTaskAsync(byte[] data, UUID itemID, UUID taskID, bool mono, bool running, 
-            ScriptUpdatedCallback callback, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
+        public async Task<(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string>? compileMessages, UUID itemID, UUID assetID)> RequestUpdateScriptTaskAsync(
+            byte[] data, UUID itemID, UUID taskID, bool mono, bool running, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
             var cap = GetCapabilityURI("UpdateScriptTask");
             if (cap == null)
                 throw new InvalidOperationException("UpdateScriptTask capability is not currently available");
 
-            var msg = new UpdateScriptTaskUpdateMessage
-            {
-                ItemID = itemID,
-                TaskID = taskID,
-                ScriptRunning = running,
-                Target = mono ? "mono" : "lsl2"
-            };
-
+            var msg = new UpdateScriptTaskUpdateMessage { ItemID = itemID, TaskID = taskID, ScriptRunning = running, Target = mono ? "mono" : "lsl2" };
             try
             {
                 var result = await PostCapAsync(cap, msg.Serialize(), cancellationToken, progress).ConfigureAwait(false);
-                UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data),
-                    itemID, result, null, cancellationToken, progress);
+                return await PerformScriptUploadAsync(data, itemID, result, cancellationToken, progress).ConfigureAwait(false);
             }
-            catch (Exception ex)
-            {
-                UpdateScriptAgentInventoryResponse(new KeyValuePair<ScriptUpdatedCallback, byte[]>(callback, data),
-                    itemID, null, ex, cancellationToken, progress);
-            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { return (false, ex.Message, false, null, UUID.Zero, UUID.Zero); }
         }
 
         /// <summary>

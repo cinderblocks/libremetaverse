@@ -69,31 +69,14 @@ namespace TestClient.Commands.Inventory
                     return "Failed to create inventory item";
                 }
 
-                var uploadTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+                using var uploadCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                var (uploadSuccess, _, compileSuccess, _, itemId, assetId) = await Client.Inventory
+                    .RequestUpdateScriptAgentInventoryAsync(Encoding.UTF8.GetBytes(body), createdItem.UUID, true, uploadCts.Token).ConfigureAwait(false);
 
-                var uploadTask = Client.Inventory.RequestUpdateScriptAgentInventoryAsync(Encoding.UTF8.GetBytes(body), createdItem.UUID, true,
-                    (uploadSuccess, uploadStatus, compileSuccess, compileMessages, itemId, assetId) =>
-                    {
-                        var log = $"Filename: {file}";
-                        if (uploadSuccess)
-                            log += $" Script successfully uploaded, ItemID {itemId} AssetID {assetId}";
-                        else
-                            log += $" Script failed to upload, ItemID {itemId}";
-
-                        if (compileSuccess)
-                            log += " compilation successful";
-                        else
-                            log += " compilation failed";
-
-                        uploadTcs.TrySetResult(log);
-                    });
-
-                var uploadCompleted = await Task.WhenAny(uploadTcs.Task, Task.Delay(TimeSpan.FromSeconds(30))).ConfigureAwait(false);
-                if (uploadCompleted != uploadTcs.Task)
-                    return "Timed out uploading script";
-
-                var resultLog = await uploadTcs.Task.ConfigureAwait(false);
-                Logger.Info(resultLog, Client);
+                var log = $"Filename: {file}";
+                log += uploadSuccess ? $" Script successfully uploaded, ItemID {itemId} AssetID {assetId}" : $" Script failed to upload, ItemID {itemId}";
+                log += compileSuccess ? " compilation successful" : " compilation failed";
+                Logger.Info(log, Client);
                 return $"Filename: {file} is being uploaded.";
             }
             catch (Exception e)

@@ -1817,8 +1817,7 @@ namespace LibreMetaverse
         /// <param name="getDetails">Should per object resource usage be requested</param>
         /// <param name="callback">Callback invoked when the request is complete</param>
         /// <param name="cancellationToken"></param>
-        public async Task GetParcelResources(UUID parcelID, bool getDetails, LandResourcesCallback callback, 
-            CancellationToken cancellationToken = default)
+        public async Task<(bool success, LandResourcesInfo info)> GetParcelResourcesAsync(UUID parcelID, bool getDetails, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -1827,16 +1826,14 @@ namespace LibreMetaverse
                 if (cap == null)
                 {
                     Logger.Warn("LandResources capability unavailable", Client);
-                    callback(false, new LandResourcesInfo());
-                    return;
+                    return (false, new LandResourcesInfo());
                 }
 
                 var (httpResponse, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, req.Serialize(), cancellationToken);
                 if (data == null || data.Length == 0)
                 {
                     Logger.Error("Failed fetching land resources; response empty.", Client);
-                    callback(false, new LandResourcesInfo());
-                    return;
+                    return (false, new LandResourcesInfo());
                 }
 
                 OSD result = OSDParser.Deserialize(data);
@@ -1845,8 +1842,7 @@ namespace LibreMetaverse
                 if (resultMap == null)
                 {
                     Logger.Error("Failed fetching land resources; unexpected payload.", Client);
-                    callback(false, new LandResourcesInfo());
-                    return;
+                    return (false, new LandResourcesInfo());
                 }
                 landResourcesMessage.Deserialize(resultMap);
 
@@ -1886,12 +1882,12 @@ namespace LibreMetaverse
                         resInfo.Deserialize(detailMap);
                 }
 
-                callback(true, resInfo);
+                return (true, resInfo);
             }
             catch (Exception ex)
             {
                 Logger.Error("Failed fetching land resources:", ex, Client);
-                callback(false, new LandResourcesInfo());
+                return (false, new LandResourcesInfo());
             }
         }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse;
 
@@ -39,31 +40,21 @@ namespace TestClient.Commands.Agent
 
             Groups.Clear();
 
-            var profileTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            // Request the agent profile with callback
-            _ = Client.Avatars.RequestAgentProfile(targetID, (success, profile) =>
-            {
-                if (success)
-                {
-                    Properties = new Avatar.AvatarProperties
-                    {
-                        AboutText = profile.SecondLifeAboutText,
-                        FirstLifeText = profile.FirstLifeAboutText,
-                        ProfileImage = profile.SecondLifeImageID,
-                        FirstLifeImage = profile.FirstLifeImageID,
-                        ProfileURL = profile.HomePage,
-                        AllowPublish = true,
-                        MaturePublish = profile.IsMatureProfile
-                    };
-                }
-
-                profileTcs.TrySetResult(success);
-            });
-
-            var profileCompleted = await Task.WhenAny(profileTcs.Task, Task.Delay(TimeSpan.FromSeconds(5))).ConfigureAwait(false);
-            if (profileCompleted != profileTcs.Task || !profileTcs.Task.Result)
+            using var profileCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var (profileSuccess, profile) = await Client.Avatars.RequestAgentProfileAsync(targetID, profileCts.Token).ConfigureAwait(false);
+            if (!profileSuccess || profile == null)
                 return "Failed to retrieve profile";
+
+            Properties = new Avatar.AvatarProperties
+            {
+                AboutText = profile.SecondLifeAboutText,
+                FirstLifeText = profile.FirstLifeAboutText,
+                ProfileImage = profile.SecondLifeImageID,
+                FirstLifeImage = profile.FirstLifeImageID,
+                ProfileURL = profile.HomePage,
+                AllowPublish = true,
+                MaturePublish = profile.IsMatureProfile
+            };
 
             // Prepare TCS for interests and groups
             var interestsTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);

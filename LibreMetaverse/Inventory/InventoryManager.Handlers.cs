@@ -307,213 +307,72 @@ namespace LibreMetaverse
             }
         }
 
-        private void UploadInventoryAssetResponse(KeyValuePair<InventoryUploadedAssetCallback, byte[]> kvp,
-            UUID itemId, OSD? result, Exception? error, CancellationToken cancellationToken = default, IProgress<LibreMetaverse.HttpCapsClient.ProgressReport>? progress = null)
+        private async Task<(bool success, string status, UUID itemID, UUID assetID)> PerformInventoryUploadAsync(
+            byte[] data, UUID itemId, OSD? initialResult, CancellationToken cancellationToken, IProgress<HttpCapsClient.ProgressReport>? progress)
         {
-            var callback = kvp.Key;
-            var itemData = (byte[])kvp.Value;
-
-            if (error == null && result is OSDMap contents)
+            var result = initialResult;
+            while (result is OSDMap contents)
             {
-                var status = contents["state"].AsString();
-
-                if (status == "upload")
+                var state = contents["state"].AsString();
+                if (state == "upload")
                 {
                     var uploadURL = contents["uploader"].AsUri();
-
-                    if (uploadURL != null)
-                    {
-                        Task.Run((Func<Task>)(async () =>
-                        {
-                            try
-                            {
-                                var res = await PostBytesAsync(uploadURL, "application/octet-stream", itemData,
-                                    cancellationToken, progress).ConfigureAwait(false);
-                                UploadInventoryAssetResponse(kvp, itemId, res, null, cancellationToken, progress);
-                            }
-                            catch (Exception ex)
-                            {
-                                UploadInventoryAssetResponse(kvp, itemId, null, ex, cancellationToken, progress);
-                            }
-                        }), cancellationToken);
-                    }
-                    else
-                    {
-                        try
-                        {
-                            callback(false, "Missing uploader URL", UUID.Zero, UUID.Zero);
-                        }
-                        catch (Exception e)
-                        {
-                            Logger.Error(e.Message, e, Client);
-                        }
-                    }
+                    if (uploadURL == null) return (false, "Missing uploader URL", UUID.Zero, UUID.Zero);
+                    result = await PostBytesAsync(uploadURL, "application/octet-stream", data, cancellationToken, progress).ConfigureAwait(false);
                 }
-                else if (status == "complete" && callback != null)
+                else if (state == "complete")
                 {
                     if (contents.ContainsKey("new_asset"))
                     {
-                        // Request full item update so we keep store in sync
                         RequestFetchInventory(itemId, Client.Self.AgentID);
-
-                        try
-                        {
-                            callback(true, string.Empty, itemId, contents["new_asset"].AsUUID());
-                        }
-                        catch (Exception e)
-                        {
-                            Logger.Error(e.Message, e, Client);
-                        }
+                        return (true, string.Empty, itemId, contents["new_asset"].AsUUID());
                     }
-                    else
-                    {
-                        try
-                        {
-                            callback(false, "Failed to parse asset UUID",
-                                UUID.Zero, UUID.Zero);
-                        }
-                        catch (Exception e)
-                        {
-                            Logger.Error(e.Message, e, Client);
-                        }
-                    }
-                }
-                else if (callback != null)
-                {
-                    try
-                    {
-                        callback(false, status, UUID.Zero, UUID.Zero);
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.Error(e.Message, e, Client);
-                    }
-                }
-            }
-            else
-            {
-                var message = "Unrecognized or empty response";
-
-                if (error != null)
-                {
-                    if (error is WebException webEx && webEx.Response is HttpWebResponse http)
-                        message = http.StatusDescription ?? webEx.Message;
-                    else
-                        message = error.Message;
-                }
-
-                try
-                {
-                    callback(false, message, UUID.Zero, UUID.Zero);
-                }
-                catch (Exception e)
-                {
-                    Logger.Error(e.Message, e, Client);
-                }
-            }
-        }
-
-        private void UpdateScriptAgentInventoryResponse(KeyValuePair<ScriptUpdatedCallback, byte[]> kvpCb,
-            UUID itemId, OSD? result, Exception? error, CancellationToken cancellationToken = default, IProgress<LibreMetaverse.HttpCapsClient.ProgressReport>? progress = null)
-        {
-            var callback = kvpCb.Key;
-            var itemData = kvpCb.Value;
-
-            if (result == null)
-            {
-                try
-                {
-                    callback(false, error?.Message ?? "Unknown error", false,
-                        null, UUID.Zero, UUID.Zero);
-                }
-                catch (Exception e)
-                {
-                    Logger.Error(e.Message, e, Client);
-                }
-
-                return;
-            }
-
-            var contents = (OSDMap)result;
-
-            var status = contents["state"].AsString();
-            if (status == "upload")
-            {
-                var uploadURL = contents["uploader"].AsString();
-
-                // This makes the assumption that all uploads go to CurrentSim, to avoid
-                // the problem of HttpRequestState not knowing anything about simulators
-                var uploadUri = new Uri(uploadURL);
-
-                Task.Run((Func<Task>)(async () =>
-                {
-                    try
-                    {
-                        var res = await PostBytesAsync(uploadUri, "application/octet-stream", itemData,
-                            cancellationToken, progress).ConfigureAwait(false);
-                        UpdateScriptAgentInventoryResponse(kvpCb, itemId, res, null, cancellationToken, progress);
-                    }
-                    catch (Exception ex)
-                    {
-                        UpdateScriptAgentInventoryResponse(kvpCb, itemId, null, ex, cancellationToken, progress);
-                    }
-                }), cancellationToken);
-            }
-            else if (status == "complete" && callback != null)
-            {
-                if (contents.ContainsKey("new_asset"))
-                {
-                    // Request full item update so we keep store in sync
-                    RequestFetchInventory(itemId, Client.Self.AgentID);
-
-                    try
-                    {
-                        List<string>? compileErrors = null;
-
-                        if (contents.TryGetValue("errors", out var content))
-                        {
-                            var errors = (OSDArray)content;
-                            compileErrors = new List<string>(errors.Count);
-                            compileErrors.AddRange(errors.Select(t => t.AsString()));
-                        }
-
-                        callback(true,
-                            status,
-                            contents["compiled"].AsBoolean(),
-                            compileErrors,
-                            itemId,
-                            contents["new_asset"].AsUUID());
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.Error(e.Message, e, Client);
-                    }
+                    return (false, "Failed to parse asset UUID", UUID.Zero, UUID.Zero);
                 }
                 else
                 {
-                    try
-                    {
-                        callback(false, "Failed to parse asset UUID",
-                            false, null, UUID.Zero, UUID.Zero);
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.Error(e.Message, e, Client);
-                    }
+                    return (false, state, UUID.Zero, UUID.Zero);
                 }
             }
-            else if (callback != null)
+            return (false, "Unrecognized or empty response", UUID.Zero, UUID.Zero);
+        }
+
+        private async Task<(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string>? compileMessages, UUID itemID, UUID assetID)> PerformScriptUploadAsync(
+            byte[] data, UUID itemId, OSD? initialResult, CancellationToken cancellationToken, IProgress<HttpCapsClient.ProgressReport>? progress)
+        {
+            if (initialResult == null)
+                return (false, "No response from server", false, null, UUID.Zero, UUID.Zero);
+
+            var result = initialResult;
+            while (result is OSDMap contents)
             {
-                try
+                var state = contents["state"].AsString();
+                if (state == "upload")
                 {
-                    callback(false, status, false,
-                        null, UUID.Zero, UUID.Zero);
+                    var uploadUri = new Uri(contents["uploader"].AsString());
+                    result = await PostBytesAsync(uploadUri, "application/octet-stream", data, cancellationToken, progress).ConfigureAwait(false);
                 }
-                catch (Exception e)
+                else if (state == "complete")
                 {
-                    Logger.Error(e.Message, e, Client);
+                    if (contents.ContainsKey("new_asset"))
+                    {
+                        RequestFetchInventory(itemId, Client.Self.AgentID);
+                        List<string>? compileErrors = null;
+                        if (contents.TryGetValue("errors", out var errContent))
+                        {
+                            var errors = (OSDArray)errContent;
+                            compileErrors = errors.Select(t => t.AsString()).ToList();
+                        }
+                        return (true, state, contents["compiled"].AsBoolean(), compileErrors, itemId, contents["new_asset"].AsUUID());
+                    }
+                    return (false, "Failed to parse asset UUID", false, null, UUID.Zero, UUID.Zero);
+                }
+                else
+                {
+                    return (false, state, false, null, UUID.Zero, UUID.Zero);
                 }
             }
+            return (false, "Unrecognized or empty response", false, null, UUID.Zero, UUID.Zero);
         }
 
         private void Network_OnLoginResponse(bool loginSuccess, bool redirect, string message, string reason,

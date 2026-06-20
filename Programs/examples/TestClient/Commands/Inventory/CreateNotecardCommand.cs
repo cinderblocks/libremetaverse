@@ -101,21 +101,8 @@ namespace TestClient.Commands.Inventory
             notecardItemID = createdItem.UUID;
 
             // Upload the notecard asset
-            var uploadTcs = new TaskCompletionSource<(bool success, UUID assetID)>(TaskCreationOptions.RunContinuationsAsynchronously);
             using var uploadCts = new CancellationTokenSource(NOTECARD_CREATE_TIMEOUT);
-
-            await Client.Inventory.RequestUploadNotecardAssetAsync(notecard.AssetData, createdItem.UUID,
-                (uploadSuccess, status, itemID, assetID) =>
-                {
-                    uploadTcs.TrySetResult((uploadSuccess, assetID));
-                }, uploadCts.Token).ConfigureAwait(false);
-
-            if (!uploadTcs.Task.IsCompleted)
-                return "Notecard upload timed out";
-
-            var uploadResult = await uploadTcs.Task.ConfigureAwait(false);
-            finalUploadSuccess = uploadResult.success;
-            notecardAssetID = uploadResult.assetID;
+            (finalUploadSuccess, _, _, notecardAssetID) = await Client.Inventory.RequestUploadNotecardAssetAsync(notecard.AssetData, createdItem.UUID, uploadCts.Token).ConfigureAwait(false);
 
             if (finalUploadSuccess)
             {

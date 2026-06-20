@@ -1785,7 +1785,7 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="callback">Called when the requested information is collected</param>
         /// <param name="cancellationToken">Cancellation token for capability requests</param>
-        public async Task GetAttachmentResources(AttachmentResourcesCallback callback, CancellationToken cancellationToken = default)
+        public async Task<(bool success, AttachmentResourcesMessage? info)> GetAttachmentResourcesAsync(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -1795,46 +1795,39 @@ namespace LibreMetaverse
                 if (cap == null)
                 {
                     Logger.Warn("AttachmentResources capability not available, cannot fetch attachment resources.", Client);
-                    callback(false, null);
-                    return;
+                    return (false, null);
                 }
 
                 var http = Client?.HttpCapsClient;
                 if (http == null)
-                {
-                    callback(false, null);
-                    return;
-                }
+                    return (false, null);
 
                 var (response, data) = await http.GetAsync(cap, cancellationToken).ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode)
                 {
                     Logger.Warn($"AttachmentResources request returned non-success status: {response.StatusCode}", Client);
-                    callback(false, null);
-                    return;
+                    return (false, null);
                 }
                 if (data == null)
                 {
                     Logger.Warn("AttachmentResources request returned no data.", Client);
-                    callback(false, null);
-                    return;
+                    return (false, null);
                 }
                 try
                 {
                     OSD result = OSDParser.Deserialize(data);
                     AttachmentResourcesMessage info = AttachmentResourcesMessage.FromOSD(result);
-                    callback(true, info);
+                    return (true, info);
                 }
                 catch (Exception ex)
                 {
                     Logger.Error("Failed fetching AttachmentResources", ex, Client);
-                    callback(false, null);
+                    return (false, null);
                 }
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
                 Logger.Error("Failed fetching AttachmentResources", ex, Client);
-                callback(false, null);
                 throw;
             }
         }
@@ -1898,9 +1891,10 @@ namespace LibreMetaverse
         /// <param name="access">PG, M or A</param>
         /// <param name="callback">Callback function</param>
         /// <param name="cancellationToken"></param>
-        public async Task SetAgentAccessAsync(string access, AgentAccessCallback? callback, CancellationToken cancellationToken = default)
+        public async Task<AgentAccessEventArgs> SetAgentAccessAsync(string access, CancellationToken cancellationToken = default)
         {
-            if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim?.Caps == null) { return; }
+            if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim?.Caps == null)
+                return new AgentAccessEventArgs(false, AgentAccess);
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -1909,7 +1903,8 @@ namespace LibreMetaverse
                 ["access_prefs"] = new OSDMap { ["max"] = access }
             };
             Uri? cap = Client.Network.CurrentSim.Caps.CapabilityURI("UpdateAgentInformation");
-            if (cap == null) { return; }
+            if (cap == null)
+                return new AgentAccessEventArgs(false, AgentAccess);
 
             bool success = true;
             try
@@ -1956,11 +1951,7 @@ namespace LibreMetaverse
                 Logger.Error("SetAgentAccessAsync failed", ex, Client);
                 success = false;
             }
-            if (callback != null)
-            {
-                try { callback(new AgentAccessEventArgs(success, AgentAccess)); }
-                catch (Exception ex) { Logger.Error("Exception in AgentAccess callback", ex, Client); }
-            }
+            return new AgentAccessEventArgs(success, AgentAccess);
         }
 
         /// <summary>

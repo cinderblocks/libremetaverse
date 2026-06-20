@@ -718,20 +718,14 @@ namespace LibreMetaverse
         /// <param name="ids">List of UUIDs to lookup</param>
         /// <param name="callback">Callback to report result of the operation</param>
         /// <param name="cancellationToken"></param>
-        public async Task GetDisplayNames(List<UUID> ids, DisplayNamesCallback callback, CancellationToken cancellationToken = default)
+        public async Task<(bool success, AgentDisplayName[]? names, UUID[]? badIDs)> GetDisplayNamesAsync(List<UUID> ids, CancellationToken cancellationToken = default)
         {
             if (!DisplayNamesAvailable() || ids.Count == 0)
-            {
-                callback(false, null, null);
-                return;
-            }
+                return (false, null, null);
 
             var cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("GetDisplayNames");
             if (cap == null)
-            {
-                callback(false, null, null);
-                return;
-            }
+                return (false, null, null);
 
             var uri = new UriBuilder(cap)
             {
@@ -742,22 +736,20 @@ namespace LibreMetaverse
             {
                 var (response, data) = await Client.HttpCapsClient.GetAsync(uri.Uri, cancellationToken);
                 if (data == null)
-                {
-                    callback(false, null, null);
-                    return;
-                }
+                    return (false, null, null);
                 GetDisplayNamesMessage msg = new GetDisplayNamesMessage();
                 OSD result = OSDParser.Deserialize(data);
                 if (result is OSDMap respMap)
                 {
                     msg.Deserialize(respMap);
-                    callback(true, msg.Agents, msg.BadIDs);
+                    return (true, msg.Agents, msg.BadIDs);
                 }
+                return (false, null, null);
             }
             catch (Exception ex)
             {
                 Logger.Warn("Failed to call GetDisplayNames capability: ", ex, Client);
-                callback(false, null, null);
+                return (false, null, null);
             }
         }
 
@@ -826,15 +818,11 @@ namespace LibreMetaverse
         /// <param name="avatarid">Avatar to request the AgentProfile of</param>
         /// <param name="callback">Callback to handle the AgentProfile response</param>
         /// <param name="cancellationToken"></param>
-        public async Task RequestAgentProfile(UUID avatarid, AgentProfileCallback callback, CancellationToken cancellationToken = default)
+        public async Task<(bool success, AgentProfileMessage? profile)> RequestAgentProfileAsync(UUID avatarid, CancellationToken cancellationToken = default)
         {
-            // Re-check and capture the capability URI under a local variable to avoid races
             var baseUri = Client.Network.CurrentSim?.Caps?.CapabilityURI("AgentProfile");
             if (baseUri == null)
-            {
-                callback(false, null);
-                return;
-            }
+                return (false, null);
 
             var uri = new Uri(baseUri, avatarid.ToString());
 
@@ -844,30 +832,23 @@ namespace LibreMetaverse
                 if (!response.IsSuccessStatusCode)
                 {
                     Logger.Warn($"AgentProfile capability returned non-success status: {response.StatusCode}", Client);
-                    callback(false, null);
-                    return;
+                    return (false, null);
                 }
                 if (data == null)
-                {
-                    callback(false, null);
-                    return;
-                }
+                    return (false, null);
                 var msg = new AgentProfileMessage();
                 var result = OSDParser.Deserialize(data);
                 if (result is OSDMap respMap)
                 {
                     msg.Deserialize(respMap);
-                    callback(true, msg);
+                    return (true, msg);
                 }
-                else
-                {
-                    callback(false, null);
-                }
+                return (false, null);
             }
             catch (Exception ex)
             {
                 Logger.Warn("Failed to call AgentProfile capability: ", ex, Client);
-                callback(false, null);
+                return (false, null);
             }
         }
 
