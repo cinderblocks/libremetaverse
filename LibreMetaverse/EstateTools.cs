@@ -615,15 +615,6 @@ namespace LibreMetaverse
             EstateOwnerMessage("restart", "-1");
         }
 
-        public void SetRegionInfo(bool blockTerraform, bool blockFly, bool blockFlyOver, bool allowDamage, 
-            bool allowLandResell, bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, 
-            bool blockParcelSearch, RegionMaturity maturity)
-        {
-            // Preserve synchronous API while avoiding Task.Result to prevent deadlocks.
-            SetRegionInfoAsync(blockTerraform, blockFly, blockFlyOver, allowDamage, allowLandResell, restrictPushing,
-                allowParcelJoinDivide, agentLimit, objectBonus, blockParcelSearch, maturity).GetAwaiter().GetResult();
-        }
-
         /// <summary>
         /// Async-first variant of SetRegionInfo. Awaits capability call and falls back to UDP if necessary.
         /// </summary>

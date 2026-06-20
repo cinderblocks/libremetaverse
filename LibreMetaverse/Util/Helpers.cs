@@ -721,13 +721,4 @@ namespace LibreMetaverse
             }
         }
     }
-
-    public static class AsyncHelper
-    {
-
-        public static void Sync(Func<Task> func) => Task.Run(func).GetAwaiter().GetResult();
-
-        public static T Sync<T>(Func<Task<T>> func) => Task.Run(func).GetAwaiter().GetResult();
-
-    }
 }

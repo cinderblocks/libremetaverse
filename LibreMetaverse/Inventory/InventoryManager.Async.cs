@@ -470,7 +470,7 @@ namespace LibreMetaverse
                     var payload = new OSDMap { ["items"] = ops, ["agent_id"] = Client.Self.AgentID };
 
                     // Post to AIS inventory API; ignore result for now and let server emit normal copy callbacks
-                    _ = PostCapAsync(invCap, payload, cancellationToken).ConfigureAwait(false);
+                    _ = PostCapAsync(invCap, payload, cancellationToken);
                     return Task.CompletedTask;
                 }
                 catch (Exception)

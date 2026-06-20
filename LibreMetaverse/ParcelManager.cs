@@ -1767,18 +1767,6 @@ namespace LibreMetaverse
         /// <param name="location">Location of the parcel in the remote region</param>
         /// <param name="regionHandle">Remote region handle</param>
         /// <param name="regionID">Remote region UUID</param>
-        /// <returns>If successful UUID of the remote parcel, UUID.Zero otherwise</returns>
-        public UUID RequestRemoteParcelID(Vector3 location, ulong regionHandle, UUID regionID)
-        {
-            return RequestRemoteParcelIDAsync(location, regionHandle, regionID, CancellationToken.None).GetAwaiter().GetResult();
-        }
-
-        /// <summary>
-        /// Requests the UUID of the parcel in a remote region at a specified location
-        /// </summary>
-        /// <param name="location">Location of the parcel in the remote region</param>
-        /// <param name="regionHandle">Remote region handle</param>
-        /// <param name="regionID">Remote region UUID</param>
         /// <param name="cancellationToken">Thread cancellation token</param>
         /// <returns>If successful UUID of the remote parcel, UUID.Zero otherwise</returns>
         public async Task<UUID> RequestRemoteParcelIDAsync(Vector3 location, ulong regionHandle, UUID regionID, CancellationToken cancellationToken = default)

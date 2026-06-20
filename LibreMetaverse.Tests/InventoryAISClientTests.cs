@@ -258,30 +258,21 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        public async Task MoveCategoryLinks_AlwaysInvokesCallbackWithFalse()
+        public async Task MoveCategoryLinksAsync_AlwaysReturnsFalse()
         {
             var client = new InventoryAISClient(new GridClient());
-            bool? result = null;
-            await client.MoveCategoryLinks("outfit", UUID.Random(), b => result = b);
+            var result = await client.MoveCategoryLinksAsync("outfit", UUID.Random());
             Assert.That(result, Is.False,
-                "MoveCategoryLinks has no AIS v3 equivalent and must always report failure");
+                "MoveCategoryLinksAsync has no AIS v3 equivalent and must always return false");
         }
 
         [Test]
-        public async Task MoveCategoryLinks_NullCallback_DoesNotThrow()
+        public void MoveCategoryLinksAsync_ReturnsCompletedTask()
         {
             var client = new InventoryAISClient(new GridClient());
-            Assert.DoesNotThrowAsync(() => client.MoveCategoryLinks("outfit", UUID.Random(), null));
-            await Task.CompletedTask;
-        }
-
-        [Test]
-        public void MoveCategoryLinks_ReturnsCompletedTask()
-        {
-            var client = new InventoryAISClient(new GridClient());
-            var task = client.MoveCategoryLinks("outfit", UUID.Random(), _ => { });
+            var task = client.MoveCategoryLinksAsync("outfit", UUID.Random());
             Assert.That(task.IsCompleted, Is.True,
-                "MoveCategoryLinks should return an already-completed task");
+                "MoveCategoryLinksAsync should return an already-completed task");
         }
     }
 }

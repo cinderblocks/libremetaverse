@@ -227,41 +227,43 @@ namespace LibreMetaverse
             if (uri == null || syntaxId == null || syntaxId.Type != OSDType.UUID) { return; }
             if (syntaxId.AsUUID() == _syntaxId) { return; }
             
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    var (response, data) = await e.Simulator.Client.HttpCapsClient.GetAsync(uri, CancellationToken.None);
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        var status = $"{response.StatusCode} {response.ReasonPhrase}";
-                        Logger.Warn($"Failed to retrieve syntax file. Status: {status}", _client!);
-                        return;
-                    }
-                    if (data == null) return;
-                    OSD features = OSDParser.Deserialize(data);
-                    if (features.Type != OSDType.Map)
-                    {
-                        Logger.Warn("Invalid format for syntax file. Root element is not a map.");
-                        return;
-                    }
-                    Parse((OSDMap)features);
-                    _syntaxId = syntaxId.AsUUID();
-                    using (FileStream writer =
-                           new FileStream(Path.Combine(_client!.Settings.ASSET_CACHE_DIR, $"keywords_lsl_{syntaxId}.xml"),
-                               FileMode.Create, FileAccess.Write))
-                    {
-                        var bytes = OSDParser.SerializeLLSDXmlBytes(features);
-                        writer.Write(bytes, 0, bytes.Length);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Warn($"Failed to retrieve syntax file. Error: {ex.Message}", _client!);
-                }
-            });
+            _ = FetchLslSyntaxAsync(uri, syntaxId);
         }
-        
+
+        private async Task FetchLslSyntaxAsync(Uri uri, OSD syntaxId)
+        {
+            try
+            {
+                var (response, data) = await _client!.HttpCapsClient.GetAsync(uri, CancellationToken.None);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var status = $"{response.StatusCode} {response.ReasonPhrase}";
+                    Logger.Warn($"Failed to retrieve syntax file. Status: {status}", _client!);
+                    return;
+                }
+                if (data == null) return;
+                OSD features = OSDParser.Deserialize(data);
+                if (features.Type != OSDType.Map)
+                {
+                    Logger.Warn("Invalid format for syntax file. Root element is not a map.");
+                    return;
+                }
+                Parse((OSDMap)features);
+                _syntaxId = syntaxId.AsUUID();
+                using (FileStream writer =
+                       new FileStream(Path.Combine(_client!.Settings.ASSET_CACHE_DIR, $"keywords_lsl_{syntaxId}.xml"),
+                           FileMode.Create, FileAccess.Write))
+                {
+                    var bytes = OSDParser.SerializeLLSDXmlBytes(features);
+                    writer.Write(bytes, 0, bytes.Length);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to retrieve syntax file. Error: {ex.Message}", _client!);
+            }
+        }
+
         private void ParseFile(Stream stream)
         {
             using (XmlTextReader reader = new XmlTextReader(stream))

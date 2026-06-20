@@ -1036,7 +1036,7 @@ namespace LibreMetaverse.Appearance
             try
             {
                 client.Appearance.AppearanceSet += handleAppearanceSet;
-                client.Appearance.ReplaceOutfit(newOutfitItemMap.Values.ToList(), false);
+                await client.Appearance.ReplaceOutfitAsync(newOutfitItemMap.Values.ToList(), false).ConfigureAwait(false);
 
                 var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(10000, cancellationToken));
                 if (completedTask != tcs.Task)
@@ -1245,21 +1245,14 @@ namespace LibreMetaverse.Appearance
             await AddLinks(itemsToAdd, cancellationToken);
 
             client.Appearance.AddToOutfit(itemsToAdd, replace);
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(2000, cancellationToken).ContinueWith(_ => { }, cancellationToken);
-                try
-                {
-                    await client.Appearance.RequestSetAppearance(true);
-                }
-                catch { }
+            _ = DelayedOutfitUpdateAsync(itemsToAdd, itemsToRemove, cancellationToken);
+        }
 
-                try
-                {
-                    await policy.ReportItemChange(itemsToAdd, itemsToRemove, cancellationToken);
-                }
-                catch { }
-            }, cancellationToken);
+        private async Task DelayedOutfitUpdateAsync(List<InventoryItem> itemsToAdd, List<InventoryItem> itemsToRemove, CancellationToken cancellationToken)
+        {
+            await Task.Delay(2000, cancellationToken).ContinueWith(_ => { }, cancellationToken);
+            try { await client.Appearance.RequestSetAppearance(true); } catch { }
+            try { await policy.ReportItemChange(itemsToAdd, itemsToRemove, cancellationToken); } catch { }
         }
 
         /// <summary>

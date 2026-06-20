@@ -634,30 +634,6 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Find an object in inventory using a specific path to search
-        /// </summary>
-        /// <param name="baseFolder">The folder to begin the search in</param>
-        /// <param name="inventoryOwner">The object owners <see cref="UUID"/></param>
-        /// <param name="path">A string path to search</param>
-        /// <param name="timeout">time to wait for reply</param>
-        /// <returns>Found items <see cref="UUID"/> or <see cref="UUID.Zero"/> if
-        /// timeout occurs or item is not found</returns>
-        public UUID FindObjectByPath(UUID baseFolder, UUID inventoryOwner, string path, TimeSpan timeout)
-        {
-            using (var cts = new CancellationTokenSource())
-            {
-                cts.CancelAfter(timeout);
-                try
-                {
-                    return FindObjectByPathAsync(baseFolder, inventoryOwner, path, cts.Token).GetAwaiter().GetResult();
-                }
-                catch (OperationCanceledException)
-                {
-                    return UUID.Zero;
-                }
-            }
-        }
-
         /// <summary>
         /// Find inventory items by path
         /// </summary>
@@ -795,20 +771,7 @@ namespace LibreMetaverse
             {
                 if (inv != null)
                 {
-                    _ = Client.AisClient.UpdateCategory(folderID, inv.GetOSD(), success =>
-                    {
-                    if (success)
-                    {
-                        // Ensure local store is updated (already updated above) but keep parity
-                        if (_Store != null)
-                        {
-                            using (var writeLock = _storeLock.WriteLock())
-                            {
-                                _Store.UpdateNodeFor(inv);
-                            }
-                        }
-                    }
-                    }).ConfigureAwait(false);
+                    _ = Client.AisClient.UpdateCategoryAsync(folderID, inv.GetOSD());
                 }
             }
             else
@@ -1469,7 +1432,8 @@ namespace LibreMetaverse
                 if (folderKey != UUID.Zero)
                 {
                     // Fire-and-forget AIS call
-                    _ = Client.AisClient.PurgeDescendents(folderKey, RemoveLocalUi, cancellationToken);
+                    _ = Client.AisClient.PurgeDescendentsAsync(folderKey, cancellationToken)
+                        .ContinueWith(t => RemoveLocalUi(t.Status == TaskStatus.RanToCompletion && t.Result, folderKey), TaskScheduler.Default);
                 }
             }
             else
@@ -1694,7 +1658,8 @@ namespace LibreMetaverse
                 var wrapped = WrapItemCreatedCallback(callback);
                 try
                 {
-                    await Client.AisClient.CreateInventory(folderID, newInventory, true, wrapped, cancellationToken).ConfigureAwait(false);
+                    var (aisSuccess, aisCreated) = await Client.AisClient.CreateInventoryAsync(folderID, newInventory, true, cancellationToken).ConfigureAwait(false);
+                    wrapped?.Invoke(aisSuccess, aisCreated);
                 }
                 catch (OperationCanceledException) { throw; }
                 catch (Exception ex)
@@ -1949,9 +1914,8 @@ namespace LibreMetaverse
                         }
                     }
                     // Fire-and-forget AIS update � wrap callback to merge into local store
-                    Action<bool> aisCallback = success => { if (success) MergeUpdateIntoStore(update, item.UUID); };
-
-                    _ = Client.AisClient.UpdateItem(item.UUID, update, aisCallback);
+                    _ = Client.AisClient.UpdateItemAsync(item.UUID, update)
+                        .ContinueWith(t => { if (t.Status == TaskStatus.RanToCompletion && t.Result) MergeUpdateIntoStore(update, item.UUID); }, TaskScheduler.Default);
                 }
             }
             else
@@ -2001,27 +1965,6 @@ namespace LibreMetaverse
 
                 Client.Network.SendPacket(update);
             }
-        }
-
-        /// <summary>
-        /// Send an upload notecard request
-        /// </summary>
-        /// <param name="data"></param>
-        /// <param name="notecardID"></param>
-        /// <param name="callback"></param>
-        /// <param name="cancellationToken"></param>
-        public void RequestUploadNotecardAsset(byte[] data, UUID notecardID, InventoryUploadedAssetCallback callback, CancellationToken cancellationToken = default)
-        {
-            var cap = GetCapabilityURI("UpdateNotecardAgentInventory", false);
-            if (cap == null)
-            {
-                throw new Exception("Capability system not initialized to send asset");
-            }
-
-            var query = new OSDMap { { "item_id", OSD.FromUUID(notecardID) } };
-
-            // Fire-and-forget the async-first implementation which will invoke the upload response handling
-            _ = RequestUploadNotecardAssetAsync(data, notecardID, callback, cancellationToken);
         }
 
         #endregion Update

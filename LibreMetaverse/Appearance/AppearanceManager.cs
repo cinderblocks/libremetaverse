@@ -1067,9 +1067,9 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="wearableItems">List of wearable inventory items that
         /// define a new outfit</param>
-        public void ReplaceOutfit(List<InventoryItem> wearableItems)
+        public Task ReplaceOutfitAsync(List<InventoryItem> wearableItems)
         {
-            ReplaceOutfit(wearableItems, true);
+            return ReplaceOutfitAsync(wearableItems, true);
         }
 
         /// <summary>
@@ -1079,7 +1079,7 @@ namespace LibreMetaverse
         /// define a new outfit</param>
         /// <param name="safe">Check if we have all body parts, set this to false only
         /// if you know what you're doing</param>
-        public void ReplaceOutfit(List<InventoryItem> wearableItems, bool safe)
+        public async Task ReplaceOutfitAsync(List<InventoryItem> wearableItems, bool safe)
         {
             var wearables = wearableItems.OfType<InventoryWearable>().ToList();
             var attachments = wearableItems.Where(item => item is InventoryAttachment || item is InventoryObject).ToList();
@@ -1105,7 +1105,7 @@ namespace LibreMetaverse
                     }
                 }
 
-                if (needsCurrentWearables && !GatherAgentWearables())
+                if (needsCurrentWearables && !await GatherAgentWearablesAsync().ConfigureAwait(false))
                 {
                     Logger.Error("Failed to fetch the current agent wearables, cannot safely replace outfit");
                     return;
@@ -1204,12 +1204,12 @@ namespace LibreMetaverse
         /// to the outfit or become a new outfit</param>
         /// <param name="replaceItems">True to replace existing items with the
         /// new list of items, false to add these items to the existing outfit</param>
-        public void WearOutfit(List<InventoryBase> wearables, bool replaceItems)
+        public async Task WearOutfitAsync(List<InventoryBase> wearables, bool replaceItems)
         {
             var wearableItems = wearables.OfType<InventoryItem>().ToList();
 
             if (replaceItems)
-                ReplaceOutfit(wearableItems);
+                await ReplaceOutfitAsync(wearableItems).ConfigureAwait(false);
             else
                 AddToOutfit(wearableItems);
         }
@@ -1756,27 +1756,6 @@ namespace LibreMetaverse
             }
 
             return res;
-        }
-
-        /// <summary>
-        /// Blocking method to populate the Wearables dictionary
-        /// </summary>
-        /// <returns>True on success, otherwise false</returns>
-        private bool GatherAgentWearables()
-        {
-            try
-            {
-                return GatherAgentWearablesAsync(CancellationToken.None).GetAwaiter().GetResult();
-            }
-            catch (OperationCanceledException)
-            {
-                return false;
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn($"GatherAgentWearables failed: {ex}", Client);
-                return false;
-            }
         }
 
         /// <summary>

@@ -2106,7 +2106,7 @@ namespace LibreMetaverse
         /// <param name="face">Prim face number</param>
         /// <param name="sim">Simulator in which prim is located</param>
         /// <param name="cancellationToken">Cancellation token for the request</param>
-        public void NavigateObjectMedia(UUID primID, int face, string newURL, Simulator sim, CancellationToken cancellationToken = default)
+        public async Task NavigateObjectMediaAsync(UUID primID, int face, string newURL, Simulator sim, CancellationToken cancellationToken = default)
         {
             Uri? cap = sim?.Caps?.CapabilityURI("ObjectMediaNavigate");
             if (cap == null)
@@ -2120,19 +2120,16 @@ namespace LibreMetaverse
                 PrimID = primID, URL = newURL, Face = face
             };
 
-            _ = Task.Run(async () =>
+            try
             {
-                try
-                {
-                    var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload.Serialize(), cancellationToken);
-                    if (cancellationToken.IsCancellationRequested) return;
-                }
-                catch (OperationCanceledException) { }
-                catch (Exception ex)
-                {
-                    Logger.Error($"ObjectMediaNavigate: {ex.Message}", ex, Client);
-                }
-            });
+                var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload.Serialize(), cancellationToken);
+                if (cancellationToken.IsCancellationRequested) return;
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                Logger.Error($"ObjectMediaNavigate: {ex.Message}", ex, Client);
+            }
         }
 
         /// <summary>
@@ -2143,7 +2140,7 @@ namespace LibreMetaverse
         /// no media, <see cref="MediaEntry"/> on faces which contain the media</param>
         /// <param name="sim">Simulator in which prim is located</param>
         /// <param name="cancellationToken">Cancellation token for the request</param>
-        public void UpdateObjectMedia(UUID primID, MediaEntry[] faceMedia, Simulator sim, CancellationToken cancellationToken = default)
+        public async Task UpdateObjectMediaAsync(UUID primID, MediaEntry[] faceMedia, Simulator sim, CancellationToken cancellationToken = default)
         {
             Uri? cap = sim?.Caps?.CapabilityURI("ObjectMedia");
             if (cap == null)
@@ -2154,20 +2151,16 @@ namespace LibreMetaverse
 
             ObjectMediaUpdate payload = new ObjectMediaUpdate {PrimID = primID, FaceMedia = faceMedia, Verb = "UPDATE"};
 
-            _ = Task.Run(async () =>
+            try
             {
-                try
-                {
-                    var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload.Serialize(), cancellationToken);
-                    if (cancellationToken.IsCancellationRequested) return;
-                }
-                catch (OperationCanceledException) { }
-                catch (Exception ex)
-                {
-                    Logger.Error($"ObjectMediaUpdate: {ex.Message}", ex, Client);
-                }
-            });
-
+                var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload.Serialize(), cancellationToken);
+                if (cancellationToken.IsCancellationRequested) return;
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                Logger.Error($"ObjectMediaUpdate: {ex.Message}", ex, Client);
+            }
         }
 
         /// <summary>
@@ -2177,14 +2170,13 @@ namespace LibreMetaverse
         /// <param name="sim">Simulator where prim is located</param>
         /// <param name="callback">Call this callback when done</param>
         /// <param name="cancellationToken">Cancellation token for the request</param>
-        public void RequestObjectMedia(UUID primID, Simulator sim, ObjectMediaCallback? callback, CancellationToken cancellationToken = default)
+        public async Task RequestObjectMediaAsync(UUID primID, Simulator sim, ObjectMediaCallback? callback, CancellationToken cancellationToken = default)
         {
             Uri? cap = sim?.Caps?.CapabilityURI("ObjectMedia");
             if (cap != null)
             {
                 ObjectMediaRequest payload = new ObjectMediaRequest {PrimID = primID, Verb = "GET"};
 
-                _ = Task.Run(async () =>
                 {
                     try
                     {
@@ -2277,7 +2269,7 @@ namespace LibreMetaverse
                             catch (Exception ex) { Logger.Error(ex.Message, Client); }
                         }
                     }
-                });
+                }
             }
             else
             {

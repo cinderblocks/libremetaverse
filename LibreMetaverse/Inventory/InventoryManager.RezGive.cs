@@ -28,6 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using LibreMetaverse.Packets;
 
 namespace LibreMetaverse
@@ -204,7 +205,8 @@ namespace LibreMetaverse
 
             if (Client.AisClient.IsAvailable)
             {
-                _ = Client.AisClient.PurgeDescendents(folderID, RemoveLocalUi).ConfigureAwait(false);
+                _ = Client.AisClient.PurgeDescendentsAsync(folderID)
+                    .ContinueWith(t => RemoveLocalUi(t.Status == TaskStatus.RanToCompletion && t.Result, folderID), TaskScheduler.Default);
             }
             else
             {
@@ -318,30 +320,6 @@ namespace LibreMetaverse
                 if ((invItem.Permissions.OwnerMask & PermissionMask.Copy) == PermissionMask.None)
                 {
                     Store.RemoveNodeFor(invItem);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Recurse inventory category and return folders and items. Does NOT contain parent folder being searched
-        /// </summary>
-        /// <param name="folderID">Inventory category to recursively search</param>
-        /// <param name="owner">Owner of folder</param>
-        /// <param name="cats">reference to list of categories</param>
-        /// <param name="items">reference to list of items</param>
-        private void GetInventoryRecursive(UUID folderID, UUID owner,
-            ref List<InventoryFolder> cats, ref List<InventoryItem> items)
-        {
-            // Use the async implementation with a reasonable timeout to preserve original behavior
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
-            {
-                try
-                {
-                    GetInventoryRecursiveAsync(folderID, owner, cats, items, cts.Token).GetAwaiter().GetResult();
-                }
-                catch (OperationCanceledException)
-                {
-                    // preserve previous behavior: if timeout occurs, just return what we have
                 }
             }
         }

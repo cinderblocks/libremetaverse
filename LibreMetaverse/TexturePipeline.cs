@@ -491,7 +491,7 @@ public delegate void TextureDownloadCallback(TextureRequestState state, AssetTex
                     nextTask.State = TextureRequestState.Started;
 
                     // Start worker that will respect semaphore slots
-                    _ = Task.Run(async () => await RunWorkerAsync(nextTask).ConfigureAwait(false));
+                    _ = RunWorkerAsync(nextTask);
                 }
 
                 // Give up some CPU time

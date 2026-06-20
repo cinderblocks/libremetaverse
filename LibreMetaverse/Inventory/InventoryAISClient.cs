@@ -48,8 +48,7 @@ namespace LibreMetaverse
     /// behavior differences:
     /// - The C++ viewer integrates updates directly into the local inventory model
     ///   (version accounting, descendant counts, observers, notifications). This C#
-    ///   client only returns parsed results (or invokes callbacks); it does not
-    ///   mutate any global inventory model.
+    ///   client only returns parsed results; it does not mutate any global inventory model.
     /// - The C++ code contains recovery and policy logic for specific HTTP errors
     ///   (e.g. special handling for 403 content-limit cases, 410->refetch/delete
     ///   behavior, notifications). This client performs logging and returns success
@@ -57,9 +56,6 @@ namespace LibreMetaverse
     /// - Concurrency and scheduling: the C++ viewer uses its coroutine manager and
     ///   a postponed queue to throttle requests; this client uses async/await and
     ///   relies on the caller for any throttling or queuing policy.
-    /// - The C++ callbacks often return LLSD and identifiers for viewer-side
-    ///   processing; this client exposes typed `InventoryFolder`/`InventoryItem`
-    ///   lists and Task-based overloads for convenience.
     /// Use callers should apply returned data into their inventory model and
     /// implement any viewer-specific recovery or notification behavior if needed.
     /// </remarks>
@@ -132,71 +128,45 @@ namespace LibreMetaverse
         /// </summary>
         public bool IsAvailable => (Client.Network?.CurrentSim?.Caps?.CapabilityURI(INVENTORY_CAP_NAME) != null);
 
+        // --- Mutation methods ---
+
         /// <summary>
         /// Create a new inventory item or link under the specified parent category.
-        /// The callback receives a success flag and the first created InventoryItem (if any).
+        /// Returns success flag and the first created InventoryItem (if any).
         /// </summary>
-        /// <param name="parentUuid">Parent category UUID.</param>
-        /// <param name="newInventory">OSD payload describing the item or link to create.</param>
-        /// <param name="createLink">If true, payload represents a link; otherwise an actual item.</param>
-        /// <param name="callback">Callback invoked with (success, createdItem).</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task CreateInventory(UUID parentUuid, OSD newInventory, bool createLink,
-            InventoryManager.ItemCreatedCallback callback, CancellationToken cancellationToken = default)
+        public async Task<(bool success, InventoryItem? created)> CreateInventoryAsync(UUID parentUuid, OSD newInventory, bool createLink, CancellationToken cancellationToken = default)
         {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false, null); return; }
-
-            var success = false;
-            InventoryItem? item = null;
-
+            if (!getInventoryCap(out var cap)) return (false, null);
             try
             {
-                if (!Uri.TryCreate($"{cap}/category/{parentUuid}?tid={UUID.Random()}",
-                        UriKind.Absolute, out var uri))
-                {
-                    success = false;
+                if (!Uri.TryCreate($"{cap}/category/{parentUuid}?tid={UUID.Random()}", UriKind.Absolute, out var uri))
+                    return (false, null);
 
-                    callback?.Invoke(false, null);
-                    return;
-                }
+                using var content = new StringContent(OSDParser.SerializeLLSDXmlString(newInventory), Encoding.UTF8, HttpCapsClient.LLSD_XML);
+                using var reply = await Client.HttpCapsClient.PostAsync(uri, content, cancellationToken).ConfigureAwait(false);
 
-                using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(newInventory),
-                           Encoding.UTF8, HttpCapsClient.LLSD_XML))
-                {
-                    using (var reply = await Client.HttpCapsClient.PostAsync(uri, content, cancellationToken).ConfigureAwait(false))
-                    {
-                        success = HandleResponseStatus(reply, $"Create inventory in {parentUuid}");
+                if (!HandleResponseStatus(reply, $"Create inventory in {parentUuid}"))
+                    return (false, null);
 
-                        if (!success)
-                        {
-                            return;
-                        }
 #if NET5_0_OR_GREATER
-                        if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) is OSDMap map)
+                if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) is OSDMap map)
 #else
-                        if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) is OSDMap map)
+                if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) is OSDMap map)
 #endif
-                        {
-                            FireAISMeta(map);
-                            if (map["_embedded"] is OSDMap embedded)
-                            {
-                                var items = !createLink ?
-                                    parseItemsFromResponse((OSDMap)embedded["items"]) :
-                                    parseLinksFromResponse((OSDMap)embedded["links"]);
-                                item = items.FirstOrDefault();
-                            }
-                        }
+                {
+                    FireAISMeta(map);
+                    if (map["_embedded"] is OSDMap embedded)
+                    {
+                        var items = !createLink
+                            ? parseItemsFromResponse((OSDMap)embedded["items"])
+                            : parseLinksFromResponse((OSDMap)embedded["links"]);
+                        return (true, items.FirstOrDefault());
                     }
                 }
+                return (true, null);
             }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback(success, item);
-            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return (false, null); }
         }
 
         /// <summary>
@@ -234,1244 +204,703 @@ namespace LibreMetaverse
             }
         }
 
-        /// <summary>
-        /// Replace (slam) the links in the specified folder with the provided payload.
-        /// </summary>
-        /// <param name="folderUuid">Folder UUID to replace links in.</param>
-        /// <param name="newInventory">OSD payload containing links.</param>
-        /// <param name="callback">Callback invoked with success flag.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task SlamFolder(UUID folderUuid, OSD newInventory, Action<bool> callback,
-            CancellationToken cancellationToken = default)
+        /// <summary>Replace (slam) the links in the specified folder with the provided payload.</summary>
+        public async Task<bool> SlamFolderAsync(UUID folderUuid, OSD newInventory, CancellationToken cancellationToken = default)
         {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false); return; }
-
-            var success = false;
-
+            if (!getInventoryCap(out var cap)) return false;
             try
             {
-                if (!Uri.TryCreate($"{cap}/category/{folderUuid}/links?tid={UUID.Random()}",
-                        UriKind.Absolute, out var uri))
-                {
-                    callback?.Invoke(false);
-                    return;
-                }
+                if (!Uri.TryCreate($"{cap}/category/{folderUuid}/links?tid={UUID.Random()}", UriKind.Absolute, out var uri))
+                    return false;
 
-                using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(newInventory),
-                           Encoding.UTF8, HttpCapsClient.LLSD_XML))
-                {
-                    using (var reply = await Client.HttpCapsClient.PutAsync(uri, content, cancellationToken).ConfigureAwait(false))
-                    {
-                        success = HandleResponseStatus(reply, $"Slam folder {folderUuid}");
-
-                        // no further parsing expected
-                    }
-                }
+                using var content = new StringContent(OSDParser.SerializeLLSDXmlString(newInventory), Encoding.UTF8, HttpCapsClient.LLSD_XML);
+                using var reply = await Client.HttpCapsClient.PutAsync(uri, content, cancellationToken).ConfigureAwait(false);
+                return HandleResponseStatus(reply, $"Slam folder {folderUuid}");
             }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success);
-            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return false; }
         }
 
-        /// <summary>
-        /// Remove a category from the inventory.
-        /// </summary>
-        /// <param name="categoryUuid">Category UUID to remove.</param>
-        /// <param name="callback">Callback invoked with (success, categoryUuid).</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task RemoveCategory(UUID categoryUuid, Action<bool, UUID> callback,
-            CancellationToken cancellationToken = default)
+        /// <summary>Remove a category from the inventory.</summary>
+        public async Task<bool> RemoveCategoryAsync(UUID categoryUuid, CancellationToken cancellationToken = default)
         {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false, categoryUuid); return; }
-
-            var success = false;
-
+            if (!getInventoryCap(out var cap)) return false;
             try
             {
                 if (!Uri.TryCreate($"{cap}/category/{categoryUuid}", UriKind.Absolute, out var uri))
+                    return false;
+
+                using var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken).ConfigureAwait(false);
+
+                bool success;
+                if ((int)reply.StatusCode == 410)
                 {
-                    callback?.Invoke(false, categoryUuid);
-                    return;
+                    Logger.Info($"Remove folder {categoryUuid}: already gone on server (410)");
+                    success = true;
+                }
+                else
+                {
+                    success = HandleResponseStatus(reply, $"Remove folder {categoryUuid}");
                 }
 
-                using (var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken).ConfigureAwait(false))
+                if (success)
                 {
-                    // 410 GONE: folder already deleted on server — desired state achieved
-                    if ((int)reply.StatusCode == 410)
-                    {
-                        Logger.Info($"Remove folder {categoryUuid}: already gone on server (410)");
-                        success = true;
-                    }
-                    else
-                    {
-                        success = HandleResponseStatus(reply, $"Remove folder {categoryUuid}");
-                    }
-                    if (success)
-                    {
 #if NET5_0_OR_GREATER
-                        FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) as OSDMap);
+                    FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) as OSDMap);
 #else
-                        FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) as OSDMap);
+                    FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) as OSDMap);
 #endif
-                    }
                 }
+                return success;
             }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success, categoryUuid);
-            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return false; }
         }
 
-        /// <summary>
-        /// Remove an item from the inventory.
-        /// </summary>
-        /// <param name="itemUuid">Item UUID to remove.</param>
-        /// <param name="callback">Callback invoked with (success, itemUuid).</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task RemoveItem(UUID itemUuid, Action<bool, UUID> callback,
-            CancellationToken cancellationToken = default)
+        /// <summary>Remove an item from the inventory.</summary>
+        public async Task<bool> RemoveItemAsync(UUID itemUuid, CancellationToken cancellationToken = default)
         {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false, itemUuid); return; }
-
-            var success = false;
-
-            try
-            {
-                if (!Uri.TryCreate($"{cap}/item/{itemUuid}", UriKind.Absolute, out var uri)) { callback?.Invoke(false, itemUuid); return; }
-
-                using (var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken).ConfigureAwait(false))
-                {
-                    // 410 GONE: item already deleted on server — desired state achieved
-                    if ((int)reply.StatusCode == 410)
-                    {
-                        Logger.Info($"Remove item {itemUuid}: already gone on server (410)");
-                        success = true;
-                    }
-                    else
-                    {
-                        success = HandleResponseStatus(reply, $"Remove item {itemUuid}");
-                    }
-                    if (success)
-                    {
-#if NET5_0_OR_GREATER
-                        FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) as OSDMap);
-#else
-                        FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) as OSDMap);
-#endif
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success, itemUuid);
-            }
-        }
-
-        /// <summary>
-        /// Copy a category from the library to the user's inventory.
-        /// </summary>
-        /// <param name="sourceUuid">Source library category UUID.</param>
-        /// <param name="destUuid">Destination category UUID in inventory.</param>
-        /// <param name="copySubfolders">If true, include subfolders.</param>
-        /// <param name="callback">Callback invoked with success flag.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task CopyLibraryCategory(UUID sourceUuid, UUID destUuid, bool copySubfolders, Action<bool> callback,
-            CancellationToken cancellationToken = default)
-        {
-            if (!getLibraryCap(out var cap)) { callback?.Invoke(false); return; }
-
-            var success = false;
-
-            try
-            {
-                var url = new StringBuilder($"{cap}/category/{sourceUuid}?tid={UUID.Random()}");
-                if (!copySubfolders) { url.Append(",depth=0"); }
-
-                if (!Uri.TryCreate(url.ToString(), UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
-
-                using (var request = new HttpRequestMessage(new HttpMethod("COPY"), uri))
-                {
-                    request.Headers.Add("Destination", destUuid.ToString());
-
-                    using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                    {
-                        success = HandleResponseStatus(reply, $"Copy library folder {sourceUuid} to {destUuid}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success);
-            }
-        }
-
-        /// <summary>
-        /// Purge all descendants of the given category.
-        /// </summary>
-        /// <param name="categoryUuid">Category to purge descendants from.</param>
-        /// <param name="callback">Callback invoked with (success, categoryUuid).</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task PurgeDescendents(UUID categoryUuid, Action<bool, UUID> callback,
-            CancellationToken cancellationToken = default)
-        {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false, categoryUuid); return; }
-
-            var success = false;
-
-            try
-            {
-                if (!Uri.TryCreate($"{cap}/category/{categoryUuid}/children", UriKind.Absolute, out var uri))
-                {
-                    callback?.Invoke(false, categoryUuid);
-                    return;
-                }
-
-                using (var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken).ConfigureAwait(false))
-                {
-                    success = HandleResponseStatus(reply, $"Purge descendents of {categoryUuid}");
-                    if (success)
-                    {
-#if NET5_0_OR_GREATER
-                        FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) as OSDMap);
-#else
-                        FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) as OSDMap);
-#endif
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success, categoryUuid);
-            }
-        }
-
-        /// <summary>
-        /// Update a category using a partial LLSD update (PATCH).
-        /// </summary>
-        /// <param name="categoryUuid">Target category UUID.</param>
-        /// <param name="updates">OSD map of updates to apply.</param>
-        /// <param name="callback">Callback invoked with success flag.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task UpdateCategory(UUID categoryUuid, OSD updates, Action<bool> callback,
-            CancellationToken cancellationToken = default)
-        {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false); return; }
-
-            var success = false;
-
-            try
-            {
-                if (!Uri.TryCreate($"{cap}/category/{categoryUuid}", UriKind.Absolute, out var uri))
-                {
-                    callback?.Invoke(false);
-                    return;
-                }
-#if (NETSTANDARD2_1_OR_GREATER || NET)
-                using (var request = new HttpRequestMessage(HttpMethod.Patch, uri))
-#else
-                using (var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri))
-#endif
-                {
-                    using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(updates),
-                               Encoding.UTF8, HttpCapsClient.LLSD_XML))
-                    {
-                        request.Content = content;
-
-                        using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                        {
-                            success = HandleResponseStatus(reply, $"Update folder {categoryUuid}");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success);
-            }
-        }
-
-        /// <summary>
-        /// Update an item using a partial LLSD update (PATCH).
-        /// </summary>
-        /// <param name="itemUuid">Item UUID to update.</param>
-        /// <param name="updates">OSD map of updates to apply.</param>
-        /// <param name="callback">Callback invoked with success flag.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task UpdateItem(UUID itemUuid, OSD updates, Action<bool> callback,
-            CancellationToken cancellationToken = default)
-        {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false); return; }
-
-            var success = false;
-
+            if (!getInventoryCap(out var cap)) return false;
             try
             {
                 if (!Uri.TryCreate($"{cap}/item/{itemUuid}", UriKind.Absolute, out var uri))
-                {
-                    callback?.Invoke(false);
-                    return;
-                }
-#if (NETSTANDARD2_1_OR_GREATER || NET)
-                using (var request = new HttpRequestMessage(HttpMethod.Patch, uri))
-#else
-                using (var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri))
-#endif
-                {
-                    using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(updates),
-                               Encoding.UTF8, HttpCapsClient.LLSD_XML))
-                    {
-                        request.Content = content;
+                    return false;
 
-                        using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                        {
-                            success = HandleResponseStatus(reply, $"Update item {itemUuid}");
-                        }
-                    }
+                using var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken).ConfigureAwait(false);
+
+                bool success;
+                if ((int)reply.StatusCode == 410)
+                {
+                    Logger.Info($"Remove item {itemUuid}: already gone on server (410)");
+                    success = true;
                 }
+                else
+                {
+                    success = HandleResponseStatus(reply, $"Remove item {itemUuid}");
+                }
+
+                if (success)
+                {
+#if NET5_0_OR_GREATER
+                    FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) as OSDMap);
+#else
+                    FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) as OSDMap);
+#endif
+                }
+                return success;
             }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success);
-            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return false; }
         }
 
-        // --- GET methods (parsed) ---
-
-        /// <summary>
-        /// Fetch a category and return parsed folders, items and links via callback.
-        /// </summary>
-        /// <param name="category">Category identifier (UUID or well-known name such as "current").</param>
-        /// <param name="callback">Callback invoked with (success, folders, items, links).</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task GetCategory(string category, Action<bool, List<InventoryFolder>, List<InventoryItem>, List<InventoryItem>> callback, CancellationToken cancellationToken = default)
+        /// <summary>Copy a category from the library to the user's inventory.</summary>
+        public async Task<bool> CopyLibraryCategoryAsync(UUID sourceUuid, UUID destUuid, bool copySubfolders, CancellationToken cancellationToken = default)
         {
-            if (!getInventoryCap(out var cap))
-            {
-                callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
-                return;
-            }
-
-            var success = false;
-            List<InventoryFolder> folders = new List<InventoryFolder>();
-            List<InventoryItem> items = new List<InventoryItem>();
-            List<InventoryItem> links = new List<InventoryItem>();
-
+            if (!getLibraryCap(out var cap)) return false;
             try
             {
-                if (!Uri.TryCreate($"{cap}/category/{category}", UriKind.Absolute, out var uri))
-                {
-                    callback?.Invoke(false, folders, items, links);
-                    return;
-                }
+                var url = new StringBuilder($"{cap}/category/{sourceUuid}?tid={UUID.Random()}");
+                if (!copySubfolders) url.Append(",depth=0");
 
-                using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
-                using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                {
-                    success = HandleResponseStatus(reply, $"Fetch category {category}");
+                if (!Uri.TryCreate(url.ToString(), UriKind.Absolute, out var uri)) return false;
 
-                    if (reply.IsSuccessStatusCode)
-                    {
-#if NET5_0_OR_GREATER
-                        var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false));
-#else
-                        var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false));
-#endif
-                        if (deserialized is OSDMap m)
-                        {
-                            ParseEmbedded(m, out folders, out items, out links);
-                        }
-                    }
-                }
+                using var request = new HttpRequestMessage(new HttpMethod("COPY"), uri);
+                request.Headers.Add("Destination", destUuid.ToString());
+                using var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                return HandleResponseStatus(reply, $"Copy library folder {sourceUuid} to {destUuid}");
             }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success, folders ?? new List<InventoryFolder>(), items ?? new List<InventoryItem>(), links ?? new List<InventoryItem>());
-            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return false; }
         }
 
-        /// <summary>
-        /// Fetch category children and return parsed folders, items and links via callback.
-        /// </summary>
-        /// <param name="category">Category identifier.</param>
-        /// <param name="depth">Requested depth (will be clamped).</param>
-        /// <param name="recursive">If true, request full recursion (clamped to server limits).</param>
-        /// <param name="callback">Callback invoked with (success, folders, items, links).</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task GetCategoryChildren(string category, int depth, bool recursive, Action<bool, List<InventoryFolder>, List<InventoryItem>, List<InventoryItem>> callback, CancellationToken cancellationToken = default)
+        /// <summary>Purge all descendants of the given category.</summary>
+        public async Task<bool> PurgeDescendentsAsync(UUID categoryUuid, CancellationToken cancellationToken = default)
         {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>()); return; }
+            if (!getInventoryCap(out var cap)) return false;
+            try
+            {
+                if (!Uri.TryCreate($"{cap}/category/{categoryUuid}/children", UriKind.Absolute, out var uri))
+                    return false;
 
-            var success = false;
-            List<InventoryFolder>? folders = null;
-            List<InventoryItem>? items = null;
-            List<InventoryItem>? links = null;
+                using var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken).ConfigureAwait(false);
+                var success = HandleResponseStatus(reply, $"Purge descendents of {categoryUuid}");
+                if (success)
+                {
+#if NET5_0_OR_GREATER
+                    FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) as OSDMap);
+#else
+                    FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) as OSDMap);
+#endif
+                }
+                return success;
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return false; }
+        }
 
+        /// <summary>Update a category using a partial LLSD update (PATCH).</summary>
+        public async Task<bool> UpdateCategoryAsync(UUID categoryUuid, OSD updates, CancellationToken cancellationToken = default)
+        {
+            if (!getInventoryCap(out var cap)) return false;
+            try
+            {
+                if (!Uri.TryCreate($"{cap}/category/{categoryUuid}", UriKind.Absolute, out var uri))
+                    return false;
+
+#if (NETSTANDARD2_1_OR_GREATER || NET)
+                using var request = new HttpRequestMessage(HttpMethod.Patch, uri);
+#else
+                using var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri);
+#endif
+                using var content = new StringContent(OSDParser.SerializeLLSDXmlString(updates), Encoding.UTF8, HttpCapsClient.LLSD_XML);
+                request.Content = content;
+                using var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                return HandleResponseStatus(reply, $"Update folder {categoryUuid}");
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return false; }
+        }
+
+        /// <summary>Update an item using a partial LLSD update (PATCH).</summary>
+        public async Task<bool> UpdateItemAsync(UUID itemUuid, OSD updates, CancellationToken cancellationToken = default)
+        {
+            if (!getInventoryCap(out var cap)) return false;
+            try
+            {
+                if (!Uri.TryCreate($"{cap}/item/{itemUuid}", UriKind.Absolute, out var uri))
+                    return false;
+
+#if (NETSTANDARD2_1_OR_GREATER || NET)
+                using var request = new HttpRequestMessage(HttpMethod.Patch, uri);
+#else
+                using var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri);
+#endif
+                using var content = new StringContent(OSDParser.SerializeLLSDXmlString(updates), Encoding.UTF8, HttpCapsClient.LLSD_XML);
+                request.Content = content;
+                using var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                return HandleResponseStatus(reply, $"Update item {itemUuid}");
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return false; }
+        }
+
+        /// <summary>Copy a category within inventory.</summary>
+        public async Task<bool> CopyCategoryAsync(UUID sourceUuid, UUID destUuid, bool simulate = false, CancellationToken cancellationToken = default)
+        {
+            if (!getInventoryCap(out var cap)) return false;
+            try
+            {
+                var url = new StringBuilder($"{cap}/category/{sourceUuid}?tid={UUID.Random()}");
+                if (simulate) url.Append("&simulate=1");
+
+                if (!Uri.TryCreate(url.ToString(), UriKind.Absolute, out var uri)) return false;
+
+                using var request = new HttpRequestMessage(new HttpMethod("COPY"), uri);
+                request.Headers.Add("Destination", destUuid.ToString());
+                using var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                return HandleResponseStatus(reply, $"Copy category {sourceUuid} to {destUuid}");
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return false; }
+        }
+
+        /// <summary>Move a category within inventory by patching its parent_id.</summary>
+        public async Task<bool> MoveCategoryAsync(UUID sourceUuid, UUID destUuid, CancellationToken cancellationToken = default)
+        {
+            if (!getInventoryCap(out var cap)) return false;
+            try
+            {
+                if (!Uri.TryCreate($"{cap}/category/{sourceUuid}", UriKind.Absolute, out var uri)) return false;
+
+                var updates = new OSDMap { ["parent_id"] = OSD.FromUUID(destUuid) };
+#if (NETSTANDARD2_1_OR_GREATER || NET)
+                using var request = new HttpRequestMessage(HttpMethod.Patch, uri);
+#else
+                using var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri);
+#endif
+                using var content = new StringContent(OSDParser.SerializeLLSDXmlString(updates), Encoding.UTF8, HttpCapsClient.LLSD_XML);
+                request.Content = content;
+                using var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                var success = HandleResponseStatus(reply, $"Move category {sourceUuid} to {destUuid}");
+                if (success)
+                {
+#if NET5_0_OR_GREATER
+                    FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) as OSDMap);
+#else
+                    FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) as OSDMap);
+#endif
+                }
+                return success;
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return false; }
+        }
+
+        /// <summary>Replace children of a category using PUT.</summary>
+        public async Task<bool> PutCategoryChildrenAsync(string category, OSD childrenPayload, CancellationToken cancellationToken = default)
+        {
+            if (!getInventoryCap(out var cap)) return false;
+            try
+            {
+                if (!Uri.TryCreate($"{cap}/category/{category}/children?tid={UUID.Random()}", UriKind.Absolute, out var uri)) return false;
+
+                using var content = new StringContent(OSDParser.SerializeLLSDXmlString(childrenPayload), Encoding.UTF8, HttpCapsClient.LLSD_XML);
+                using var reply = await Client.HttpCapsClient.PutAsync(uri, content, cancellationToken).ConfigureAwait(false);
+                return HandleResponseStatus(reply, $"Put children for {category}");
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return false; }
+        }
+
+        /// <summary>Copy children of a category to a destination category.</summary>
+        public async Task<bool> CopyCategoryChildrenAsync(string category, UUID destUuid, CancellationToken cancellationToken = default)
+        {
+            if (!getInventoryCap(out var cap)) return false;
+            try
+            {
+                if (!Uri.TryCreate($"{cap}/category/{category}/children?tid={UUID.Random()}", UriKind.Absolute, out var uri)) return false;
+
+                using var request = new HttpRequestMessage(new HttpMethod("COPY"), uri);
+                request.Headers.Add("Destination", destUuid.ToString());
+                using var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                return HandleResponseStatus(reply, $"Copy children for {category} to {destUuid}");
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return false; }
+        }
+
+        /// <summary>AIS v3 does not expose a batch "move children" endpoint; always returns false.</summary>
+        public Task<bool> MoveCategoryChildrenAsync(string category, UUID destUuid, CancellationToken cancellationToken = default)
+        {
+            Logger.Warn($"MoveCategoryChildren has no AIS v3 equivalent and is not supported ({category} -> {destUuid})");
+            return Task.FromResult(false);
+        }
+
+        /// <summary>Delete children of a category.</summary>
+        public async Task<bool> DeleteCategoryChildrenAsync(string category, CancellationToken cancellationToken = default)
+        {
+            if (!getInventoryCap(out var cap)) return false;
+            try
+            {
+                if (!Uri.TryCreate($"{cap}/category/{category}/children", UriKind.Absolute, out var uri)) return false;
+
+                using var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken).ConfigureAwait(false);
+                return HandleResponseStatus(reply, $"Delete children for {category}");
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return false; }
+        }
+
+        /// <summary>Replace links in a category using PUT.</summary>
+        public async Task<bool> PutCategoryLinksAsync(string category, OSD linksPayload, CancellationToken cancellationToken = default)
+        {
+            if (!getInventoryCap(out var cap)) return false;
+            try
+            {
+                if (!Uri.TryCreate($"{cap}/category/{category}/links?tid={UUID.Random()}", UriKind.Absolute, out var uri)) return false;
+
+                using var content = new StringContent(OSDParser.SerializeLLSDXmlString(linksPayload), Encoding.UTF8, HttpCapsClient.LLSD_XML);
+                using var reply = await Client.HttpCapsClient.PutAsync(uri, content, cancellationToken).ConfigureAwait(false);
+                return HandleResponseStatus(reply, $"Put links for {category}");
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return false; }
+        }
+
+        /// <summary>Copy links from a category to a destination category.</summary>
+        public async Task<bool> CopyCategoryLinksAsync(string category, UUID destUuid, CancellationToken cancellationToken = default)
+        {
+            if (!getInventoryCap(out var cap)) return false;
+            try
+            {
+                if (!Uri.TryCreate($"{cap}/category/{category}/links?tid={UUID.Random()}", UriKind.Absolute, out var uri)) return false;
+
+                using var request = new HttpRequestMessage(new HttpMethod("COPY"), uri);
+                request.Headers.Add("Destination", destUuid.ToString());
+                using var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                return HandleResponseStatus(reply, $"Copy links for {category} to {destUuid}");
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return false; }
+        }
+
+        /// <summary>AIS v3 does not expose a batch "move links" endpoint; always returns false.</summary>
+        public Task<bool> MoveCategoryLinksAsync(string category, UUID destUuid, CancellationToken cancellationToken = default)
+        {
+            Logger.Warn($"MoveCategoryLinks has no AIS v3 equivalent and is not supported ({category} -> {destUuid})");
+            return Task.FromResult(false);
+        }
+
+        /// <summary>Delete links in a category.</summary>
+        public async Task<bool> DeleteCategoryLinksAsync(string category, CancellationToken cancellationToken = default)
+        {
+            if (!getInventoryCap(out var cap)) return false;
+            try
+            {
+                if (!Uri.TryCreate($"{cap}/category/{category}/links", UriKind.Absolute, out var uri)) return false;
+
+                using var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken).ConfigureAwait(false);
+                return HandleResponseStatus(reply, $"Delete links for {category}");
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return false; }
+        }
+
+        /// <summary>Copy an item to a destination category.</summary>
+        public async Task<bool> CopyItemAsync(UUID itemUuid, UUID destUuid, CancellationToken cancellationToken = default)
+        {
+            if (!getInventoryCap(out var cap)) return false;
+            try
+            {
+                if (!Uri.TryCreate($"{cap}/item/{itemUuid}?tid={UUID.Random()}", UriKind.Absolute, out var uri)) return false;
+
+                using var request = new HttpRequestMessage(new HttpMethod("COPY"), uri);
+                request.Headers.Add("Destination", destUuid.ToString());
+                using var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                return HandleResponseStatus(reply, $"Copy item {itemUuid} to {destUuid}");
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return false; }
+        }
+
+        /// <summary>Move an item to a destination category by patching its parent_id.</summary>
+        public async Task<bool> MoveItemAsync(UUID itemUuid, UUID destUuid, CancellationToken cancellationToken = default)
+        {
+            if (!getInventoryCap(out var cap)) return false;
+            try
+            {
+                if (!Uri.TryCreate($"{cap}/item/{itemUuid}", UriKind.Absolute, out var uri)) return false;
+
+                var updates = new OSDMap { ["parent_id"] = OSD.FromUUID(destUuid) };
+#if (NETSTANDARD2_1_OR_GREATER || NET)
+                using var request = new HttpRequestMessage(HttpMethod.Patch, uri);
+#else
+                using var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri);
+#endif
+                using var content = new StringContent(OSDParser.SerializeLLSDXmlString(updates), Encoding.UTF8, HttpCapsClient.LLSD_XML);
+                request.Content = content;
+                using var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                var success = HandleResponseStatus(reply, $"Move item {itemUuid} to {destUuid}");
+                if (success)
+                {
+#if NET5_0_OR_GREATER
+                    FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) as OSDMap);
+#else
+                    FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) as OSDMap);
+#endif
+                }
+                return success;
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return false; }
+        }
+
+        // --- GET methods ---
+
+        /// <summary>Fetch a category and return parsed folders, items and links.</summary>
+        public async Task<(bool success, List<InventoryFolder> folders, List<InventoryItem> items, List<InventoryItem> links)> GetCategoryAsync(string category, CancellationToken cancellationToken = default)
+        {
+            var empty = (false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
+            if (!getInventoryCap(out var cap)) return empty;
+            try
+            {
+                if (!Uri.TryCreate($"{cap}/category/{category}", UriKind.Absolute, out var uri)) return empty;
+
+                using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                using var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                var success = HandleResponseStatus(reply, $"Fetch category {category}");
+
+                List<InventoryFolder> folders = new List<InventoryFolder>();
+                List<InventoryItem> items = new List<InventoryItem>();
+                List<InventoryItem> links = new List<InventoryItem>();
+
+                if (reply.IsSuccessStatusCode)
+                {
+#if NET5_0_OR_GREATER
+                    var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false));
+#else
+                    var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false));
+#endif
+                    if (deserialized is OSDMap m)
+                        ParseEmbedded(m, out folders, out items, out links);
+                }
+                return (success, folders, items, links);
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return empty; }
+        }
+
+        /// <summary>Fetch category children and return parsed folders, items and links.</summary>
+        public async Task<(bool success, List<InventoryFolder> folders, List<InventoryItem> items, List<InventoryItem> links)> GetCategoryChildrenAsync(string category, int depth, bool recursive, CancellationToken cancellationToken = default)
+        {
+            var empty = (false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
+            if (!getInventoryCap(out var cap)) return empty;
             try
             {
                 var requestedDepth = recursive ? MAX_FOLDER_DEPTH_REQUEST : Math.Min(depth, MAX_FOLDER_DEPTH_REQUEST);
                 var url = new StringBuilder($"{cap}/category/{category}/children?depth={requestedDepth}");
 
-                if (!Uri.TryCreate(url.ToString(), UriKind.Absolute, out var uri))
+                if (!Uri.TryCreate(url.ToString(), UriKind.Absolute, out var uri)) return empty;
+
+                using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                using var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                var success = HandleResponseStatus(reply, $"Fetch children for {category}");
+
+                // 403 at depth=0 means the folder content exceeds the server's item limit
+                if (!success && reply.StatusCode == System.Net.HttpStatusCode.Forbidden && requestedDepth == 0)
+                    Logger.Warn($"GetCategoryChildren: '{category}' at depth=0 returned 403 — folder exceeds inventory size limit");
+
+                List<InventoryFolder>? folders = null;
+                List<InventoryItem>? items = null;
+                List<InventoryItem>? links = null;
+
+                if (reply.IsSuccessStatusCode)
                 {
-                    callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
-                    return;
-                }
-
-                using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
-                using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                {
-                    success = HandleResponseStatus(reply, $"Fetch children for {category}");
-
-                    // 403 at depth=0 means the folder content exceeds the server's item limit
-                    if (!success && reply.StatusCode == System.Net.HttpStatusCode.Forbidden && requestedDepth == 0)
-                        Logger.Warn($"GetCategoryChildren: '{category}' at depth=0 returned 403 — folder exceeds inventory size limit");
-
-                    if (reply.IsSuccessStatusCode)
-                    {
 #if NET5_0_OR_GREATER
-                        var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false));
+                    var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false));
 #else
-                        var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false));
+                    var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false));
 #endif
-                        if (deserialized is OSDMap m)
-                        {
-                            ParseEmbedded(m, out folders, out items, out links);
-                        }
-                    }
+                    if (deserialized is OSDMap m)
+                        ParseEmbedded(m, out folders, out items, out links);
                 }
+                return (success, folders ?? new List<InventoryFolder>(), items ?? new List<InventoryItem>(), links ?? new List<InventoryItem>());
             }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success, folders ?? new List<InventoryFolder>(), items ?? new List<InventoryItem>(), links ?? new List<InventoryItem>());
-            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return empty; }
         }
 
         /// <summary>
         /// Fetch only the subfolder (category) descendants of a category — no items or links.
         /// Equivalent to C++ <c>AISAPI::FetchCategoryCategories</c>.
         /// </summary>
-        /// <param name="catId">Category UUID.</param>
-        /// <param name="useInventoryCap">True for user inventory, false for library.</param>
-        /// <param name="recursive">If true, fetch full depth (clamped to server limit).</param>
-        /// <param name="callback">Callback invoked with (success, folders, items, links).</param>
-        /// <param name="depth">Requested depth when not recursive.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task FetchCategoryCategories(UUID catId, bool useInventoryCap, bool recursive,
-            Action<bool, List<InventoryFolder>, List<InventoryItem>, List<InventoryItem>> callback,
-            int depth = 0, CancellationToken cancellationToken = default)
+        public async Task<(bool success, List<InventoryFolder> folders, List<InventoryItem> items, List<InventoryItem> links)> FetchCategoryCategoriesAsync(UUID catId, bool useInventoryCap, bool recursive, int depth = 0, CancellationToken cancellationToken = default)
         {
-            var hasCap = useInventoryCap
-                ? getInventoryCap(out var cap)
-                : getLibraryCap(out cap);
-            if (!hasCap)
-            {
-                callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
-                return;
-            }
-
-            var success = false;
-            List<InventoryFolder>? folders = null;
-            List<InventoryItem>? items = null;
-            List<InventoryItem>? links = null;
-
+            var empty = (false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
+            var hasCap = useInventoryCap ? getInventoryCap(out var cap) : getLibraryCap(out cap);
+            if (!hasCap) return empty;
             try
             {
                 var requestedDepth = recursive ? MAX_FOLDER_DEPTH_REQUEST : Math.Min(depth, MAX_FOLDER_DEPTH_REQUEST);
-                if (!Uri.TryCreate($"{cap}/category/{catId}/categories?depth={requestedDepth}", UriKind.Absolute, out var uri))
-                {
-                    callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
-                    return;
-                }
+                if (!Uri.TryCreate($"{cap}/category/{catId}/categories?depth={requestedDepth}", UriKind.Absolute, out var uri)) return empty;
 
-                using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
-                using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                {
-                    success = HandleResponseStatus(reply, $"Fetch categories for {catId}");
+                using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                using var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                var success = HandleResponseStatus(reply, $"Fetch categories for {catId}");
 
-                    if (success)
-                    {
+                List<InventoryFolder>? folders = null;
+                List<InventoryItem>? items = null;
+                List<InventoryItem>? links = null;
+
+                if (success)
+                {
 #if NET5_0_OR_GREATER
-                        var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false));
+                    var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false));
 #else
-                        var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false));
+                    var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false));
 #endif
-                        if (deserialized is OSDMap m)
-                        {
-                            ParseEmbedded(m, out folders, out items, out links);
-                        }
-                    }
+                    if (deserialized is OSDMap m)
+                        ParseEmbedded(m, out folders, out items, out links);
                 }
+                return (success, folders ?? new List<InventoryFolder>(), items ?? new List<InventoryItem>(), links ?? new List<InventoryItem>());
             }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success, folders ?? new List<InventoryFolder>(), items ?? new List<InventoryItem>(), links ?? new List<InventoryItem>());
-            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return empty; }
         }
 
         /// <summary>
         /// Fetch specific children of a category by UUID.
         /// Equivalent to C++ <c>AISAPI::FetchCategorySubset</c>.
-        /// URL: <c>GET /category/{catId}/children?depth={depth}&amp;children={id1},{id2},...</c>
         /// </summary>
-        /// <param name="catId">Parent category UUID.</param>
-        /// <param name="specificChildren">UUIDs of the children to fetch. Must not be empty.</param>
-        /// <param name="useInventoryCap">True for user inventory, false for library.</param>
-        /// <param name="recursive">If true, fetch full depth (clamped to server limit).</param>
-        /// <param name="callback">Callback invoked with (success, folders, items, links).</param>
-        /// <param name="depth">Requested depth when not recursive.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task FetchCategorySubset(UUID catId, IEnumerable<UUID> specificChildren,
-            bool useInventoryCap, bool recursive,
-            Action<bool, List<InventoryFolder>, List<InventoryItem>, List<InventoryItem>> callback,
-            int depth = 0, CancellationToken cancellationToken = default)
+        public async Task<(bool success, List<InventoryFolder> folders, List<InventoryItem> items, List<InventoryItem> links)> FetchCategorySubsetAsync(UUID catId, IEnumerable<UUID> specificChildren, bool useInventoryCap, bool recursive, int depth = 0, CancellationToken cancellationToken = default)
         {
+            var empty = (false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
             var childList = specificChildren?.ToList();
             if (childList == null || childList.Count == 0)
             {
                 Logger.Warn($"FetchCategorySubset called with empty children list for {catId}");
-                callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
-                return;
+                return empty;
             }
 
-            var hasCap = useInventoryCap
-                ? getInventoryCap(out var cap)
-                : getLibraryCap(out cap);
-            if (!hasCap)
-            {
-                callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
-                return;
-            }
-
-            var success = false;
-            List<InventoryFolder>? folders = null;
-            List<InventoryItem>? items = null;
-            List<InventoryItem>? links = null;
-
+            var hasCap = useInventoryCap ? getInventoryCap(out var cap) : getLibraryCap(out cap);
+            if (!hasCap) return empty;
             try
             {
                 var requestedDepth = recursive ? MAX_FOLDER_DEPTH_REQUEST : Math.Min(depth, MAX_FOLDER_DEPTH_REQUEST);
                 var url = new StringBuilder($"{cap}/category/{catId}/children?depth={requestedDepth}&children=");
                 url.Append(string.Join(",", childList.Select(id => id.ToString())));
 
-                const int MAX_URL_LENGTH = 2000; // RFC recommends max 2048
+                const int MAX_URL_LENGTH = 2000;
                 if (url.Length > MAX_URL_LENGTH)
-                {
                     Logger.Warn($"FetchCategorySubset URL exceeds {MAX_URL_LENGTH} chars ({url.Length}) for {catId}");
-                }
 
-                if (!Uri.TryCreate(url.ToString(), UriKind.Absolute, out var uri))
+                if (!Uri.TryCreate(url.ToString(), UriKind.Absolute, out var uri)) return empty;
+
+                using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                using var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                var success = HandleResponseStatus(reply, $"Fetch subset of {catId}");
+
+                List<InventoryFolder>? folders = null;
+                List<InventoryItem>? items = null;
+                List<InventoryItem>? links = null;
+
+                if (success)
                 {
-                    callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
-                    return;
-                }
-
-                using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
-                using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                {
-                    success = HandleResponseStatus(reply, $"Fetch subset of {catId}");
-
-                    if (success)
-                    {
 #if NET5_0_OR_GREATER
-                        var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false));
+                    var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false));
 #else
-                        var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false));
+                    var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false));
 #endif
-                        if (deserialized is OSDMap m)
-                        {
-                            ParseEmbedded(m, out folders, out items, out links);
-                        }
-                    }
+                    if (deserialized is OSDMap m)
+                        ParseEmbedded(m, out folders, out items, out links);
                 }
+                return (success, folders ?? new List<InventoryFolder>(), items ?? new List<InventoryItem>(), links ?? new List<InventoryItem>());
             }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success, folders ?? new List<InventoryFolder>(), items ?? new List<InventoryItem>(), links ?? new List<InventoryItem>());
-            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return empty; }
         }
 
-        /// <summary>
-        /// Fetch category links and return parsed folders, items and links via callback.
-        /// </summary>
-        /// <param name="category">Category identifier.</param>
-        /// <param name="callback">Callback invoked with (success, folders, items, links).</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task GetCategoryLinks(string category, Action<bool, List<InventoryFolder>, List<InventoryItem>, List<InventoryItem>> callback, CancellationToken cancellationToken = default)
+        /// <summary>Fetch category links and return parsed folders, items and links.</summary>
+        public async Task<(bool success, List<InventoryFolder> folders, List<InventoryItem> items, List<InventoryItem> links)> GetCategoryLinksAsync(string category, CancellationToken cancellationToken = default)
         {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>()); return; }
-
-            var success = false;
-            List<InventoryFolder>? folders = null;
-            List<InventoryItem>? items = null;
-            List<InventoryItem>? links = null;
-
+            var empty = (false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
+            if (!getInventoryCap(out var cap)) return empty;
             try
             {
-                if (!Uri.TryCreate($"{cap}/category/{category}/links", UriKind.Absolute, out var uri))
-                {
-                    callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
-                    return;
-                }
+                if (!Uri.TryCreate($"{cap}/category/{category}/links", UriKind.Absolute, out var uri)) return empty;
 
-                using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
-                using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                {
-                    success = HandleResponseStatus(reply, $"Fetch links for {category}");
+                using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                using var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                var success = HandleResponseStatus(reply, $"Fetch links for {category}");
 
-                    if (reply.IsSuccessStatusCode)
-                    {
+                List<InventoryFolder>? folders = null;
+                List<InventoryItem>? items = null;
+                List<InventoryItem>? links = null;
+
+                if (reply.IsSuccessStatusCode)
+                {
 #if NET5_0_OR_GREATER
-                        var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false));
+                    var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false));
 #else
-                        var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false));
+                    var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false));
 #endif
-                        if (deserialized is OSDMap m)
-                        {
-                            ParseEmbedded(m, out folders, out items, out links);
-                        }
-                    }
+                    if (deserialized is OSDMap m)
+                        ParseEmbedded(m, out folders, out items, out links);
                 }
+                return (success, folders ?? new List<InventoryFolder>(), items ?? new List<InventoryItem>(), links ?? new List<InventoryItem>());
             }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success, folders ?? new List<InventoryFolder>(), items ?? new List<InventoryItem>(), links ?? new List<InventoryItem>());
-            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return empty; }
         }
 
-        /// <summary>
-        /// Fetch an item resource and return parsed folders, items and links via callback.
-        /// </summary>
-        /// <param name="itemUuid">Item UUID to fetch.</param>
-        /// <param name="callback">Callback invoked with (success, folders, items, links).</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task FetchItem(UUID itemUuid, Action<bool, List<InventoryFolder>, List<InventoryItem>, List<InventoryItem>> callback, CancellationToken cancellationToken = default)
+        /// <summary>Fetch an item resource and return parsed folders, items and links.</summary>
+        public async Task<(bool success, List<InventoryFolder> folders, List<InventoryItem> items, List<InventoryItem> links)> FetchItemAsync(UUID itemUuid, CancellationToken cancellationToken = default)
         {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>()); return; }
-
-            var success = false;
-            List<InventoryFolder>? folders = null;
-            List<InventoryItem>? items = null;
-            List<InventoryItem>? links = null;
-
+            var empty = (false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
+            if (!getInventoryCap(out var cap)) return empty;
             try
             {
-                if (!Uri.TryCreate($"{cap}/item/{itemUuid}", UriKind.Absolute, out var uri))
-                {
-                    callback?.Invoke(false, new List<InventoryFolder>(), new List<InventoryItem>(), new List<InventoryItem>());
-                    return;
-                }
+                if (!Uri.TryCreate($"{cap}/item/{itemUuid}", UriKind.Absolute, out var uri)) return empty;
 
-                using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
-                using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                {
-                    success = HandleResponseStatus(reply, $"Fetch item {itemUuid}");
+                using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                using var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                var success = HandleResponseStatus(reply, $"Fetch item {itemUuid}");
 
-                    if (reply.IsSuccessStatusCode)
-                    {
+                List<InventoryFolder>? folders = null;
+                List<InventoryItem>? items = null;
+                List<InventoryItem>? links = null;
+
+                if (reply.IsSuccessStatusCode)
+                {
 #if NET5_0_OR_GREATER
-                        var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false));
+                    var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false));
 #else
-                        var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false));
+                    var deserialized = OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false));
 #endif
-                        if (deserialized is OSDMap m)
+                    if (deserialized is OSDMap m)
+                    {
+                        // GET /item/{id} returns the item at the top level, not inside _embedded.
+                        if (m.ContainsKey("item_id"))
                         {
-                            // GET /item/{id} returns the item at the top level, not inside _embedded.
-                            // C++ parseContent checks item_id/linked_id directly on the response root.
-                            if (m.ContainsKey("item_id"))
-                            {
-                                var parsed = InventoryItem.FromOSD(m);
-                                if (parsed.IsLink())
-                                    links = new List<InventoryItem> { parsed };
-                                else
-                                    items = new List<InventoryItem> { parsed };
-                            }
+                            var parsed = InventoryItem.FromOSD(m);
+                            if (parsed.IsLink())
+                                links = new List<InventoryItem> { parsed };
                             else
-                            {
-                                ParseEmbedded(m, out folders, out items, out links);
-                            }
+                                items = new List<InventoryItem> { parsed };
                         }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success, folders ?? new List<InventoryFolder>(), items ?? new List<InventoryItem>(), links ?? new List<InventoryItem>());
-            }
-        }
-
-        /// <summary>
-        /// Copy a category within inventory.
-        /// </summary>
-        /// <param name="sourceUuid">Source category UUID.</param>
-        /// <param name="destUuid">Destination category UUID.</param>
-        /// <param name="simulate">If true, perform a simulation only.</param>
-        /// <param name="callback">Callback invoked with success flag.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task CopyCategory(UUID sourceUuid, UUID destUuid, bool simulate, Action<bool> callback, CancellationToken cancellationToken = default)
-        {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false); return; }
-
-            var success = false;
-
-            try
-            {
-                var url = new StringBuilder($"{cap}/category/{sourceUuid}?tid={UUID.Random()}");
-                if (simulate)
-                {
-                    url.Append("&simulate=1");
-                }
-
-                if (!Uri.TryCreate(url.ToString(), UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
-
-                using (var request = new HttpRequestMessage(new HttpMethod("COPY"), uri))
-                {
-                    request.Headers.Add("Destination", destUuid.ToString());
-
-                    using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                    {
-                        success = HandleResponseStatus(reply, $"Copy category {sourceUuid} to {destUuid}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success);
-            }
-        }
-
-        /// <summary>
-        /// Move a category within inventory by patching its parent_id.
-        /// </summary>
-        /// <param name="sourceUuid">Source category UUID.</param>
-        /// <param name="destUuid">Destination category UUID.</param>
-        /// <param name="callback">Callback invoked with success flag.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task MoveCategory(UUID sourceUuid, UUID destUuid, Action<bool> callback, CancellationToken cancellationToken = default)
-        {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false); return; }
-
-            var success = false;
-
-            try
-            {
-                if (!Uri.TryCreate($"{cap}/category/{sourceUuid}", UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
-
-                var updates = new OSDMap { ["parent_id"] = OSD.FromUUID(destUuid) };
-#if (NETSTANDARD2_1_OR_GREATER || NET)
-                using (var request = new HttpRequestMessage(HttpMethod.Patch, uri))
-#else
-                using (var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri))
-#endif
-                {
-                    using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(updates),
-                               Encoding.UTF8, HttpCapsClient.LLSD_XML))
-                    {
-                        request.Content = content;
-
-                        using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
+                        else
                         {
-                            success = HandleResponseStatus(reply, $"Move category {sourceUuid} to {destUuid}");
-                            if (success)
-                            {
-#if NET5_0_OR_GREATER
-                                FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) as OSDMap);
-#else
-                                FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) as OSDMap);
-#endif
-                            }
+                            ParseEmbedded(m, out folders, out items, out links);
                         }
                     }
                 }
+                return (success, folders ?? new List<InventoryFolder>(), items ?? new List<InventoryItem>(), links ?? new List<InventoryItem>());
             }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success);
-            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return empty; }
         }
 
-        /// <summary>
-        /// Replace children of a category using PUT.
-        /// </summary>
-        /// <param name="category">Category identifier.</param>
-        /// <param name="childrenPayload">OSD payload for children.</param>
-        /// <param name="callback">Callback invoked with success flag.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task PutCategoryChildren(string category, OSD childrenPayload, Action<bool> callback, CancellationToken cancellationToken = default)
+        // --- Misc endpoints ---
+
+        /// <summary>Fetch the Current Outfit Folder (COF).</summary>
+        public async Task<bool> FetchCOFAsync(CancellationToken cancellationToken = default)
         {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false); return; }
-
-            var success = false;
-
+            if (!getInventoryCap(out var cap)) return false;
             try
             {
-                if (!Uri.TryCreate($"{cap}/category/{category}/children?tid={UUID.Random()}", UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
+                if (!Uri.TryCreate($"{cap}/category/current/links", UriKind.Absolute, out var uri)) return false;
 
-                using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(childrenPayload), Encoding.UTF8, HttpCapsClient.LLSD_XML))
+                using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                using var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                var success = HandleResponseStatus(reply, "Fetch COF");
+
+                if (success)
                 {
-                    using (var reply = await Client.HttpCapsClient.PutAsync(uri, content, cancellationToken).ConfigureAwait(false))
-                    {
-                        success = HandleResponseStatus(reply, $"Put children for {category}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success);
-            }
-        }
-
-        /// <summary>
-        /// Copy children of a category to a destination category.
-        /// </summary>
-        /// <param name="category">Source category identifier.</param>
-        /// <param name="destUuid">Destination category UUID.</param>
-        /// <param name="callback">Callback invoked with success flag.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task CopyCategoryChildren(string category, UUID destUuid, Action<bool> callback, CancellationToken cancellationToken = default)
-        {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false); return; }
-
-            var success = false;
-
-            try
-            {
-                if (!Uri.TryCreate($"{cap}/category/{category}/children?tid={UUID.Random()}", UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
-
-                using (var request = new HttpRequestMessage(new HttpMethod("COPY"), uri))
-                {
-                    request.Headers.Add("Destination", destUuid.ToString());
-
-                    using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                    {
-                        success = HandleResponseStatus(reply, $"Copy children for {category} to {destUuid}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success);
-            }
-        }
-
-        /// <summary>
-        /// AIS v3 does not expose a batch "move children" endpoint; this operation is not supported.
-        /// </summary>
-        public Task MoveCategoryChildren(string category, UUID destUuid, Action<bool> callback, CancellationToken cancellationToken = default)
-        {
-            Logger.Warn($"MoveCategoryChildren has no AIS v3 equivalent and is not supported ({category} -> {destUuid})");
-            callback?.Invoke(false);
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Delete children of a category.
-        /// </summary>
-        /// <param name="category">Category identifier.</param>
-        /// <param name="callback">Callback invoked with success flag.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task DeleteCategoryChildren(string category, Action<bool> callback, CancellationToken cancellationToken = default)
-        {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false); return; }
-
-            var success = false;
-
-            try
-            {
-                if (!Uri.TryCreate($"{cap}/category/{category}/children", UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
-
-                using (var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken).ConfigureAwait(false))
-                {
-                    success = HandleResponseStatus(reply, $"Delete children for {category}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success);
-            }
-        }
-
-        /// <summary>
-        /// Replace links in a category using PUT.
-        /// </summary>
-        /// <param name="category">Category identifier.</param>
-        /// <param name="linksPayload">OSD payload containing links.</param>
-        /// <param name="callback">Callback invoked with success flag.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task PutCategoryLinks(string category, OSD linksPayload, Action<bool> callback, CancellationToken cancellationToken = default)
-        {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false); return; }
-
-            var success = false;
-
-            try
-            {
-                if (!Uri.TryCreate($"{cap}/category/{category}/links?tid={UUID.Random()}", UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
-
-                using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(linksPayload), Encoding.UTF8, HttpCapsClient.LLSD_XML))
-                {
-                    using (var reply = await Client.HttpCapsClient.PutAsync(uri, content, cancellationToken).ConfigureAwait(false))
-                    {
-                        success = HandleResponseStatus(reply, $"Put links for {category}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success);
-            }
-        }
-
-        /// <summary>
-        /// Copy links from a category to a destination category.
-        /// </summary>
-        /// <param name="category">Source category identifier.</param>
-        /// <param name="destUuid">Destination category UUID.</param>
-        /// <param name="callback">Callback invoked with success flag.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task CopyCategoryLinks(string category, UUID destUuid, Action<bool> callback, CancellationToken cancellationToken = default)
-        {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false); return; }
-
-            var success = false;
-
-            try
-            {
-                if (!Uri.TryCreate($"{cap}/category/{category}/links?tid={UUID.Random()}", UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
-
-                using (var request = new HttpRequestMessage(new HttpMethod("COPY"), uri))
-                {
-                    request.Headers.Add("Destination", destUuid.ToString());
-
-                    using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                    {
-                        success = HandleResponseStatus(reply, $"Copy links for {category} to {destUuid}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success);
-            }
-        }
-
-        /// <summary>
-        /// AIS v3 does not expose a batch "move links" endpoint; this operation is not supported.
-        /// </summary>
-        public Task MoveCategoryLinks(string category, UUID destUuid, Action<bool> callback, CancellationToken cancellationToken = default)
-        {
-            Logger.Warn($"MoveCategoryLinks has no AIS v3 equivalent and is not supported ({category} -> {destUuid})");
-            callback?.Invoke(false);
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Delete links in a category.
-        /// </summary>
-        /// <param name="category">Category identifier.</param>
-        /// <param name="callback">Callback invoked with success flag.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task DeleteCategoryLinks(string category, Action<bool> callback, CancellationToken cancellationToken = default)
-        {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false); return; }
-
-            var success = false;
-
-            try
-            {
-                if (!Uri.TryCreate($"{cap}/category/{category}/links", UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
-
-                using (var reply = await Client.HttpCapsClient.DeleteAsync(uri, cancellationToken).ConfigureAwait(false))
-                {
-                    success = HandleResponseStatus(reply, $"Delete links for {category}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success);
-            }
-        }
-
-        /// <summary>
-        /// Copy an item to a destination category.
-        /// </summary>
-        /// <param name="itemUuid">Item UUID to copy.</param>
-        /// <param name="destUuid">Destination category UUID.</param>
-        /// <param name="callback">Callback invoked with success flag.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task CopyItem(UUID itemUuid, UUID destUuid, Action<bool> callback, CancellationToken cancellationToken = default)
-        {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false); return; }
-
-            var success = false;
-
-            try
-            {
-                if (!Uri.TryCreate($"{cap}/item/{itemUuid}?tid={UUID.Random()}", UriKind.Absolute, out var uri)) { callback?.Invoke(false); return; }
-
-                using (var request = new HttpRequestMessage(new HttpMethod("COPY"), uri))
-                {
-                    request.Headers.Add("Destination", destUuid.ToString());
-
-                    using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                    {
-                        success = HandleResponseStatus(reply, $"Copy item {itemUuid} to {destUuid}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success);
-            }
-        }
-
-        /// <summary>
-        /// Move an item to a destination category by patching its parent_id.
-        /// </summary>
-        /// <param name="itemUuid">Item UUID to move.</param>
-        /// <param name="destUuid">Destination category UUID.</param>
-        /// <param name="callback">Callback invoked with success flag.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task MoveItem(UUID itemUuid, UUID destUuid, Action<bool> callback, CancellationToken cancellationToken = default)
-        {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false); return; }
-
-            var success = false;
-
-            try
-            {
-                if (!Uri.TryCreate($"{cap}/item/{itemUuid}", UriKind.Absolute, out var uri))
-                {
-                    callback?.Invoke(false); return;
-                }
-
-                var updates = new OSDMap { ["parent_id"] = OSD.FromUUID(destUuid) };
-#if (NETSTANDARD2_1_OR_GREATER || NET)
-                using (var request = new HttpRequestMessage(HttpMethod.Patch, uri))
-#else
-                using (var request = new HttpRequestMessage(new HttpMethod("PATCH"), uri))
-#endif
-                {
-                    using (var content = new StringContent(OSDParser.SerializeLLSDXmlString(updates),
-                               Encoding.UTF8, HttpCapsClient.LLSD_XML))
-                    {
-                        request.Content = content;
-
-                        using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                        {
-                            success = HandleResponseStatus(reply, $"Move item {itemUuid} to {destUuid}");
-                            if (success)
-                            {
 #if NET5_0_OR_GREATER
-                                FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) as OSDMap);
+                    if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) is OSDMap map)
 #else
-                                FireAISMeta(OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) as OSDMap);
+                    if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) is OSDMap map)
 #endif
-                            }
-                        }
+                    {
+                        ParseEmbedded(map, out _, out _, out _);
                     }
                 }
+                return success;
             }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success);
-            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return false; }
         }
 
-
-        // Misc endpoints
-
-        /// <summary>
-        /// Fetch the Current Outfit Folder (COF).
-        /// </summary>
-        /// <param name="callback">Callback invoked with success flag.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task FetchCOF(Action<bool> callback, CancellationToken cancellationToken = default)
+        /// <summary>Fetch orphaned inventory items.</summary>
+        public async Task<bool> FetchOrphansAsync(CancellationToken cancellationToken = default)
         {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false); return; }
-
-            var success = false;
-
+            if (!getInventoryCap(out var cap)) return false;
             try
             {
-                if (!Uri.TryCreate($"{cap}/category/current/links", UriKind.Absolute, out var uri))
-                {
-                    success = false;
-                    callback?.Invoke(false);
-                    return;
-                }
+                if (!Uri.TryCreate($"{cap}/orphans", UriKind.Absolute, out var uri)) return false;
 
-                using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
-                using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                {
-                    success = HandleResponseStatus(reply, "Fetch COF");
+                using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                using var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                var success = HandleResponseStatus(reply, "Fetch orphans");
 
-                    if (success)
-                    {
+                if (success)
+                {
 #if NET5_0_OR_GREATER
-                        if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) is OSDMap map)
+                    if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) is OSDMap map)
 #else
-                        if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) is OSDMap map)
+                    if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) is OSDMap map)
 #endif
-                        {
-                            ParseEmbedded(map, out _, out _, out _);
-                        }
+                    {
+                        ParseEmbedded(map, out _, out _, out _);
                     }
                 }
+                return success;
             }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success);
-            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { Logger.Warn(ex.Message); return false; }
         }
 
-        /// <summary>
-        /// Fetch orphaned inventory items.
-        /// </summary>
-        /// <param name="callback">Callback invoked with success flag.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public async Task FetchOrphans(Action<bool> callback, CancellationToken cancellationToken = default)
-        {
-            if (!getInventoryCap(out var cap)) { callback?.Invoke(false); return; }
-
-            var success = false;
-
-            try
-            {
-                if (!Uri.TryCreate($"{cap}/orphans", UriKind.Absolute, out var uri))
-                {
-                    success = false;
-                    callback?.Invoke(false);
-                    return;
-                }
-                using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
-                using (var reply = await Client.HttpCapsClient.SendAsync(request, cancellationToken).ConfigureAwait(false))
-                {
-                    success = HandleResponseStatus(reply, "Fetch orphans");
-
-                    if (success)
-                    {
-#if NET5_0_OR_GREATER
-                        if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false)) is OSDMap map)
-#else
-                        if (OSDParser.Deserialize(await reply.Content.ReadAsStreamAsync().ConfigureAwait(false)) is OSDMap map)
-#endif
-                        {
-                            ParseEmbedded(map, out _, out _, out _);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex.Message);
-            }
-            finally
-            {
-                callback?.Invoke(success);
-            }
-        }
-
-        /// <summary>
-        /// Empty the Trash folder.
-        /// </summary>
-        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <summary>Empty the Trash folder.</summary>
         /// <returns>True if successful, false otherwise.</returns>
         public async Task<bool> EmptyTrash(CancellationToken cancellationToken = default)
         {
@@ -1500,11 +929,11 @@ namespace LibreMetaverse
             return true;
         }
 
+        // --- Parse helpers ---
+
         /// <summary>
         /// Extract concrete InventoryItem objects from an AIS `_embedded` response.
         /// </summary>
-        /// <param name="response">OSDMap response that may contain `_embedded`.</param>
-        /// <returns>List of parsed InventoryItem objects (might be empty).</returns>
         public List<InventoryItem> ParseItemsFromEmbedded(OSDMap response)
         {
             var ret = new List<InventoryItem>();
@@ -1540,8 +969,6 @@ namespace LibreMetaverse
         /// <summary>
         /// Extract InventoryFolder objects from an AIS `_embedded` response.
         /// </summary>
-        /// <param name="response">OSDMap response that may contain `_embedded`.</param>
-        /// <returns>List of parsed InventoryFolder objects (might be empty).</returns>
         public List<InventoryFolder> ParseFoldersFromEmbedded(OSDMap response)
         {
             var ret = new List<InventoryFolder>();
@@ -1580,8 +1007,6 @@ namespace LibreMetaverse
         /// <summary>
         /// Extract link InventoryItem objects from an AIS `_embedded` response.
         /// </summary>
-        /// <param name="response">OSDMap response that may contain `_embedded`.</param>
-        /// <returns>List of parsed InventoryItem link objects (might empty).</returns>
         public List<InventoryItem> ParseLinksFromEmbedded(OSDMap response)
         {
             var ret = new List<InventoryItem>();
@@ -1608,10 +1033,6 @@ namespace LibreMetaverse
         /// <summary>
         /// Convenience that parses folders, items and links from an AIS response into out parameters.
         /// </summary>
-        /// <param name="response">OSDMap AIS response.</param>
-        /// <param name="folders">Out list of folders.</param>
-        /// <param name="items">Out list of items.</param>
-        /// <param name="links">Out list of links.</param>
         public void ParseEmbedded(OSDMap response, out List<InventoryFolder> folders, out List<InventoryItem> items, out List<InventoryItem> links)
         {
             folders = ParseFoldersFromEmbedded(response);
@@ -1799,7 +1220,7 @@ namespace LibreMetaverse
                     Logger.Warn($"{context}: Precondition Failed (412): {reply.ReasonPhrase}");
                     break;
                 default:
-                    Logger.Warn($"{context}: HTTP {(int)reply.StatusCode} ({reply.StatusCode}): {reply.ReasonPhrase}");
+                    Logger.Warn($"{context}: Unexpected status {(int)reply.StatusCode}: {reply.ReasonPhrase}");
                     break;
             }
 
@@ -1807,4 +1228,3 @@ namespace LibreMetaverse
         }
     }
 }
-

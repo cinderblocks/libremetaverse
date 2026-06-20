@@ -65,7 +65,7 @@ namespace TestClient.Commands.Appearance
                         items.Add(inventoryItem);
                 }
 
-                Client.Appearance.ReplaceOutfit(items);
+                await Client.Appearance.ReplaceOutfitAsync(items).ConfigureAwait(false);
 
                 return "Starting to change outfit to " + target;
             }

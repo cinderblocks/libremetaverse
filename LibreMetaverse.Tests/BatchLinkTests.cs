@@ -298,11 +298,9 @@ namespace LibreMetaverse.Tests
             client.AddHttpResponse(new Uri($"http://fake-ais3.test/ais3/category/{folderID}/links"),
                 HttpStatusCode.OK, responseXml, "application/llsd+xml");
 
-            bool? success = null;
-            await client.AisClient.GetCategoryLinks(folderID.ToString(),
-                (s, _, _, _) => success = s, CancellationToken.None);
+            var (s1, _, _, _) = await client.AisClient.GetCategoryLinksAsync(folderID.ToString(), CancellationToken.None);
 
-            Assert.That(success, Is.True, "GetCategoryLinks should GET /category/{id}/links with no ?tid=");
+            Assert.That(s1, Is.True, "GetCategoryLinks should GET /category/{id}/links with no ?tid=");
         }
 
         [Test]
@@ -314,11 +312,9 @@ namespace LibreMetaverse.Tests
             client.AddHttpResponse(new Uri($"http://fake-ais3.test/ais3/category/{folderID}"),
                 HttpStatusCode.OK, responseXml, "application/llsd+xml");
 
-            bool? success = null;
-            await client.AisClient.GetCategory(folderID.ToString(),
-                (s, _, _, _) => success = s, CancellationToken.None);
+            var (s1, _, _, _) = await client.AisClient.GetCategoryAsync(folderID.ToString(), CancellationToken.None);
 
-            Assert.That(success, Is.True, "GetCategory should GET /category/{id} with no ?tid=");
+            Assert.That(s1, Is.True, "GetCategory should GET /category/{id} with no ?tid=");
         }
     }
 }

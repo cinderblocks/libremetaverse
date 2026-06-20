@@ -1227,24 +1227,7 @@ namespace LibreMetaverse
             if (cap != null)
             {
                 OSDMap payload = new OSDMap(1) { ["group_id"] = @group };
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload, CancellationToken.None);
-                        if (data == null)
-                        {
-                            Logger.Warn("Group members request returned no data", Client);
-                            return;
-                        }
-                        OSD result = OSDParser.Deserialize(data);
-                        GroupMembersHandlerCaps(requestID, result);
-                    }
-                    catch (Exception)
-                    {
-                        // Ignore errors for fire-and-forget group member requests
-                    }
-                });
+                _ = RequestGroupMembersFromCapAsync(requestID, cap, payload);
             }
             else // fallback to LLUDP
             {
@@ -1269,6 +1252,25 @@ namespace LibreMetaverse
             }
 
             return requestID;
+        }
+
+        private async Task RequestGroupMembersFromCapAsync(UUID requestID, Uri cap, OSDMap payload)
+        {
+            try
+            {
+                var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload, CancellationToken.None);
+                if (data == null)
+                {
+                    Logger.Warn("Group members request returned no data", Client);
+                    return;
+                }
+                OSD result = OSDParser.Deserialize(data);
+                GroupMembersHandlerCaps(requestID, result);
+            }
+            catch (Exception)
+            {
+                // Ignore errors for fire-and-forget group member requests
+            }
         }
 
         /// <summary>Request group roles</summary>

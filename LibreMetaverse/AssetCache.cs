@@ -177,8 +177,7 @@ namespace LibreMetaverse
         /// <returns>Raw bytes of the asset, or null on failure</returns>
         public byte[]? GetCachedAssetBytes(UUID assetID)
         {
-            // Keep synchronous wrapper for compatibility
-            return GetCachedAssetBytesAsync(assetID, CancellationToken.None).GetAwaiter().GetResult();
+            return TryGetCachedAssetBytes(assetID, out var data) ? data : null;
         }
 
         /// <summary>
@@ -405,8 +404,24 @@ namespace LibreMetaverse
         /// <returns>Whether the operation was successful</returns>
         public bool SaveAssetToCache(UUID assetID, byte[] assetData)
         {
-            // Keep synchronous wrapper for compatibility
-            return SaveAssetToCacheAsync(assetID, assetData, CancellationToken.None).GetAwaiter().GetResult();
+            if (!Operational()) return false;
+            try
+            {
+                var path = FileName(assetID);
+                Logger.Trace($"Saving {path} to asset cache.");
+                if (!Directory.Exists(Client.Settings.ASSET_CACHE_DIR))
+                    Directory.CreateDirectory(Client.Settings.ASSET_CACHE_DIR);
+                var tempPath = path + ".tmp";
+                File.WriteAllBytes(tempPath, assetData);
+#if NET5_0_OR_GREATER
+                File.Move(tempPath, path, overwrite: true);
+#else
+                if (File.Exists(path)) File.Delete(path);
+                File.Move(tempPath, path);
+#endif
+                return true;
+            }
+            catch (Exception ex) { Logger.Warn("Failed saving asset to cache (" + ex.Message + ")", Client); return false; }
         }
 
         /// <summary>
@@ -608,14 +623,6 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Synchronous wrapper for PruneAsync for compatibility
-        /// </summary>
-        public void Prune()
-        {
-            PruneAsync(CancellationToken.None).GetAwaiter().GetResult();
-        }
-
-        /// <summary>
         /// Asynchronously brings cache size to the 90% of the max size
         /// </summary>
         public void BeginPrune()
@@ -624,7 +631,7 @@ namespace LibreMetaverse
             if (!cleanerEvent.IsSet)
             {
                 cleanerEvent.Set();
-                _ = Task.Run(() => PruneAsync());
+                _ = PruneAsync();
             }
         }
 

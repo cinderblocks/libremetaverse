@@ -684,7 +684,7 @@ namespace LibreMetaverse
 
                 if (response != null && response.IsSuccessStatusCode && responseData != null)
                 {
-                    Client.Assets.Cache.SaveAssetToCache(assetID, responseData);
+                    await Client.Assets.Cache.SaveAssetToCacheAsync(assetID, responseData, cancellationToken).ConfigureAwait(false);
 
                     if (callback != null)
                     {
@@ -1033,60 +1033,6 @@ namespace LibreMetaverse
         {
             lock (PendingUploadLock)
                 PendingUpload = assetData;
-        }
-
-        /// <summary>
-        /// Request an asset be uploaded to the simulator
-        /// </summary>
-        /// <param name="asset">The <see cref="Asset"/> Object containing the asset data</param>
-        /// <param name="storeLocal">If True, the asset once uploaded will be stored on the simulator
-        /// in which the client was connected in addition to being stored on the asset server</param>
-        /// <returns>The <see cref="UUID"/> of the transfer, can be used to correlate the upload with
-        /// events being fired</returns>
-        public UUID RequestUpload(Asset asset, bool storeLocal)
-        {
-            if (asset.AssetData == null)
-                throw new ArgumentException("Can't upload an asset with no data (did you forget to call Encode?)");
-
-            // Synchronous wrapper around async implementation
-            UUID transactionID = UUID.Random();
-            UUID assetID = UUID.Combine(transactionID, Client.Self.SecureSessionID);
-            UUID transferID = RequestUploadAsync(asset.AssetType, asset.AssetData, storeLocal, transactionID).GetAwaiter().GetResult();
-            asset.AssetID = assetID;
-            return transferID;
-        }
-
-        /// <summary>
-        /// Request an asset be uploaded to the simulator
-        /// </summary>
-        /// <param name="type">The <see cref="AssetType"/> of the asset being uploaded</param>
-        /// <param name="data">A byte array containing the encoded asset data</param>
-        /// <param name="storeLocal">If True, the asset once uploaded will be stored on the simulator
-        /// in which the client was connected in addition to being stored on the asset server</param>
-        /// <returns>The <see cref="UUID"/> of the transfer, can be used to correlate the upload with
-        /// events being fired</returns>
-        public UUID RequestUpload(AssetType type, byte[] data, bool storeLocal)
-        {
-            // Synchronous wrapper around async implementation
-            UUID transactionID = UUID.Random();
-            // compute assetID for caller
-            UUID assetID = UUID.Combine(transactionID, Client.Self.SecureSessionID);
-            return RequestUploadAsync(type, data, storeLocal, transactionID).GetAwaiter().GetResult();
-        }
-
-        /// <summary>
-        /// Request an asset be uploaded to the simulator
-        /// </summary>
-        /// <param name="assetID"></param>
-        /// <param name="type">Asset type to upload this data as</param>
-        /// <param name="data">A byte array containing the encoded asset data</param>
-        /// <param name="storeLocal">If True, the asset once uploaded will be stored on the simulator
-        /// in which the client was connected in addition to being stored on the asset server</param>
-        /// <returns>The <see cref="UUID"/> of the transfer, can be used to correlate the upload with
-        /// events being fired</returns>
-        public UUID RequestUpload(out UUID assetID, AssetType type, byte[] data, bool storeLocal)
-        {
-            return RequestUpload(out assetID, type, data, storeLocal, UUID.Random());
         }
 
         /// <summary>

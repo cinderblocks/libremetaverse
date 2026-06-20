@@ -28,7 +28,7 @@ namespace TestClient.Commands.Land
 
         public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
         {
-            Client.Grid.RequestMapLayer(GridLayerType.Objects);
+            _ = Client.Grid.RequestMapLayerAsync(GridLayerType.Objects);
 
             return Task.FromResult("Sent.");
         }

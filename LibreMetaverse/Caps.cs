@@ -86,7 +86,7 @@ namespace LibreMetaverse
             Simulator = simulator;
             _SeedCapsURI = seedcaps;
 
-            MakeSeedRequest();
+            _ = MakeSeedRequestAsync();
         }
 
         public void Disconnect(bool immediate)
@@ -259,22 +259,19 @@ namespace LibreMetaverse
             "InventoryAPIv3",
             "LibraryAPIv3"
         };
-        private void MakeSeedRequest()
+        private async Task MakeSeedRequestAsync()
         {
             if (Simulator == null || !Simulator.Client.Network.Connected) { return; }
 
-            _ = Task.Run(async () =>
+            try
             {
-                try
-                {
-                    var (response, data) = await Simulator.Client.HttpCapsClient.PostAsync(_SeedCapsURI, OSDFormat.Xml, Caps.AllCapabilities, _HttpCts.Token);
-                    SeedRequestCompleteHandler(response, data, null);
-                }
-                catch (Exception ex)
-                {
-                    SeedRequestCompleteHandler(null, null, ex);
-                }
-            });
+                var (response, data) = await Simulator.Client.HttpCapsClient.PostAsync(_SeedCapsURI, OSDFormat.Xml, Caps.AllCapabilities, _HttpCts.Token);
+                SeedRequestCompleteHandler(response, data, null);
+            }
+            catch (Exception ex)
+            {
+                SeedRequestCompleteHandler(null, null, ex);
+            }
         }
 
         private void SeedRequestCompleteHandler(HttpResponseMessage? response, byte[]? responseData, Exception? error)
@@ -292,7 +289,7 @@ namespace LibreMetaverse
                     DisposalHelper.SafeCancelAndDispose(_HttpCts, (m, e) => { if (e != null) Logger.Debug(m, e); else Logger.Debug(m); });
                     // Create a fresh CTS for retry
                     // Note: _HttpCts is readonly, so we cannot reassign; instead, call MakeSeedRequest only if the original CTS hasn't been disposed.
-                    MakeSeedRequest();
+                    _ = MakeSeedRequestAsync();
                 }
                 return;
             }
@@ -326,18 +323,7 @@ namespace LibreMetaverse
                     {
                         Logger.DebugLog($"Retrieving Simulator Features", Simulator.Client);
                         Simulator.Features = new SimulatorFeatures(Simulator);
-                        _ = Task.Run(async () =>
-                        {
-                            try
-                            {
-                                var (response, data) = await Simulator.Client.HttpCapsClient.GetAsync(simFeaturesCap, _HttpCts.Token);
-                                Simulator.Features.SetFeatures(response, data, null);
-                            }
-                            catch (Exception ex)
-                            {
-                                Simulator.Features.SetFeatures(null, null, ex);
-                            }
-                        });
+                        _ = FetchSimulatorFeaturesAsync(simFeaturesCap);
                     }
 
                     OnCapabilitiesReceived(Simulator);
@@ -347,6 +333,19 @@ namespace LibreMetaverse
             {
                 var respText = responseData != null ? System.Text.Encoding.UTF8.GetString(responseData) : string.Empty;
                 Logger.Warn($"Invalid caps response; '{respText}' for seed request.", Simulator.Client);
+            }
+        }
+
+        private async Task FetchSimulatorFeaturesAsync(Uri cap)
+        {
+            try
+            {
+                var (response, data) = await Simulator.Client.HttpCapsClient.GetAsync(cap, _HttpCts.Token);
+                Simulator.Features.SetFeatures(response, data, null);
+            }
+            catch (Exception ex)
+            {
+                Simulator.Features.SetFeatures(null, null, ex);
             }
         }
 
