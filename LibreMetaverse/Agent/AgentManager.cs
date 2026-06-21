@@ -867,13 +867,6 @@ namespace LibreMetaverse
                     return fullPosition;
                 }
 
-                // Didn't find the seat's root prim, try returning coarse location
-                var currentSim = Client?.Network?.CurrentSim;
-                if (currentSim != null && currentSim.avatarPositions.TryGetValue(AgentID, out fullPosition))
-                {
-                    return fullPosition;
-                }
-
                 Logger.Warn("Failed to determine agent sim position", Client);
                 return relativePosition;
             }
@@ -2641,8 +2634,6 @@ namespace LibreMetaverse
                     try { MuteList.Dictionary.Clear(); } catch { }
                     try { ActiveGestures.Dictionary.Clear(); } catch { }
                     try { SignaledAnimations.Dictionary.Clear(); } catch { }
-                    try { gestureCache.Clear(); } catch { }
-
                     // Clear multi-sim tracking data
                     try { _simulatorStates.Clear(); } catch { }
                     try { _childAgentStatus.Clear(); } catch { }

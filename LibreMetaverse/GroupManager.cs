@@ -973,9 +973,6 @@ namespace LibreMetaverse
         private readonly ConcurrentDictionary<UUID, List<KeyValuePair<UUID, UUID>>> TempGroupRolesMembers;
         /// <summary>Dictionary keeping GroupRole information while request is in progress</summary>
         private readonly ConcurrentDictionary<UUID, Dictionary<UUID, GroupRole>> TempGroupRoles;
-        /// <summary>Caches group name lookups</summary>
-        public LockingDictionary<UUID, string> GroupName2KeyCache;
-
         /// <summary>
         /// Construct a new instance of the GroupManager class
         /// </summary>
@@ -990,7 +987,6 @@ namespace LibreMetaverse
             GroupRolesRequests = new ConcurrentDictionary<UUID, byte>();
             TempGroupRolesMembers = new ConcurrentDictionary<UUID, List<KeyValuePair<UUID, UUID>>>();
             GroupRolesMembersRequests = new ConcurrentDictionary<UUID, byte>();
-            GroupName2KeyCache = new LockingDictionary<UUID, string>();
 
             Client.Self.IM += Self_IM;
 
@@ -1054,7 +1050,6 @@ namespace LibreMetaverse
                     try { TempGroupMembers?.Clear(); } catch { }
                     try { TempGroupRoles?.Clear(); } catch { }
                     try { TempGroupRolesMembers?.Clear(); } catch { }
-                    try { GroupName2KeyCache?.Clear(); } catch { }
                     try { GroupMembersRequests?.Clear(); } catch { }
                     try { GroupRolesRequests?.Clear(); } catch { }
                     try { GroupRolesMembersRequests?.Clear(); } catch { }
@@ -1136,26 +1131,12 @@ namespace LibreMetaverse
         /// <param name="groupID">groupID of group to lookup name for.</param>
         public void RequestGroupName(UUID groupID)
         {
-            // if we already have this in the cache, return from cache instead of making a request
-            if (GroupName2KeyCache.ContainsKey(groupID))
+            UUIDGroupNameRequestPacket req = new UUIDGroupNameRequestPacket();
+            req.UUIDNameBlock = new[]
             {
-                Dictionary<UUID, string> groupNames = new Dictionary<UUID, string>();
-                lock (GroupName2KeyCache.Dictionary)
-                    groupNames.Add(groupID, GroupName2KeyCache.Dictionary[groupID]);
-
-                if (m_GroupNames != null)
-                {
-                    OnGroupNamesReply(new GroupNamesEventArgs(groupNames));
-                }
-            }
-            else
-            {
-                UUIDGroupNameRequestPacket req = new UUIDGroupNameRequestPacket();
-                UUIDGroupNameRequestPacket.UUIDNameBlockBlock[] block = new UUIDGroupNameRequestPacket.UUIDNameBlockBlock[1];
-                block[0] = new UUIDGroupNameRequestPacket.UUIDNameBlockBlock {ID = groupID};
-                req.UUIDNameBlock = block;
-                Client.Network.SendPacket(req);
-            }
+                new UUIDGroupNameRequestPacket.UUIDNameBlockBlock { ID = groupID }
+            };
+            Client.Network.SendPacket(req);
         }
 
         /// <summary>
@@ -1164,35 +1145,14 @@ namespace LibreMetaverse
         /// <param name="groupIDs">List of group IDs to request.</param>
         public void RequestGroupNames(List<UUID> groupIDs)
         {
-            Dictionary<UUID, string> groupNames = new Dictionary<UUID, string>();
-            lock (GroupName2KeyCache.Dictionary)
-            {
-                foreach (UUID groupID in groupIDs)
-                {
-                    if (GroupName2KeyCache.ContainsKey(groupID))
-                        groupNames[groupID] = GroupName2KeyCache.Dictionary[groupID];
-                }
-            }
+            if (groupIDs.Count == 0) return;
 
-            if (groupIDs.Count > 0)
-            {
-                UUIDGroupNameRequestPacket req = new UUIDGroupNameRequestPacket();
-                UUIDGroupNameRequestPacket.UUIDNameBlockBlock[] block = new UUIDGroupNameRequestPacket.UUIDNameBlockBlock[groupIDs.Count];
-
-                for (int i = 0; i < groupIDs.Count; i++)
-                {
-                    block[i] = new UUIDGroupNameRequestPacket.UUIDNameBlockBlock {ID = groupIDs[i]};
-                }
-
-                req.UUIDNameBlock = block;
-                Client.Network.SendPacket(req);
-            }
-
-            // fire handler from cache
-            if (groupNames.Count > 0 && m_GroupNames != null)
-            {
-                OnGroupNamesReply(new GroupNamesEventArgs(groupNames));
-            }
+            UUIDGroupNameRequestPacket req = new UUIDGroupNameRequestPacket();
+            var block = new UUIDGroupNameRequestPacket.UUIDNameBlockBlock[groupIDs.Count];
+            for (int i = 0; i < groupIDs.Count; i++)
+                block[i] = new UUIDGroupNameRequestPacket.UUIDNameBlockBlock { ID = groupIDs[i] };
+            req.UUIDNameBlock = block;
+            Client.Network.SendPacket(req);
         }
 
         /// <summary>Lookup group profile data such as name, enrollment, founder, logo, etc</summary>
@@ -1945,12 +1905,6 @@ namespace LibreMetaverse
                 };
 
                 currentGroups.Add(group.ID, group);
-
-                lock (GroupName2KeyCache.Dictionary)
-                {
-                    if (!GroupName2KeyCache.Dictionary.ContainsKey(group.ID))
-                        GroupName2KeyCache.Dictionary.Add(group.ID, group.Name);
-                }
             }
 
             if (m_CurrentGroups != null)
@@ -2349,8 +2303,6 @@ namespace LibreMetaverse
             foreach (UUIDGroupNameReplyPacket.UUIDNameBlockBlock block in blocks)
             {
                 groupNames.Add(block.ID, Utils.BytesToString(block.GroupName));
-                if (!GroupName2KeyCache.ContainsKey(block.ID))
-                    GroupName2KeyCache.Add(block.ID, Utils.BytesToString(block.GroupName));
             }
 
             if (m_GroupNames != null)

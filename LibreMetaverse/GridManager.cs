@@ -398,6 +398,11 @@ namespace LibreMetaverse
 
         private readonly GridClient Client;
 
+        // Per-simulator coarse location snapshot; used to compute new/removed diffs without
+        // holding positions on the Simulator object itself.
+        private readonly ConcurrentDictionary<Simulator, Dictionary<UUID, Vector3>> _coarsePositions =
+            new ConcurrentDictionary<Simulator, Dictionary<UUID, Vector3>>();
+
         /// <summary>
         /// Constructor
         /// </summary>
@@ -418,6 +423,7 @@ namespace LibreMetaverse
             Client.Network.RegisterCallback(PacketType.SimulatorViewerTimeMessage, SimulatorViewerTimeMessageHandler);
             Client.Network.RegisterCallback(PacketType.CoarseLocationUpdate, CoarseLocationHandler, false);
             Client.Network.RegisterCallback(PacketType.RegionIDAndHandleReply, RegionHandleReplyHandler);
+            Client.Network.SimDisconnected += OnSimDisconnected;
 		}
 
         /// <summary>
@@ -1038,51 +1044,44 @@ namespace LibreMetaverse
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
         /// <param name="sender">The sender</param>
         /// <param name="e">The EventArgs object containing the packet data</param>
+        private void OnSimDisconnected(object? sender, SimDisconnectedEventArgs e)
+        {
+            _coarsePositions.TryRemove(e.Simulator, out _);
+        }
+
         protected void CoarseLocationHandler(object? sender, PacketReceivedEventArgs e)
         {
             CoarseLocationUpdatePacket coarse = (CoarseLocationUpdatePacket)e.Packet;
 
-            // populate a dictionary from the packet, for local use
-            var coarseEntries = new Dictionary<UUID, Vector3>(coarse.AgentData.Length);
+            // Build current snapshot from packet
+            var current = new Dictionary<UUID, Vector3>(coarse.AgentData.Length);
             for (var i = 0; i < coarse.AgentData.Length; i++)
             {
                 if (i < coarse.Location.Length)
-                    coarseEntries[coarse.AgentData[i].AgentID] = new Vector3(coarse.Location[i].X, coarse.Location[i].Y, coarse.Location[i].Z * 4);
+                    current[coarse.AgentData[i].AgentID] = new Vector3(coarse.Location[i].X, coarse.Location[i].Y, coarse.Location[i].Z * 4);
 
-                // the friend we are tracking on radar
                 if (i == coarse.Index.Prey)
                     e.Simulator.preyID = coarse.AgentData[i].AgentID;
             }
 
-            // find stale entries (people who left the sim)
-            var coarseKeys = new HashSet<UUID>(coarseEntries.Keys);
-            var removedEntries = e.Simulator.avatarPositions.Keys
-                .Where(avatarId => !coarseKeys.Contains(avatarId))
-                .ToList();
-
-            // entry not listed in the previous update
-            var newEntries = new List<UUID>(coarse.AgentData.Length);
-            
-            // remove stale entries
-            foreach (var trackedID in removedEntries)
-            {
-                e.Simulator.avatarPositions.TryRemove(trackedID, out var removed);
-            }
-
-            // add or update tracked info, and record who is new
-            foreach (var entry in coarseEntries)
-            {
-                if (!e.Simulator.avatarPositions.TryGetValue(entry.Key, out _))
-                {
-                    newEntries.Add(entry.Key);
-                }
-                e.Simulator.avatarPositions[entry.Key] = entry.Value;
-            }
+            // Swap snapshot and compute diff for event args
+            var previous = _coarsePositions.GetOrAdd(e.Simulator, _ => new Dictionary<UUID, Vector3>());
+            _coarsePositions[e.Simulator] = current;
 
             if (m_CoarseLocationUpdate != null)
             {
+                var newEntries = new List<UUID>();
+                var removedEntries = new List<UUID>();
+
+                foreach (var id in current.Keys)
+                    if (!previous.ContainsKey(id)) newEntries.Add(id);
+
+                foreach (var id in previous.Keys)
+                    if (!current.ContainsKey(id)) removedEntries.Add(id);
+
+                var snapshot = new ReadOnlyDictionary<UUID, Vector3>(current);
                 ThreadPool.QueueUserWorkItem(o =>
-                { OnCoarseLocationUpdate(new CoarseLocationUpdateEventArgs(e.Simulator, newEntries, removedEntries)); });
+                    OnCoarseLocationUpdate(new CoarseLocationUpdateEventArgs(e.Simulator, snapshot, newEntries, removedEntries)));
             }
         }
 
@@ -1120,6 +1119,7 @@ namespace LibreMetaverse
                         try { Client.Network.UnregisterCallback(PacketType.SimulatorViewerTimeMessage, SimulatorViewerTimeMessageHandler); } catch { }
                         try { Client.Network.UnregisterCallback(PacketType.CoarseLocationUpdate, CoarseLocationHandler); } catch { }
                         try { Client.Network.UnregisterCallback(PacketType.RegionIDAndHandleReply, RegionHandleReplyHandler); } catch { }
+                        try { Client.Network.SimDisconnected -= OnSimDisconnected; } catch { }
                     }
                 }
                 catch (Exception ex)
@@ -1150,12 +1150,15 @@ namespace LibreMetaverse
     public class CoarseLocationUpdateEventArgs : EventArgs
     {
         public Simulator Simulator { get; }
+        /// <summary>Full snapshot of all avatar positions in the simulator after this update</summary>
+        public IReadOnlyDictionary<UUID, Vector3> Positions { get; }
         public ICollection<UUID> NewEntries { get; }
         public ICollection<UUID> RemovedEntries { get; }
 
-        public CoarseLocationUpdateEventArgs(Simulator simulator, ICollection<UUID> newEntries, ICollection<UUID> removedEntries)
+        public CoarseLocationUpdateEventArgs(Simulator simulator, IReadOnlyDictionary<UUID, Vector3> positions, ICollection<UUID> newEntries, ICollection<UUID> removedEntries)
         {
             Simulator = simulator;
+            Positions = positions;
             NewEntries = newEntries;
             RemovedEntries = removedEntries;
         }

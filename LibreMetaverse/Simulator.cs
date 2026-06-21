@@ -534,9 +534,6 @@ namespace LibreMetaverse
         /// not</summary>
         public bool Connected => connected;
 
-        /// <summary>Coarse locations of avatars in this simulator</summary>
-        public ConcurrentDictionary<UUID, Vector3> AvatarPositions => avatarPositions;
-
         /// <summary>AvatarPositions key representing TrackAgent target</summary>
         public UUID PreyID => preyID;
 
@@ -554,8 +551,6 @@ namespace LibreMetaverse
         /// <summary>Whether this sim is currently connected or not. Hooked up
         /// to the property Connected</summary>
         internal bool connected;
-        /// <summary>Coarse locations of avatars in this simulator</summary>
-        internal ConcurrentDictionary<UUID, Vector3> avatarPositions = new ConcurrentDictionary<UUID, Vector3>();
         /// <summary>AvatarPositions key representing TrackAgent target</summary>
         internal UUID preyID = UUID.Zero;
         /// <summary>Sequence numbers of packets we've received

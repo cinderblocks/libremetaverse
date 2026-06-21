@@ -793,12 +793,6 @@ namespace LibreMetaverse
         {
             if (message.GroupIM)
                 return true;
-            
-            lock (Client.Groups.GroupName2KeyCache.Dictionary)
-            {
-                if (Client.Groups.GroupName2KeyCache.ContainsKey(message.IMSessionID))
-                    return true;
-            }
 
             lock (GroupChatSessions.Dictionary)
             {

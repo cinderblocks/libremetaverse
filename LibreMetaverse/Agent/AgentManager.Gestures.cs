@@ -29,7 +29,6 @@ using System;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 using LibreMetaverse.Assets;
 using LibreMetaverse.Packets;
 
@@ -37,8 +36,6 @@ namespace LibreMetaverse
 {
     public partial class AgentManager
     {
-        private readonly Dictionary<UUID, AssetGesture> gestureCache = new Dictionary<UUID, AssetGesture>();
-
         /// <summary>
         /// Plays a gesture
         /// </summary>
@@ -47,32 +44,11 @@ namespace LibreMetaverse
         {
             _ = Task.Run(async () =>
             {
-                // First fetch the gesture
-                AssetGesture? gesture = null;
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                var asset = await Client.Assets.RequestAssetAsync(gestureID, AssetType.Gesture, true, cts.Token)
+                    .ConfigureAwait(false);
 
-                if (gestureCache.TryGetValue(gestureID, out var gestureId))
-                {
-                    gesture = gestureId;
-                }
-                else
-                {
-                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-                    var asset = await Client.Assets.RequestAssetAsync(gestureID, AssetType.Gesture, true, cts.Token)
-                        .ConfigureAwait(false);
-
-                    if (asset is AssetGesture g && g.Decode())
-                    {
-                        gesture = g;
-                        lock (gestureCache)
-                        {
-                            if (!gestureCache.ContainsKey(gestureID))
-                                gestureCache[gestureID] = gesture;
-                        }
-                    }
-                }
-
-                // We got it, now we play it
-                if (gesture == null) return;
+                if (!(asset is AssetGesture gesture) || !gesture.Decode()) return;
                 foreach (GestureStep step in gesture.Sequence)
                 {
                     switch (step.GestureStepType)
