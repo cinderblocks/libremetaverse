@@ -17,9 +17,11 @@ namespace TestClient.Commands.Movement
             return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
         }
 
-        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
         {
-            return Task.FromResult(Client.Self.GoHome() ? "Teleport Home Succesful" : "Teleport Home Failed");
+            return await Client.Self.GoHomeAsync().ConfigureAwait(false)
+                ? "Teleport Home Succesful"
+                : "Teleport Home Failed";
         }
     }
 }

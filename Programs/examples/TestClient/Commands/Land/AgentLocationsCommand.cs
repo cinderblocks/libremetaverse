@@ -33,13 +33,10 @@ namespace TestClient.Commands.Land
             else if (!(args.Length == 1 && ulong.TryParse(args[0], out regionHandle)))
                 return "Usage: agentlocations [regionhandle]";
 
-            List<MapItem> items = null;
+            var items = await Client.Grid.MapItemsAsync(regionHandle, GridItemType.AgentLocations,
+                GridLayerType.Objects).ConfigureAwait(false);
 
-            // Call synchronous MapItems on threadpool
-            items = await Task.Run(() => Client.Grid.MapItems(regionHandle, GridItemType.AgentLocations, 
-                GridLayerType.Objects, TimeSpan.FromSeconds(20))).ConfigureAwait(false);
-
-            if (items != null)
+            if (items.Count > 0)
             {
                 StringBuilder ret = new StringBuilder();
                 ret.AppendLine("Agent locations:");

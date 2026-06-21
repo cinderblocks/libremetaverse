@@ -259,7 +259,7 @@ namespace LibreMetaverse.Utilities
                                 if (currentHandle != 0 && currentHandle != _simHandle)
                                 {
                                     // Attempt to move to our target sim
-                                    try { _client?.Self?.Teleport(_simHandle, _position); } catch { }
+                                    try { await (_client?.Self?.TeleportAsync(_simHandle, _position) ?? Task.FromResult(false)).ConfigureAwait(false); } catch { }
                                 }
                             }
                         }

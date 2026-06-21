@@ -515,6 +515,7 @@ namespace LibreMetaverse
 
             if (finished)
             {
+                _teleportTcs?.TrySetResult(teleportStatus == TeleportStatus.Finished);
                 teleportEvent.Set();
             }
         }
@@ -1189,7 +1190,7 @@ namespace LibreMetaverse
         /// <param name="capsKey">Caps Key</param>
         /// <param name="message">IMessage object containing decoded data from OSD</param>
         /// <param name="simulator">Originating Simulator</param>
-        private void ChatterBoxInvitationEventHandler(string capsKey, IMessage message, Simulator simulator)
+        private async void ChatterBoxInvitationEventHandler(string capsKey, IMessage message, Simulator simulator)
         {
             if (m_InstantMessage == null) return;
             ChatterBoxInvitationMessage msg = (ChatterBoxInvitationMessage)message;
@@ -1225,7 +1226,7 @@ namespace LibreMetaverse
 
             try
             {
-                ChatterBoxAcceptInvite(msg.IMSessionID).Wait();
+                await ChatterBoxAcceptInvite(msg.IMSessionID).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

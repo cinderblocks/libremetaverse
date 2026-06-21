@@ -24,15 +24,10 @@ namespace TestClient.Commands.Land
             // Build the simulator name from the args list
             string simName = string.Join(" ", args).TrimEnd().ToLower();
 
-            var result = await Task.Run(() =>
-            {
-                GridRegion r;
-                bool g = Client.Grid.GetGridRegion(simName, GridLayerType.Objects, out r);
-                return (got: g, region: r);
-            }).ConfigureAwait(false);
+            var region = await Client.Grid.GetGridRegionAsync(simName, GridLayerType.Objects).ConfigureAwait(false);
 
-            if (result.got)
-                return $"{result.region.Name}: handle={result.region.RegionHandle} ({result.region.X},{result.region.Y})";
+            if (region != null)
+                return $"{region.Value.Name}: handle={region.Value.RegionHandle} ({region.Value.X},{region.Value.Y})";
             else
                 return "Lookup of " + simName + " failed";
         }

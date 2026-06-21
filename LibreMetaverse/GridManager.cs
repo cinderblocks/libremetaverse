@@ -699,13 +699,142 @@ namespace LibreMetaverse
 
             if (Regions.TryGetValue(key, out region))
                 return true;
-            
+
             Logger.Warn($"Could not find region named {name}", Client);
             region = new GridRegion();
             return false;
-            
+
         }
-        
+
+        /// <summary>Asynchronously retrieves <see cref="GridRegion"/> information using the region name</summary>
+        public async Task<GridRegion?> GetGridRegionAsync(string name, GridLayerType layer, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                Logger.Error("GetGridRegionAsync called with a null or empty region name", Client);
+                return null;
+            }
+
+            var key = name.ToLowerInvariant();
+            if (Regions.TryGetValue(key, out var cached))
+                return cached;
+
+            var tcs = new TaskCompletionSource<GridRegion>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            void Callback(object? sender, GridRegionEventArgs e)
+            {
+                if (string.Equals(e.Region.Name, name, StringComparison.InvariantCultureIgnoreCase))
+                    tcs.TrySetResult(e.Region);
+            }
+
+            GridRegion += Callback;
+            try
+            {
+                RequestMapRegion(name, layer);
+
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                linkedCts.CancelAfter(Client.Settings.Timing.MapRequestTimeout);
+
+                var completed = await Task.WhenAny(tcs.Task,
+                    Task.Delay(Timeout.InfiniteTimeSpan, linkedCts.Token)).ConfigureAwait(false);
+
+                if (completed == tcs.Task)
+                    return tcs.Task.Result;
+
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+            finally
+            {
+                GridRegion -= Callback;
+            }
+
+            if (Regions.TryGetValue(key, out var found))
+                return found;
+
+            Logger.Warn($"Could not find region named {name}", Client);
+            return null;
+        }
+
+        /// <summary>Asynchronously retrieves <see cref="GridRegion"/> information using the region handle</summary>
+        public async Task<GridRegion?> GetGridRegionAsync(ulong handle, GridLayerType layer, CancellationToken cancellationToken = default)
+        {
+            if (RegionsByHandle.TryGetValue(handle, out var cached))
+                return cached;
+
+            Utils.LongToUInts(handle, out var globalX, out var globalY);
+            const uint regionWidthUnits = 256;
+            ushort gridX = (ushort)(globalX / regionWidthUnits);
+            ushort gridY = (ushort)(globalY / regionWidthUnits);
+
+            var tcs = new TaskCompletionSource<GridRegion>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            void Callback(object? sender, GridRegionEventArgs e)
+            {
+                if (e.Region.RegionHandle == handle)
+                    tcs.TrySetResult(e.Region);
+            }
+
+            GridRegion += Callback;
+            try
+            {
+                RequestMapBlocks(layer, gridX, gridY, gridX, gridY, true);
+
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                linkedCts.CancelAfter(Client.Settings.Timing.MapRequestTimeout);
+
+                var completed = await Task.WhenAny(tcs.Task,
+                    Task.Delay(Timeout.InfiniteTimeSpan, linkedCts.Token)).ConfigureAwait(false);
+
+                if (completed == tcs.Task)
+                    return tcs.Task.Result;
+
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+            finally
+            {
+                GridRegion -= Callback;
+            }
+
+            Logger.Warn($"Could not find region at region handle {handle}", Client);
+            return null;
+        }
+
+        /// <summary>Asynchronously returns a list of map items for a region</summary>
+        public async Task<List<MapItem>> MapItemsAsync(ulong regionHandle, GridItemType item, GridLayerType layer,
+            CancellationToken cancellationToken = default)
+        {
+            var tcs = new TaskCompletionSource<List<MapItem>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            void Callback(object? sender, GridItemsEventArgs e)
+            {
+                if (e.Type == GridItemType.AgentLocations)
+                    tcs.TrySetResult(e.Items);
+            }
+
+            GridItems += Callback;
+            try
+            {
+                RequestMapItems(regionHandle, item, layer);
+
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                linkedCts.CancelAfter(TimeSpan.FromSeconds(20));
+
+                var completed = await Task.WhenAny(tcs.Task,
+                    Task.Delay(Timeout.InfiniteTimeSpan, linkedCts.Token)).ConfigureAwait(false);
+
+                if (completed == tcs.Task)
+                    return tcs.Task.Result;
+
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+            finally
+            {
+                GridItems -= Callback;
+            }
+
+            return new List<MapItem>();
+        }
+
         protected void MapLayerResponseHandler(HttpResponseMessage? response, byte[]? responseData, Exception? error)
         {
             if (error != null)

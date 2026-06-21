@@ -18,20 +18,18 @@ namespace TestClient.Commands.Movement
             return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
         }
 
-        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
         {
             if (args.Length < 1)
-            {
-                return Task.FromResult("Usage: goto_landmark [UUID]");
-            }
+                return "Usage: goto_landmark [UUID]";
 
             if (!UUID.TryParse(args[0], out var landmark))
-            {
-                return Task.FromResult("Invalid UUID");
-            }
+                return "Invalid UUID";
 
             Console.WriteLine("Teleporting to " + landmark);
-            return Task.FromResult(Client.Self.Teleport(landmark) ? "Teleport Successful" : "Teleport Failed");
+            return await Client.Self.TeleportAsync(landmark).ConfigureAwait(false)
+                ? "Teleport Successful"
+                : "Teleport Failed";
         }
     }
 }

@@ -962,6 +962,7 @@ namespace LibreMetaverse
         private string? fullName;
         private TeleportStatus teleportStatus = TeleportStatus.None;
         private readonly ManualResetEvent teleportEvent = new ManualResetEvent(false);
+        private volatile TaskCompletionSource<bool>? _teleportTcs;
         private uint heightWidthGenCounter;
         private bool disposed = false;
 

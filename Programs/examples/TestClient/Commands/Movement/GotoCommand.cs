@@ -17,10 +17,10 @@ namespace TestClient.Commands.Movement
 			return ExecuteAsync(args, fromAgentID).GetAwaiter().GetResult();
 		}
 
-        public override Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
+        public override async Task<string> ExecuteAsync(string[] args, UUID fromAgentID)
 		{
 			if (args.Length < 1)
-                return Task.FromResult("Usage: goto sim/x/y/z");
+                return "Usage: goto sim/x/y/z";
 
             string destination = string.Empty;
 
@@ -33,7 +33,7 @@ namespace TestClient.Commands.Movement
 
             string[] tokens = destination.Split(new[] { '/' });
             if (tokens.Length != 4)
-                return Task.FromResult("Usage: goto sim/x/y/z");
+                return "Usage: goto sim/x/y/z";
 
             string sim = tokens[0];
             float x, y, z;
@@ -41,13 +41,13 @@ namespace TestClient.Commands.Movement
                 !float.TryParse(tokens[2], out y) ||
                 !float.TryParse(tokens[3], out z))
             {
-                return Task.FromResult("Usage: goto sim/x/y/z");
+                return "Usage: goto sim/x/y/z";
             }
 
-            if (Client.Self.Teleport(sim, new Vector3(x, y, z)))
-                return Task.FromResult("Teleported to " + Client.Network.CurrentSim);
+            if (await Client.Self.TeleportAsync(sim, new Vector3(x, y, z)).ConfigureAwait(false))
+                return "Teleported to " + Client.Network.CurrentSim;
             else
-                return Task.FromResult("Teleport failed: " + Client.Self.TeleportMessage);
+                return "Teleport failed: " + Client.Self.TeleportMessage;
 		}
     }
 }
