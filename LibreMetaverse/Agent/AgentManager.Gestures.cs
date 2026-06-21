@@ -28,6 +28,7 @@
 using System;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using LibreMetaverse.Assets;
 using LibreMetaverse.Packets;
@@ -44,7 +45,7 @@ namespace LibreMetaverse
         /// <param name="gestureID">Asset <see cref="UUID"/> of the gesture</param>
         public void PlayGesture(UUID gestureID)
         {
-            ThreadPool.QueueUserWorkItem(_ =>
+            _ = Task.Run(async () =>
             {
                 // First fetch the gesture
                 AssetGesture? gesture = null;
@@ -55,30 +56,17 @@ namespace LibreMetaverse
                 }
                 else
                 {
-                    AutoResetEvent gotAsset = new AutoResetEvent(false);
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                    var asset = await Client.Assets.RequestAssetAsync(gestureID, AssetType.Gesture, true, cts.Token)
+                        .ConfigureAwait(false);
 
-                    Client.Assets.RequestAsset(gestureID, AssetType.Gesture, true,
-                        delegate(AssetDownload transfer, Asset? asset)
-                        {
-                            if (transfer.Success && asset is AssetGesture g)
-                            {
-                                gesture = g;
-                            }
-
-                            gotAsset.Set();
-                        }
-                    );
-
-                    gotAsset.WaitOne(TimeSpan.FromSeconds(30), false);
-
-                    if (gesture != null && gesture.Decode())
+                    if (asset is AssetGesture g && g.Decode())
                     {
+                        gesture = g;
                         lock (gestureCache)
                         {
                             if (!gestureCache.ContainsKey(gestureID))
-                            {
                                 gestureCache[gestureID] = gesture;
-                            }
                         }
                     }
                 }

@@ -25,6 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using LibreMetaverse.Assets;
 using LibreMetaverse.Interfaces;
 using LibreMetaverse.Messages.Linden;
 using LibreMetaverse.Packets;
@@ -749,32 +750,33 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Requests Estate Covenant notecard from <see cref="Client.Network.CurrentSim" /> asset service
+        /// Requests Estate Covenant notecard from <see cref="Client.Network.CurrentSim" /> asset service.
         /// </summary>
         /// <param name="covenantId">Asset UUID for estate covenant notecard</param>
-        /// <param name="callback">Asset Received callback</param>
-        /// <seealso cref="AssetManager.RequestAssetUDP"/>
-        public void RequestCovenantNotecard(UUID covenantId, AssetManager.AssetReceivedCallback callback)
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>The notecard asset on success, null on failure</returns>
+        public Task<Asset?> RequestCovenantNotecardAsync(UUID covenantId, CancellationToken cancellationToken = default)
         {
             var sim = Client.Network.CurrentSim;
             if (sim == null)
             {
                 Logger.Warn("Cannot request covenant notecard: no current simulator available", Client);
-                return;
+                return Task.FromResult<Asset?>(null);
             }
-
-            RequestCovenantNotecard(covenantId, sim, callback);
+            return RequestCovenantNotecardAsync(covenantId, sim, cancellationToken);
         }
 
         /// <summary>
-        /// Requests Estate Covenant notecard from asset service
+        /// Requests Estate Covenant notecard from asset service.
         /// </summary>
         /// <param name="covenantId">Asset UUID for estate covenant notecard</param>
-        /// <param name="simulator">Requested simulator</param>
-        /// <param name="callback">Asset Received callback</param>
-        /// <seealso cref="AssetManager.RequestAssetUDP"/>
-        public void RequestCovenantNotecard(UUID covenantId, Simulator simulator, AssetManager.AssetReceivedCallback callback)
+        /// <param name="simulator">Simulator to request from</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>The notecard asset on success, null on failure</returns>
+        public Task<Asset?> RequestCovenantNotecardAsync(UUID covenantId, Simulator simulator, CancellationToken cancellationToken = default)
         {
+            var tcs = new TaskCompletionSource<Asset?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
             var transfer = new AssetDownload
             {
                 ID = UUID.Random(),
@@ -784,9 +786,10 @@ namespace LibreMetaverse
                 Channel = ChannelType.Asset,
                 Source = SourceType.SimEstate,
                 Simulator = simulator,
-                Callback = callback
+                Callback = (t, asset) => { if (t.Success) tcs.TrySetResult(asset); else tcs.TrySetResult(null); }
             };
             Client.Assets.RequestEstateAsset(transfer, EstateAssetType.Covenant);
+            return tcs.Task;
         }
 
         /// <summary>

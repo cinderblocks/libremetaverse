@@ -12,17 +12,12 @@ namespace TestClient.Commands.Prims
     public class ExportCommand : Command
     {
         private readonly List<UUID> Textures = new List<UUID>();
-        private Primitive.ObjectProperties? Properties;
-        private bool GotPermissions = false;
         private UUID SelectedObject = UUID.Zero;
 
         private readonly Dictionary<UUID, Primitive> PrimsWaiting = new Dictionary<UUID, Primitive>();
 
         public ExportCommand(TestClient testClient)
         {
-            testClient.Objects.ObjectPropertiesFamily += Objects_OnObjectPropertiesFamily;
-
-            testClient.Objects.ObjectProperties += Objects_OnObjectProperties;
             testClient.Avatars.ViewerEffectPointAt += Avatars_ViewerEffectPointAt;
 
             Name = "export";
@@ -81,6 +76,8 @@ namespace TestClient.Commands.Prims
             var localId = exportPrim.ParentID != 0 ? exportPrim.ParentID : exportPrim.LocalID;
 
             // Check for export permission first
+            Primitive.ObjectProperties? Properties = null;
+            bool GotPermissions = false;
             var gotPermsTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             EventHandler<ObjectPropertiesFamilyEventArgs>? familyHandler = null;
@@ -88,8 +85,9 @@ namespace TestClient.Commands.Prims
             {
                 if (e.Properties.ObjectID == id)
                 {
-                    Properties = new Primitive.ObjectProperties();
-                    Properties.SetFamilyProperties(e.Properties);
+                    var p = new Primitive.ObjectProperties();
+                    p.SetFamilyProperties(e.Properties);
+                    Properties = p;
                     GotPermissions = true;
                     gotPermsTcs.TrySetResult(true);
                 }
@@ -141,6 +139,7 @@ namespace TestClient.Commands.Prims
 
             lock (Textures)
             {
+                Textures.Clear();
                 foreach (var prim in prims)
                 {
                     if (prim.Textures != null)
@@ -179,7 +178,22 @@ namespace TestClient.Commands.Prims
             // Download all the textures in the export list
             foreach (var request in textureRequests)
             {
-                Client.Assets.RequestImage(request.ImageID, request.Type, Assets_OnImageReceived);
+                var req = request;
+                _ = Client.Assets.RequestImageAsync(req.ImageID, req.Type).ContinueWith(t =>
+                {
+                    var asset = t.Status == global::System.Threading.Tasks.TaskStatus.RanToCompletion ? t.Result : null;
+                    if (asset == null) return;
+                    lock (Textures) Textures.Remove(asset.AssetID);
+                    try { File.WriteAllBytes(asset.AssetID + ".jp2", asset.AssetData); }
+                    catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                    if (asset.Decode() && asset.Image != null)
+                    {
+                        try { File.WriteAllBytes(asset.AssetID + ".tga", LibreMetaverse.Imaging.Targa.Encode(asset.Image)); }
+                        catch (Exception ex) { Logger.Error(ex.Message, Client); }
+                    }
+                    else Logger.Error("Failed to decode image " + asset.AssetID, Client);
+                    Logger.Info("Finished downloading image " + asset.AssetID, Client);
+                }, TaskContinuationOptions.ExecuteSynchronously);
             }
 
             return $"XML exported, downloading {Textures.Count} textures";
@@ -236,55 +250,6 @@ namespace TestClient.Commands.Prims
             }
         }
 
-        private void Assets_OnImageReceived(TextureRequestState state, AssetTexture? asset)
-        {
-            if (asset == null)
-            {
-                return;
-            }
-
-            if (state == TextureRequestState.Finished && Textures.Contains(asset.AssetID))
-            {
-                lock (Textures)
-                    Textures.Remove(asset.AssetID);
-
-                try { File.WriteAllBytes(asset.AssetID + ".jp2", asset.AssetData); }
-                catch (Exception ex) { Logger.Error(ex.Message, Client); }
-
-                if (asset.Decode() && asset.Image != null)
-                {
-                    try { File.WriteAllBytes(asset.AssetID + ".tga", LibreMetaverse.Imaging.Targa.Encode(asset.Image)); }
-                    catch (Exception ex) { Logger.Error(ex.Message, Client); }
-                }
-                else
-                {
-                    Logger.Error("Failed to decode image " + asset.AssetID, Client);
-                }
-
-                Logger.Info("Finished downloading image " + asset.AssetID, Client);
-            }
-        }
-
-        private void Objects_OnObjectPropertiesFamily(object sender, ObjectPropertiesFamilyEventArgs e)
-        {
-            // retained for backwards compatibility with other code paths that may use it
-            Properties = new Primitive.ObjectProperties();
-            Properties.SetFamilyProperties(e.Properties);
-            GotPermissions = true;
-        }
-
-        private void Objects_OnObjectProperties(object sender, ObjectPropertiesEventArgs e)
-        {
-            lock (PrimsWaiting)
-            {
-                PrimsWaiting.Remove(e.Properties.ObjectID);
-
-                if (PrimsWaiting.Count == 0)
-                {
-                    // no-op: RequestObjectPropertiesAsync uses its own local handler
-                }
-            }
-        }
     }
 }
 

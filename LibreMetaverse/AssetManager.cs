@@ -198,7 +198,7 @@ namespace LibreMetaverse
         public StatusCode Status;
         public float Priority;
         public Simulator? Simulator;
-        public AssetManager.AssetReceivedCallback? Callback;
+        internal AssetManager.AssetReceivedCallback? Callback;
 
         public int nextPacket;
         public LockingDictionary<int, byte[]> outOfOrderPackets;
@@ -297,18 +297,7 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="transfer">Transfer information</param>
         /// <param name="asset">Downloaded asset, null on fail</param>
-        public delegate void AssetReceivedCallback(AssetDownload transfer, Asset? asset);
-        /// <summary>
-        /// Callback used upon competition of baked texture upload
-        /// </summary>
-        /// <param name="newAssetID">Asset UUID of the newly uploaded baked texture</param>
-        public delegate void BakedTextureUploadedCallback(UUID newAssetID);
-        /// <summary>
-        /// A callback that fires upon the completion of the RequestMesh call
-        /// </summary>
-        /// <param name="success">Was the download successful</param>
-        /// <param name="assetMesh">Resulting mesh or null on problems</param>
-        public delegate void MeshDownloadCallback(bool success, AssetMesh? assetMesh);
+        internal delegate void AssetReceivedCallback(AssetDownload transfer, Asset? asset);
 
         #endregion Delegates
 
@@ -562,57 +551,26 @@ namespace LibreMetaverse
             return new Uri($"{cap}?{AssetTypeToString(assetType)}_id={assetId}");
         }
 
-        /// <summary>
-        /// Request an asset download
-        /// </summary>
-        /// <param name="assetID">Asset UUID</param>
-        /// <param name="type">Asset type, must be correct for the transfer to succeed</param>
-        /// <param name="priority">Whether to give this transfer an elevated priority</param>
-        /// <param name="callback">The callback to fire when the simulator responds with the asset data</param>
-        public void RequestAsset(UUID assetID, AssetType type, bool priority, AssetReceivedCallback callback)
+        /// <summary>Request an asset download.</summary>
+        public Task<Asset?> RequestAssetAsync(UUID assetID, AssetType type, bool priority, CancellationToken cancellationToken = default)
+            => RequestAssetAsync(assetID, type, priority, SourceType.Asset, cancellationToken);
+
+        /// <summary>Request an asset download.</summary>
+        public Task<Asset?> RequestAssetAsync(UUID assetID, AssetType type, bool priority, SourceType sourceType, CancellationToken cancellationToken = default)
+            => RequestAssetAsync(assetID, UUID.Zero, UUID.Zero, type, priority, sourceType, UUID.Random(), cancellationToken);
+
+        /// <summary>Request an asset download.</summary>
+        public Task<Asset?> RequestAssetAsync(UUID assetID, UUID itemID, UUID taskID, AssetType assetType, bool priority,
+            SourceType sourceType, UUID transactionID, CancellationToken cancellationToken = default)
         {
-            RequestAsset(assetID, type, priority, SourceType.Asset, UUID.Random(), callback);
+            var tcs = new TaskCompletionSource<Asset?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
+            RequestAsset(assetID, itemID, taskID, assetType, priority, sourceType, transactionID,
+                (transfer, asset) => { if (transfer.Success) tcs.TrySetResult(asset); else tcs.TrySetResult(null); });
+            return tcs.Task;
         }
 
-        /// <summary>
-        /// Request an asset download
-        /// </summary>
-        /// <param name="assetID">Asset UUID</param>
-        /// <param name="type">Asset type, must be correct for the transfer to succeed</param>
-        /// <param name="priority">Whether to give this transfer an elevated priority</param>
-        /// <param name="sourceType">Source location of the requested asset</param>
-        /// <param name="callback">The callback to fire when the simulator responds with the asset data</param>
-        public void RequestAsset(UUID assetID, AssetType type, bool priority, SourceType sourceType, AssetReceivedCallback callback)
-        {
-            RequestAsset(assetID, type, priority, sourceType, UUID.Random(), callback);
-        }
-
-        /// <summary>
-        /// Request an asset download
-        /// </summary>
-        /// <param name="assetID">Asset UUID</param>
-        /// <param name="type">Asset type, must be correct for the transfer to succeed</param>
-        /// <param name="priority">Whether to give this transfer an elevated priority</param>
-        /// <param name="sourceType">Source location of the requested asset</param>
-        /// <param name="transactionID">UUID of the transaction</param>
-        /// <param name="callback">The callback to fire when the simulator responds with the asset data</param>
-        public void RequestAsset(UUID assetID, AssetType type, bool priority, SourceType sourceType, UUID transactionID, AssetReceivedCallback callback)
-        {
-            RequestAsset(assetID, UUID.Zero, UUID.Zero, type, priority, sourceType, transactionID, callback);
-        }
-
-        /// <summary>
-        /// Request an asset download
-        /// </summary>
-        /// <param name="assetID"></param>
-        /// <param name="itemID"></param>
-        /// <param name="taskID"></param>
-        /// <param name="assetType"></param>
-        /// <param name="priority"></param>
-        /// <param name="sourceType"></param>
-        /// <param name="transactionID"></param>
-        /// <param name="callback"></param>
-        public void RequestAsset(UUID assetID, UUID itemID, UUID taskID, AssetType assetType, bool priority,
+        private void RequestAsset(UUID assetID, UUID itemID, UUID taskID, AssetType assetType, bool priority,
             SourceType sourceType, UUID transactionID, AssetReceivedCallback callback)
         {
                 AssetDownload transfer = new AssetDownload
@@ -848,7 +806,7 @@ namespace LibreMetaverse
             return id;
         }
 
-        public void RequestInventoryAsset(UUID assetID, UUID itemID, UUID taskID, UUID ownerID, AssetType assetType,
+        private void RequestInventoryAsset(UUID assetID, UUID itemID, UUID taskID, UUID ownerID, AssetType assetType,
             bool priority, UUID transferID, AssetReceivedCallback callback)
         {
                 AssetDownload transfer = new AssetDownload
@@ -993,9 +951,17 @@ namespace LibreMetaverse
             Client.Network.SendPacket(request, transfer.Simulator);
         }
 
-        public void RequestInventoryAsset(InventoryItem item, bool priority, UUID transferID, AssetReceivedCallback callback)
+        public Task<Asset?> RequestInventoryAssetAsync(InventoryItem item, bool priority, UUID transferID, CancellationToken cancellationToken = default)
+            => RequestInventoryAssetAsync(item.AssetUUID, item.UUID, UUID.Zero, item.OwnerID, item.AssetType, priority, transferID, cancellationToken);
+
+        public Task<Asset?> RequestInventoryAssetAsync(UUID assetID, UUID itemID, UUID taskID, UUID ownerID, AssetType assetType,
+            bool priority, UUID transferID, CancellationToken cancellationToken = default)
         {
-            RequestInventoryAsset(item.AssetUUID, item.UUID, UUID.Zero, item.OwnerID, item.AssetType, priority, transferID, callback);
+            var tcs = new TaskCompletionSource<Asset?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
+            RequestInventoryAsset(assetID, itemID, taskID, ownerID, assetType, priority, transferID,
+                (transfer, asset) => { if (transfer.Success) tcs.TrySetResult(asset); else tcs.TrySetResult(null); });
+            return tcs.Task;
         }
 
         public void RequestEstateAsset(AssetDownload transfer, EstateAssetType eat)
@@ -1184,127 +1150,92 @@ namespace LibreMetaverse
                 .ConfigureAwait(false);
         }
 
-        public void RequestUploadBakedTexture(byte[] textureData, BakedTextureUploadedCallback callback, CancellationToken cancellationToken = default)
+        public async Task<UUID> RequestUploadBakedTextureAsync(byte[] textureData, CancellationToken cancellationToken = default)
         {
             Uri? cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("UploadBakedTexture");
             if (cap != null)
             {
-                _ = Task.Run(async () =>
+                try
                 {
-                    try
+                    var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, new OSD(), cancellationToken).ConfigureAwait(false);
+                    if (response == null || data == null)
                     {
-                        var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, new OSD(), cancellationToken).ConfigureAwait(false);
-                        if (response == null || data == null)
-                        {
-                            Logger.Warn("Bake upload failed during uploader retrieval", Client);
-                            callback(UUID.Zero);
-                            return;
-                        }
+                        Logger.Warn("Bake upload failed during uploader retrieval", Client);
+                        return UUID.Zero;
+                    }
 
-                        OSD result = OSDParser.Deserialize(data);
-                        if (result is OSDMap resultMap)
-                        {
-                            UploadBakedTextureMessage message = new UploadBakedTextureMessage();
-                            message.Deserialize(resultMap);
+                    OSD result = OSDParser.Deserialize(data);
+                    if (result is OSDMap resultMap)
+                    {
+                        UploadBakedTextureMessage message = new UploadBakedTextureMessage();
+                        message.Deserialize(resultMap);
 
-                            if (message.Request.State == "upload")
+                        if (message.Request.State == "upload")
+                        {
+                            Uri uploadUrl = ((UploaderRequestUpload)message.Request).Url;
+                            if (uploadUrl != null)
                             {
-                                Uri uploadUrl = ((UploaderRequestUpload)message.Request).Url;
-
-                                if (uploadUrl != null)
+                                try
                                 {
-                                    try
+                                    var (resp2, respData2) = await Client.HttpCapsClient.PostAsync(uploadUrl, "application/octet-stream", textureData, cancellationToken).ConfigureAwait(false);
+                                    if (resp2 == null || respData2 == null)
                                     {
-                                        var (resp2, respData2) = await Client.HttpCapsClient.PostAsync(uploadUrl, "application/octet-stream", textureData, cancellationToken).ConfigureAwait(false);
-                                        if (resp2 == null || respData2 == null)
-                                        {
-                                            Logger.Warn("Bake upload failed during asset upload", Client);
-                                            callback(UUID.Zero);
-                                            return;
-                                        }
-
-                                        OSD d = OSDParser.Deserialize(respData2);
-                                        if (d is OSDMap map)
-                                        {
-                                            UploadBakedTextureMessage message2 = new UploadBakedTextureMessage();
-                                            message2.Deserialize(map);
-
-                                            if (message2.Request.State == "complete")
-                                            {
-                                                callback(((UploaderRequestComplete)message2.Request).AssetID);
-                                                return;
-                                            }
-                                        }
-
                                         Logger.Warn("Bake upload failed during asset upload", Client);
-                                        callback(UUID.Zero);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        Logger.Warn("Bake upload failed during asset upload", ex, Client);
-                                        callback(UUID.Zero);
+                                        return UUID.Zero;
                                     }
 
-                                    return;
+                                    OSD d = OSDParser.Deserialize(respData2);
+                                    if (d is OSDMap map)
+                                    {
+                                        UploadBakedTextureMessage message2 = new UploadBakedTextureMessage();
+                                        message2.Deserialize(map);
+                                        if (message2.Request.State == "complete")
+                                            return ((UploaderRequestComplete)message2.Request).AssetID;
+                                    }
+
+                                    Logger.Warn("Bake upload failed during asset upload", Client);
+                                    return UUID.Zero;
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.Warn("Bake upload failed during asset upload", ex, Client);
+                                    return UUID.Zero;
                                 }
                             }
                         }
+                    }
 
-                        Logger.Warn("Bake upload failed during uploader retrieval", Client);
-                        callback(UUID.Zero);
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Warn("Bake upload failed during uploader retrieval", ex, Client);
-                        callback(UUID.Zero);
-                    }
-                }, cancellationToken);
+                    Logger.Warn("Bake upload failed during uploader retrieval", Client);
+                    return UUID.Zero;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn("Bake upload failed during uploader retrieval", ex, Client);
+                    return UUID.Zero;
+                }
             }
-            else
+
+            // UDP fallback
+            Logger.Info("UploadBakedTexture not available, falling back to UDP method", Client);
+            UUID transactionID = UUID.Random();
+            var tcs = new TaskCompletionSource<UUID>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            void UdpCallback(object? sender, AssetUploadEventArgs e)
             {
-                Logger.Info("UploadBakedTexture not available, falling back to UDP method", Client);
-
-                ThreadPool.QueueUserWorkItem(
-                    delegate(object? o)
-                    {
-                        UUID transactionID = UUID.Random();
-                        BakedTextureUploadedCallback? uploadCallback = o as BakedTextureUploadedCallback;
-                        if (uploadCallback == null) return;
-                        AutoResetEvent uploadEvent = new AutoResetEvent(false);
-
-                        void UdpCallback(object? sender, AssetUploadEventArgs e)
-                        {
-                            if (e.Upload.ID == transactionID)
-                            {
-                                uploadEvent.Set();
-                                uploadCallback(e.Upload.Success ? e.Upload.AssetID : UUID.Zero);
-                            }
-                        }
-
-                        AssetUploaded += UdpCallback;
-
-                        UUID assetID;
-                        bool success;
-
-                        try
-                        {
-                            RequestUpload(out assetID, AssetType.Texture, textureData, true, transactionID);
-                            success = uploadEvent.WaitOne(Client.Settings.Timing.TransferTimeout, false);
-                        }
-                        catch (Exception)
-                        {
-                            success = false;
-                        }
-
-                        AssetUploaded -= UdpCallback;
-
-                        if (!success)
-                        {
-                            uploadCallback(UUID.Zero);
-                        }
-                    }, callback
-                );
+                if (e.Upload.ID != transactionID) return;
+                AssetUploaded -= UdpCallback;
+                tcs.TrySetResult(e.Upload.Success ? e.Upload.AssetID : UUID.Zero);
             }
+
+            AssetUploaded += UdpCallback;
+            try
+            {
+                RequestUpload(out _, AssetType.Texture, textureData, true, transactionID);
+                using (cancellationToken.Register(() => { AssetUploaded -= UdpCallback; tcs.TrySetCanceled(cancellationToken); }))
+                    return await tcs.Task.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) { AssetUploaded -= UdpCallback; return UUID.Zero; }
+            catch (Exception) { AssetUploaded -= UdpCallback; return UUID.Zero; }
         }
 
 #endregion Uploads
@@ -1313,137 +1244,57 @@ namespace LibreMetaverse
         /// Requests download of a mesh asset
         /// </summary>
         /// <param name="meshID">UUID of the mesh asset</param>
-        /// <param name="callback">Callback when the request completes</param>
         /// <param name="cancellationToken">Cancellation token for the request</param>
-        public void RequestMesh(UUID meshID, MeshDownloadCallback callback, CancellationToken cancellationToken = default)
+        /// <returns>The mesh asset, or null on failure</returns>
+        public async Task<AssetMesh?> RequestMeshAsync(UUID meshID, CancellationToken cancellationToken = default)
         {
-            if (meshID == UUID.Zero || callback == null)
-                return;
+            if (meshID == UUID.Zero)
+                return null;
 
             if (Client.Network.CurrentSim?.Caps?.GetMeshCapURI() != null)
             {
-                // Do we have this mesh asset in the cache?
                 if (Client.Assets.Cache.HasAsset(meshID))
                 {
-                    // Use TryGetCachedAssetBytes to avoid race where HasAsset() exists but read fails
                     if (Client.Assets.Cache.TryGetCachedAssetBytes(meshID, out var meshBytes) && meshBytes != null)
-                    {
-                        callback(true, new AssetMesh(meshID, meshBytes));
-                        return;
-                    }
-
-                    // Cache entry exists but read failed; fall through to network fetch
+                        return new AssetMesh(meshID, meshBytes);
                     Logger.Warn($"Mesh cache entry exists for {meshID} but reading failed; fetching from server", Client);
                 }
+
                 var req = new DownloadRequest(new Uri($"{Client.Network.CurrentSim.Caps.GetMeshCapURI()}?mesh_id={meshID}"), string.Empty, null)
                 {
                     CancellationToken = cancellationToken
                 };
 
-                _ = Task.Run(async () =>
+                try
                 {
-                    try
+                    var (response, responseData) = await HttpDownloads.QueueDownloadAsync(req).ConfigureAwait(false);
+                    if (response != null && response.IsSuccessStatusCode && responseData != null)
                     {
-                        var (response, responseData) = await HttpDownloads.QueueDownloadAsync(req).ConfigureAwait(false);
-                        if (response != null && response.IsSuccessStatusCode && responseData != null)
-                        {
-                            callback(true, new AssetMesh(meshID, responseData));
-                            await Client.Assets.Cache.SaveAssetToCacheAsync(meshID, responseData, cancellationToken);
-                        }
-                        else
-                        {
-                            Logger.Warn($"Failed to fetch mesh asset {meshID}", Client);
-                        }
+                        await Client.Assets.Cache.SaveAssetToCacheAsync(meshID, responseData, cancellationToken);
+                        return new AssetMesh(meshID, responseData);
                     }
-                    catch (Exception ex)
-                    {
-                        Logger.Warn($"Failed to fetch mesh asset {meshID}: {ex}", Client);
-                    }
-                }, cancellationToken);
+                    Logger.Warn($"Failed to fetch mesh asset {meshID}", Client);
+                    return null;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"Failed to fetch mesh asset {meshID}: {ex}", Client);
+                    return null;
+                }
             }
-            else
-            {
-                Logger.Debug("Mesh fetch capabilities not available", Client);
-                callback(false, null);
-            }
+
+            Logger.Debug("Mesh fetch capabilities not available", Client);
+            return null;
         }
 
 #region Texture Downloads
 
-        /// <summary>
-        /// Request a texture asset from the simulator using the <see cref="TexturePipeline"/> system to 
-        /// manage the requests and re-assemble the image from the packets received from the simulator
-        /// </summary>
-        /// <param name="textureID">The <see cref="UUID"/> of the texture asset to download</param>
-        /// <param name="imageType">The <see cref="ImageType"/> of the texture asset. 
-        /// Use <see cref="ImageType.Normal"/> for most textures, or <see cref="ImageType.Baked"/> for baked layer texture assets</param>
-        /// <param name="priority">A float indicating the requested priority for the transfer. Higher priority values tell the simulator
-        /// to prioritize the request before lower valued requests. An image already being transferred using the <see cref="TexturePipeline"/> can have
-        /// its priority changed by resending the request with the new priority value</param>
-        /// <param name="discardLevel">Number of quality layers to discard.
-        /// This controls the end marker of the data sent. Sending with value -1 combined with priority of 0 cancels an in-progress
-        /// transfer.</param>
-        /// <param name="packetStart">The packet number to begin the request at. A value of 0 begins the request
-        /// from the start of the asset texture</param>
-        /// <param name="callback">The <see cref="TextureDownloadCallback"/> callback to fire when the image is retrieved. The callback
-        /// will contain the result of the request and the texture asset data</param>
-        /// <param name="progress">If true, the callback will be fired for each chunk of the downloaded image. 
-        /// The callback asset parameter will contain all previously received chunks of the texture asset starting 
-        /// from the beginning of the request</param>
-        /// <example>
-        /// Request an image and fire a callback when the request is complete
-        /// <code>
-        /// Client.Assets.RequestImage(UUID.Parse("c307629f-e3a1-4487-5e88-0d96ac9d4965"), ImageType.Normal, TextureDownloader_OnDownloadFinished);
-        /// 
-        /// private void TextureDownloader_OnDownloadFinished(TextureRequestState state, AssetTexture asset)
-        /// {
-        ///     if(state == TextureRequestState.Finished)
-        ///     {
-        ///       Console.WriteLine("Texture {0} ({1} bytes) has been successfully downloaded", 
-        ///         asset.AssetID,
-        ///         asset.AssetData.Length); 
-        ///     }
-        /// }
-        /// </code>
-        /// Request an image and use an inline anonymous method to handle the downloaded texture data
-        /// <code>
-        /// Client.Assets.RequestImage(UUID.Parse("c307629f-e3a1-4487-5e88-0d96ac9d4965"), ImageType.Normal, delegate(TextureRequestState state, AssetTexture asset) 
-        ///                                         {
-        ///                                             if(state == TextureRequestState.Finished)
-        ///                                             {
-        ///                                                 Console.WriteLine("Texture {0} ({1} bytes) has been successfully downloaded", 
-        ///                                                 asset.AssetID,
-        ///                                                 asset.AssetData.Length); 
-        ///                                             }
-        ///                                         }
-        /// );
-        /// </code>
-        /// Request a texture, decode the texture to a bitmap image and apply it to a imagebox 
-        /// <code>
-        /// Client.Assets.RequestImage(UUID.Parse("c307629f-e3a1-4487-5e88-0d96ac9d4965"), ImageType.Normal, TextureDownloader_OnDownloadFinished);
-        /// 
-        /// private void TextureDownloader_OnDownloadFinished(TextureRequestState state, AssetTexture asset)
-        /// {
-        ///     if(state == TextureRequestState.Finished)
-        ///     {
-        ///         ManagedImage imgData;
-        ///         Image bitmap;
-        ///
-        ///         if (state == TextureRequestState.Finished)
-        ///         {
-        ///             OpenJPEG.DecodeToImage(assetTexture.AssetData, out imgData, out bitmap);
-        ///             picInsignia.Image = bitmap;
-        ///         }               
-        ///     }
-        /// }
-        /// </code>
-        /// </example>
-        public void RequestImage(UUID textureID, ImageType imageType, float priority, int discardLevel,
+        private void RequestImageInternal(UUID textureID, ImageType imageType, float priority, int discardLevel,
             uint packetStart, TextureDownloadCallback callback, bool progress)
         {
             if (Client.Settings.TexturePipeline.UseHttpTextures
                 && Client.Network.CurrentSim?.Caps?.GetTextureCapURI() != null)
-            { 
+            {
                 _ = HttpRequestTexture(textureID, imageType, priority, discardLevel, packetStart, callback, progress);
             }
             else
@@ -1453,46 +1304,31 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Overload: Request a texture asset from the simulator using the <see cref="TexturePipeline"/> system to 
-        /// manage the requests and re-assemble the image from the packets received from the simulator
+        /// Request a texture asset download.
         /// </summary>
-        /// <param name="textureID">The <see cref="UUID"/> of the texture asset to download</param>
-        /// <param name="callback">The <see cref="TextureDownloadCallback"/> callback to fire when the image is retrieved. The callback
-        /// will contain the result of the request and the texture asset data</param>
-        public void RequestImage(UUID textureID, TextureDownloadCallback callback)
+        /// <param name="textureID">UUID of the texture to download</param>
+        /// <param name="imageType">Normal for most textures, Baked for baked layer textures</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>The texture asset on success, null on failure or timeout</returns>
+        public Task<AssetTexture?> RequestImageAsync(UUID textureID, ImageType imageType = ImageType.Normal, CancellationToken cancellationToken = default)
         {
-            RequestImage(textureID, ImageType.Normal, 101300.0f, 0, 0, callback, false);
-        }
-
-        /// <summary>
-        /// Overload: Request a texture asset from the simulator using the <see cref="TexturePipeline"/> system to 
-        /// manage the requests and re-assemble the image from the packets received from the simulator
-        /// </summary>
-        /// <param name="textureID">The <see cref="UUID"/> of the texture asset to download</param>
-        /// <param name="imageType">The <see cref="ImageType"/> of the texture asset. 
-        /// Use <see cref="ImageType.Normal"/> for most textures, or <see cref="ImageType.Baked"/> for baked layer texture assets</param>
-        /// <param name="callback">The <see cref="TextureDownloadCallback"/> callback to fire when the image is retrieved. The callback
-        /// will contain the result of the request and the texture asset data</param>
-        public void RequestImage(UUID textureID, ImageType imageType, TextureDownloadCallback callback)
-        {
-            RequestImage(textureID, imageType, 101300.0f, 0, 0, callback, false);
-        }
-
-        /// <summary>
-        /// Overload: Request a texture asset from the simulator using the <see cref="TexturePipeline"/> system to 
-        /// manage the requests and re-assemble the image from the packets received from the simulator
-        /// </summary>
-        /// <param name="textureID">The <see cref="UUID"/> of the texture asset to download</param>
-        /// <param name="imageType">The <see cref="ImageType"/> of the texture asset. 
-        /// Use <see cref="ImageType.Normal"/> for most textures, or <see cref="ImageType.Baked"/> for baked layer texture assets</param>
-        /// <param name="callback">The <see cref="TextureDownloadCallback"/> callback to fire when the image is retrieved. The callback
-        /// will contain the result of the request and the texture asset data</param>
-        /// <param name="progress">If true, the callback will be fired for each chunk of the downloaded image. 
-        /// The callback asset parameter will contain all previously received chunks of the texture asset starting 
-        /// from the beginning of the request</param>
-        public void RequestImage(UUID textureID, ImageType imageType, TextureDownloadCallback callback, bool progress)
-        {
-            RequestImage(textureID, imageType, 101300.0f, 0, 0, callback, progress);
+            var tcs = new TaskCompletionSource<AssetTexture?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            cancellationToken.Register(() => { Texture.AbortTextureRequest(textureID); tcs.TrySetCanceled(cancellationToken); });
+            RequestImageInternal(textureID, imageType, 101300.0f, 0, 0, (state, texture) =>
+            {
+                switch (state)
+                {
+                    case TextureRequestState.Finished:
+                        tcs.TrySetResult(texture);
+                        break;
+                    case TextureRequestState.Timeout:
+                    case TextureRequestState.NotFound:
+                    case TextureRequestState.Aborted:
+                        tcs.TrySetResult(null);
+                        break;
+                }
+            }, false);
+            return tcs.Task;
         }
 
         /// <summary>
@@ -1512,67 +1348,40 @@ namespace LibreMetaverse
         /// <param name="bakeName">Name of the part of the avatar texture applies to</param>
         /// <param name="callback">Callback invoked on operation completion</param>
         /// <param name="cancellationToken">Cancellation token for the request</param>
-        public void RequestServerBakedImage(UUID avatarID, UUID textureID, string bakeName, TextureDownloadCallback callback, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Fetch an avatar texture from a grid that supports server-side baking.
+        /// </summary>
+        /// <returns>The texture asset on success, null on failure</returns>
+        public async Task<AssetTexture?> RequestServerBakedImageAsync(UUID avatarID, UUID textureID, string bakeName, CancellationToken cancellationToken = default)
         {
-            if (avatarID == UUID.Zero || textureID == UUID.Zero || callback == null)
-                return;
+            if (avatarID == UUID.Zero || textureID == UUID.Zero)
+                return null;
 
             if (string.IsNullOrEmpty(Client.Network.AgentAppearanceServiceURL))
-            {
-                callback(TextureRequestState.NotFound, null);
-                return;
-            }
+                return null;
 
-            byte[]? assetData = null;
-            // Do we have this image in the cache?
-            if (Client.Assets.Cache.HasAsset(textureID) && Client.Assets.Cache.TryGetCachedAssetBytes(textureID, out assetData) && assetData != null)
-            {
-                ImageDownload image = new ImageDownload {ID = textureID, AssetData = assetData};
-                image.Size = image.AssetData.Length;
-                image.Transferred = image.AssetData.Length;
-                image.ImageType = ImageType.ServerBaked;
-                image.AssetType = AssetType.Texture;
-                image.Success = true;
-
-                callback(TextureRequestState.Finished, new AssetTexture(image.ID, image.AssetData));
-                FireImageProgressEvent(image.ID, image.Transferred, image.Size);
-                return;
-            }
+            if (Client.Assets.Cache.HasAsset(textureID) && Client.Assets.Cache.TryGetCachedAssetBytes(textureID, out var assetData) && assetData != null)
+                return new AssetTexture(textureID, assetData);
 
             Uri url = new Uri($"{Client.Network.AgentAppearanceServiceURL}texture/{avatarID}/{bakeName}/{textureID}");
-
             var req = new DownloadRequest(url, "image/x-j2c", null) { CancellationToken = cancellationToken };
 
-            _ = Task.Run(async () =>
+            try
             {
-                try
+                var (response, responseData) = await HttpDownloads.QueueDownloadAsync(req).ConfigureAwait(false);
+                if (response != null && response.IsSuccessStatusCode && responseData != null)
                 {
-                    var (response, responseData) = await HttpDownloads.QueueDownloadAsync(req).ConfigureAwait(false);
-                    if (response != null && response.IsSuccessStatusCode && responseData != null)
-                    {
-                        ImageDownload image = new ImageDownload {ID = textureID, AssetData = responseData};
-                        image.Size = image.AssetData.Length;
-                        image.Transferred = image.AssetData.Length;
-                        image.ImageType = ImageType.ServerBaked;
-                        image.AssetType = AssetType.Texture;
-                        image.Success = true;
-
-                        callback(TextureRequestState.Finished, new AssetTexture(image.ID, image.AssetData));
-
-                        await Client.Assets.Cache.SaveAssetToCacheAsync(textureID, responseData, cancellationToken);
-                    }
-                    else
-                    {
-                        Logger.Warn($"Failed to fetch server bake {textureID}: Status={response?.StatusCode}", Client);
-                        callback(TextureRequestState.Timeout, null);
-                    }
+                    await Client.Assets.Cache.SaveAssetToCacheAsync(textureID, responseData, cancellationToken);
+                    return new AssetTexture(textureID, responseData);
                 }
-                catch (Exception ex)
-                {
-                    Logger.Warn($"Failed to fetch server bake {textureID}: {ex}", Client);
-                    callback(TextureRequestState.Timeout, null);
-                }
-            }, cancellationToken);
+                Logger.Warn($"Failed to fetch server bake {textureID}: Status={response?.StatusCode}", Client);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to fetch server bake {textureID}: {ex}", Client);
+                return null;
+            }
         }
 
         /// <summary>

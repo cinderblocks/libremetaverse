@@ -12,7 +12,7 @@ namespace LibreMetaverse
         /// item succeeded or not</param>
         /// <param name="item">Inventory item being created. If success is
         /// false this will be null</param>
-        public delegate void ItemCreatedCallback(bool success, InventoryItem? item);
+        internal delegate void ItemCreatedCallback(bool success, InventoryItem? item);
 
         /// <summary>
         /// Callback for an inventory item being created from an uploaded asset
@@ -21,13 +21,13 @@ namespace LibreMetaverse
         /// <param name="status"></param>
         /// <param name="itemID"></param>
         /// <param name="assetID"></param>
-        public delegate void ItemCreatedFromAssetCallback(bool success, string status, UUID itemID, UUID assetID);
+        internal delegate void ItemCreatedFromAssetCallback(bool success, string status, UUID itemID, UUID assetID);
 
         /// <summary>
         /// Callback for inventory item copy
         /// </summary>
         /// <param name="item"></param>
-        public delegate void ItemCopiedCallback(InventoryBase? item);
+        internal delegate void ItemCopiedCallback(InventoryBase? item);
 
         /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<ItemReceivedEventArgs>? m_ItemReceived;
@@ -167,15 +167,6 @@ namespace LibreMetaverse
             remove { lock (m_TaskInventoryReplyLock) { m_TaskInventoryReply -= value; } }
         }
 
-        /// <summary>
-        /// Reply received when uploading an inventory asset
-        /// </summary>
-        /// <param name="success">Has upload been successful</param>
-        /// <param name="status">Error message if upload failed</param>
-        /// <param name="itemID">Inventory asset UUID</param>
-        /// <param name="assetID">New asset UUID</param>
-        public delegate void InventoryUploadedAssetCallback(bool success, string status, UUID itemID, UUID assetID);
-
         /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<SaveAssetToInventoryEventArgs>? m_SaveAssetToInventory;
 
@@ -198,17 +189,6 @@ namespace LibreMetaverse
             add { lock (m_SaveAssetToInventoryLock) { m_SaveAssetToInventory += value; } }
             remove { lock (m_SaveAssetToInventoryLock) { m_SaveAssetToInventory -= value; } }
         }
-
-        /// <summary>
-        /// Delegate that is invoked when script upload is completed
-        /// </summary>
-        /// <param name="uploadSuccess">Has upload succeeded (note, there still might be compiler errors)</param>
-        /// <param name="uploadStatus">Upload status message</param>
-        /// <param name="compileSuccess">Is compilation successful</param>
-        /// <param name="compileMessages">If compilation failed, list of error messages, null on compilation success</param>
-        /// <param name="itemID">Script inventory UUID</param>
-        /// <param name="assetID">Script's new asset UUID</param>
-        public delegate void ScriptUpdatedCallback(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string>? compileMessages, UUID itemID, UUID assetID);
 
         /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<ScriptRunningReplyEventArgs>? m_ScriptRunningReply;

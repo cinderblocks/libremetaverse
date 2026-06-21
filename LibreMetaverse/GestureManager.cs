@@ -22,6 +22,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse;
 using LibreMetaverse.Assets;
@@ -230,43 +231,19 @@ namespace LibreMetaverse
             {
                 UUID assetID = gestureItem.AssetUUID;
 
-                var tcs = new TaskCompletionSource<AssetGesture?>(TaskCreationOptions.RunContinuationsAsynchronously);
-                try
-                {
-                    Client.Assets.RequestAsset(assetID, AssetType.Gesture, false, (transfer, asset) =>
-                    {
-                        try
-                        {
-                            if (asset is AssetGesture ag && ag.Decode())
-                                tcs.TrySetResult(ag);
-                            else
-                                tcs.TrySetResult(null);
-                        }
-                        catch (Exception ex)
-                        {
-                            // Ensure we don't throw from the callback
-                            tcs.TrySetException(ex);
-                        }
-                    });
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"RequestAsset threw for gesture inventory {gestureItem.UUID} asset {assetID}: {ex.Message}", Client);
-                    return;
-                }
-
-                var completed = await Task.WhenAny(tcs.Task, Task.Delay(AssetLoadTimeout)).ConfigureAwait(false);
-                if (completed != tcs.Task)
-                {
-                    // timeout
-                    Logger.Warn($"Timeout while loading gesture asset {assetID} for inventory item {gestureItem.UUID} after {AssetLoadTimeout.TotalSeconds}s", Client);
-                    return;
-                }
-
                 AssetGesture? assetGesture = null;
                 try
                 {
-                    assetGesture = await tcs.Task.ConfigureAwait(false);
+                    using var cts = new CancellationTokenSource(AssetLoadTimeout);
+                    var rawAsset = await Client.Assets.RequestAssetAsync(assetID, AssetType.Gesture, false, cts.Token)
+                        .ConfigureAwait(false);
+                    if (rawAsset is AssetGesture ag && ag.Decode())
+                        assetGesture = ag;
+                }
+                catch (OperationCanceledException)
+                {
+                    Logger.Warn($"Timeout while loading gesture asset {assetID} for inventory item {gestureItem.UUID} after {AssetLoadTimeout.TotalSeconds}s", Client);
+                    return;
                 }
                 catch (Exception ex)
                 {

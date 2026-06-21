@@ -765,11 +765,6 @@ namespace LibreMetaverse
         #region Delegates
         /// <summary>
         /// Called once parcel resource usage information has been collected
-        /// </summary>
-        /// <param name="success">Indicates if operation was successful</param>
-        /// <param name="info">Parcel resource usage information</param>
-        public delegate void LandResourcesCallback(bool success, LandResourcesInfo info);
-
         /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ParcelDwellReplyEventArgs>? m_DwellReply;
 

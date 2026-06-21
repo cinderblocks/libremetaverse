@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse;
 using LibreMetaverse.Assets;
@@ -43,29 +44,14 @@ namespace TestClient.Commands.Inventory
             if (!Enum.IsDefined(typeof(AssetType), assetType))
                 return usage;
 
-            var tcs = new TaskCompletionSource<(bool Success, Asset Asset)>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+            var asset = await Client.Assets.RequestAssetAsync(assetID, assetType, true, cts.Token).ConfigureAwait(false);
 
-            // Request the asset and complete the TaskCompletionSource when the callback runs
-            Client.Assets.RequestAsset(assetID, assetType, true, (transfer, asset) =>
-            {
-                if (transfer.AssetID != assetID) return;
-                tcs.TrySetResult((transfer.Success, asset));
-            });
-
-            var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromMinutes(2))).ConfigureAwait(false);
-
-            if (completed != tcs.Task)
-            {
-                return "Timed out waiting for texture download";
-            }
-
-            var result = await tcs.Task.ConfigureAwait(false);
-
-            if (result.Success)
+            if (asset != null)
             {
                 try
                 {
-                    File.WriteAllBytes($"{assetID}.{assetType.ToString().ToLower()}", result.Asset.AssetData);
+                    File.WriteAllBytes($"{assetID}.{assetType.ToString().ToLower()}", asset.AssetData);
                     return $"Saved {assetID}.{assetType.ToString().ToLower()}";
                 }
                 catch (Exception ex)

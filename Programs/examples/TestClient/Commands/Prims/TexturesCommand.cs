@@ -1,4 +1,5 @@
-using System.Collections.Generic;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
 using LibreMetaverse;
 using LibreMetaverse.Assets;
 
@@ -6,7 +7,7 @@ namespace TestClient.Commands.Prims
 {
     public class TexturesCommand : Command
     {
-        Dictionary<UUID, UUID> alreadyRequested = new Dictionary<UUID, UUID>();
+        ConcurrentDictionary<UUID, UUID> alreadyRequested = new ConcurrentDictionary<UUID, UUID>();
         bool enabled = false;
 
         public TexturesCommand(TestClient testClient)
@@ -54,9 +55,8 @@ namespace TestClient.Commands.Prims
 
                     if (face != null)
                     {
-                        if (!alreadyRequested.ContainsKey(face.TextureID))
+                        if (alreadyRequested.TryAdd(face.TextureID, face.TextureID))
                         {
-                            alreadyRequested[face.TextureID] = face.TextureID;
 
                             // Determine if this is a baked outfit texture or a normal texture
                             ImageType type = ImageType.Normal;
@@ -72,7 +72,9 @@ namespace TestClient.Commands.Prims
                                     break;
                             }
 
-                            Client.Assets.RequestImage(face.TextureID, type, Assets_OnImageReceived);
+                            _ = Client.Assets.RequestImageAsync(face.TextureID, type).ContinueWith(
+                                t => { if (t.Status == global::System.Threading.Tasks.TaskStatus.RanToCompletion && t.Result != null && enabled && alreadyRequested.ContainsKey(t.Result.AssetID)) Logger.DebugLog($"Finished downloading texture {t.Result.AssetID} ({t.Result.AssetData.Length} bytes)"); },
+                                TaskContinuationOptions.ExecuteSynchronously);
                         }
                     }
                 }
@@ -92,18 +94,13 @@ namespace TestClient.Commands.Prims
                     if (!alreadyRequested.ContainsKey(face.TextureID))
                     {
                         alreadyRequested[face.TextureID] = face.TextureID;
-                        Client.Assets.RequestImage(face.TextureID, ImageType.Normal, Assets_OnImageReceived);
+                        _ = Client.Assets.RequestImageAsync(face.TextureID).ContinueWith(
+                            t => { if (t.Status == global::System.Threading.Tasks.TaskStatus.RanToCompletion && t.Result != null && enabled && alreadyRequested.ContainsKey(t.Result.AssetID)) Logger.DebugLog($"Finished downloading texture {t.Result.AssetID} ({t.Result.AssetData.Length} bytes)"); },
+                            TaskContinuationOptions.ExecuteSynchronously);
                     }
                 }
             }
         }
 
-        private void Assets_OnImageReceived(TextureRequestState state, AssetTexture asset)
-        {
-            if (state == TextureRequestState.Finished && enabled && alreadyRequested.ContainsKey(asset.AssetID))
-            {
-                Logger.DebugLog($"Finished downloading texture {asset.AssetID} ({asset.AssetData.Length} bytes)");
-            }
-        }
     }
 }

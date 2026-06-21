@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse;
 using LibreMetaverse.Assets;
@@ -32,44 +33,22 @@ namespace TestClient.Commands.Prims
             if (args.Length > 1 && !int.TryParse(args[1], out discardLevel))
                 return "Usage: downloadtexture [texture-uuid] [discardlevel]";
 
-            var tcs = new TaskCompletionSource<(TextureRequestState state, AssetTexture? asset)>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+            var asset = await Client.Assets.RequestImageAsync(textureID, ImageType.Normal, cts.Token).ConfigureAwait(false);
 
-            void handler(TextureRequestState state, AssetTexture? asset)
+            if (asset == null)
+                return "Download failed or texture not found: " + textureID;
+
+            if (asset.Decode())
             {
-                tcs.TrySetResult((state, asset));
-            }
+                try { File.WriteAllBytes(asset.AssetID + ".jp2", asset.AssetData); }
+                catch (Exception ex) { Logger.Error(ex.Message, ex, Client); }
 
-            // The client's RequestImage uses a callback delegate with signature (TextureRequestState, AssetTexture)
-            Client.Assets.RequestImage(textureID, ImageType.Normal, (state, asset) => handler(state, asset));
-
-            var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromMinutes(2))).ConfigureAwait(false);
-
-            if (completed != tcs.Task)
-                return "Timed out waiting for texture download";
-
-            var (resultState, Asset) = await tcs.Task.ConfigureAwait(false);
-
-            if (resultState == TextureRequestState.Finished)
-            {
-                if (Asset != null && Asset.Decode())
-                {
-                    try { File.WriteAllBytes(Asset.AssetID + ".jp2", Asset.AssetData); }
-                    catch (Exception ex) { Logger.Error(ex.Message, ex, Client); }
-
-                    return $"Saved {Asset.AssetID}.jp2 ({Asset.Image.Width}x{Asset.Image.Height})";
-                }
-                else
-                {
-                    return "Failed to decode texture " + textureID;
-                }
-            }
-            else if (resultState == TextureRequestState.NotFound)
-            {
-                return "Simulator reported texture not found: " + textureID;
+                return $"Saved {asset.AssetID}.jp2 ({asset.Image.Width}x{asset.Image.Height})";
             }
             else
             {
-                return "Download failed for texture " + textureID + " " + resultState;
+                return "Failed to decode texture " + textureID;
             }
         }
     }

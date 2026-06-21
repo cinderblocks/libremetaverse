@@ -134,51 +134,43 @@ namespace LibreMetaverse
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        var tcs = new TaskCompletionSource<Asset?>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-                        Client.Assets.RequestAsset(wearable.AssetID, wearable.AssetType, true,
-                            (transfer, asset) => { tcs.TrySetResult(asset); }
-                        );
-
-                        var completed = await Task.WhenAny(tcs.Task, Task.Delay(WEARABLE_TIMEOUT, cancellationToken))
-                            .ConfigureAwait(false);
-                        if (completed == tcs.Task)
+                        using var wearableCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                        wearableCts.CancelAfter(WEARABLE_TIMEOUT);
+                        Asset? asset = null;
+                        try
                         {
-                            var asset = await tcs.Task.ConfigureAwait(false);
-                            if (asset is AssetWearable assetWearable)
-                            {
-                                wearable.Asset = assetWearable;
+                            asset = await Client.Assets.RequestAssetAsync(wearable.AssetID, wearable.AssetType, true, wearableCts.Token)
+                                .ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                        {
+                            Logger.Error($"Timed out downloading wearable asset {wearable.AssetID} ({wearable.WearableType})", Client);
+                            success = false;
+                        }
 
-                                if (wearable.Asset.Decode())
-                                {
-                                    DecodeWearableParams(wearable, ref Textures);
-                                    Logger.DebugLog("Downloaded wearable asset " + wearable.WearableType + " with " +
-                                                    wearable.Asset.Params.Count +
-                                                    " visual params and " + wearable.Asset.Textures.Count + " textures",
-                                        Client);
-                                }
-                                else
-                                {
-                                    wearable.Asset = null;
-                                    Logger.Error("Failed to decode asset:" + Environment.NewLine +
-                                                 Utils.BytesToString(assetWearable.AssetData), Client);
-                                    success = false;
-                                }
+                        if (asset is AssetWearable assetWearable)
+                        {
+                            wearable.Asset = assetWearable;
+
+                            if (wearable.Asset.Decode())
+                            {
+                                DecodeWearableParams(wearable, ref Textures);
+                                Logger.DebugLog("Downloaded wearable asset " + wearable.WearableType + " with " +
+                                                wearable.Asset.Params.Count +
+                                                " visual params and " + wearable.Asset.Textures.Count + " textures",
+                                    Client);
                             }
                             else
                             {
-                                Logger.Warn(
-                                    "Wearable " + wearable.AssetID + "(" + wearable.WearableType +
-                                    ") failed to download or wrong asset type", Client);
+                                wearable.Asset = null;
+                                Logger.Error("Failed to decode asset:" + Environment.NewLine +
+                                             Utils.BytesToString(assetWearable.AssetData), Client);
                                 success = false;
                             }
                         }
-                        else
+                        else if (asset != null)
                         {
-                            tcs.TrySetCanceled();
-                            Logger.Error(
-                                "Timed out downloading wearable asset " + wearable.AssetID + " (" +
-                                wearable.WearableType + ")", Client);
+                            Logger.Warn($"Wearable {wearable.AssetID} ({wearable.WearableType}) failed to download or wrong asset type", Client);
                             success = false;
                         }
                     }
@@ -261,47 +253,29 @@ namespace LibreMetaverse
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        var tcs = new TaskCompletionSource<AssetTexture?>(TaskCreationOptions
-                            .RunContinuationsAsynchronously);
-
-                        Client.Assets.RequestImage(textureId,
-                            (state, assetTexture) =>
-                            {
-                                if (state == TextureRequestState.Finished)
-                                    tcs.TrySetResult(assetTexture);
-                                else
-                                    tcs.TrySetResult(null);
-                            }
-                        );
-
-                        var completed = await Task.WhenAny(tcs.Task, Task.Delay(TEXTURE_TIMEOUT, cancellationToken))
-                            .ConfigureAwait(false);
-                        if (completed == tcs.Task)
+                        using var texCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                        texCts.CancelAfter(TEXTURE_TIMEOUT);
+                        AssetTexture? assetTexture = null;
+                        try
                         {
-                            var assetTexture = await tcs.Task.ConfigureAwait(false);
-                            if (assetTexture != null)
-                            {
-                                try
-                                {
-                                    assetTexture.Decode();
-                                }
-                                catch (Exception decodeEx)
-                                {
-                                    Logger.Debug($"Failed to decode texture {textureId}: {decodeEx}", Client);
-                                }
-
-                                foreach (var tex in Textures)
-                                {
-                                    if (tex.TextureID == textureId)
-                                        tex.Texture = assetTexture;
-                                }
-                            }
+                            assetTexture = await Client.Assets.RequestImageAsync(textureId, cancellationToken: texCts.Token)
+                                .ConfigureAwait(false);
                         }
-                        else
+                        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                         {
-                            tcs.TrySetCanceled();
-                            Logger.Warn("Texture " + textureId +
-                                        " failed to download, one or more bakes will be incomplete");
+                            Logger.Warn($"Texture {textureId} failed to download, one or more bakes will be incomplete");
+                        }
+
+                        if (assetTexture != null)
+                        {
+                            try { assetTexture.Decode(); }
+                            catch (Exception decodeEx) { Logger.Debug($"Failed to decode texture {textureId}: {decodeEx}", Client); }
+
+                            foreach (var tex in Textures)
+                            {
+                                if (tex.TextureID == textureId)
+                                    tex.Texture = assetTexture;
+                            }
                         }
                     }
                     catch (OperationCanceledException)
@@ -458,19 +432,16 @@ namespace LibreMetaverse
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var tcs = new TaskCompletionSource<UUID>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            Client.Assets.RequestUploadBakedTexture(textureData,
-                delegate(UUID newAssetID) { tcs.TrySetResult(newAssetID); }
-            );
-
-            var completed = await Task.WhenAny(tcs.Task, Task.Delay(UPLOAD_TIMEOUT, cancellationToken))
-                .ConfigureAwait(false);
-            if (completed == tcs.Task)
-                return await tcs.Task.ConfigureAwait(false);
-
-            tcs.TrySetCanceled();
-            return UUID.Zero;
+            using var uploadCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            uploadCts.CancelAfter(UPLOAD_TIMEOUT);
+            try
+            {
+                return await Client.Assets.RequestUploadBakedTextureAsync(textureData, uploadCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                return UUID.Zero;
+            }
         }
 
 

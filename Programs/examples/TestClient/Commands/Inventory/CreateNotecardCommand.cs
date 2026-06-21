@@ -145,31 +145,13 @@ namespace TestClient.Commands.Inventory
 
         private async Task<string> DownloadNotecardAsync(UUID itemID, UUID assetID)
         {
-            byte[]? notecardData = null;
-            string error = "Timeout";
+            using var cts = new CancellationTokenSource(NOTECARD_FETCH_TIMEOUT);
+            var asset = await Client.Assets.RequestInventoryAssetAsync(assetID, itemID, UUID.Zero, Client.Self.AgentID,
+                AssetType.Notecard, true, UUID.Random(), cts.Token).ConfigureAwait(false);
 
-            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var transferId = UUID.Random();
-
-            Client.Assets.RequestInventoryAsset(assetID, itemID, UUID.Zero, Client.Self.AgentID, AssetType.Notecard, true, transferId,
-                (transfer, asset) =>
-                {
-                    if (transfer.Success)
-                        notecardData = transfer.AssetData;
-                    else
-                        error = transfer.Status.ToString();
-                    tcs.TrySetResult(true);
-                }
-            );
-
-            var completed = await Task.WhenAny(tcs.Task, Task.Delay(NOTECARD_FETCH_TIMEOUT)).ConfigureAwait(false);
-            if (completed != tcs.Task)
-                return "Error downloading notecard asset: " + error;
-
-            if (notecardData != null)
-                return Encoding.UTF8.GetString(notecardData);
-            else
-                return "Error downloading notecard asset: " + error;
+            if (asset != null)
+                return Encoding.UTF8.GetString(asset.AssetData);
+            return "Error downloading notecard asset";
         }
     }
 }

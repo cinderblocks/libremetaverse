@@ -1634,10 +1634,18 @@ namespace LibreMetaverse
             return id;
         }
 
-        public async Task CreateLinkAsync(UUID folderID, UUID itemID, string name, string description,
-            InventoryType invType, UUID transactionID, ItemCreatedCallback callback, CancellationToken cancellationToken = default)
+        public async Task<InventoryItem?> CreateLinkAsync(UUID folderID, UUID itemID, string name, string description,
+            InventoryType invType, UUID transactionID, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
+
+            var tcs = new TaskCompletionSource<InventoryItem?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
+            ItemCreatedCallback innerCallback = (success, item) =>
+            {
+                if (success) tcs.TrySetResult(item);
+                else tcs.TrySetResult(null);
+            };
 
             AssetType linkType = invType == InventoryType.Folder ? AssetType.LinkFolder : AssetType.Link;
             if (Client.AisClient.IsAvailable)
@@ -1654,8 +1662,7 @@ namespace LibreMetaverse
                 links.Add(link);
 
                 var newInventory = new OSDMap { { "links", links } };
-
-                var wrapped = WrapItemCreatedCallback(callback);
+                var wrapped = WrapItemCreatedCallback(innerCallback);
                 try
                 {
                     var (aisSuccess, aisCreated) = await Client.AisClient.CreateInventoryAsync(folderID, newInventory, true, cancellationToken).ConfigureAwait(false);
@@ -1665,6 +1672,7 @@ namespace LibreMetaverse
                 catch (Exception ex)
                 {
                     Logger.Warn(ex.Message, Client);
+                    tcs.TrySetResult(null);
                 }
             }
             else
@@ -1676,7 +1684,7 @@ namespace LibreMetaverse
                         AgentID = Client.Self.AgentID,
                         SessionID = Client.Self.SessionID
                     },
-                    InventoryBlock = { CallbackID = RegisterItemCreatedCallback(callback) }
+                    InventoryBlock = { CallbackID = RegisterItemCreatedCallback(WrapItemCreatedCallback(innerCallback)) }
                 };
 
                 _ItemInventoryTypeRequest[create.InventoryBlock.CallbackID] = invType;
@@ -1690,6 +1698,8 @@ namespace LibreMetaverse
 
                 Client.Network.SendPacket(create);
             }
+
+            return await tcs.Task.ConfigureAwait(false);
         }
 
         /// <summary>
@@ -1761,14 +1771,14 @@ namespace LibreMetaverse
                     switch (item)
                     {
                         case InventoryItem invItem:
-                            await CreateLinkAsync(folderID, invItem.UUID, invItem.Name, description,
-                                invItem.InventoryType, UUID.Random(),
-                                (s, _) => { if (!s) allSucceeded = false; }, cancellationToken).ConfigureAwait(false);
+                            if (await CreateLinkAsync(folderID, invItem.UUID, invItem.Name, description,
+                                invItem.InventoryType, UUID.Random(), cancellationToken).ConfigureAwait(false) == null)
+                                allSucceeded = false;
                             break;
                         case InventoryFolder folder:
-                            await CreateLinkAsync(folderID, folder.UUID, folder.Name, "",
-                                InventoryType.Folder, UUID.Random(),
-                                (s, _) => { if (!s) allSucceeded = false; }, cancellationToken).ConfigureAwait(false);
+                            if (await CreateLinkAsync(folderID, folder.UUID, folder.Name, "",
+                                InventoryType.Folder, UUID.Random(), cancellationToken).ConfigureAwait(false) == null)
+                                allSucceeded = false;
                             break;
                     }
                 }
@@ -1792,75 +1802,15 @@ namespace LibreMetaverse
         /// <summary>
         /// Copies a single inventory item to a new folder and returns the copy.
         /// </summary>
-        public Task<InventoryBase?> CopyItemAsync(UUID item, UUID newParent, string newName, UUID oldOwnerID,
+        public async Task<InventoryBase?> CopyItemAsync(UUID item, UUID newParent, string newName, UUID oldOwnerID,
             CancellationToken cancellationToken = default)
         {
-            var tcs = new TaskCompletionSource<InventoryBase?>(TaskCreationOptions.RunContinuationsAsynchronously);
-            ItemCopiedCallback callback = copied => tcs.TrySetResult(copied);
-            using (cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken)))
-            {
-                RequestCopyItemsAsync(
-                    new List<UUID>(1) { item },
-                    new List<UUID>(1) { newParent },
-                    new List<string>(1) { newName },
-                    oldOwnerID, callback, cancellationToken);
-                return tcs.Task;
-            }
-        }
-
-        /// <summary>
-        /// Request a copy of an asset embedded within a notecard
-        /// </summary>
-        /// <param name="objectID">Usually UUID.Zero for copying an asset from a notecard</param>
-        /// <param name="notecardID">UUID of the notecard to request an asset from</param>
-        /// <param name="folderID">Put newly created inventory in this folder</param>
-        /// <param name="itemID">UUID of the embedded asset</param>
-        /// <param name="callback">callback to run when item is copied to inventory</param>
-        /// <param name="cancellationToken"></param>
-        public void RequestCopyItemFromNotecard(UUID objectID, UUID notecardID, UUID folderID, UUID itemID, ItemCopiedCallback callback, CancellationToken cancellationToken = default)
-        {
-            _ItemCopiedCallbacks[0] = callback; //Notecards always use callback ID 0
-
-            var cap = GetCapabilityURI("CopyInventoryFromNotecard");
-            if (cap != null)
-            {
-                var message = new CopyInventoryFromNotecardMessage
-                {
-                    CallbackID = 0,
-                    FolderID = folderID,
-                    ItemID = itemID,
-                    NotecardID = notecardID,
-                    ObjectID = objectID
-                };
-
-                _ = Client.HttpCapsClient.PostRequestAsync(cap, OSDFormat.Xml, message.Serialize(), cancellationToken);
-            }
-            else
-            {
-                var copy = new CopyInventoryFromNotecardPacket
-                {
-                    AgentData =
-                    {
-                        AgentID = Client.Self.AgentID,
-                        SessionID = Client.Self.SessionID
-                    },
-                    NotecardData =
-                    {
-                        ObjectID = objectID,
-                        NotecardItemID = notecardID
-                    },
-                    InventoryData = new CopyInventoryFromNotecardPacket.InventoryDataBlock[1]
-                };
-
-
-                copy.InventoryData[0] = new CopyInventoryFromNotecardPacket.InventoryDataBlock
-                {
-                    FolderID = folderID,
-                    ItemID = itemID
-                };
-
-                Client.Network.SendPacket(copy);
-            }
+            var result = await RequestCopyItemsWithResultAsync(
+                new List<UUID>(1) { item },
+                new List<UUID>(1) { newParent },
+                new List<string>(1) { newName },
+                oldOwnerID, cancellationToken).ConfigureAwait(false);
+            return result.CopiedItems?.Count > 0 ? result.CopiedItems[0] : null;
         }
 
         #endregion Copy

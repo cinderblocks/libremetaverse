@@ -29,8 +29,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
-using System.Xml;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
+using System.Xml;
 
 namespace LibreMetaverse.Assets
 {
@@ -487,7 +489,7 @@ namespace LibreMetaverse.Assets
             settings.ToXML(Path.Combine(settingsPath, sim.Name + ".xml"));
         }
 
-        public static void SavePrims(AssetManager manager, IList<AssetPrim> prims, string primsPath, string assetsPath)
+        public static async Task SavePrimsAsync(AssetManager manager, IList<AssetPrim> prims, string primsPath, string assetsPath)
         {
             Dictionary<UUID, UUID> textureList = new Dictionary<UUID, UUID>();
 
@@ -519,7 +521,7 @@ namespace LibreMetaverse.Assets
                     }
                 }
 
-                SaveAssets(manager, AssetType.Texture, new List<UUID>(textureList.Keys), assetsPath);
+                await SaveAssetsAsync(manager, AssetType.Texture, new List<UUID>(textureList.Keys), assetsPath).ConfigureAwait(false);
             }
             catch
             {
@@ -561,93 +563,46 @@ namespace LibreMetaverse.Assets
             }
         }
 
-        public static void SaveAssets(AssetManager assetManager, AssetType assetType, IList<UUID> assets, string assetsPath)
+        public static async Task SaveAssetsAsync(AssetManager assetManager, AssetType assetType, IList<UUID> assets, string assetsPath)
         {
             int count = 0;
+            ArchiveConstants.ASSET_TYPE_TO_EXTENSION.TryGetValue(assetType, out var extension);
+            extension ??= string.Empty;
 
-            List<UUID> remainingTextures = new List<UUID>(assets);
-            AutoResetEvent AllPropertiesReceived = new AutoResetEvent(false);
-            for (int i = 0; i < assets.Count; i++)
+            var tasks = assets.Select(async id =>
             {
-                UUID texture = assets[i];
-                if(assetType == AssetType.Texture)
-                {
-                    assetManager.RequestImage(texture, (state, assetTexture) =>
-                    {
-                        string extension = string.Empty;
-
-                        if (assetTexture == null)
-                        {
-                            Console.WriteLine("Missing asset " + texture);
-                            return;
-                        }
-
-                        if (ArchiveConstants.ASSET_TYPE_TO_EXTENSION.TryGetValue(assetType, out var value))
-                            extension = value;
-
-                        File.WriteAllBytes(Path.Combine(assetsPath, texture + extension), assetTexture.AssetData);
-                        remainingTextures.Remove(assetTexture.AssetID);
-                        if (remainingTextures.Count == 0)
-                            AllPropertiesReceived.Set();
-                        ++count;
-                    });
-                }
-                else
-                {
-                    assetManager.RequestAsset(texture, assetType, false, (transfer, asset) =>
-                    {
-                        string extension = string.Empty;
-
-                        if (asset == null)
-                        {
-                            Console.WriteLine("Missing asset " + texture);
-                            return;
-                        }
-
-                        if (ArchiveConstants.ASSET_TYPE_TO_EXTENSION.TryGetValue(assetType, out var value))
-                            extension = value;
-
-                        File.WriteAllBytes(Path.Combine(assetsPath, texture + extension), asset.AssetData);
-                        remainingTextures.Remove(asset.AssetID);
-                        if (remainingTextures.Count == 0)
-                            AllPropertiesReceived.Set();
-                        ++count;
-                    });
-                }
-
-                Thread.Sleep(200);
-                if (i % 5 == 0)
-                    Thread.Sleep(250);
-            }
-            AllPropertiesReceived.WaitOne(5000 + 350 * assets.Count);
-
-            Logger.Info("Copied " + count + " textures to the asset archive folder");
-        }
-
-        public static void SaveSimAssets(AssetManager assetManager, AssetType assetType, UUID assetID, UUID itemID, UUID primID, string assetsPath)
-        {
-            int count = 0;
-
-            AutoResetEvent AllPropertiesReceived = new AutoResetEvent(false);
-            assetManager.RequestAsset(assetID, itemID, primID, assetType, false, SourceType.SimInventoryItem, UUID.Random(), (transfer, asset) =>
-            {
-                string extension = string.Empty;
-
-                if (ArchiveConstants.ASSET_TYPE_TO_EXTENSION.TryGetValue(assetType, out var value))
-                    extension = value;
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                Assets.Asset? asset = assetType == AssetType.Texture
+                    ? await assetManager.RequestImageAsync(id, cancellationToken: cts.Token).ConfigureAwait(false)
+                    : await assetManager.RequestAssetAsync(id, assetType, false, cts.Token).ConfigureAwait(false);
 
                 if (asset == null)
                 {
-                    AllPropertiesReceived.Set();
+                    Console.WriteLine("Missing asset " + id);
                     return;
                 }
-                File.WriteAllBytes(Path.Combine(assetsPath, assetID + extension), asset.AssetData);
-                ++count;
-                AllPropertiesReceived.Set();
-            });
-            AllPropertiesReceived.WaitOne(5000);
 
-            Logger.Info("Copied " + count + " textures to the asset archive folder");
+                File.WriteAllBytes(Path.Combine(assetsPath, id + extension), asset.AssetData);
+                Interlocked.Increment(ref count);
+            });
+
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+            Logger.Info("Copied " + count + " assets to the asset archive folder");
+        }
+
+        public static async Task SaveSimAssetsAsync(AssetManager assetManager, AssetType assetType, UUID assetID, UUID itemID, UUID primID, string assetsPath)
+        {
+            ArchiveConstants.ASSET_TYPE_TO_EXTENSION.TryGetValue(assetType, out var extension);
+            extension ??= string.Empty;
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var asset = await assetManager.RequestAssetAsync(assetID, itemID, primID, assetType, false,
+                SourceType.SimInventoryItem, UUID.Random(), cts.Token).ConfigureAwait(false);
+
+            if (asset == null) return;
+
+            File.WriteAllBytes(Path.Combine(assetsPath, assetID + extension), asset.AssetData);
+            Logger.Info("Copied 1 asset to the asset archive folder");
         }
 
         static void SavePrim(AssetPrim prim, string filename)

@@ -577,17 +577,6 @@ namespace LibreMetaverse
         /// <summary>
         /// Callback giving results when fetching display names
         /// </summary>
-        /// <param name="success">If the request was successful</param>
-        /// <param name="names">Array of display names</param>
-        /// <param name="badIDs">Array of UUIDs that could not be fetched</param>
-        public delegate void DisplayNamesCallback(bool success, AgentDisplayName[]? names, UUID[]? badIDs);
-
-        /// <summary>
-        /// Callback giving results when fetching AgentProfile
-        /// </summary>
-        /// <param name="success">If the request was successful</param>
-        /// <param name="profile">AgentProfile result</param>
-        public delegate void AgentProfileCallback(bool success, AgentProfileMessage? profile);
         #endregion Delegates
 
         private readonly GridClient Client;

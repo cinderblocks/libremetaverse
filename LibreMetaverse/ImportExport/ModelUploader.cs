@@ -51,12 +51,6 @@ namespace LibreMetaverse.ImportExport
         GridClient Client;
         List<ModelPrim> Prims;
 
-        /// <summary>
-        /// Callback for mesh upload operations
-        /// </summary>
-        /// <param name="result">null on failure, result from server on success</param>
-        public delegate void ModelUploadCallback(OSD? result);
-
 
         string InvName, InvDescription;
 
@@ -165,47 +159,29 @@ namespace LibreMetaverse.ImportExport
         /// <summary>
         /// Performs model upload in one go, without first checking for the price
         /// </summary>
-        /// <param name="callback">Callback that will be invoked upon completion of the upload. Null is sent on request failure</param>
         /// <param name="cancellationToken">Cancellation token for upload operation</param>
-        public async Task Upload(ModelUploadCallback? callback, CancellationToken cancellationToken)
+        /// <returns>Server response OSD on success, null on failure</returns>
+        public async Task<OSD?> Upload(CancellationToken cancellationToken)
         {
-            await PrepareUpload(async result =>
-            {
-                switch (result)
-                {
-                    case null when callback != null:
-                        callback(null);
-                        return;
-                    case OSDMap res:
-                    {
-                        Uri uploader = new Uri(res["uploader"]);
-                        await PerformUpload(uploader, contents =>
-                        {
-                            if (contents != null)
-                            {
-                                var reply = (OSDMap)contents;
-                                if (reply.ContainsKey("new_inventory_item") && reply.ContainsKey("new_asset"))
-                                {
-                                    // Request full update on the item in order to update the local store
-                                    Client.Inventory.RequestFetchInventory(reply["new_inventory_item"].AsUUID(), Client.Self.AgentID);
-                                }
-                            }
+            var prepareResult = await PrepareUpload(cancellationToken).ConfigureAwait(false);
+            if (prepareResult is not OSDMap res)
+                return null;
 
-                            callback?.Invoke(contents);
-                        }, cancellationToken);
-                        break;
-                    }
-                }
-            }, cancellationToken);
+            Uri uploader = new Uri(res["uploader"]);
+            var uploadResult = await PerformUpload(uploader, cancellationToken).ConfigureAwait(false);
 
+            if (uploadResult is OSDMap reply && reply.ContainsKey("new_inventory_item") && reply.ContainsKey("new_asset"))
+                Client.Inventory.RequestFetchInventory(reply["new_inventory_item"].AsUUID(), Client.Self.AgentID);
+
+            return uploadResult;
         }
 
         /// <summary>
         /// Ask server for details of cost and impact of the mesh upload
         /// </summary>
-        /// <param name="callback">Callback that will be invoked upon completion of the upload. Null is sent on request failure</param>
         /// <param name="cancellationToken">Cancellation token for network operation</param>
-        public async Task PrepareUpload(ModelUploadCallback? callback, CancellationToken cancellationToken)
+        /// <returns>Server response OSD on success, null on failure</returns>
+        public async Task<OSD?> PrepareUpload(CancellationToken cancellationToken)
         {
             Uri? cap = null;
             if (Client.Network.CurrentSim == null ||
@@ -213,8 +189,7 @@ namespace LibreMetaverse.ImportExport
                 (cap = Client.Network.CurrentSim.Caps.CapabilityURI("NewFileAgentInventory")) == null)
             {
                 Logger.Warn("Cannot upload mesh, no connection or NewFileAgentInventory not available");
-                callback?.Invoke(null);
-                return;
+                return null;
             }
 
             Images = new List<byte[]>();
@@ -240,25 +215,23 @@ namespace LibreMetaverse.ImportExport
                 if (data == null)
                 {
                     Logger.Error("Mesh upload request failure: response data is null", Client);
-                    callback?.Invoke(null);
-                    return;
+                    return null;
                 }
                 OSD result = OSDParser.Deserialize(data);
                 OSDMap res = (OSDMap)result;
                 if (res["state"] != "upload")
                 {
                     Logger.Error($"Mesh upload failure: {res["message"]}", Client);
-                    callback?.Invoke(null);
-                    return;
+                    return null;
                 }
                 Logger.Debug($"Response from mesh upload prepare: {Environment.NewLine}" +
                            OSDParser.SerializeLLSDNotationFormatted(result), Client);
-                callback?.Invoke(result);
+                return result;
             }
             catch (Exception ex)
             {
                 Logger.Error($"Mesh upload request failure: {ex.Message}", ex, Client);
-                callback?.Invoke(null);
+                return null;
             }
         }
 
@@ -266,16 +239,15 @@ namespace LibreMetaverse.ImportExport
         /// Performs actual mesh and image upload
         /// </summary>
         /// <param name="uploader">Uri received in the upload prepare stage</param>
-        /// <param name="callback">Callback that will be invoke upon completion of the upload. Null is sent on request failure</param>
         /// <param name="cancellationToken">Cancellation token for network operation</param>
-        public async Task PerformUpload(Uri uploader, ModelUploadCallback? callback, CancellationToken cancellationToken)
+        /// <returns>Server response OSD on success, null on failure</returns>
+        public async Task<OSD?> PerformUpload(Uri uploader, CancellationToken cancellationToken)
         {
             Uri? cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("MeshUploader");
             if (cap == null)
             {
                 Logger.Warn("Cannot upload mesh, MeshUploader capability not available");
-                callback?.Invoke(null);
-                return;
+                return null;
             }
 
             try
@@ -284,19 +256,18 @@ namespace LibreMetaverse.ImportExport
                 if (data == null)
                 {
                     Logger.Error("Mesh upload request failure: response data is null", Client);
-                    callback?.Invoke(null);
-                    return;
+                    return null;
                 }
                 OSD result = OSDParser.Deserialize(data);
                 OSDMap res = (OSDMap)result;
                 Logger.Debug($"Response from mesh upload perform: {Environment.NewLine}" +
                            OSDParser.SerializeLLSDNotationFormatted(result));
-                callback?.Invoke(res);
+                return res;
             }
             catch (Exception ex)
             {
                 Logger.Error($"Mesh upload request failure: {ex.Message}", ex, Client);
-                callback?.Invoke(null);
+                return null;
             }
         }
     }

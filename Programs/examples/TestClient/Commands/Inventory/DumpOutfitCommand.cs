@@ -30,6 +30,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using CoreJ2K;
 using LibreMetaverse;
 using LibreMetaverse.Assets;
@@ -61,94 +62,85 @@ namespace TestClient.Commands.Inventory
             if (!UUID.TryParse(args[0], out target))
                 return "Usage: dumpoutfit [avatar-uuid]";
 
+            // Snapshot the avatar's texture data under a short lock — never hold the Simulators
+            // lock while scheduling async work or acquiring other locks.
+            Primitive.TextureEntry? textures = null;
             lock (Client.Network.Simulators)
             {
                 foreach (var sim in Client.Network.Simulators)
                 {
-                   var kvp = sim.ObjectsAvatars.FirstOrDefault(
-                       avatar => avatar.Value.ID == target);
-
+                    var kvp = sim.ObjectsAvatars.FirstOrDefault(avatar => avatar.Value.ID == target);
                     if (kvp.Value != null)
                     {
-                        var targetAv = kvp.Value;
-                        StringBuilder output = new StringBuilder("Downloading ");
-
-                        lock (OutfitAssets) OutfitAssets.Clear();
-
-                        var textures = targetAv.Textures;
-                        if (textures == null || textures.FaceTextures == null)
-                            return "No textures available for target avatar";
-
-                        for (int j = 0; j < textures.FaceTextures.Length; j++)
-                        {
-                            Primitive.TextureEntryFace face = textures.FaceTextures[j];
-
-                            if (face != null)
-                            {
-                                ImageType type = ImageType.Normal;
-
-                                switch ((AvatarTextureIndex)j)
-                                {
-                                    case AvatarTextureIndex.HeadBaked:
-                                    case AvatarTextureIndex.EyesBaked:
-                                    case AvatarTextureIndex.UpperBaked:
-                                    case AvatarTextureIndex.LowerBaked:
-                                    case AvatarTextureIndex.SkirtBaked:
-                                        type = ImageType.Baked;
-                                        break;
-                                }
-
-                                OutfitAssets.Add(face.TextureID);
-                                Client.Assets.RequestImage(face.TextureID, type, Assets_OnImageReceived);
-                                output.Append(((AvatarTextureIndex)j).ToString());
-                                output.Append(' ');
-                            }
-                        }
-
-                        return output.ToString();
+                        textures = kvp.Value.Textures;
+                        break;
                     }
                 }
             }
 
-            return "Couldn't find avatar " + target;
-        }
+            if (textures == null)
+                return "Couldn't find avatar " + target;
 
-        private void Assets_OnImageReceived(TextureRequestState state, AssetTexture? assetTexture)
-        {
-            lock (OutfitAssets)
+            if (textures.FaceTextures == null)
+                return "No textures available for target avatar";
+
+            StringBuilder output = new StringBuilder("Downloading ");
+            lock (OutfitAssets) OutfitAssets.Clear();
+
+            for (int j = 0; j < textures.FaceTextures.Length; j++)
             {
-                if (assetTexture == null) return;
+                Primitive.TextureEntryFace face = textures.FaceTextures[j];
 
-                if (OutfitAssets.Contains(assetTexture.AssetID))
+                if (face != null)
                 {
-                    if (state == TextureRequestState.Finished)
-                    {
-                        try
-                        {
-                            File.WriteAllBytes(assetTexture.AssetID + ".jp2", assetTexture.AssetData);
-                            Console.WriteLine($"Wrote JPEG2000 image {assetTexture.AssetID}.jp2");
+                    ImageType type = ImageType.Normal;
 
-                            using (var bitmap = J2kImage.FromBytes(assetTexture.AssetData).As<SKBitmap>())
+                    switch ((AvatarTextureIndex)j)
+                    {
+                        case AvatarTextureIndex.HeadBaked:
+                        case AvatarTextureIndex.EyesBaked:
+                        case AvatarTextureIndex.UpperBaked:
+                        case AvatarTextureIndex.LowerBaked:
+                        case AvatarTextureIndex.SkirtBaked:
+                            type = ImageType.Baked;
+                            break;
+                    }
+
+                    OutfitAssets.Add(face.TextureID);
+                    var texID = face.TextureID;
+                    _ = Client.Assets.RequestImageAsync(texID, type).ContinueWith(t =>
+                    {
+                        var assetTexture = t.Status == global::System.Threading.Tasks.TaskStatus.RanToCompletion ? t.Result : null;
+                        lock (OutfitAssets)
+                        {
+                            // Check against texID (the requested ID) since that is what was added to OutfitAssets.
+                            if (assetTexture != null && OutfitAssets.Contains(texID))
                             {
-                                var mi = new ManagedImage(bitmap);
-                                var bytes = Targa.Encode(mi);
-                                File.WriteAllBytes(assetTexture.AssetID + ".tga", bytes);
-                                Console.WriteLine($"Wrote TGA image {assetTexture.AssetID}.tga");
+                                try
+                                {
+                                    File.WriteAllBytes(assetTexture.AssetID + ".jp2", assetTexture.AssetData);
+                                    Console.WriteLine($"Wrote JPEG2000 image {assetTexture.AssetID}.jp2");
+                                    using (var bitmap = J2kImage.FromBytes(assetTexture.AssetData).As<SKBitmap>())
+                                    {
+                                        var mi = new ManagedImage(bitmap);
+                                        var bytes = Targa.Encode(mi);
+                                        File.WriteAllBytes(assetTexture.AssetID + ".tga", bytes);
+                                        Console.WriteLine($"Wrote TGA image {assetTexture.AssetID}.tga");
+                                    }
+                                }
+                                catch (Exception e) { Console.WriteLine(e.ToString()); }
                             }
+                            else Console.WriteLine($"Failed to download image {texID}");
+                            OutfitAssets.Remove(texID);
                         }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine(e.ToString());
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Failed to download image {assetTexture.AssetID}");
-                    }
-
-                    OutfitAssets.Remove(assetTexture.AssetID);
+                    }, TaskContinuationOptions.ExecuteSynchronously);
+                    output.Append(((AvatarTextureIndex)j).ToString());
+                    output.Append(' ');
                 }
             }
+
+            return output.ToString();
         }
+
     }
 }

@@ -7,8 +7,6 @@ namespace TestClient.Commands.Estate
 {
     public class GetEstateCovenantCommand : Command
     {
-        private static StringBuilder result = new StringBuilder();
-
         public GetEstateCovenantCommand(TestClient client)
         {
             Name = "getestatecovenant";
@@ -27,8 +25,7 @@ namespace TestClient.Commands.Estate
             if (args.Length > 0 && int.TryParse(args[0], out timeout) != true)
                 return "Usage: getestatecovenant [timeout]";
 
-            result.Clear();
-
+            var result = new StringBuilder();
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             EventHandler<EstateCovenantReplyEventArgs> handler = null;
@@ -43,19 +40,15 @@ namespace TestClient.Commands.Estate
                 {
                     result.AppendFormat("Estate Covenant ID: {0}\nEstate Covenant Update Time: {1}\n", e.CovenantID, Utils.UnixTimeToDateTime(Convert.ToInt32(e.Timestamp)));
 
-                    Client.Estate.RequestCovenantNotecard(e.CovenantID, (transfer, asset) =>
+                    _ = Client.Estate.RequestCovenantNotecardAsync(e.CovenantID).ContinueWith(t =>
                     {
-                        if (transfer.Success)
-                        {
+                        var asset = t.Status == global::System.Threading.Tasks.TaskStatus.RanToCompletion ? t.Result : null;
+                        if (asset != null)
                             result.AppendFormat("Covenant:\n{0}", Utils.BytesToString(asset.AssetData));
-                        }
                         else
-                        {
                             result.Append("Could not retrieve covenant notecard.");
-                        }
-
                         tcs.TrySetResult(true);
-                    });
+                    }, TaskContinuationOptions.ExecuteSynchronously);
                 }
             };
 

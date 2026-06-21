@@ -203,116 +203,52 @@ namespace LibreMetaverse
             }
         }
 
-        private void CreateItemFromAssetResponse(ItemCreatedFromAssetCallback callback, byte[] itemData, OSDMap request,
-            OSD? result, Exception? error, CancellationToken cancellationToken = default, IProgress<LibreMetaverse.HttpCapsClient.ProgressReport>? progress = null)
+        internal async Task<(bool success, string status, UUID itemID, UUID assetID)> CreateItemFromAssetAsync(
+            byte[] itemData, OSD? initialResult, CancellationToken cancellationToken = default,
+            IProgress<HttpCapsClient.ProgressReport>? progress = null)
         {
-            if (result == null)
+            var result = initialResult;
+            int iterations = 0;
+            while (result is OSDMap contents)
             {
-                try
+                if (++iterations > 3)
+                    return (false, "Upload state machine exceeded maximum iterations", UUID.Zero, UUID.Zero);
+                var state = contents["state"].AsString().ToLowerInvariant();
+                if (state == "upload")
                 {
-                    callback(false, error?.Message ?? "Unknown error", UUID.Zero, UUID.Zero);
+                    Logger.DebugLog($"CreateItemFromAsset: uploading to {contents["uploader"]}");
+                    var uploadUri = new Uri(contents["uploader"].AsString());
+                    result = await PostBytesAsync(uploadUri, "application/octet-stream", itemData, cancellationToken, progress).ConfigureAwait(false);
                 }
-                catch (Exception e)
+                else if (state == "complete")
                 {
-                    Logger.Error(e.Message, e, Client);
-                }
-
-                return;
-            }
-
-            if (result.Type == OSDType.Unknown)
-            {
-                try
-                {
-                    callback(false, "Failed to parse asset and item UUIDs", UUID.Zero, UUID.Zero);
-                }
-                catch (Exception e)
-                {
-                    Logger.Error(e.Message, e, Client);
-                }
-                return;
-            }
-
-            var contents = (OSDMap)result;
-
-            var status = contents["state"].AsString().ToLowerInvariant();
-
-            if (status == "upload")
-            {
-                var uploadURL = contents["uploader"].AsString();
-
-                Logger.DebugLog($"CreateItemFromAsset: uploading to {uploadURL}");
-
-                // This makes the assumption that all uploads go to CurrentSim, to avoid
-                // the problem of HttpRequestState not knowing anything about simulators
-                var uploadUri = new Uri(uploadURL);
-
-                // Fire-and-forget async upload using centralized helper
-                Task.Run((Func<Task>)(async () =>
-                {
-                    try
+                    Logger.DebugLog("CreateItemFromAsset: completed");
+                    if (contents.ContainsKey("new_inventory_item") && contents.ContainsKey("new_asset"))
                     {
-                        var res = await PostBytesAsync(uploadUri, "application/octet-stream", itemData,
-                            cancellationToken, progress).ConfigureAwait(false);
-                        CreateItemFromAssetResponse(callback, itemData, request, res, null, cancellationToken, progress);
+                        var itemID = contents["new_inventory_item"].AsUUID();
+                        var assetID = contents["new_asset"].AsUUID();
+                        RequestFetchInventory(itemID, Client.Self.AgentID);
+                        return (true, string.Empty, itemID, assetID);
                     }
-                    catch (Exception ex)
-                    {
-                        CreateItemFromAssetResponse(callback, itemData, request, null, ex, cancellationToken, progress);
-                    }
-                }), cancellationToken);
-            }
-            else if (status == "complete")
-            {
-                Logger.DebugLog("CreateItemFromAsset: completed");
-
-                if (contents.ContainsKey("new_inventory_item") && contents.ContainsKey("new_asset"))
-                {
-                    // Request full update on the item in order to update the local store
-                    RequestFetchInventory(contents["new_inventory_item"].AsUUID(), Client.Self.AgentID);
-
-                    try
-                    {
-                        callback(true, string.Empty, contents["new_inventory_item"].AsUUID(),
-                            contents["new_asset"].AsUUID());
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.Error(e.Message, e, Client);
-                    }
+                    return (false, "Failed to parse asset and item UUIDs", UUID.Zero, UUID.Zero);
                 }
                 else
                 {
-                    try
-                    {
-                        callback(false, "Failed to parse asset and item UUIDs", UUID.Zero, UUID.Zero);
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.Error(e.Message, e, Client);
-                    }
+                    return (false, state, UUID.Zero, UUID.Zero);
                 }
             }
-            else
-            {
-                // Failure
-                try
-                {
-                    callback(false, status, UUID.Zero, UUID.Zero);
-                }
-                catch (Exception e)
-                {
-                    Logger.Error(e.Message, e, Client);
-                }
-            }
+            return (false, "Unrecognized or empty response", UUID.Zero, UUID.Zero);
         }
 
         private async Task<(bool success, string status, UUID itemID, UUID assetID)> PerformInventoryUploadAsync(
             byte[] data, UUID itemId, OSD? initialResult, CancellationToken cancellationToken, IProgress<HttpCapsClient.ProgressReport>? progress)
         {
             var result = initialResult;
+            int iterations = 0;
             while (result is OSDMap contents)
             {
+                if (++iterations > 3)
+                    return (false, "Upload state machine exceeded maximum iterations", UUID.Zero, UUID.Zero);
                 var state = contents["state"].AsString();
                 if (state == "upload")
                 {
@@ -344,8 +280,11 @@ namespace LibreMetaverse
                 return (false, "No response from server", false, null, UUID.Zero, UUID.Zero);
 
             var result = initialResult;
+            int iterations = 0;
             while (result is OSDMap contents)
             {
+                if (++iterations > 3)
+                    return (false, "Upload state machine exceeded maximum iterations", false, null, UUID.Zero, UUID.Zero);
                 var state = contents["state"].AsString();
                 if (state == "upload")
                 {

@@ -167,15 +167,14 @@ namespace LibreMetaverse
 
         
 
-        public async Task RequestCreateItemFromAssetAsync(byte[] data, string name, string description, AssetType assetType,
-            InventoryType invType, UUID folderID, Permissions permissions, ItemCreatedFromAssetCallback callback,
+        public async Task<(bool success, string status, UUID itemID, UUID assetID)> RequestCreateItemFromAssetAsync(
+            byte[] data, string name, string description, AssetType assetType, InventoryType invType,
+            UUID folderID, Permissions permissions,
             CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
             var cap = GetCapabilityURI("NewFileAgentInventory", false);
             if (cap == null)
-            {
                 throw new InvalidOperationException("NewFileAgentInventory capability is not currently available");
-            }
 
             var query = new OSDMap
             {
@@ -193,18 +192,18 @@ namespace LibreMetaverse
             try
             {
                 var result = await PostCapAsync(cap, query, cancellationToken, progress).ConfigureAwait(false);
-                CreateItemFromAssetResponse(callback, data, query, result, null, cancellationToken, progress);
+                return await CreateItemFromAssetAsync(data, result, cancellationToken, progress).ConfigureAwait(false);
             }
-            catch (Exception ex)
-            {
-                CreateItemFromAssetResponse(callback, data, query, null, ex, cancellationToken, progress);
-            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { return (false, ex.Message, UUID.Zero, UUID.Zero); }
         }
 
-        public async Task RequestCopyItemFromNotecardAsync(UUID objectID, UUID notecardID, UUID folderID, UUID itemID, 
-            ItemCopiedCallback callback, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
+        public async Task<InventoryBase?> RequestCopyItemFromNotecardAsync(UUID objectID, UUID notecardID, UUID folderID, UUID itemID,
+            CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
-            _ItemCopiedCallbacks[0] = callback; // Notecards always use callback ID 0
+            var tcs = new TaskCompletionSource<InventoryBase?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
+            _ItemCopiedCallbacks[0] = copied => tcs.TrySetResult(copied); // Notecards always use callback ID 0
 
             var cap = GetCapabilityURI("CopyInventoryFromNotecard");
             if (cap != null)
@@ -224,56 +223,27 @@ namespace LibreMetaverse
                 }
                 catch (Exception)
                 {
-                    // fallback to LLUDP path if capability call fails
-                    var copy = new CopyInventoryFromNotecardPacket
-                    {
-                        AgentData =
-                        {
-                            AgentID = Client.Self.AgentID,
-                            SessionID = Client.Self.SessionID
-                        },
-                        NotecardData =
-                        {
-                            ObjectID = objectID,
-                            NotecardItemID = notecardID
-                        },
-                        InventoryData = new CopyInventoryFromNotecardPacket.InventoryDataBlock[1]
-                    };
-
-                    copy.InventoryData[0] = new CopyInventoryFromNotecardPacket.InventoryDataBlock
-                    {
-                        FolderID = folderID,
-                        ItemID = itemID
-                    };
-
-                    Client.Network.SendPacket(copy);
+                    SendCopyFromNotecardPacket(objectID, notecardID, folderID, itemID);
                 }
             }
             else
             {
-                var copy = new CopyInventoryFromNotecardPacket
-                {
-                    AgentData =
-                    {
-                        AgentID = Client.Self.AgentID,
-                        SessionID = Client.Self.SessionID
-                    },
-                    NotecardData =
-                    {
-                        ObjectID = objectID,
-                        NotecardItemID = notecardID
-                    },
-                    InventoryData = new CopyInventoryFromNotecardPacket.InventoryDataBlock[1]
-                };
-
-                copy.InventoryData[0] = new CopyInventoryFromNotecardPacket.InventoryDataBlock
-                {
-                    FolderID = folderID,
-                    ItemID = itemID
-                };
-
-                Client.Network.SendPacket(copy);
+                SendCopyFromNotecardPacket(objectID, notecardID, folderID, itemID);
             }
+
+            return await tcs.Task.ConfigureAwait(false);
+        }
+
+        private void SendCopyFromNotecardPacket(UUID objectID, UUID notecardID, UUID folderID, UUID itemID)
+        {
+            var copy = new CopyInventoryFromNotecardPacket
+            {
+                AgentData = { AgentID = Client.Self.AgentID, SessionID = Client.Self.SessionID },
+                NotecardData = { ObjectID = objectID, NotecardItemID = notecardID },
+                InventoryData = new CopyInventoryFromNotecardPacket.InventoryDataBlock[1]
+            };
+            copy.InventoryData[0] = new CopyInventoryFromNotecardPacket.InventoryDataBlock { FolderID = folderID, ItemID = itemID };
+            Client.Network.SendPacket(copy);
         }
 
         public async Task<(bool success, string status, UUID itemID, UUID assetID)> RequestUploadNotecardAssetAsync(byte[] data, UUID notecardID,
@@ -391,100 +361,27 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Async-first variant to request copying multiple items. Falls back to LLUDP copy packet.
+        /// Copy multiple inventory items. Redirects to <see cref="RequestCopyItemsWithResultAsync"/>.
         /// </summary>
-        public Task RequestCopyItemsAsync(List<UUID> items, List<UUID> targetFolders, List<string> newNames,
-            UUID oldOwnerID, ItemCopiedCallback callback, CancellationToken cancellationToken = default)
-        {
-            if (items == null) throw new ArgumentNullException(nameof(items));
-            if (targetFolders == null) throw new ArgumentNullException(nameof(targetFolders));
-            if (items.Count != targetFolders.Count || (newNames != null && items.Count != newNames.Count))
-                throw new ArgumentException("All list arguments must have an equal number of entries");
+        public Task<CopyItemsResult> RequestCopyItemsAsync(List<UUID> items, List<UUID> targetFolders, List<string> newNames,
+            UUID oldOwnerID, CancellationToken cancellationToken = default)
+            => RequestCopyItemsWithResultAsync(items, targetFolders, newNames, oldOwnerID, cancellationToken);
 
-            // Try AISv3 Inventory API first
-            var invCap = GetCapabilityURI("InventoryAPIv3", false);
-            if (Client.AisClient.IsAvailable && invCap != null)
-            {
-                try
-                {
-                    var ops = new OSDArray(items.Count);
-                    for (var i = 0; i < items.Count; ++i)
-                    {
-                        var op = new OSDMap
-                        {
-                            ["item_id"] = items[i],
-                            ["folder_id"] = targetFolders[i]
-                        };
+        /// <summary>Copy a single inventory item.</summary>
+        public Task<InventoryBase?> RequestCopyItemAsync(UUID item, UUID newParent, string newName,
+            CancellationToken cancellationToken = default)
+            => RequestCopyItemAsync(item, newParent, newName, Client.Self.AgentID, cancellationToken);
 
-                        if (newNames != null && !string.IsNullOrEmpty(newNames[i]))
-                            op["new_name"] = newNames[i];
-
-                        ops.Add(op);
-                    }
-
-                    var payload = new OSDMap { ["items"] = ops, ["agent_id"] = Client.Self.AgentID };
-
-                    // Post to AIS inventory API; ignore result for now and let server emit normal copy callbacks
-                    _ = PostCapAsync(invCap, payload, cancellationToken);
-                    return Task.CompletedTask;
-                }
-                catch (Exception)
-                {
-                    // Fall through to legacy LLUDP path on error
-                }
-            }
-
-            // Legacy LLUDP path
-            var callbackID = RegisterItemsCopiedCallback(callback);
-
-            var copy = new CopyInventoryItemPacket
-            {
-                AgentData =
-                {
-                    AgentID = Client.Self.AgentID,
-                    SessionID = Client.Self.SessionID
-                },
-                InventoryData = new CopyInventoryItemPacket.InventoryDataBlock[items.Count]
-            };
-
-            for (var i = 0; i < items.Count; ++i)
-            {
-                copy.InventoryData[i] = new CopyInventoryItemPacket.InventoryDataBlock
-                {
-                    CallbackID = callbackID,
-                    NewFolderID = targetFolders[i],
-                    OldAgentID = oldOwnerID,
-                    OldItemID = items[i],
-                        NewName = (!string.IsNullOrEmpty(newNames?[i] ?? string.Empty))
-                            ? Utils.StringToBytes(newNames![i]!)
-                            : Utils.EmptyBytes
-                };
-            }
-
-            Client.Network.SendPacket(copy);
-            return Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Async-first wrapper for RequestCopyItem (single item)
-        /// </summary>
-        public Task RequestCopyItemAsync(UUID item, UUID newParent, string newName, ItemCopiedCallback callback, 
+        /// <summary>Copy a single inventory item with explicit old owner.</summary>
+        public async Task<InventoryBase?> RequestCopyItemAsync(UUID item, UUID newParent, string newName, UUID oldOwnerID,
             CancellationToken cancellationToken = default)
         {
-            return RequestCopyItemAsync(item, newParent, newName, Client.Self.AgentID, callback, cancellationToken);
-        }
-
-        /// <summary>
-        /// Async-first wrapper for RequestCopyItem with explicit old owner
-        /// </summary>
-        public Task RequestCopyItemAsync(UUID item, UUID newParent, string newName, UUID oldOwnerID,
-            ItemCopiedCallback callback, CancellationToken cancellationToken = default)
-        {
-            var items = new List<UUID>(1) { item };
-            var folders = new List<UUID>(1) { newParent };
-            var names = new List<string>(1) { newName };
-
-            return RequestCopyItemsAsync(items, folders, names, oldOwnerID, callback, cancellationToken);
+            var result = await RequestCopyItemsWithResultAsync(
+                new List<UUID>(1) { item },
+                new List<UUID>(1) { newParent },
+                new List<string>(1) { newName },
+                oldOwnerID, cancellationToken).ConfigureAwait(false);
+            return result.CopiedItems?.Count > 0 ? result.CopiedItems[0] : null;
         }
 
         public async Task<InventoryItem?> FetchItemAsync(UUID itemID, UUID ownerID, CancellationToken cancellationToken = default)

@@ -71,7 +71,7 @@ namespace LibreMetaverse
     /// and other information. For progressive rendering the <see cref="Asset.AssetData"/> will contain
     /// the data from the beginning of the file. For failed, aborted and timed out requests it will contain
     /// an empty byte array.</param>
-public delegate void TextureDownloadCallback(TextureRequestState state, AssetTexture? assetTexture);
+internal delegate void TextureDownloadCallback(TextureRequestState state, AssetTexture? assetTexture);
 
     /// <summary>
     /// Texture request download handler, allows a configurable number of download slots which manage multiple
@@ -273,7 +273,7 @@ public delegate void TextureDownloadCallback(TextureRequestState state, AssetTex
         /// <param name="progressive">If true, the callback will be fired for each chunk of the downloaded image. 
         /// The callback asset parameter will contain all previously received chunks of the texture asset starting 
         /// from the beginning of the request</param>
-        public void RequestTexture(UUID textureID, ImageType imageType, float priority, int discardLevel, uint packetStart, TextureDownloadCallback callback, bool progressive)
+        internal void RequestTexture(UUID textureID, ImageType imageType, float priority, int discardLevel, uint packetStart, TextureDownloadCallback callback, bool progressive)
         {
             if (textureID == UUID.Zero)return;
             if (callback == null) return;

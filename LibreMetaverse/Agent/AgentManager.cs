@@ -45,12 +45,6 @@ namespace LibreMetaverse
         #region Delegates
         /// <summary>
         /// Called once attachment resource usage information has been collected
-        /// </summary>
-        /// <param name="success">Indicates if operation was successful</param>
-        /// <param name="info">Attachment resource usage information</param>
-        public delegate void AttachmentResourcesCallback(bool success, AttachmentResourcesMessage? info);
-        /// <summary>Called when a request to change the agent's maximum allowed content maturity level completes</summary>
-        public delegate void AgentAccessCallback(AgentAccessEventArgs e);
         #endregion Delegates
 
         #region Event Delegates

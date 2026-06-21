@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse;
 
@@ -43,30 +44,14 @@ namespace TestClient.Commands.Inventory
                 // retrieve asset from store
                 InventoryItem ii = (InventoryItem)Client.Inventory.Store[note];
 
-                var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                var asset = await Client.Assets.RequestInventoryAssetAsync(ii, true, UUID.Random(), cts.Token).ConfigureAwait(false);
 
-                var transferID = UUID.Random();
-                Client.Assets.RequestInventoryAsset(ii, true, transferID,
-                    (transfer, asset) =>
-                    {
-                        if (transfer.Success)
-                        {
-                            sb.AppendFormat("Raw Notecard Data: " + global::System.Environment.NewLine + " {0}", Utils.BytesToString(asset.AssetData));
-                            tcs.TrySetResult(sb.ToString());
-                        }
-                        else
-                        {
-                            tcs.TrySetResult("Failed to download notecard");
-                        }
-                    }
-                );
+                if (asset == null)
+                    return "Failed to download notecard";
 
-                var completed = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(10))).ConfigureAwait(false);
-
-                if (completed != tcs.Task)
-                    return "Timeout waiting for notecard to download.";
-
-                return await tcs.Task.ConfigureAwait(false);
+                sb.AppendFormat("Raw Notecard Data: " + global::System.Environment.NewLine + " {0}", Utils.BytesToString(asset.AssetData));
+                return sb.ToString();
             }
             else
             {

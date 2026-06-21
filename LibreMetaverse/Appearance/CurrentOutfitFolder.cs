@@ -485,18 +485,10 @@ namespace LibreMetaverse.Appearance
             var cofLinks = await GetCurrentOutfitLinks(cancellationToken);
             if (cofLinks.Find(itemLink => itemLink.AssetUUID == item.UUID) == null)
             {
-                await client.Inventory.CreateLinkAsync(COF.UUID, item.UUID, item.Name,
-                    newDescription, item.InventoryType, UUID.Random(),
-                    (success, newItem) =>
-                    {
-                        if (success && newItem != null)
-                        {
-                            // Fire-and-forget fetch of the created item
-                            _ = client.Inventory.RequestFetchInventoryAsync(newItem.UUID, newItem.OwnerID, cancellationToken);
-                        }
-                    },
-                    cancellationToken
-                ).ConfigureAwait(false);
+                var newLink = await client.Inventory.CreateLinkAsync(COF.UUID, item.UUID, item.Name,
+                    newDescription, item.InventoryType, UUID.Random(), cancellationToken).ConfigureAwait(false);
+                if (newLink != null)
+                    _ = client.Inventory.RequestFetchInventoryAsync(newLink.UUID, newLink.OwnerID, cancellationToken);
             }
         }
 
@@ -1007,22 +999,17 @@ namespace LibreMetaverse.Appearance
             await AddLinks(itemsBeingAdded.Values, cancellationToken);
 
             // Add link to outfit folder we're putting on
-            await client.Inventory.CreateLinkAsync(
+            var outfitLink = await client.Inventory.CreateLinkAsync(
                 currentOutfitFolder.UUID,
                 newOutfitFolderNode.Data.UUID,
                 newOutfitFolderNode.Data.Name,
                 "",
                 InventoryType.Folder,
                 UUID.Random(),
-                (success, newItem) =>
-                {
-                        if (success && newItem != null)
-                        {
-                            _ = client.Inventory.RequestFetchInventoryAsync(newItem.UUID, newItem.OwnerID);
-                        }
-                },
                 cancellationToken
             ).ConfigureAwait(false);
+            if (outfitLink != null)
+                _ = client.Inventory.RequestFetchInventoryAsync(outfitLink.UUID, outfitLink.OwnerID);
 
             // Wear new outfit
             var tcs = new TaskCompletionSource<bool>();
@@ -1250,7 +1237,8 @@ namespace LibreMetaverse.Appearance
 
         private async Task DelayedOutfitUpdateAsync(List<InventoryItem> itemsToAdd, List<InventoryItem> itemsToRemove, CancellationToken cancellationToken)
         {
-            await Task.Delay(2000, cancellationToken).ContinueWith(_ => { }, cancellationToken);
+            try { await Task.Delay(2000, cancellationToken).ConfigureAwait(false); }
+            catch (OperationCanceledException) { return; }
             try { await client.Appearance.RequestSetAppearance(true); } catch { }
             try { await policy.ReportItemChange(itemsToAdd, itemsToRemove, cancellationToken); } catch { }
         }

@@ -476,11 +476,6 @@ namespace LibreMetaverse
         /// <summary>
         /// Callback for getting object media data via CAP
         /// </summary>
-        /// <param name="success">Indicates if the operation was successful</param>
-        /// <param name="version">Object media version string</param>
-        /// <param name="faceMedia">Array indexed on prim face of media entry data (nullable on failure)</param>
-        public delegate void ObjectMediaCallback(bool success, string version, MediaEntry[]? faceMedia);
-
         /// <summary>The event subscribers, null if no subscribers</summary>
         private EventHandler<PhysicsPropertiesEventArgs>? m_PhysicsProperties;
 
