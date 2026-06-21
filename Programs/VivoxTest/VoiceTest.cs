@@ -73,15 +73,15 @@ namespace VoiceTest
             
 
             GridClient client = new GridClient();
-            client.Settings.MULTIPLE_SIMS = false;
-            Settings.LOG_LEVEL = Microsoft.Extensions.Logging.LogLevel.None;
-            client.Settings.LOG_RESENDS = false;
-            client.Settings.STORE_LAND_PATCHES = true;
-            client.Settings.ALWAYS_DECODE_OBJECTS = true;
-            client.Settings.ALWAYS_REQUEST_OBJECTS = true;
-            client.Settings.SEND_AGENT_UPDATES = true;
+            client.Settings.Agent.MultipleSims = false;
+            Settings.LogLevel = Microsoft.Extensions.Logging.LogLevel.None;
+            client.Settings.Logging.LogResends = false;
+            client.Settings.World.StoreLandPatches = true;
+            client.Settings.World.AlwaysDecodeObjects = true;
+            client.Settings.World.AlwaysRequestObjects = true;
+            client.Settings.Agent.SendUpdates = true;
 
-            string loginURI = client.Settings.LOGIN_SERVER;
+            string loginURI = client.Settings.Connection.LoginServer;
             if (4 == args.Length) {
                 loginURI = args[3];
             }

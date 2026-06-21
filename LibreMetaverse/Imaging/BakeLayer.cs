@@ -364,7 +364,7 @@ namespace LibreMetaverse.Imaging
             {
                 lock (ResourceSync)
                 {
-                    Stream? stream = Helpers.GetResourceStream(fileName, Path.Combine(Settings.RESOURCE_DIR, "static_assets"));
+                    Stream? stream = Helpers.GetResourceStream(fileName, Path.Combine(Settings.ResourceDir, "static_assets"));
                     if (stream != null)
                     {
                         using (stream)

@@ -653,7 +653,7 @@ namespace LibreMetaverse
                     {
                         // Start a timer that checks if we've been disconnected
                         DisconnectTimer = new Timer(DisconnectTimer_Elapsed, null,
-                            Client.Settings.SIMULATOR_TIMEOUT, Client.Settings.SIMULATOR_TIMEOUT);
+                            Client.Settings.Timing.SimulatorTimeout, Client.Settings.Timing.SimulatorTimeout);
                     }
 
                     if (setDefault)
@@ -668,7 +668,7 @@ namespace LibreMetaverse
                     }
                     
                     // If enabled, send an AgentThrottle packet to the server to increase our bandwidth
-                    if (Client.Settings.SEND_AGENT_THROTTLE)
+                    if (Client.Settings.Agent.SendThrottle)
                     {
                         Client.Throttle.Set(simulator);
                     }
@@ -696,7 +696,7 @@ namespace LibreMetaverse
                 SetCurrentSim(simulator, seedcaps);
 
                 // Send an initial AgentUpdate to complete our movement in to the sim
-                if (Client.Settings.SEND_AGENT_UPDATES)
+                if (Client.Settings.Agent.SendUpdates)
                 {
                     Client.Self.Movement.SendUpdate(true, simulator);
                 }
@@ -722,7 +722,7 @@ namespace LibreMetaverse
             // Otherwise we fire it manually with a NetworkTimeout type after LOGOUT_TIMEOUT
             logoutReplyTimeout = new System.Timers.Timer();
 
-            logoutReplyTimeout.Interval = Client.Settings.LOGOUT_TIMEOUT;
+            logoutReplyTimeout.Interval = Client.Settings.Timing.LogoutTimeout;
             logoutReplyTimeout.Elapsed += delegate
             {
                 logoutReplyTimeout.Stop();
@@ -738,7 +738,7 @@ namespace LibreMetaverse
 
         /// <summary>
         /// Initiate a blocking logout request. This will return when the logout
-        /// handshake has completed or when <see cref="Settings.LOGOUT_TIMEOUT" />
+        /// handshake has completed or when <see cref="TimingSettings.LogoutTimeout" />
         /// has expired and the network layer is manually shut down
         /// </summary>
         public void Logout()
@@ -754,7 +754,7 @@ namespace LibreMetaverse
             // Wait for a logout response. If the response is received, shutdown
             // will be fired in the callback. Otherwise, we fire it manually with
             // a NetworkTimeout type
-            if (!logoutEvent.WaitOne(Client.Settings.LOGOUT_TIMEOUT, false))
+            if (!logoutEvent.WaitOne(Client.Settings.Timing.LogoutTimeout, false))
             {
                 Shutdown(DisconnectType.NetworkTimeout);
             }
@@ -1225,7 +1225,7 @@ namespace LibreMetaverse
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void SimStatsHandler(object? sender, PacketReceivedEventArgs e)
         {
-            if (!Client.Settings.ENABLE_SIMSTATS)
+            if (!Client.Settings.Packets.EnableSimStats)
             {
                 return;
             }
@@ -1380,7 +1380,7 @@ namespace LibreMetaverse
 
         protected void EnableSimulatorHandler(string capsKey, IMessage message, Simulator simulator)
         {
-            if (!Client.Settings.MULTIPLE_SIMS) { return; }
+            if (!Client.Settings.Agent.MultipleSims) { return; }
 
             EnableSimulatorMessage msg = (EnableSimulatorMessage)message;
 

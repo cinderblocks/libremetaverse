@@ -643,7 +643,7 @@ namespace LibreMetaverse
 
             GridRegion += RegionCallback;
             RequestMapBlocks(layer, gridX, gridY, gridX, gridY, true);
-            regionEvent.WaitOne(Client.Settings.MAP_REQUEST_TIMEOUT, false);
+            regionEvent.WaitOne(Client.Settings.Timing.MapRequestTimeout, false);
             GridRegion -= RegionCallback;
             region = foundRegion;
 
@@ -693,7 +693,7 @@ namespace LibreMetaverse
             GridRegion += Callback;
 
             RequestMapRegion(name, layer);
-            regionEvent.WaitOne(Client.Settings.MAP_REQUEST_TIMEOUT, false);
+            regionEvent.WaitOne(Client.Settings.Timing.MapRequestTimeout, false);
 
             GridRegion -= Callback;
 

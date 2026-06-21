@@ -605,7 +605,7 @@ namespace LibreMetaverse
         /// </summary>
         public void CleanupObjectTracking()
         {
-            if (!Client.Settings.MULTIPLE_SIMS) { return; }
+            if (!Client.Settings.Agent.MultipleSims) { return; }
 
             var connectedSims = new HashSet<Simulator>();
             foreach (var sim in Client.Network.Simulators)
@@ -724,7 +724,7 @@ namespace LibreMetaverse
 
         private void Network_OnConnected(object sender)
         {
-            if (Client.Settings.USE_INTERPOLATION_TIMER)
+            if (Client.Settings.World.UseInterpolationTimer)
             {
                 // Use the extracted service to manage interpolation scheduling and lifecycle
                 _interpolationService = new InterpolationService(Client);
@@ -2200,7 +2200,7 @@ namespace LibreMetaverse
                 msg.Deserialize(map);
                 if (msg.Request is ObjectMediaResponse response)
                 {
-                    if (Client.Settings.OBJECT_TRACKING)
+                    if (Client.Settings.World.TrackObjects)
                     {
                         var kvp = sim.ObjectsPrimitives.FirstOrDefault(p => p.Value.ID == primID);
                         if (kvp.Key != 0)
@@ -2664,7 +2664,7 @@ namespace LibreMetaverse
         /// <returns></returns>
         public Primitive GetPrimitive(Simulator simulator, uint localID, UUID fullID, bool createIfMissing)
         {
-            if (Client.Settings.OBJECT_TRACKING)
+            if (Client.Settings.World.TrackObjects)
             {
                 if (simulator.ObjectsPrimitives.TryGetValue(localID, out Primitive? prim))
                 {
@@ -2673,7 +2673,7 @@ namespace LibreMetaverse
 
                 if (!createIfMissing) { return null!; }
                 
-                if (Client.Settings.CACHE_PRIMITIVES)
+                if (Client.Settings.World.CachePrimitives)
                 {
                     prim = simulator.DataPool != null
                         ? simulator.DataPool.MakePrimitive(localID)
@@ -2714,7 +2714,7 @@ namespace LibreMetaverse
         /// <returns></returns>
         protected Avatar GetAvatar(Simulator simulator, uint localID, UUID fullID)
         {
-            if (!Client.Settings.AVATAR_TRACKING)
+            if (!Client.Settings.World.TrackAvatars)
             {
                 return new Avatar();
             }

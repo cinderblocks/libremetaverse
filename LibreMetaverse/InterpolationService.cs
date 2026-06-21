@@ -50,14 +50,14 @@ namespace LibreMetaverse
 
         public void Start()
         {
-            if (!_client.Settings.USE_INTERPOLATION_TIMER || _started) return;
+            if (!_client.Settings.World.UseInterpolationTimer || _started) return;
 
 #if NET6_0_OR_GREATER
             _cts = new CancellationTokenSource();
-            _periodicTimer = new System.Threading.PeriodicTimer(TimeSpan.FromMilliseconds(_client.Settings.INTERPOLATION_INTERVAL));
+            _periodicTimer = new System.Threading.PeriodicTimer(TimeSpan.FromMilliseconds(_client.Settings.Timing.InterpolationInterval));
             _loopTask = Task.Run(() => LoopAsync(_cts.Token));
 #else
-            _timer = new Timer(TimerElapsed, null, _client.Settings.INTERPOLATION_INTERVAL, Timeout.Infinite);
+            _timer = new Timer(TimerElapsed, null, _client.Settings.Timing.InterpolationInterval, Timeout.Infinite);
 #endif
             _started = true;
         }
@@ -109,7 +109,7 @@ namespace LibreMetaverse
 
             // Start the timer again. Use a minimum of a 50ms pause in between calculations
             int elapsed = _client.Self.lastInterpolation - Environment.TickCount;
-            int delay = Math.Max(50, _client.Settings.INTERPOLATION_INTERVAL - elapsed);
+            int delay = Math.Max(50, _client.Settings.Timing.InterpolationInterval - elapsed);
             _timer?.Change(delay, Timeout.Infinite);
         }
 #endif

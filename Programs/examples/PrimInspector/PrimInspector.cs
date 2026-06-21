@@ -60,7 +60,7 @@ namespace PrimInspector
 
             client = new GridClient
             {
-                Settings = { MULTIPLE_SIMS = false }
+                Settings = { Agent = { MultipleSims = false } }
             };
 
             client.Network.LoginProgress += Network_LoginProgress;

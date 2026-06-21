@@ -349,7 +349,7 @@ namespace LibreMetaverse.Voice.WebRTC
             // num_servers = 3 for agni, 2 for all other grids (e.g. aditi/beta).
             // Adding public STUN servers causes ICE candidate IP mismatches because the
             // SL WebRTC server validates candidates against its own external IP.
-            var loginServer = _client?.Settings?.LOGIN_SERVER ?? string.Empty;
+            var loginServer = _client?.Settings?.Connection.LoginServer ?? string.Empty;
             var gridId = loginServer.Contains(".agni.", StringComparison.OrdinalIgnoreCase) ? "agni"
                        : loginServer.Contains(".aditi.", StringComparison.OrdinalIgnoreCase) ? "aditi"
                        : "agni"; // default to agni for unknown grids

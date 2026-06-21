@@ -456,7 +456,7 @@ namespace LibreMetaverse
                 Camera = new AgentCamera();
                 Client.Network.LoginProgress += Network_OnConnected;                
                 Client.Network.Disconnected += Network_OnDisconnected;
-                updateInterval = client.Settings.DEFAULT_AGENT_UPDATE_INTERVAL;
+                updateInterval = client.Settings.Timing.AgentUpdateInterval;
             }
 
             private void CleanupTimer()
@@ -475,7 +475,7 @@ namespace LibreMetaverse
                 if (e.Status == LoginStatus.Success)
                 {
                     CleanupTimer();
-                    if (Client.Settings.SEND_AGENT_UPDATES_REGULARLY)
+                    if (Client.Settings.Agent.SendUpdatesRegularly)
                     {
                         updateTimer = new Timer(UpdateTimer_Elapsed, null, updateInterval, updateInterval);
                     }
@@ -510,7 +510,7 @@ namespace LibreMetaverse
             /// <returns>Returns if TurnToward operation was successful</returns>
             public bool TurnToward(Vector3 target, bool sendUpdate = true)
             {
-                if (!Client.Settings.SEND_AGENT_UPDATES)
+                if (!Client.Settings.Agent.SendUpdates)
                 {
                     Logger.Warn("Attempted TurnToward but agent updates are disabled", Client);
                     return false;
@@ -593,7 +593,7 @@ namespace LibreMetaverse
                     duplicateCount = 0;
                 }
 
-                if (Client.Settings.DISABLE_AGENT_UPDATE_DUPLICATE_CHECK || duplicateCount < 10)
+                if (Client.Settings.Agent.DisableUpdateDuplicateCheck || duplicateCount < 10)
                 {
                     // Store the current state to do duplicate checking
                     LastHeadRotation = HeadRotation;
@@ -625,7 +625,7 @@ namespace LibreMetaverse
                     Client.Network.SendPacket(update, simulator);
                     
                     // Check for crossing predictions when agent is moving
-                    if (Client.Settings.MULTIPLE_SIMS && Client.Self.velocity != Vector3.Zero)
+                    if (Client.Settings.Agent.MultipleSims && Client.Self.velocity != Vector3.Zero)
                     {
                         Client.Self.PredictCrossing();
                         
@@ -740,7 +740,7 @@ namespace LibreMetaverse
 
             private void UpdateTimer_Elapsed(object? obj)
             {
-                if (Client.Network.Connected && Client.Settings.SEND_AGENT_UPDATES)
+                if (Client.Network.Connected && Client.Settings.Agent.SendUpdates)
                 {
                     //Send an AgentUpdate packet
                     SendUpdate(false, Client.Network.CurrentSim!);

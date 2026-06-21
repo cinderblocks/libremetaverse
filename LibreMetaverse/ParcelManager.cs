@@ -1522,7 +1522,7 @@ namespace LibreMetaverse
         /// <param name="action">From Enum, Raise, Lower, Level, Smooth, Etc.</param>
         /// <param name="brushSize">Size of area to modify</param>
         /// <returns>true on successful request sent.</returns>
-        /// <remarks>Settings.STORE_LAND_PATCHES must be true, 
+        /// <remarks><see cref="WorldSettings.StoreLandPatches"/> must be true,
         /// Parcel information must be downloaded using <see cref="RequestAllSimParcelsAsync" /></remarks>
         public bool Terraform(Simulator simulator, int localID, TerraformAction action, TerraformBrushSize brushSize)
         {
@@ -1542,7 +1542,7 @@ namespace LibreMetaverse
         /// <param name="brushSize">Size of area to modify</param>
         /// <param name="seconds">How many meters + or - to lower, 1 = 1 meter</param>
         /// <returns>true on successful request sent.</returns>
-        /// <remarks>Settings.STORE_LAND_PATCHES must be true, 
+        /// <remarks><see cref="WorldSettings.StoreLandPatches"/> must be true,
         /// Parcel information must be downloaded using <see cref="RequestAllSimParcelsAsync"/></remarks>
         public bool Terraform(Simulator simulator, int localID, float west, float south, float east, float north,
             TerraformAction action, TerraformBrushSize brushSize, int seconds = 1)
@@ -1901,7 +1901,7 @@ namespace LibreMetaverse
         /// <remarks>Raises the <see cref="ParcelDwellReply"/> event</remarks>
         protected void ParcelDwellReplyHandler(object? sender, PacketReceivedEventArgs e)
         {            
-            if (m_DwellReply == null || !Client.Settings.ALWAYS_REQUEST_PARCEL_DWELL)
+            if (m_DwellReply == null || !Client.Settings.Parcel.AlwaysRequestDwell)
                 return;
 
             var dwell = (ParcelDwellReplyPacket)e.Packet;
@@ -1955,7 +1955,7 @@ namespace LibreMetaverse
 
         protected void ParcelPropertiesReplyHandler(string capsKey, IMessage message, Simulator simulator)
         {
-            if (m_ParcelProperties == null && !Client.Settings.PARCEL_TRACKING) 
+            if (m_ParcelProperties == null && !Client.Settings.Parcel.TrackParcels) 
                 return;
             
             ParcelPropertiesMessage msg = (ParcelPropertiesMessage)message;
@@ -2025,7 +2025,7 @@ namespace LibreMetaverse
             parcel.ObscureMedia = msg.ObscureMedia;
             parcel.ObscureMusic = msg.ObscureMusic;
 
-            if (Client.Settings.PARCEL_TRACKING)
+            if (Client.Settings.Parcel.TrackParcels)
             {
                 lock (simulator.Parcels.Dictionary)
                     simulator.Parcels.Dictionary[parcel.LocalID] = parcel;
@@ -2068,11 +2068,11 @@ namespace LibreMetaverse
             }
 
             // auto request acl, will be stored in parcel tracking dictionary if enabled
-            if (Client.Settings.ALWAYS_REQUEST_PARCEL_ACL)
+            if (Client.Settings.Parcel.AlwaysRequestAcl)
                 Client.Parcels.RequestParcelAccessList(simulator, parcel.LocalID, AccessList.Both, sequenceID);
             
             // auto request dwell, will be stored in parcel tracking dictionary if enables
-            if (Client.Settings.ALWAYS_REQUEST_PARCEL_DWELL)
+            if (Client.Settings.Parcel.AlwaysRequestDwell)
                 Client.Parcels.RequestDwell(simulator, parcel.LocalID);
 
             // Fire the callback for parcel properties being received
@@ -2092,7 +2092,7 @@ namespace LibreMetaverse
         /// <remarks>Raises the <see cref="ParcelAccessListReply"/> event</remarks>
         protected void ParcelAccessListReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
-            if (m_ParcelACL == null || !Client.Settings.ALWAYS_REQUEST_PARCEL_ACL) 
+            if (m_ParcelACL == null || !Client.Settings.Parcel.AlwaysRequestAcl) 
                 return;
             
             Packet packet = e.Packet;

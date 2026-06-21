@@ -50,7 +50,7 @@ namespace PacketDump
 
             var client = new GridClient
             {
-                Settings = { MULTIPLE_SIMS = false },
+                Settings = { Agent = { MultipleSims = false } },
                 Throttle =
                 {
                     // Throttle packets that we don't want all the way down

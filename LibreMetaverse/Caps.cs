@@ -367,7 +367,7 @@ namespace LibreMetaverse
                 Simulator.Client.Network.CapsEvents.BeginRaiseEvent(eventName, message, Simulator);
 
                 #region Stats Tracking
-                if (Simulator.Client.Settings.TRACK_UTILIZATION)
+                if (Simulator.Client.Settings.Packets.TrackUtilization)
                 {
                     Simulator.Client.Stats.Update(eventName, LibreMetaverse.Stats.Type.Message, 0, body.ToString().Length);
                 }

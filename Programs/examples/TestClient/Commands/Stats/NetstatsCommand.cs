@@ -16,9 +16,9 @@ namespace TestClient.Commands.Stats
 
         public override string Execute(string[] args, UUID fromAgentID)
         {
-            if (!Client.Settings.TRACK_UTILIZATION)
+            if (!Client.Settings.Packets.TrackUtilization)
             {
-                return "TRACK_UTILIZATION is not enabled in Settings, statistics not available";
+                return "TrackUtilization is not enabled in Settings.Packets, statistics not available";
             }
 
 

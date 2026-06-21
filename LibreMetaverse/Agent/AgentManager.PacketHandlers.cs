@@ -555,7 +555,7 @@ namespace LibreMetaverse
                             // FIXME: What is this?
                         }
 
-                        if (!Client.Settings.SEND_AGENT_UPDATES) continue;
+                        if (!Client.Settings.Agent.SendUpdates) continue;
                         // We have to manually tell the server to stop playing some animations
                         if (animID == Animations.STANDUP ||
                             animID == Animations.PRE_JUMP ||
@@ -917,7 +917,7 @@ namespace LibreMetaverse
         {
             EstablishAgentCommunicationMessage msg = (EstablishAgentCommunicationMessage)message;
 
-            if (!Client.Settings.MULTIPLE_SIMS) { return; }
+            if (!Client.Settings.Agent.MultipleSims) { return; }
 
             // Resolve the correct simulator context using message data
             Simulator contextSim = ResolveSimulatorFromMessage(msg, simulator);

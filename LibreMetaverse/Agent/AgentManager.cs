@@ -1094,7 +1094,7 @@ namespace LibreMetaverse
         /// <returns>true of AgentUpdate was sent</returns>
         public bool Stand()
         {
-            if (Client.Settings.SEND_AGENT_UPDATES)
+            if (Client.Settings.Agent.SendUpdates)
             {
                 Movement.SitOnGround = false;
                 Movement.StandUp = true;
@@ -1254,7 +1254,7 @@ namespace LibreMetaverse
         /// <returns>true if control flags were set and AgentUpdate was sent to the simulator</returns>
         public bool AutoPilotCancel()
         {
-            if (Client.Settings.SEND_AGENT_UPDATES)
+            if (Client.Settings.Agent.SendUpdates)
             {
                 Movement.AtPos = true;
                 Movement.SendUpdate();
@@ -2001,7 +2001,7 @@ namespace LibreMetaverse
                             {
                                 Benefits = new AccountLevelBenefits(alb);
                                 if (Benefits.TextureUploadCost > 0)
-                                    Client!.Settings.UPLOAD_COST = Benefits.TextureUploadCost;
+                                    Client!.Settings.UploadCost = Benefits.TextureUploadCost;
                             }
                             OnViewerBenefitsUpdated(new ViewerBenefitsEventArgs(msg));
                         }

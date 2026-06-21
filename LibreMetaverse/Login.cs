@@ -244,9 +244,9 @@ namespace LibreMetaverse
         public LoginParams(GridClient client, LoginCredential credential, string channel, string version)
             : this()
         {
-            URI = client.Settings.LOGIN_SERVER;
-            Timeout = client.Settings.LOGIN_TIMEOUT;
-            MfaEnabled = client.Settings.MFA_ENABLED;
+            URI = client.Settings.Connection.LoginServer;
+            Timeout = client.Settings.Timing.LoginTimeout;
+            MfaEnabled = client.Settings.Connection.MfaEnabled;
             FirstName = credential.FirstName;
             LastName = credential.LastName;
             Password = credential.Password;
@@ -284,8 +284,8 @@ namespace LibreMetaverse
             string channel, string version)
             : this()
         {
-            URI = client.Settings.LOGIN_SERVER;
-            Timeout = client.Settings.LOGIN_TIMEOUT;
+            URI = client.Settings.Connection.LoginServer;
+            Timeout = client.Settings.Timing.LoginTimeout;
             FirstName = firstName;
             LastName = lastName;
             Password = password;
@@ -940,7 +940,7 @@ namespace LibreMetaverse
             }
             if (loginParams.UserAgent == null)
             {
-                loginParams.UserAgent = Settings.USER_AGENT;
+                loginParams.UserAgent = Settings.UserAgent;
             }
             if (loginParams.Platform == null)
             {
@@ -966,7 +966,7 @@ namespace LibreMetaverse
             if (string.IsNullOrEmpty(loginParams.Channel))
             {
                 Logger.Warn("Viewer channel not set.");
-                loginParams.Channel = $"{Settings.USER_AGENT}";
+                loginParams.Channel = $"{Settings.UserAgent}";
             }
 
             if (string.IsNullOrEmpty((loginParams.Version)))

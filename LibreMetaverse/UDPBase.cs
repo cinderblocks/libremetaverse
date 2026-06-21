@@ -96,7 +96,7 @@ namespace LibreMetaverse
         {
             if (!shutdownFlag) return;
 
-            IPEndPoint ipep = new IPEndPoint(Settings.BIND_ADDR, udpPort);
+            IPEndPoint ipep = new IPEndPoint(Settings.BindAddress, udpPort);
             udpSocket = new Socket(
                 AddressFamily.InterNetwork,
                 SocketType.Dgram,

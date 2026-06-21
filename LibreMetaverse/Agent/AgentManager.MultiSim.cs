@@ -77,7 +77,7 @@ namespace LibreMetaverse
         /// </summary>
         private void PredictCrossing()
         {
-            if (!Client.Settings.MULTIPLE_SIMS) { return; }
+            if (!Client.Settings.Agent.MultipleSims) { return; }
 
             var currentSim = Client.Network.CurrentSim;
             if (currentSim == null || velocity == Vector3.Zero) { return; }
@@ -113,7 +113,7 @@ namespace LibreMetaverse
         /// </summary>
         private void CheckAndConnectNeighbors()
         {
-            if (!Client.Settings.MULTIPLE_SIMS) { return; }
+            if (!Client.Settings.Agent.MultipleSims) { return; }
 
             var currentSim = Client.Network.CurrentSim;
             if (currentSim == null) { return; }
@@ -194,7 +194,7 @@ namespace LibreMetaverse
         /// </summary>
         private void ProactiveChildAgentSetup()
         {
-            if (!Client.Settings.MULTIPLE_SIMS) return;
+            if (!Client.Settings.Agent.MultipleSims) return;
 
             var currentSim = Client.Network.CurrentSim;
             if (currentSim == null || !currentSim.AgentMovementComplete) return;
@@ -293,7 +293,7 @@ namespace LibreMetaverse
         /// </summary>
         private void CleanupChildAgentTracking()
         {
-            if (!Client.Settings.MULTIPLE_SIMS) return;
+            if (!Client.Settings.Agent.MultipleSims) return;
 
             var currentSim = Client.Network.CurrentSim;
             if (currentSim == null) return;
@@ -404,7 +404,7 @@ namespace LibreMetaverse
         /// </summary>
         private void CleanupObjectTracking()
         {
-            if (!Client.Settings.MULTIPLE_SIMS) return;
+            if (!Client.Settings.Agent.MultipleSims) return;
 
             var connectedSims = new HashSet<Simulator>();
             foreach (var sim in Client.Network.Simulators)

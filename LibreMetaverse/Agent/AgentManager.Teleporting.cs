@@ -75,7 +75,7 @@ namespace LibreMetaverse
             };
             Client.Network.SendPacket(p);
 
-            teleportEvent.WaitOne(Client.Settings.TELEPORT_TIMEOUT, false);
+            teleportEvent.WaitOne(Client.Settings.Timing.TeleportTimeout, false);
 
             if (teleportStatus == TeleportStatus.None ||
                 teleportStatus == TeleportStatus.Start ||
@@ -229,7 +229,7 @@ namespace LibreMetaverse
 
             RequestTeleport(regionHandle, position, lookAt, true);
 
-            teleportEvent.WaitOne(Client.Settings.TELEPORT_TIMEOUT, false);
+            teleportEvent.WaitOne(Client.Settings.Timing.TeleportTimeout, false);
 
             if (teleportStatus == TeleportStatus.None ||
                 teleportStatus == TeleportStatus.Start ||

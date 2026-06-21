@@ -2484,7 +2484,7 @@ namespace LibreMetaverse
 
                 #endregion Agent Size
 
-                if (Client.Settings.AVATAR_TRACKING)
+                if (Client.Settings.World.TrackAvatars)
                 {
                     var client = Client;
                     if (client != null)
@@ -2858,7 +2858,7 @@ namespace LibreMetaverse
             // This is the primary appearance trigger for non-SSB regions (OpenSim).
             // Skip if a bake is already in-flight (e.g., the LLUDP fallback path already
             // started one) — scheduling a duplicate would cancel the running bake mid-stream.
-            if (Client.Settings.SEND_AGENT_APPEARANCE)
+            if (Client.Settings.Agent.SendAppearance)
             {
                 Task? runningTask;
                 lock (_appearanceLock) { runningTask = AppearanceTask; }
@@ -2876,7 +2876,7 @@ namespace LibreMetaverse
         var rebake = (RebakeAvatarTexturesPacket)e.Packet;
 
         // allow the library to do the rebake
-        if (Client.Settings.SEND_AGENT_APPEARANCE)
+        if (Client.Settings.Agent.SendAppearance)
         {
             RequestSetAppearance(true);
         }
@@ -3023,7 +3023,7 @@ namespace LibreMetaverse
             if (e.Simulator?.Caps != null)
                 e.Simulator.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived;
 
-            if (e.Simulator == Client.Network.CurrentSim && Client.Settings.SEND_AGENT_APPEARANCE)
+            if (e.Simulator == Client.Network.CurrentSim && Client.Settings.Agent.SendAppearance)
             {
                 if (ServerBakingRegion())
                 {

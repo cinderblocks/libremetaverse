@@ -275,7 +275,7 @@ namespace LibreMetaverse
     /// an <see cref="ObjectPropertiesPacket"/> containing additional details for a Primitive or Foliage data that is currently
     /// being tracked in the <see cref="Simulator.ObjectsPrimitives"/> dictionary</para>
     /// <para>The <see cref="ObjectManager.ObjectPropertiesUpdated"/> event is also raised when a <see cref="ObjectManager.SelectObject"/> request is
-    /// made and <see cref="Settings.OBJECT_TRACKING"/> is enabled</para>    
+    /// made and <see cref="WorldSettings.TrackObjects"/> is enabled</para>
     /// </remarks>    
     public class ObjectPropertiesUpdatedEventArgs : ObjectPropertiesEventArgs
     {

@@ -1081,7 +1081,7 @@ namespace LibreMetaverse
                 }
             };
 
-            if (data.Length + 100 < Settings.MAX_PACKET_SIZE)
+            if (data.Length + 100 < Settings.MaxPacketSize)
             {
                 Logger.Info(
                     $"Beginning asset upload [Single Packet], ID: {upload.ID.ToString()}, AssetID: {upload.AssetID.ToString()}, Size: {upload.Size}", Client);
@@ -1142,7 +1142,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Returns the upload cost in L$ for a texture of the specified width, selecting the
         /// correct large-texture pricing tier from <see cref="AgentManager.Benefits"/> when
-        /// available, and falling back to <see cref="Settings.UPLOAD_COST"/> otherwise.
+        /// available, and falling back to <see cref="Settings.UploadCost"/> otherwise.
         /// </summary>
         /// <param name="widthPixels">Texture width in pixels (e.g. 512, 1024, 2048, 4096)</param>
         /// <returns>Upload cost in L$</returns>
@@ -1163,14 +1163,14 @@ namespace LibreMetaverse
                     return largeCosts[tier];
                 }
             }
-            return Client.Settings.UPLOAD_COST;
+            return Client.Settings.UploadCost;
         }
 
         /// <summary>
         /// Uploads a texture asset, automatically selecting and paying the correct tiered
         /// upload fee for large textures using <see cref="AgentManager.Benefits"/>.
         /// Textures wider than 1024 pixels are charged at the appropriate large-texture tier;
-        /// smaller textures are charged at the standard <see cref="Settings.UPLOAD_COST"/>.
+        /// smaller textures are charged at the standard <see cref="Settings.UploadCost"/>.
         /// </summary>
         /// <param name="data">Raw texture asset data</param>
         /// <param name="widthPixels">Texture width in pixels; determines the upload cost tier</param>
@@ -1289,7 +1289,7 @@ namespace LibreMetaverse
                         try
                         {
                             RequestUpload(out assetID, AssetType.Texture, textureData, true, transactionID);
-                            success = uploadEvent.WaitOne(Client.Settings.TRANSFER_TIMEOUT, false);
+                            success = uploadEvent.WaitOne(Client.Settings.Timing.TransferTimeout, false);
                         }
                         catch (Exception)
                         {
@@ -1441,7 +1441,7 @@ namespace LibreMetaverse
         public void RequestImage(UUID textureID, ImageType imageType, float priority, int discardLevel,
             uint packetStart, TextureDownloadCallback callback, bool progress)
         {
-            if (Client.Settings.USE_HTTP_TEXTURES
+            if (Client.Settings.TexturePipeline.UseHttpTextures
                 && Client.Network.CurrentSim?.Caps?.GetTextureCapURI() != null)
             { 
                 _ = HttpRequestTexture(textureID, imageType, priority, discardLevel, packetStart, callback, progress);

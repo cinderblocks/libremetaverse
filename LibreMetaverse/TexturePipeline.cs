@@ -53,7 +53,7 @@ namespace LibreMetaverse
         Progress,
         /// <summary>A request that has received all packets back from the simulator</summary>
         Finished,
-        /// <summary>A request that has taken longer than <see cref="Settings.PIPELINE_REQUEST_TIMEOUT"/>
+        /// <summary>A request that has taken longer than <see cref="TexturePipelineSettings.RequestTimeout"/>
         /// to download OR the initial packet containing the packet information was never received</summary>
         Timeout,
         /// <summary>The texture request was aborted by request of the agent</summary>
@@ -153,7 +153,7 @@ public delegate void TextureDownloadCallback(TextureRequestState state, AssetTex
         {
             _Client = client;
 
-            maxTextureRequests = client.Settings.MAX_CONCURRENT_TEXTURE_DOWNLOADS;
+            maxTextureRequests = client.Settings.TexturePipeline.MaxConcurrentDownloads;
 
             downloadTokenSource = new CancellationTokenSource();
 
@@ -178,7 +178,7 @@ public delegate void TextureDownloadCallback(TextureRequestState state, AssetTex
             if (_Running)
                 return;
 
-            if (!_Client.Settings.USE_TEXTURE_PIPELINE)
+            if (!_Client.Settings.TexturePipeline.Enabled)
                 return;
 
             if (downloadMasterTask == null)
@@ -247,7 +247,7 @@ public delegate void TextureDownloadCallback(TextureRequestState state, AssetTex
                     RequestImage(download.ID, download.ImageType, download.Priority, download.DiscardLevel, packet);
                 }
 
-                if (download.TimeSinceLastPacket > _Client.Settings.PIPELINE_REQUEST_TIMEOUT)
+                if (download.TimeSinceLastPacket > _Client.Settings.TexturePipeline.RequestTimeout)
                 {
                     transfer.TokenSource.Cancel();
                 }

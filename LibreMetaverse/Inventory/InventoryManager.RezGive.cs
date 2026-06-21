@@ -311,7 +311,7 @@ namespace LibreMetaverse
             if (doEffect)
             {
                 Client.Self.BeamEffect(Client.Self.AgentID, recipient, Vector3d.Zero,
-                    Client.Settings.DEFAULT_EFFECT_COLOR, 1f, UUID.Random());
+                    Client.Settings.DefaultEffectColor, 1f, UUID.Random());
             }
 
             // Remove from store if the item is no copy

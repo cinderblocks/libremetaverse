@@ -185,12 +185,12 @@ namespace LibreMetaverse
             };
 
             if (Utils.GetRunningRuntime() != Utils.Runtime.Mono)
-                handler.MaxConnectionsPerServer = Settings.MAX_HTTP_CONNECTIONS;
+                handler.MaxConnectionsPerServer = Settings.MaxHttpConnections;
 
             HttpCapsClient client = new HttpCapsClient(handler);
             client.DefaultRequestHeaders.Accept.Clear();
-            client.DefaultRequestHeaders.Add("User-Agent", $"{Settings.USER_AGENT}");
-            client.Timeout = TimeSpan.FromMilliseconds(Settings.CAPS_TIMEOUT);
+            client.DefaultRequestHeaders.Add("User-Agent", $"{Settings.UserAgent}");
+            client.Timeout = TimeSpan.FromMilliseconds(Settings.Timing.CapsTimeout);
             return client;
         }
 

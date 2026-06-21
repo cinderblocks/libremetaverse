@@ -84,14 +84,14 @@ namespace TestClient
 
             RegisterAllCommands(Assembly.GetExecutingAssembly());
 
-            Settings.LOG_LEVEL = LogLevel.Debug;
-            Settings.LOG_RESENDS = false;
-            Settings.STORE_LAND_PATCHES = true;
-            Settings.ALWAYS_DECODE_OBJECTS = true;
-            Settings.ALWAYS_REQUEST_OBJECTS = true;
-            Settings.SEND_AGENT_UPDATES = true;
-            Settings.USE_ASSET_CACHE = true;
-            Settings.MULTIPLE_SIMS = true;
+            Settings.LogLevel = LogLevel.Debug;
+            Settings.Logging.LogResends = false;
+            Settings.World.StoreLandPatches = true;
+            Settings.World.AlwaysDecodeObjects = true;
+            Settings.World.AlwaysRequestObjects = true;
+            Settings.Agent.SendUpdates = true;
+            Settings.AssetCache.Enabled = true;
+            Settings.Agent.MultipleSims = true;
 
             Network.RegisterCallback(PacketType.AgentDataUpdate, AgentDataUpdateHandler);
             Network.LoginProgress += LoginHandler;

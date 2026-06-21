@@ -470,7 +470,7 @@ namespace LibreMetaverse
         {
             get
             {
-                if (Client?.Settings.POOL_PARCEL_DATA == true)
+                if (Client?.Settings.Parcel.PoolParcelData == true)
                 {
                     var poolParcels = DataPool?.Parcels;
                     if (poolParcels != null) return poolParcels;
@@ -490,7 +490,7 @@ namespace LibreMetaverse
             {
                 lock (_parcelMapLock)
                 {
-                    if (Client?.Settings.POOL_PARCEL_DATA == true)
+                    if (Client?.Settings.Parcel.PoolParcelData == true)
                     {
                         var pm = DataPool?.ParcelMap;
                         if (pm != null) return pm;
@@ -586,10 +586,10 @@ namespace LibreMetaverse
          public readonly SimulatorDataPool? DataPool;
         internal bool DownloadingParcelMap
         {
-            get => Client.Settings.POOL_PARCEL_DATA ? (DataPool?.DownloadingParcelMap ?? _DownloadingParcelMap) : _DownloadingParcelMap;
+            get => Client.Settings.Parcel.PoolParcelData ? (DataPool?.DownloadingParcelMap ?? _DownloadingParcelMap) : _DownloadingParcelMap;
             set
             {
-                if (Client.Settings.POOL_PARCEL_DATA)
+                if (Client.Settings.Parcel.PoolParcelData)
                 {
                     if (DataPool != null) DataPool.DownloadingParcelMap = value; else _DownloadingParcelMap = value;
                 }
@@ -720,7 +720,7 @@ namespace LibreMetaverse
                             Logger.Error("Error in Ack loop: " + ex.Message, ex, Client);
                         }
 
-                        await Task.Delay(Settings.NETWORK_TICK_INTERVAL, token).ConfigureAwait(false);
+                        await Task.Delay(Settings.NetworkTickInterval, token).ConfigureAwait(false);
                     }
                 }
                 catch (TaskCanceledException) { }
@@ -753,7 +753,7 @@ namespace LibreMetaverse
             }, token);
 
             // Ping loop (only if SEND_PINGS enabled)
-            if (Client?.Settings?.SEND_PINGS ?? false)
+            if (Client?.Settings?.Packets.SendPings ?? false)
             {
                 _pingLoopTask = Task.Run(async () =>
                 {
@@ -774,7 +774,7 @@ namespace LibreMetaverse
                                 Logger.Error("Error in Ping loop: " + ex.Message, ex, Client);
                             }
 
-                            await Task.Delay(Settings.PING_INTERVAL, token).ConfigureAwait(false);
+                            await Task.Delay(Settings.PingInterval, token).ConfigureAwait(false);
                         }
                     }
                     catch (TaskCanceledException) { }
@@ -862,7 +862,7 @@ namespace LibreMetaverse
             : base(address)
         {
             Client = client;            
-            if (Client.Settings.POOL_PARCEL_DATA || Client.Settings.CACHE_PRIMITIVES)
+            if (Client.Settings.Parcel.PoolParcelData || Client.Settings.World.CachePrimitives)
             {
                 SimulatorDataPool.SimulatorAdd(this);
                 DataPool = SimulatorDataPool.GetSimulatorData(Handle);
@@ -872,12 +872,12 @@ namespace LibreMetaverse
             Network = Client.Network;
             SizeX = sizeX;
             SizeY = sizeY;
-            PacketArchive = new IncomingPacketIDCollection(Settings.PACKET_ARCHIVE_SIZE);
+            PacketArchive = new IncomingPacketIDCollection(Settings.PacketArchiveSize);
             Stats = new SimStats();
-            InBytes = new Queue<long>(Client.Settings.STATS_QUEUE_SIZE);
-            OutBytes = new Queue<long>(Client.Settings.STATS_QUEUE_SIZE);
+            InBytes = new Queue<long>(Client.Settings.Packets.StatsQueueSize);
+            OutBytes = new Queue<long>(Client.Settings.Packets.StatsQueueSize);
 
-            if (client.Settings.STORE_LAND_PATCHES)
+            if (client.Settings.World.StoreLandPatches)
             {
                 _patchesX = Math.Max(1, (int)(sizeX / 16));
                 _patchesY = Math.Max(1, (int)(sizeY / 16));
@@ -954,7 +954,7 @@ namespace LibreMetaverse
                 }
 
                 // Wait for handshake event asynchronously
-                bool signaled = await WaitHandleAsyncFactory.FromWaitHandle(ConnectedEvent.WaitHandle, TimeSpan.FromMilliseconds(Client.Settings.LOGIN_TIMEOUT)).ConfigureAwait(false);
+                bool signaled = await WaitHandleAsyncFactory.FromWaitHandle(ConnectedEvent.WaitHandle, TimeSpan.FromMilliseconds(Client.Settings.Timing.LoginTimeout)).ConfigureAwait(false);
                 if (!signaled)
                 {
                     Logger.Warn($"Giving up waiting for RegionHandshake for {this}", Client);
@@ -965,10 +965,10 @@ namespace LibreMetaverse
                 // Start periodic background tasks for ACKs, stats and pings
                 StartTimerTasks();
 
-                if (Client.Settings.SEND_AGENT_THROTTLE)
+                if (Client.Settings.Agent.SendThrottle)
                     Client.Throttle.Set(this);
 
-                if (Client.Settings.SEND_AGENT_UPDATES)
+                if (Client.Settings.Agent.SendUpdates)
                     Client.Self.Movement.SendUpdate(true, this);
 
                 return true;
@@ -1015,7 +1015,7 @@ namespace LibreMetaverse
 
             if (waitForAck)
             {
-                bool signaled = await WaitHandleAsyncFactory.FromWaitHandle(GotUseCircuitCodeAck.WaitHandle, TimeSpan.FromMilliseconds(Client.Settings.LOGIN_TIMEOUT)).ConfigureAwait(false);
+                bool signaled = await WaitHandleAsyncFactory.FromWaitHandle(GotUseCircuitCodeAck.WaitHandle, TimeSpan.FromMilliseconds(Client.Settings.Timing.LoginTimeout)).ConfigureAwait(false);
                 if (!signaled)
                 {
                     Logger.Error("Failed to get ACK for UseCircuitCode packet", Client);
@@ -1107,7 +1107,7 @@ namespace LibreMetaverse
                 }
             }
 
-            if (Client.Settings.POOL_PARCEL_DATA || Client.Settings.CACHE_PRIMITIVES)
+            if (Client.Settings.Parcel.PoolParcelData || Client.Settings.World.CachePrimitives)
             {
                 SimulatorDataPool.SimulatorRelease(this);
             }
@@ -1258,7 +1258,7 @@ namespace LibreMetaverse
             NetworkManager.OutgoingPacket outgoingPacket = new NetworkManager.OutgoingPacket(this, buffer, type);
 
             // Send ACK and logout packets directly, everything else goes through the queue
-            if (!Client.Settings.THROTTLE_OUTGOING_PACKETS ||
+            if (!Client.Settings.Packets.ThrottleOutgoing ||
                 type == PacketType.PacketAck ||
                 type == PacketType.LogoutRequest)
             {
@@ -1272,7 +1272,7 @@ namespace LibreMetaverse
             #endregion Queue or Send
 
             #region Stats Tracking
-            if (Client.Settings.TRACK_UTILIZATION)
+            if (Client.Settings.Packets.TrackUtilization)
             {
                 Client.Stats.Update(type.ToString(), LibreMetaverse.Stats.Type.Packet, dataLength, 0);
             }
@@ -1526,7 +1526,7 @@ namespace LibreMetaverse
                     PendingAcks.Enqueue(sequence);
 
                     // Send out ACKs if we have a lot of them
-                    if (PendingAcks.Count >= Client.Settings.MAX_PENDING_ACKS)
+                    if (PendingAcks.Count >= Client.Settings.Packets.MaxPendingAcks)
                         SendAcks();
 
                     #endregion ACK Sending
@@ -1559,7 +1559,7 @@ namespace LibreMetaverse
                 #endregion Inbox Insertion
 
                 #region Stats Tracking
-                if (Client.Settings.TRACK_UTILIZATION)
+                if (Client.Settings.Packets.TrackUtilization)
                 {
                     Client.Stats.Update(packet.Type.ToString(), LibreMetaverse.Stats.Type.Packet, 0, packet.Length);
                 }
@@ -1631,11 +1631,11 @@ namespace LibreMetaverse
             // Resend packets
             foreach (NetworkManager.OutgoingPacket outgoing in array)
             {
-                if (outgoing.TickCount == 0 || now - outgoing.TickCount <= Client.Settings.RESEND_TIMEOUT) continue;
+                if (outgoing.TickCount == 0 || now - outgoing.TickCount <= Client.Settings.Timing.ResendTimeout) continue;
 
-                if (outgoing.ResendCount < Client.Settings.MAX_RESEND_COUNT)
+                if (outgoing.ResendCount < Client.Settings.Packets.MaxResendCount)
                 {
-                    if (Client.Settings.LOG_RESENDS)
+                    if (Client.Settings.Logging.LogResends)
                     {
                         Logger.Debug($"Resending {outgoing.Type} packet #{outgoing.SequenceNumber}, {now - outgoing.TickCount}ms have passed", Client);
                     }
@@ -1675,9 +1675,9 @@ namespace LibreMetaverse
             var recv = Stats.GetRecvBytes();
             var sent = Stats.GetSentBytes();
 
-            if (InBytes.Count >= Client.Settings.STATS_QUEUE_SIZE)
+            if (InBytes.Count >= Client.Settings.Packets.StatsQueueSize)
                 old_in = InBytes.Dequeue();
-            if (OutBytes.Count >= Client.Settings.STATS_QUEUE_SIZE)
+            if (OutBytes.Count >= Client.Settings.Packets.StatsQueueSize)
                 old_out = OutBytes.Dequeue();
 
             InBytes.Enqueue(recv);
@@ -1685,8 +1685,8 @@ namespace LibreMetaverse
 
             if (old_in > 0 && old_out > 0)
             {
-                Stats.SetIncomingBPS((int)(recv - old_in) / Client.Settings.STATS_QUEUE_SIZE);
-                Stats.SetOutgoingBPS((int)(sent - old_out) / Client.Settings.STATS_QUEUE_SIZE);
+                Stats.SetIncomingBPS((int)(recv - old_in) / Client.Settings.Packets.StatsQueueSize);
+                Stats.SetOutgoingBPS((int)(sent - old_out) / Client.Settings.Packets.StatsQueueSize);
                 //Client.Log("Incoming: " + IncomingBPS + " Out: " + OutgoingBPS +
                 //    " Lag: " + LastLag + " Pings: " + ReceivedPongs +
                 //    "/" + SentPings, LogLevel.Debug); 
@@ -1752,7 +1752,7 @@ namespace LibreMetaverse
                     {
                         lock (SimulatorDataPools)
                         {
-                            int simTimeout = Settings.SIMULATOR_POOL_TIMEOUT;
+                            int simTimeout = Settings.SimulatorPoolTimeout;
                             var reap = (from pool in SimulatorDataPools.Values
                                         where pool.InactiveSince != DateTime.MaxValue
                                               && pool.InactiveSince.AddMilliseconds(simTimeout) < DateTime.Now

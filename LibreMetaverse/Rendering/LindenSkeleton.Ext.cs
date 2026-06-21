@@ -114,7 +114,7 @@ namespace LibreMetaverse.Rendering
         public static LindenSkeleton Load(string? fileName)
         {
             if (fileName == null)
-                fileName = System.IO.Path.Combine(Settings.RESOURCE_DIR ?? string.Empty, "character", "avatar_skeleton.xml");
+                fileName = System.IO.Path.Combine(Settings.ResourceDir ?? string.Empty, "character", "avatar_skeleton.xml");
 
             LindenSkeleton result;
 

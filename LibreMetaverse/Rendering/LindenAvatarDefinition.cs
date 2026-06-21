@@ -133,18 +133,18 @@ namespace LibreMetaverse.Rendering
         /// </summary>
         /// <param name="ladFileName">
         /// Path to avatar_lad.xml. Defaults to the linden/character directory under
-        /// <see cref="Settings.RESOURCE_DIR"/>.
+        /// <see cref="Settings.ResourceDir"/>.
         /// </param>
         /// <param name="skeletonFileName">
         /// Path to avatar_skeleton.xml. Defaults to the linden/character directory under
-        /// <see cref="Settings.RESOURCE_DIR"/>.
+        /// <see cref="Settings.ResourceDir"/>.
         /// </param>
         public static LindenAvatarDefinition Load(string? ladFileName = null, string? skeletonFileName = null)
         {
             if (ladFileName == null)
             {
                 ladFileName =
-                    System.IO.Path.Combine(Settings.RESOURCE_DIR ?? string.Empty, "character", "avatar_lad.xml");
+                    System.IO.Path.Combine(Settings.ResourceDir ?? string.Empty, "character", "avatar_lad.xml");
             }
 
             var skeleton = LindenSkeleton.Load(skeletonFileName);

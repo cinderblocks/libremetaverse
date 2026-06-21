@@ -103,7 +103,7 @@ namespace LibreMetaverse
                 try { OnLandPatchReceived(new LandPatchReceivedEventArgs(simulator, x, y, group.PatchSize, heightmap)); }
                 catch (Exception e) { Logger.Error(e.Message, e, Client); }
 
-                if (Client.Settings.STORE_LAND_PATCHES)
+                if (Client.Settings.World.StoreLandPatches)
                 {
                     TerrainPatch patch = new TerrainPatch
                     {
@@ -139,7 +139,7 @@ namespace LibreMetaverse
             TerrainCompressor.DecodePatch(patches, bitpack, header, group.PatchSize);
             float[] yvalues = TerrainCompressor.DecompressPatch(patches, header, group);
 
-            if (simulator.Client.Settings.STORE_LAND_PATCHES && simulator.WindSpeeds != null)
+            if (simulator.Client.Settings.World.StoreLandPatches && simulator.WindSpeeds != null)
             {
                 for (int i = 0; i < Math.Min(256, simulator.WindSpeeds.Length); i++)
                     simulator.WindSpeeds[i] = new Vector2(xvalues[i], yvalues[i]);
@@ -168,14 +168,14 @@ namespace LibreMetaverse
             switch (type)
             {
                 case TerrainPatch.LayerType.Land:
-                    if (m_LandPatchReceivedEvent != null || Client.Settings.STORE_LAND_PATCHES)
+                    if (m_LandPatchReceivedEvent != null || Client.Settings.World.StoreLandPatches)
                     {
                         var sim = e.Simulator ?? Client?.Network?.CurrentSim;
                         if (sim != null) DecompressLand(sim, bitpack, header);
                     }
                     break;
                 case TerrainPatch.LayerType.LandExtended:
-                    if (m_LandPatchReceivedEvent != null || Client.Settings.STORE_LAND_PATCHES)
+                    if (m_LandPatchReceivedEvent != null || Client.Settings.World.StoreLandPatches)
                     {
                         var sim = e.Simulator ?? Client?.Network?.CurrentSim;
                         if (sim != null) DecompressLand(sim, bitpack, header, true);

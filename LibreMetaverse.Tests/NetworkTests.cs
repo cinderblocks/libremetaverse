@@ -52,7 +52,7 @@ namespace LibreMetaverse.Tests
         public NetworkTests()
         {
             Client = new GridClient();
-            Client.Settings.LOGIN_TIMEOUT = LoginTimeoutSeconds * 1000; // Set login timeout
+            Client.Settings.Timing.LoginTimeout = LoginTimeoutSeconds * 1000;
             Client.Self.Movement.Fly = true;
             // Register callbacks
             Client.Network.RegisterCallback(PacketType.ObjectUpdate, ObjectUpdateHandler);

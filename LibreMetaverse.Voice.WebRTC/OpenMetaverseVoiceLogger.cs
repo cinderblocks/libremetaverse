@@ -35,7 +35,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
         private string FormatMessage(string message, GridClient? client)
         {
-            if (client != null && client.Settings.LOG_NAMES && client.Self?.Name != null)
+            if (client != null && client.Settings.Logging.LogNames && client.Self?.Name != null)
             {
                 return $"{_prefix}[{client.Self.Name}] {message}";
             }

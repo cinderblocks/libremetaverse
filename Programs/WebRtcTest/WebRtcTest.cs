@@ -70,24 +70,19 @@ namespace WebRtcTest
             string lastName = args[1];
             string password = args[2];
 
-            Settings.LOG_LEVEL = Microsoft.Extensions.Logging.LogLevel.Debug;
+            Settings.LogLevel = Microsoft.Extensions.Logging.LogLevel.Debug;
 
-            GridClient client = new GridClient
-            {
-                Settings =
-                {
-                    MULTIPLE_SIMS = false,
-                    LOG_RESENDS = false,
-                    STORE_LAND_PATCHES = true,
-                    ALWAYS_DECODE_OBJECTS = true,
-                    ALWAYS_REQUEST_OBJECTS = true,
-                    SEND_AGENT_UPDATES = true
-                }
-            };
+            GridClient client = new GridClient();
+            client.Settings.Agent.MultipleSims = false;
+            client.Settings.Logging.LogResends = false;
+            client.Settings.World.StoreLandPatches = true;
+            client.Settings.World.AlwaysDecodeObjects = true;
+            client.Settings.World.AlwaysRequestObjects = true;
+            client.Settings.Agent.SendUpdates = true;
             client.Network.EventQueueRunning += client_OnEventQueueRunning;
             client.Network.LoginProgress += client_OnLoginProgress;
 
-            string loginURI = client.Settings.LOGIN_SERVER;
+            string loginURI = client.Settings.Connection.LoginServer;
             if (4 == args.Length)
             {
                 loginURI = args[3];

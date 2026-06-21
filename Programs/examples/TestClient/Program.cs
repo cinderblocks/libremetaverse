@@ -60,7 +60,7 @@ namespace TestClient
             if (arguments["loginuri"] != null)
                 LoginURI = arguments["loginuri"];
             if (string.IsNullOrEmpty(LoginURI))
-                LoginURI = Settings.AGNI_LOGIN_SERVER;
+                LoginURI = Settings.AgniLoginServer;
             Logger.Info("Using login URI " + LoginURI);
 
             if (arguments["gettextures"] != null)

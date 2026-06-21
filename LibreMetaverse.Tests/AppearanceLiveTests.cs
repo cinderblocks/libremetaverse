@@ -58,7 +58,7 @@ namespace LibreMetaverse.Tests
         public AppearanceLiveTests()
         {
             Client = new GridClient();
-            Client.Settings.LOGIN_TIMEOUT = LoginTimeoutSeconds * 1000;
+            Client.Settings.Timing.LoginTimeout = LoginTimeoutSeconds * 1000;
         }
 
         [OneTimeSetUp]

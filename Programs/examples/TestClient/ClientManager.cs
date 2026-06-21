@@ -154,7 +154,7 @@ namespace TestClient
 
             TestClient client = new TestClient(this)
             {
-                Settings = { MFA_ENABLED = true }
+                Settings = { Connection = { MfaEnabled = true } }
             };
             client.Network.LoginProgress +=
                 delegate(object sender, LoginProgressEventArgs e)

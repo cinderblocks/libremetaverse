@@ -42,7 +42,7 @@ namespace LibreMetaverse.Tests
         public EstateToolsTests()
         {
             Client = new GridClient();
-            Client.Settings.LOGIN_TIMEOUT = LoginTimeoutSeconds * 1000; // Set login timeout
+            Client.Settings.Timing.LoginTimeout = LoginTimeoutSeconds * 1000;
         }
 
         [OneTimeSetUp]

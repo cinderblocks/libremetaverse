@@ -187,7 +187,7 @@ namespace LibreMetaverse
                 {"everyone_mask", OSD.FromInteger((int) permissions.EveryoneMask)},
                 {"group_mask", OSD.FromInteger((int) permissions.GroupMask)},
                 {"next_owner_mask", OSD.FromInteger((int) permissions.NextOwnerMask)},
-                {"expected_upload_cost", OSD.FromInteger(Client.Settings.UPLOAD_COST)}
+                {"expected_upload_cost", OSD.FromInteger(Client.Settings.UploadCost)}
             };
 
             try
@@ -741,7 +741,7 @@ namespace LibreMetaverse
             if (doEffect)
             {
                 Client.Self.BeamEffect(Client.Self.AgentID, recipient, Vector3d.Zero,
-                    Client.Settings.DEFAULT_EFFECT_COLOR, 1f, UUID.Random());
+                    Client.Settings.DefaultEffectColor, 1f, UUID.Random());
             }
 
             // Remove from store if items were no copy
@@ -892,7 +892,7 @@ namespace LibreMetaverse
                 {"everyone_mask", OSD.FromInteger((int) permissions.EveryoneMask)},
                 {"group_mask", OSD.FromInteger((int) permissions.GroupMask)},
                 {"next_owner_mask", OSD.FromInteger((int) permissions.NextOwnerMask)},
-                {"expected_upload_cost", OSD.FromInteger(Client.Settings.UPLOAD_COST)}
+                {"expected_upload_cost", OSD.FromInteger(Client.Settings.UploadCost)}
             };
 
             try

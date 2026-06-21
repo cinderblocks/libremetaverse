@@ -25,344 +25,119 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System.IO;
 using Microsoft.Extensions.Logging;
 using LibreMetaverse.Packets;
 
 namespace LibreMetaverse
 {
     /// <summary>
-    /// Class for controlling various system settings.
+    /// Controls settings for a <see cref="GridClient"/> instance. Grouped into typed sub-configs
+    /// accessible as properties on this class (e.g. <see cref="Timing"/>, <see cref="Agent"/>).
+    /// Process-wide settings (shared across all GridClient instances) are static fields on this class.
     /// </summary>
-    /// <remarks>Some values are readonly because they affect things that
-    /// happen when the GridClient object is initialized, so changing them at 
-    /// runtime won't do any good. Non-readonly values may affect things that 
-    /// happen at login or dynamically</remarks>
     public class Settings
     {
-        public static string USER_AGENT = "LibreMetaverse";
-
-        #region Login/Networking Settings
+        #region Protocol Constants
 
         /// <summary>Main grid login server</summary>
-        public const string AGNI_LOGIN_SERVER = "https://login.agni.lindenlab.com/cgi-bin/login.cgi";
+        public const string AgniLoginServer = "https://login.agni.lindenlab.com/cgi-bin/login.cgi";
 
         /// <summary>Beta grid login server</summary>
-        public const string ADITI_LOGIN_SERVER = "https://login.aditi.lindenlab.com/cgi-bin/login.cgi";
-
-        /// <summary>The relative directory where external resources are kept</summary>
-        public static string RESOURCE_DIR = "linden";
-
-        /// <summary>Login server to connect to</summary>
-        public string LOGIN_SERVER = AGNI_LOGIN_SERVER;
-
-        /// <summary>IP Address the client will bind to</summary>
-        public static System.Net.IPAddress BIND_ADDR = System.Net.IPAddress.Any;
-
-        /// <summary>Client is Multi-Factor Authentication enabled</summary>
-        public bool MFA_ENABLED = false;
-
-        /// <summary>
-        /// Maximum number of HTTP connections to open to a particular endpoint.
-        /// </summary>
-        /// <remarks>
-        /// An endpoint is defined as a combination of network address and port.  This is used for Caps.
-        /// This is a static variable which applies to all instances.
-        /// </remarks>
-        public static int MAX_HTTP_CONNECTIONS = 32;
-
-        #endregion
-
-        #region Inventory
-
-        /// <summary>
-        /// InventoryManager requests inventory information on login,
-        /// GridClient initializes an Inventory store for main inventory.
-        /// </summary>
-        public const bool ENABLE_INVENTORY_STORE = true;
-        /// <summary>
-        /// InventoryManager requests library information on login,
-        /// GridClient initializes an Inventory store for the library.
-        /// </summary>
-        public const bool ENABLE_LIBRARY_STORE = true;
-
-        #endregion
-
-        #region Timeouts and Intervals
-
-        /// <summary>Number of milliseconds before an asset transfer will time
-        /// out</summary>
-        public int TRANSFER_TIMEOUT = 90 * 1000;
-
-        /// <summary>Number of milliseconds before a teleport attempt will time
-        /// out</summary>
-        public int TELEPORT_TIMEOUT = 40 * 1000;
-
-        /// <summary>Number of milliseconds before NetworkManager.Logout() will
-        /// time out</summary>
-        public int LOGOUT_TIMEOUT = 5 * 1000;
-
-        /// <summary>Number of milliseconds before a CAPS call will time out</summary>
-        /// <remarks>Setting this too low will cause web requests time out and
-        /// possibly retry repeatedly</remarks>
-        public int CAPS_TIMEOUT = 60 * 1000;
-
-        /// <summary>Number of milliseconds for xml-rpc to timeout</summary>
-        public int LOGIN_TIMEOUT = 60 * 1000;
-
-        /// <summary>Milliseconds before a packet is assumed lost and resent</summary>
-        public int RESEND_TIMEOUT = 4000;
-
-        /// <summary>Milliseconds without receiving a packet before the 
-        /// connection to a simulator is assumed lost</summary>
-        public int SIMULATOR_TIMEOUT = 30 * 1000;
-
-        /// <summary>Milliseconds to wait for a simulator info request through
-        /// the grid interface</summary>
-        public int MAP_REQUEST_TIMEOUT = 5 * 1000;
+        public const string AditiLoginServer = "https://login.aditi.lindenlab.com/cgi-bin/login.cgi";
 
         /// <summary>Number of milliseconds between sending pings to each sim</summary>
-        public const int PING_INTERVAL = 2200;
+        public const int PingInterval = 2200;
 
-        /// <summary>Number of milliseconds between sending camera updates</summary>
-        public int DEFAULT_AGENT_UPDATE_INTERVAL = 500;
+        /// <summary>Millisecond interval between ticks, where all ACKs are sent out and unACKed packet age is checked</summary>
+        public const int NetworkTickInterval = 500;
 
-        /// <summary>Number of milliseconds between updating the current
-        /// positions of moving, non-accelerating and non-colliding objects</summary>
-        public int INTERPOLATION_INTERVAL = 250;
+        /// <summary>Maximum size of a packet that we want to send over the wire</summary>
+        public const int MaxPacketSize = 1200;
 
-        /// <summary>Millisecond interval between ticks, where all ACKs are 
-        /// sent out and the age of unACKed packets is checked</summary>
-        public const int NETWORK_TICK_INTERVAL = 500;
+        /// <summary>The maximum value of a packet sequence number before it rolls over back to one</summary>
+        public const int MaxSequence = 0xFFFFFF;
 
-        #endregion
-        #region Sizes
-        
-        /// <summary>Maximum size of packet that we want to send over the wire</summary>
-        public const int MAX_PACKET_SIZE = 1200;
-        /// <summary>The maximum value of a packet sequence number before it
-        /// rolls over back to one</summary>
-        public const int MAX_SEQUENCE = 0xFFFFFF;
-        /// <summary>The maximum size of the sequence number archive, used to
-        /// check for resent and/or duplicate packets</summary>
-        public static int PACKET_ARCHIVE_SIZE = 1000;
-        /// <summary>Maximum number of queued ACKs to be sent before SendAcks()
-        /// is forced</summary>
-        public int MAX_PENDING_ACKS = 10;
-        /// <summary>Network stats queue length (seconds)</summary>
-        public int STATS_QUEUE_SIZE = 5;
+        /// <summary>InventoryManager requests inventory information on login</summary>
+        public const bool EnableInventoryStore = true;
+
+        /// <summary>InventoryManager requests library information on login</summary>
+        public const bool EnableLibraryStore = true;
 
         #endregion
 
-        #region Experimental options
+        #region Process-Wide Statics
 
-        /// <summary>
-        /// Primitives will be reused when falling in/out of interest list (and shared between clients)
-        ///  prims returning to interest list do not need re-requested
-        ///  Helps also in not re-requesting prim.Properties for code that checks for a Properties == null per client
-        /// </summary>
-        public bool CACHE_PRIMITIVES = false;
-        /// <summary>
-        /// Pool parcel data between clients (saves on requesting multiple times when all clients may need it)
-        /// </summary>
-        public bool POOL_PARCEL_DATA = false;
-        /// <summary>
-        /// How long to preserve cached data when no client is connected to a simulator
-        ///   The reason for setting it to something like 2 minutes is in case a client 
-        ///    is running back and forth between region edges or a sim is comming and going
-        /// </summary>
-        public static int SIMULATOR_POOL_TIMEOUT = 2 * 60 * 1000;
+        /// <summary>HTTP User-Agent string reported to servers</summary>
+        public static string UserAgent = "LibreMetaverse";
+
+        /// <summary>The relative directory where external resources are kept</summary>
+        public static string ResourceDir = "linden";
+
+        /// <summary>IP address the client will bind to</summary>
+        public static System.Net.IPAddress BindAddress = System.Net.IPAddress.Any;
+
+        /// <summary>Maximum number of HTTP connections to open to a particular endpoint (used for Caps)</summary>
+        public static int MaxHttpConnections = 32;
+
+        /// <summary>The maximum size of the sequence number archive, used to check for resent and/or duplicate packets</summary>
+        public static int PacketArchiveSize = 1000;
+
+        /// <summary>Timer interval in milliseconds between checks for stalled texture downloads</summary>
+        public static float TexturePipelineRefreshInterval = 500.0f;
+
+        /// <summary>Milliseconds to preserve cached simulator data when no client is connected</summary>
+        public static int SimulatorPoolTimeout = 2 * 60 * 1000;
+
+        /// <summary>Minimum log level output to the console</summary>
+        public static LogLevel LogLevel = LogLevel.Debug;
+
+        #endregion
+
+        #region Sub-Configs
+
+        /// <summary>Login server and authentication settings</summary>
+        public ConnectionSettings Connection { get; } = new ConnectionSettings();
+
+        /// <summary>Timeout and interval values for various operations</summary>
+        public TimingSettings Timing { get; } = new TimingSettings();
+
+        /// <summary>UDP/packet-layer behaviour (acks, resends, throttling, stats)</summary>
+        public PacketSettings Packets { get; } = new PacketSettings();
+
+        /// <summary>Agent state update and multi-sim behaviour</summary>
+        public AgentSettings Agent { get; } = new AgentSettings();
+
+        /// <summary>Object, avatar, and terrain tracking and decoding</summary>
+        public WorldSettings World { get; } = new WorldSettings();
+
+        /// <summary>Parcel tracking and automatic request behaviour</summary>
+        public ParcelSettings Parcel { get; } = new ParcelSettings();
+
+        /// <summary>Local asset cache settings</summary>
+        public AssetCacheSettings AssetCache { get; } = new AssetCacheSettings();
+
+        /// <summary>Texture download pipeline settings</summary>
+        public TexturePipelineSettings TexturePipeline { get; } = new TexturePipelineSettings();
+
+        /// <summary>Per-client logging behaviour</summary>
+        public LoggingSettings Logging { get; } = new LoggingSettings();
 
         #endregion
 
-        #region Configuration options (mostly booleans)
-
-        /// <summary>Enable/disable storing terrain heightmaps in the 
-        /// TerrainManager</summary>
-        public bool STORE_LAND_PATCHES = false;
-
-        /// <summary>Enable/disable sending agent updates</summary>
-        public bool SEND_AGENT_UPDATES = true;
-
-        /// <summary>Enable/disable sending periodic agent updates</summary>
-        public bool SEND_AGENT_UPDATES_REGULARLY = true;
-
-        /// <summary>Enable/disable automatically setting agent appearance at
-        /// login and after sim crossing</summary>
-        public bool SEND_AGENT_APPEARANCE = true;
-
-        /// <summary>Enable/disable automatically setting the bandwidth throttle
-        /// after connecting to each simulator</summary>
-        /// <remarks>The default throttle uses the equivalent of the maximum
-        /// bandwidth setting in the official client. If you do not set a
-        /// throttle your connection will by default be throttled well below
-        /// the minimum values and you may experience connection problems</remarks>
-        public bool SEND_AGENT_THROTTLE = true;
-
-        /// <summary>Enable/disable the sending of pings to monitor lag and 
-        /// packet loss</summary>
-        public bool SEND_PINGS = true;
-
-        /// <summary>Should we connect to multiple sims? This will allow
-        /// viewing into neighboring simulators and sim crossings
-        /// (Experimental)</summary>
-        public bool MULTIPLE_SIMS = false;
-
-        /// <summary>If true, all object update packets will be decoded in to
-        /// native objects. If false, only updates for our own agent will be
-        /// decoded. Registering an event handler will force objects for that
-        /// type to always be decoded. If this is disabled the object tracking
-        /// will have missing or partial prim and avatar information</summary>
-        public bool ALWAYS_DECODE_OBJECTS = true;
-
-        /// <summary>If true, when a cached object check is received from the
-        /// server the full object info will automatically be requested</summary>
-        public bool ALWAYS_REQUEST_OBJECTS = true;
-
-        /// <summary>Whether to decode sim stats</summary>
-        public bool ENABLE_SIMSTATS = true;
-
-        /// <summary>The capabilities servers are currently designed to
-        /// periodically return a 502 error which signals for the client to
-        /// re-establish a connection. Set this to true to log those 502 errors</summary>
-        public bool LOG_ALL_CAPS_ERRORS = false;
-
-        /// <summary>If true, and <see cref="SEND_AGENT_UPDATES"/> is true,
-        /// AgentUpdate packets will continuously be sent out to give the bot
-        /// smoother movement and autopiloting</summary>
-        public bool DISABLE_AGENT_UPDATE_DUPLICATE_CHECK = true;
-
-        /// <summary>If true, currently visible avatars will be stored
-        /// in dictionaries inside <see cref="Simulator.ObjectAvatars"/>.
-        /// If false, a new Avatar or Primitive object will be created
-        /// each time an object update packet is received</summary>
-        public bool AVATAR_TRACKING = true;
-
-        /// <summary>If true, currently visible avatars will be stored
-        /// in dictionaries inside <see cref="Simulator.ObjectPrimitives"/>.
-        /// If false, a new Avatar or Primitive object will be created
-        /// each time an object update packet is received</summary>
-        public bool OBJECT_TRACKING = true;
-
-        /// <summary>If true, position and velocity will periodically be
-        /// interpolated (extrapolated, technically) for objects and 
-        /// avatars that are being tracked by the library. This is
-        /// necessary to increase the accuracy of speed and position
-        /// estimates for simulated objects</summary>
-        public bool USE_INTERPOLATION_TIMER = true;
-
-        /// <summary>
-        /// If true, utilization statistics will be tracked. There is a minor penalty
-        /// in CPU time for enabling this option.
-        /// </summary>
-        public bool TRACK_UTILIZATION = false;
-        #endregion
-        #region Parcel Tracking
-
-        /// <summary>If true, parcel details will be stored in the 
-        /// <see cref="Simulator.Parcels" /> dictionary as they are received</summary>
-        public bool PARCEL_TRACKING = true;
-
-        /// <summary>
-        /// If true, an incoming parcel properties reply will automatically send
-        /// a request for the parcel access list
-        /// </summary>
-        public bool ALWAYS_REQUEST_PARCEL_ACL = true;
-
-        /// <summary>
-        /// if true, an incoming parcel properties reply will automatically send 
-        /// a request for the traffic count.
-        /// </summary>
-        public bool ALWAYS_REQUEST_PARCEL_DWELL = true;
-
-        #endregion
-        #region Asset Cache
-
-        /// <summary>
-        /// If true, images, and other assets downloaded from the server 
-        /// will be cached in a local directory
-        /// </summary>
-        public bool USE_ASSET_CACHE = true;
-
-        /// <summary>Path to store cached texture data</summary>
-        public string ASSET_CACHE_DIR = Path.Combine(RESOURCE_DIR, "cache");
-
-        /// <summary>Maximum size cached files are allowed to take on disk (bytes)</summary>
-        public long ASSET_CACHE_MAX_SIZE = 1024 * 1024 * 1024; // 1GB
-
-        #endregion
-        #region Misc
+        #region Instance Members
 
         /// <summary>Default color used for viewer particle effects</summary>
-        public Color4 DEFAULT_EFFECT_COLOR = new Color4(255, 0, 0, 255);
+        public Color4 DefaultEffectColor = new Color4(255, 0, 0, 255);
 
-        /// <summary>Cost of uploading an asset</summary>
-        /// <remarks>Dynamically updated from EconomyData and ViewerBenefits</remarks>
-        public int UPLOAD_COST { get; internal set; } = 0;
-
-        /// <summary>Maximum number of times to resend a failed packet</summary>
-        public int MAX_RESEND_COUNT = 3;
-
-        /// <summary>Throttle outgoing packet rate</summary>
-        public bool THROTTLE_OUTGOING_PACKETS = true;
+        /// <summary>Cost of uploading an asset. Dynamically updated from EconomyData and ViewerBenefits.</summary>
+        public int UploadCost { get; internal set; }
 
         #endregion
-        #region Texture Pipeline
 
-        /// <summary>
-        /// Enable texture pipeline, will use a thread.
-        /// </summary>
-        public bool USE_TEXTURE_PIPELINE = true;
-
-        /// <summary>
-        /// Download textures using GetTexture capability when available
-        /// </summary>
-        public bool USE_HTTP_TEXTURES = true;
-
-        /// <summary>The maximum number of concurrent texture downloads allowed</summary>
-        /// <remarks>Increasing this number will not necessarily increase texture retrieval times due to
-        /// simulator throttles</remarks>
-        public int MAX_CONCURRENT_TEXTURE_DOWNLOADS = 4;
-
-        /// <summary>
-        /// The Refresh timer inteval is used to set the delay between checks for stalled texture downloads
-        /// </summary>
-        /// <remarks>This is a static variable which applies to all instances</remarks>
-        public static float PIPELINE_REFRESH_INTERVAL = 500.0f;
-
-        /// <summary>
-        /// Textures taking longer than this value will be flagged as timed out and removed from the pipeline
-        /// </summary>
-        public int PIPELINE_REQUEST_TIMEOUT = 45*1000;
-        #endregion
-
-        #region Logging Configuration
-
-        /// <summary>
-        /// Get or set the minimum log level to output to the console by default
-        /// 
-        /// If the library is not compiled with DEBUG defined and this level is set to DEBUG
-        /// You will get no output on the console. This behavior can be overriden by creating
-        /// a logger configuration
-        /// </summary>
-        public static LogLevel LOG_LEVEL = LogLevel.Debug;
-
-        /// <summary>Attach avatar names to log messages</summary>
-        public bool LOG_NAMES = true;
-
-        /// <summary>Log packet retransmission info</summary>
-        public bool LOG_RESENDS = true;
-
-        /// <summary>Log disk cache misses and other info</summary>
-        public bool LOG_DISKCACHE = true;
-        
-        #endregion
-        #region Private Fields
+        #region Constructor
 
         private GridClient Client;
-        public static bool SORT_INVENTORY = false;
 
-        /// <summary>Constructor</summary>
         /// <param name="client">Reference to a GridClient object</param>
         public Settings(GridClient client)
         {
@@ -371,16 +146,13 @@ namespace LibreMetaverse
         }
 
         #endregion
+
         #region Packet Callbacks
 
-        /// <summary>Process an incoming packet and raise the appropriate events</summary>
-        /// <param name="sender">The sender</param>
-        /// <param name="e">The EventArgs object containing the packet data</param>
         protected void EconomyDataHandler(object? sender, PacketReceivedEventArgs e)
         {
             EconomyDataPacket econ = (EconomyDataPacket)e.Packet;
-
-            UPLOAD_COST = econ.Info.PriceUpload;
+            UploadCost = econ.Info.PriceUpload;
         }
 
         #endregion

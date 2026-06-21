@@ -1086,7 +1086,7 @@ namespace LibreMetaverse
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void AvatarAppearanceHandler(object? sender, PacketReceivedEventArgs e)
         {
-            if (!(m_AvatarAppearance != null || Client.Settings.AVATAR_TRACKING)) return;
+            if (!(m_AvatarAppearance != null || Client.Settings.World.TrackAvatars)) return;
 
             Packet packet = e.Packet;
             Simulator simulator = e.Simulator;

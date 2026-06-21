@@ -74,7 +74,7 @@ namespace LibreMetaverse
                 {
                     _loggerFactory = CreateDefaultConsoleLoggerFactory();
                     _logger = _loggerFactory.CreateLogger(MethodBase.GetCurrentMethod()?.DeclaringType?.FullName ?? "LibreMetaverse");
-                    if (Settings.LOG_LEVEL != LogLevel.None)
+                    if (Settings.LogLevel != LogLevel.None)
                     {
                         _logger.LogInformation("Default console logger initialized");
                     }
@@ -310,21 +310,21 @@ namespace LibreMetaverse
         /// <param name="exception">Exception that was raised</param>
         public static void Log(object message, LogLevel level, GridClient? client, Exception? exception)
         {
-            var clientName = (client != null && client.Settings.LOG_NAMES) ? client.Self?.Name : null;
+            var clientName = (client != null && client.Settings.Logging.LogNames) ? client.Self?.Name : null;
 
             RaiseOnLogMessage(message, level);
 
-            if (Settings.LOG_LEVEL == LogLevel.None) { return; }
+            if (Settings.LogLevel == LogLevel.None) { return; }
 
             // enforce configured log level
-            if (Settings.LOG_LEVEL > level) { return; }
+            if (Settings.LogLevel > level) { return; }
 
             LogWithLevel(level, message, exception, clientName);
         }
 
         /// <summary>
         /// If the library is compiled with TRACE defined and
-        /// <see cref="GridClient.Settings.TRACE" /> is true, an event will be
+        /// an event will be
         /// fired if a <see cref="OnLogMessage" /> handler is registered and the
         /// message will be sent to the logging engine
         /// </summary>
@@ -334,13 +334,13 @@ namespace LibreMetaverse
         [System.Diagnostics.Conditional("DEBUG")]
         public static void DebugLog(object message, GridClient? client = null)
         {
-            if (Settings.LOG_LEVEL > LogLevel.Debug) { return; }
+            if (Settings.LogLevel > LogLevel.Debug) { return; }
 
-            var clientName = (client != null && client.Settings.LOG_NAMES) ? client.Self?.Name : null;
+            var clientName = (client != null && client.Settings.Logging.LogNames) ? client.Self?.Name : null;
 
-            RaiseOnLogMessage(message, Settings.LOG_LEVEL);
+            RaiseOnLogMessage(message, Settings.LogLevel);
 
-            LogWithLevel(Settings.LOG_LEVEL, message, null, clientName);
+            LogWithLevel(Settings.LogLevel, message, null, clientName);
         }
 
         /// <summary>
@@ -371,7 +371,7 @@ namespace LibreMetaverse
             string? clientName = null;
             try
             {
-                if (client?.Settings != null && client.Settings.LOG_NAMES)
+                if (client?.Settings != null && client.Settings.Logging.LogNames)
                     clientName = client.Self?.Name;
             }
             catch

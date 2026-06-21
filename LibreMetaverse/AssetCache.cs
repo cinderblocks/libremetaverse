@@ -381,9 +381,9 @@ namespace LibreMetaverse
         {
             if (ComputeAssetCacheFilename != null)
             {
-                return ComputeAssetCacheFilename(Client.Settings.ASSET_CACHE_DIR, assetID);
+                return ComputeAssetCacheFilename(Client.Settings.AssetCache.Dir, assetID);
             }
-            return Client.Settings.ASSET_CACHE_DIR + Path.DirectorySeparatorChar + assetID;
+            return Client.Settings.AssetCache.Dir + Path.DirectorySeparatorChar + assetID;
         }
 
         /// <summary>
@@ -393,7 +393,7 @@ namespace LibreMetaverse
         /// <returns>String with the file name of the static cached asset</returns>
         private string StaticFileName(UUID assetID)
         {
-            return Path.Combine(Settings.RESOURCE_DIR, "static_assets", assetID.ToString());
+            return Path.Combine(Settings.ResourceDir, "static_assets", assetID.ToString());
         }
 
         /// <summary>
@@ -409,8 +409,8 @@ namespace LibreMetaverse
             {
                 var path = FileName(assetID);
                 Logger.Trace($"Saving {path} to asset cache.");
-                if (!Directory.Exists(Client.Settings.ASSET_CACHE_DIR))
-                    Directory.CreateDirectory(Client.Settings.ASSET_CACHE_DIR);
+                if (!Directory.Exists(Client.Settings.AssetCache.Dir))
+                    Directory.CreateDirectory(Client.Settings.AssetCache.Dir);
                 var tempPath = path + ".tmp";
                 File.WriteAllBytes(tempPath, assetData);
 #if NET5_0_OR_GREATER
@@ -439,9 +439,9 @@ namespace LibreMetaverse
                 var path = FileName(assetID);
                 Logger.Trace($"Saving {path} to asset cache.");
 
-                if (!Directory.Exists(Client.Settings.ASSET_CACHE_DIR))
+                if (!Directory.Exists(Client.Settings.AssetCache.Dir))
                 {
-                    Directory.CreateDirectory(Client.Settings.ASSET_CACHE_DIR);
+                    Directory.CreateDirectory(Client.Settings.AssetCache.Dir);
                 }
 
                 var tempPath = path + ".tmp";
@@ -471,7 +471,7 @@ namespace LibreMetaverse
 
         private void DebugLog(string message)
         {
-            if (Client.Settings.LOG_DISKCACHE) Logger.DebugLog(message, Client);
+            if (Client.Settings.Logging.LogDiskCache) Logger.DebugLog(message, Client);
         }
 
         /// <summary>
@@ -508,7 +508,7 @@ namespace LibreMetaverse
         /// </summary>
         public void Clear()
         {
-            string cacheDir = Client.Settings.ASSET_CACHE_DIR;
+            string cacheDir = Client.Settings.AssetCache.Dir;
             if (!Directory.Exists(cacheDir)) { return; }
 
             const string pattern = "????????-????-????-????-????????????";
@@ -535,7 +535,7 @@ namespace LibreMetaverse
         /// </summary>
         public async Task PruneAsync(CancellationToken cancellationToken = default)
         {
-            string cacheDir = Client.Settings.ASSET_CACHE_DIR;
+            string cacheDir = Client.Settings.AssetCache.Dir;
             if (!Directory.Exists(cacheDir))
             {
                 cleanerEvent.Reset();
@@ -567,7 +567,7 @@ namespace LibreMetaverse
                         }
                     }
 
-                    if (size > Client.Settings.ASSET_CACHE_MAX_SIZE)
+                    if (size > Client.Settings.AssetCache.MaxSize)
                     {
                         // Build a lightweight list of file metadata for sorting by LastAccessTime
                         var entries = new List<(string Path, long Length, DateTime LastAccess)>();
@@ -588,7 +588,7 @@ namespace LibreMetaverse
                         // Sort by LastAccessTime ascending (oldest first)
                         entries.Sort((a, b) => a.LastAccess.CompareTo(b.LastAccess));
 
-                        long targetSize = (long)(Client.Settings.ASSET_CACHE_MAX_SIZE * 0.9);
+                        long targetSize = (long)(Client.Settings.AssetCache.MaxSize * 0.9);
                         int num = 0;
                         foreach (var entry in entries)
                         {
@@ -648,7 +648,7 @@ namespace LibreMetaverse
         /// </summary>
         private bool Operational()
         {
-            return Client.Settings.USE_ASSET_CACHE;
+            return Client.Settings.AssetCache.Enabled;
         }
 
         /// <summary>

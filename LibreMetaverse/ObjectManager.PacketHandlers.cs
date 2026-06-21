@@ -55,7 +55,7 @@ namespace LibreMetaverse
 
             // Update the primitive's signaled animation state if object tracking is enabled.
             // Corresponds to LLObjectSignaledAnimationMap::instance().getMap()[uuid] in the SL C++ viewer.
-            if (Client.Settings.OBJECT_TRACKING
+            if (Client.Settings.World.TrackObjects
                 && e.Simulator.GlobalToLocalID.TryGetValue(objectID, out uint localID)
                 && e.Simulator.ObjectsPrimitives.TryGetValue(localID, out Primitive? prim))
             {
@@ -92,7 +92,7 @@ namespace LibreMetaverse
                 #region Relevance check
 
                 // Check if we are interested in this object
-                if (!Client.Settings.ALWAYS_DECODE_OBJECTS)
+                if (!Client.Settings.World.AlwaysDecodeObjects)
                 {
                     switch (pcode)
                     {
@@ -551,7 +551,7 @@ namespace LibreMetaverse
                     var localid = Utils.BytesToUInt(block.Data, 0);
 
                     // Check if we are interested in this update
-                    if (!Client.Settings.ALWAYS_DECODE_OBJECTS
+                    if (!Client.Settings.World.AlwaysDecodeObjects
                         && localid != Client.Self.localID
                         && m_TerseObjectUpdate == null)
                     {
@@ -612,7 +612,7 @@ namespace LibreMetaverse
 
                     #endregion Decode update data
 
-                    Primitive? obj = !Client.Settings.OBJECT_TRACKING ? (Primitive?)null : (update.Avatar) ?
+                    Primitive? obj = !Client.Settings.World.TrackObjects ? (Primitive?)null : (update.Avatar) ?
                         GetAvatar(simulator, update.LocalID, UUID.Zero) :
                         GetPrimitive(simulator, update.LocalID, UUID.Zero);
 
@@ -635,7 +635,7 @@ namespace LibreMetaverse
                         Client.Self.angularVelocity = update.AngularVelocity;
                     }
                     #endregion Update Client.Self
-                    if (Client.Settings.OBJECT_TRACKING && obj is not null)
+                    if (Client.Settings.World.TrackObjects && obj is not null)
                     {
                         obj.Position = update.Position;
                         obj.Rotation = update.Rotation;
@@ -683,7 +683,7 @@ namespace LibreMetaverse
 
                     #region Relevance check
 
-                    if (!Client.Settings.ALWAYS_DECODE_OBJECTS)
+                    if (!Client.Settings.World.AlwaysDecodeObjects)
                     {
                         switch (pcode)
                         {
@@ -918,16 +918,16 @@ namespace LibreMetaverse
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void ObjectUpdateCachedHandler(object? sender, PacketReceivedEventArgs e)
         {
-            if (Client.Settings.ALWAYS_REQUEST_OBJECTS)
+            if (Client.Settings.World.AlwaysRequestObjects)
             {
-                var cachedPrimitives = Client.Settings.CACHE_PRIMITIVES;
+                var cachedPrimitives = Client.Settings.World.CachePrimitives;
                 var packet = e.Packet;
                 var simulator = e.Simulator;
 
                 var update = (ObjectUpdateCachedPacket)packet;
                 var ids = new List<uint>(update.ObjectData.Length);
 
-                // Object caching is implemented when Client.Settings.PRIMITIVES_FACTORY is True, otherwise request updates for all of these objects
+                // Object caching is implemented when Client.Settings.World.CachePrimitives is true, otherwise request updates for all of these objects
                 foreach (var odb in update.ObjectData)
                 {
                     var localID = odb.ID;
@@ -1034,7 +1034,7 @@ namespace LibreMetaverse
                 _ = simulator.ObjectsAvatars.TryRemove(localID, out _);
             }
 
-            if (Client.Settings.CACHE_PRIMITIVES)
+            if (Client.Settings.World.CachePrimitives)
             {
                 simulator.DataPool?.ReleasePrims(removePrims);
             }
@@ -1089,7 +1089,7 @@ namespace LibreMetaverse
                 for (var j = 0; j < numTextures; ++j)
                     props.TextureIDs[j] = new UUID(objectData.TextureID, j * 16);
 
-                if (Client.Settings.OBJECT_TRACKING)
+                if (Client.Settings.World.TrackObjects)
                 {
                     if (simulator.GlobalToLocalID.TryGetValue(props.ObjectID, out var localID))
                     {
@@ -1141,7 +1141,7 @@ namespace LibreMetaverse
             props.Permissions.NextOwnerMask = (PermissionMask)op.ObjectData.NextOwnerMask;
             props.Permissions.OwnerMask = (PermissionMask)op.ObjectData.OwnerMask;
 
-            if (Client.Settings.OBJECT_TRACKING)
+            if (Client.Settings.World.TrackObjects)
             {
                 if (simulator.GlobalToLocalID.TryGetValue(props.ObjectID, out var localID))
                 {
@@ -1200,7 +1200,7 @@ namespace LibreMetaverse
         {
             var msg = (ObjectPhysicsPropertiesMessage)message;
 
-            if (Client.Settings.OBJECT_TRACKING)
+            if (Client.Settings.World.TrackObjects)
             {
                 foreach (var prop in msg.ObjectPhysicsProperties)
                 {

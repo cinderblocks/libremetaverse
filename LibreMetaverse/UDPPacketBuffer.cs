@@ -26,7 +26,7 @@ namespace LibreMetaverse
         {
             Data = new byte[DEFAULT_BUFFER_SIZE];
             // Will be modified later by BeginReceiveFrom()
-            RemoteEndPoint = new IPEndPoint(Settings.BIND_ADDR, 0);
+            RemoteEndPoint = new IPEndPoint(Settings.BindAddress, 0);
         }
 
         /// <summary>
@@ -85,7 +85,7 @@ namespace LibreMetaverse
 
         public void ResetEndpoint()
         {
-            RemoteEndPoint = new IPEndPoint(Settings.BIND_ADDR, 0);
+            RemoteEndPoint = new IPEndPoint(Settings.BindAddress, 0);
         }
     }
 }

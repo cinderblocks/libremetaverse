@@ -113,7 +113,7 @@ namespace LibreMetaverse
         /// </summary>
         public void PayUploadFee()
         {
-            GiveMoney(UUID.Zero, Client.Settings.UPLOAD_COST, string.Empty, MoneyTransactionType.UploadCharge,
+            GiveMoney(UUID.Zero, Client.Settings.UploadCost, string.Empty, MoneyTransactionType.UploadCharge,
                 TransactionFlags.None);
         }
 
@@ -123,7 +123,7 @@ namespace LibreMetaverse
         /// <param name="description">description of the transaction</param>
         public void PayUploadFee(string description)
         {
-            GiveMoney(UUID.Zero, Client.Settings.UPLOAD_COST, description, MoneyTransactionType.UploadCharge,
+            GiveMoney(UUID.Zero, Client.Settings.UploadCost, description, MoneyTransactionType.UploadCharge,
                 TransactionFlags.None);
         }
 

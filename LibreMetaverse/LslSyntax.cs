@@ -97,7 +97,7 @@ namespace LibreMetaverse
 
         public LslSyntax()
         {
-            var keywordFile = Path.Combine(Settings.RESOURCE_DIR, KEYWORDS_DEFAULT);
+            var keywordFile = Path.Combine(Settings.ResourceDir, KEYWORDS_DEFAULT);
             try
             {
                 using (FileStream fs = new FileStream(keywordFile, FileMode.Open, FileAccess.Read))
@@ -127,14 +127,14 @@ namespace LibreMetaverse
             // nullable analyzer — the field is set above but the analyzer may not track it.
             var clientLocal = client;
 
-            var keywordFile = Path.Combine(Settings.RESOURCE_DIR, KEYWORDS_DEFAULT);
+            var keywordFile = Path.Combine(Settings.ResourceDir, KEYWORDS_DEFAULT);
             var net = _client?.Network;
             if (net != null && net.Connected && net.CurrentSim?.Features != null)
             {
                 var syntaxId = net.CurrentSim.Features.Get(SYNTAX_FEATURE_IDENTIFIER);
                 if (syntaxId != null && syntaxId.Type == OSDType.UUID)
                 {
-                    var file = Path.Combine(clientLocal.Settings.ASSET_CACHE_DIR, $"keywords_lsl_{syntaxId}.xml");
+                    var file = Path.Combine(clientLocal.Settings.AssetCache.Dir, $"keywords_lsl_{syntaxId}.xml");
                     if (File.Exists(file))
                     {
                         keywordFile = file;
@@ -168,7 +168,7 @@ namespace LibreMetaverse
                                         _syntaxId = syntaxId.AsUUID();
                                         using (FileStream writer =
                                                new FileStream(
-                                                   Path.Combine(clientLocal.Settings.ASSET_CACHE_DIR,
+                                                   Path.Combine(clientLocal.Settings.AssetCache.Dir,
                                                        $"keywords_lsl_{syntaxId}.xml"),
                                                    FileMode.Create, FileAccess.Write))
                                         {
@@ -251,7 +251,7 @@ namespace LibreMetaverse
                 Parse((OSDMap)features);
                 _syntaxId = syntaxId.AsUUID();
                 using (FileStream writer =
-                       new FileStream(Path.Combine(_client!.Settings.ASSET_CACHE_DIR, $"keywords_lsl_{syntaxId}.xml"),
+                       new FileStream(Path.Combine(_client!.Settings.AssetCache.Dir, $"keywords_lsl_{syntaxId}.xml"),
                            FileMode.Create, FileAccess.Write))
                 {
                     var bytes = OSDParser.SerializeLLSDXmlBytes(features);

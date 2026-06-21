@@ -22,25 +22,25 @@ namespace TestClient.Commands.System
             switch (args[0].ToLower())
             {
                 case "trace":
-                    Settings.LOG_LEVEL = LogLevel.Trace;
+                    Settings.LogLevel = LogLevel.Trace;
                     return "Logging is set to Trace";
                 case "debug":
-                    Settings.LOG_LEVEL = LogLevel.Debug;
+                    Settings.LogLevel = LogLevel.Debug;
                     return "Logging is set to Debug";
                 case "none":
-                    Settings.LOG_LEVEL = LogLevel.None;
+                    Settings.LogLevel = LogLevel.None;
                     return "Logging is set to None";
                 case "warn":
-                    Settings.LOG_LEVEL = LogLevel.Warning;
+                    Settings.LogLevel = LogLevel.Warning;
                     return "Logging is set to level Warning";
                 case "info":
-                    Settings.LOG_LEVEL = LogLevel.Information;
+                    Settings.LogLevel = LogLevel.Information;
                     return "Logging is set to level Info";
                 case "error":
-                    Settings.LOG_LEVEL = LogLevel.Error;
+                    Settings.LogLevel = LogLevel.Error;
                     return "Logging is set to level Error";
                 case "critical":
-                    Settings.LOG_LEVEL = LogLevel.Critical;
+                    Settings.LogLevel = LogLevel.Critical;
                     return "Logging is set to Critical";
                 default:
                     return "Usage: debug [level] where level is one of None, Trace, Debug, Info, Warn, Error, Critical";
