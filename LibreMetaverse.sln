@@ -10,11 +10,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse", "LibreMeta
 		{3577716B-6891-41CA-BF57-7DDE4E83745C} = {3577716B-6891-41CA-BF57-7DDE4E83745C}
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse.Rendering.Meshmerizer", "LibreMetaverse.Rendering.Meshmerizer\LibreMetaverse.Rendering.Meshmerizer.csproj", "{95479B1D-0000-0000-0000-000000000000}"
-	ProjectSection(ProjectDependencies) = postProject
-		{2E2B643F-F18B-4791-BA4B-6E82D0E794B6} = {2E2B643F-F18B-4791-BA4B-6E82D0E794B6}
-	EndProjectSection
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse.Rendering.Simple", "LibreMetaverse.Rendering.Simple\LibreMetaverse.Rendering.Simple.csproj", "{29E206AC-0000-0000-0000-000000000000}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibreMetaverse.StructuredData", "LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj", "{89D7A3E5-0000-0000-0000-000000000000}"
@@ -107,18 +102,6 @@ Global
 		{27C70F3A-0000-0000-0000-000000000000}.Release|x64.Build.0 = Release|Any CPU
 		{27C70F3A-0000-0000-0000-000000000000}.Release|x86.ActiveCfg = Release|Any CPU
 		{27C70F3A-0000-0000-0000-000000000000}.Release|x86.Build.0 = Release|Any CPU
-		{95479B1D-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{95479B1D-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{95479B1D-0000-0000-0000-000000000000}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{95479B1D-0000-0000-0000-000000000000}.Debug|x64.Build.0 = Debug|Any CPU
-		{95479B1D-0000-0000-0000-000000000000}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{95479B1D-0000-0000-0000-000000000000}.Debug|x86.Build.0 = Debug|Any CPU
-		{95479B1D-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{95479B1D-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
-		{95479B1D-0000-0000-0000-000000000000}.Release|x64.ActiveCfg = Release|Any CPU
-		{95479B1D-0000-0000-0000-000000000000}.Release|x64.Build.0 = Release|Any CPU
-		{95479B1D-0000-0000-0000-000000000000}.Release|x86.ActiveCfg = Release|Any CPU
-		{95479B1D-0000-0000-0000-000000000000}.Release|x86.Build.0 = Release|Any CPU
 		{29E206AC-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{29E206AC-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{29E206AC-0000-0000-0000-000000000000}.Debug|x64.ActiveCfg = Debug|Any CPU
