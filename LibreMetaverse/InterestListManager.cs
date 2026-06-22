@@ -62,13 +62,25 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Automatically sends the current interest list mode to a newly connected simulator
-        /// once its capabilities are available.
+        /// Subscribes to CapabilitiesReceived on each newly connected simulator so that
+        /// the current mode is applied once caps are actually available.
         /// Corresponds to LLViewerRegion::setCapabilitiesReceived calling setInterestListMode
-        /// in the SL C++ viewer.
+        /// in the SL C++ viewer — that callback fires after caps negotiation, not at connection time.
         /// </summary>
         private void OnSimConnected(object? sender, SimConnectedEventArgs e)
         {
+            // Default mode is the server's own default — no POST needed unless we're in a
+            // non-default mode. Skip the subscription entirely when in Default to avoid noise.
+            if (_currentMode == InterestListMode.Default)
+                return;
+
+            if (e.Simulator.Caps != null)
+                e.Simulator.Caps.CapabilitiesReceived += OnCapabilitiesReceived;
+        }
+
+        private void OnCapabilitiesReceived(object? sender, CapabilitiesReceivedEventArgs e)
+        {
+            e.Simulator.Caps.CapabilitiesReceived -= OnCapabilitiesReceived;
             _ = SetModeOnSimAsync(e.Simulator, _currentMode, CancellationToken.None);
         }
 
@@ -225,6 +237,15 @@ namespace LibreMetaverse
                 if (disposing)
                 {
                     Client.Network.SimConnected -= OnSimConnected;
+                    // Unsubscribe from any pending CapabilitiesReceived handlers on all sims
+                    lock (Client.Network.Simulators)
+                    {
+                        foreach (var sim in Client.Network.Simulators)
+                        {
+                            if (sim.Caps != null)
+                                sim.Caps.CapabilitiesReceived -= OnCapabilitiesReceived;
+                        }
+                    }
                 }
                 _disposed = true;
             }
