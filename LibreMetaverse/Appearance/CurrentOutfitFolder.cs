@@ -299,6 +299,7 @@ namespace LibreMetaverse.Appearance
             {
                 Logger.Trace("COF initialization: requesting current outfit folder", client);
 
+                var previousCOF = COF;
                 COF = await client.Appearance.GetCurrentOutfitFolderAsync(cancellationToken).ConfigureAwait(false);
 
                 if (COF == null)
@@ -311,7 +312,11 @@ namespace LibreMetaverse.Appearance
                 await client.Inventory.RequestFolderContentsAsync(COF.UUID, client.Self.AgentID,
                     true, true, InventorySortOrder.ByDate, cancellationToken).ConfigureAwait(false);
 
-                Logger.Info($"Initialized Current Outfit Folder with UUID {COF.UUID} v.{COF.Version}", client);
+                bool isNewOrChanged = previousCOF == null || previousCOF.UUID != COF.UUID || previousCOF.Version != COF.Version;
+                if (isNewOrChanged)
+                    Logger.Info($"Initialized Current Outfit Folder with UUID {COF.UUID} v.{COF.Version}", client);
+                else
+                    Logger.Debug($"Current Outfit Folder re-confirmed: UUID {COF.UUID} v.{COF.Version} (unchanged)", client);
 
                 initializedCOF = true;
                 return true;

@@ -543,6 +543,12 @@ namespace LibreMetaverse
         /// </summary>
         private int _lastUpdateReceivedCOFVersion = -1;
         /// <summary>
+        /// COF version for which we last called SendOutfitToCurrentSimulatorAsync.
+        /// Reset to -1 on every sim change so the first send to a new region always proceeds.
+        /// Prevents racing appearance passes from re-rezzing attachments redundantly.
+        /// </summary>
+        private int _lastSentOutfitCOFVersion = -1;
+        /// <summary>
         /// Public read access for <see cref="_lastUpdateReceivedCOFVersion"/>.
         /// Used by AvatarManager to apply the stale-version guard for self-appearance packets.
         /// </summary>
@@ -2515,11 +2521,11 @@ namespace LibreMetaverse
                 return;
             }
 
-            Logger.Info($"{worn.Count} inventory items in 'Current Outfit' folder", Client);
+            Logger.Debug($"{worn.Count} inventory items in 'Current Outfit' folder", Client);
 
             foreach (var inventoryBase in worn.Where(inventoryBase => inventoryBase != null))
             {
-                Logger.Debug($"'{inventoryBase.Name}' found in 'Current Outfit' folder ({inventoryBase.GetType().Name})", Client);
+                Logger.Trace($"'{inventoryBase.Name}' found in 'Current Outfit' folder ({inventoryBase.GetType().Name})", Client);
 
                 switch (inventoryBase)
                 {
@@ -2538,7 +2544,7 @@ namespace LibreMetaverse
                                 OwnerID = attachment.OwnerID
                             };
 
-                            Logger.Debug($"Wearing attachment {attachment.UUID} ({attachment.Name})", Client);
+                            Logger.Trace($"Wearing attachment {attachment.UUID} ({attachment.Name})", Client);
 
                             blocks.Add(block);
                             break;
@@ -2558,7 +2564,7 @@ namespace LibreMetaverse
                                 OwnerID = attachmentIO.OwnerID
                             };
 
-                            Logger.Debug($"Wearing object {attachmentIO.UUID} ({attachmentIO.Name})", Client);
+                            Logger.Trace($"Wearing object {attachmentIO.UUID} ({attachmentIO.Name})", Client);
 
                             blocks.Add(block);
                             break;
@@ -2955,6 +2961,8 @@ namespace LibreMetaverse
             // Invalidate the COF UUID cache so the next lookup re-confirms the folder
             // against the inventory store (handles unlikely server-side COF reassignment).
             _cachedCofUUID = null;
+            // Reset sent-outfit tracking: the new sim has never received our attachments.
+            _lastSentOutfitCOFVersion = -1;
         }
 
         // Cancel and dispose outside the lock so we don't hold the lock during disposal.
@@ -3145,8 +3153,22 @@ namespace LibreMetaverse
                             // Re-rez attachments in the new region after a successful server bake.
                             // The SL viewer sends RezMultipleAttachmentsFromInv with FirstDetachAll=true
                             // after every region crossing once the bake is confirmed.
+                            // Guard: two appearance passes (AgentWearablesUpdate handler and
+                            // Simulator_OnCapabilitiesReceived) can race here on teleport.
+                            // _lastSentOutfitCOFVersion is reset to -1 in Network_OnSimChanged so
+                            // the first winner always sends; subsequent duplicates are dropped.
                             cancellationToken.ThrowIfCancellationRequested();
-                            await SendOutfitToCurrentSimulatorAsync(cancellationToken).ConfigureAwait(false);
+                            bool shouldSend;
+                            lock (_appearanceLock)
+                            {
+                                var v = _lastUpdateReceivedCOFVersion;
+                                shouldSend = v > _lastSentOutfitCOFVersion;
+                                if (shouldSend) _lastSentOutfitCOFVersion = v;
+                            }
+                            if (shouldSend)
+                                await SendOutfitToCurrentSimulatorAsync(cancellationToken).ConfigureAwait(false);
+                            else
+                                Logger.Debug($"Skipping duplicate outfit send (already sent for COF v{_lastSentOutfitCOFVersion})", Client);
                         }
                         else
                         {
