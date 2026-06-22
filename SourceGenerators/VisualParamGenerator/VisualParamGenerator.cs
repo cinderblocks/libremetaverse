@@ -187,7 +187,7 @@ namespace LibreMetaverse
         /// <summary>Group ID this parameter belongs to</summary>
         public int Group;
         /// <summary>Name of the wearable this parameter belongs to</summary>
-        public string Wearable;
+        public string? Wearable;
         /// <summary>Displayable label of this characteristic</summary>
         public string Label;
         /// <summary>Displayable label for the minimum value of this characteristic</summary>
@@ -207,7 +207,7 @@ namespace LibreMetaverse
         /// <summary>Color information</summary>
         public VisualColorParam? ColorParams;
         /// <summary>Array of param IDs driven by this parameter (for driver params).</summary>
-        public int[] Drivers;
+        public int[]? Drivers;
         /// <summary>Full driven-param info including piecewise-linear mapping (non-null for driver params).</summary>
         public DrivenParamInfo[]? DrivenParams;
         /// <summary>Per-bone skeletal deformations driven by this visual parameter (non-null for skeletal morph params).</summary>
@@ -230,7 +230,7 @@ namespace LibreMetaverse
         /// <param name="alpha">Alpha blending/bump info</param>
         /// <param name="colorParams">Color information</param>
         /// <param name="drivenParams">Full driven-param info for driver params</param>
-        public VisualParam(int paramID, string name, int group, string wearable, string label, string labelMin, string labelMax, float def, float min, float max, bool isBumpAttribute, int[] drivers, VisualAlphaParam? alpha, VisualColorParam? colorParams, DrivenParamInfo[]? drivenParams = null, SkeletalBoneInfo[]? skeletalDistortions = null)
+        public VisualParam(int paramID, string name, int group, string? wearable, string label, string labelMin, string labelMax, float def, float min, float max, bool isBumpAttribute, int[]? drivers, VisualAlphaParam? alpha, VisualColorParam? colorParams, DrivenParamInfo[]? drivenParams = null, SkeletalBoneInfo[]? skeletalDistortions = null)
         {
             ParamID = paramID;
             Name = name;
@@ -264,7 +264,7 @@ namespace LibreMetaverse
         /// </summary>
         public static int[] Group0ParamIds = Array.Empty<int>();
 
-        public static VisualParam Find(string name, string wearable)
+        public static VisualParam Find(string name, string? wearable)
         {
             foreach (KeyValuePair<int, VisualParam> param in Params)
                 if (param.Value.Name == name && param.Value.Wearable == wearable)

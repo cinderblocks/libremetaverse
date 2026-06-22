@@ -128,7 +128,7 @@ namespace LibreMetaverse
             byte[] b = Guid.ToByteArray();
 
             // Network-order mapping puts raw[8]..raw[15] in the last 8 bytes
-            return ((ulong)b[8]) |
+            return (ulong)b[8] |
                    ((ulong)b[9] << 8) |
                    ((ulong)b[10] << 16) |
                    ((ulong)b[11] << 24) |
