@@ -1154,7 +1154,7 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Populate FriendList <see cref="LockingDictionary{TKey,TValue}"/> with data from the login reply
+        /// Populate FriendList with data from the login reply
         /// </summary>
         /// <param name="loginSuccess">true if login was successful</param>
         /// <param name="redirect">true if login request is requiring a redirect</param>

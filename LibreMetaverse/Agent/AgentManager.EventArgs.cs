@@ -216,7 +216,7 @@ namespace LibreMetaverse
     public class AnimationsChangedEventArgs : EventArgs
     {
         public IReadOnlyDictionary<UUID, int> Animations { get; }
-        public AnimationsChangedEventArgs(LockingDictionary<UUID, int> agentAnimations) { Animations = agentAnimations; }
+        public AnimationsChangedEventArgs(IReadOnlyDictionary<UUID, int> agentAnimations) { Animations = agentAnimations; }
     }
 
     public class MeanCollisionEventArgs : EventArgs

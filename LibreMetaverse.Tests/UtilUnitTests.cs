@@ -155,30 +155,6 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        public void LockingDictionary_BasicOperations()
-        {
-            var ld = new LibreMetaverse.LockingDictionary<string, int>();
-            ((IDictionary<string,int>)ld).Add("x", 10);
-            Assert.That(ld.ContainsKey("x"), Is.True);
-
-            Assert.That(ld.TryGetValue("x", out var val), Is.True);
-            Assert.That(val, Is.EqualTo(10));
-
-            var found = ld.Find(v => v == 10);
-            Assert.That(found, Is.EqualTo(10));
-
-            var keys = ld.FindAll(k => k == "x");
-            Assert.That(keys, Is.Not.Empty);
-
-            int seen = 0;
-            ld.ForEach((int v) => { seen += v; });
-            Assert.That(seen, Is.EqualTo(10));
-
-            var copy = ld.Copy();
-            Assert.That(copy.ContainsKey("x"), Is.True);
-        }
-
-        [Test]
         public void Helpers_SplitAndFloatToTerseString()
         {
             var chunks = "abcdef".SplitBy(2);

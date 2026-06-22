@@ -43,11 +43,11 @@ namespace TestClient.Commands.Land
                 sb.AppendFormat("Downloaded {0} Parcels in {1} " + global::System.Environment.NewLine,
                     Client.Network.CurrentSim.Parcels.Count, Client.Network.CurrentSim.Name);
 
-                Client.Network.CurrentSim.Parcels.ForEach(delegate (Parcel parcel)
+                foreach (var parcel in Client.Network.CurrentSim.Parcels.Values)
                 {
                     sb.AppendFormat("Parcel[{0}]: Name: \"{1}\", Description: \"{2}\" ACLBlacklist Count: {3}, ACLWhiteList Count: {5} Traffic: {4}" + global::System.Environment.NewLine,
                         parcel.LocalID, parcel.Name, parcel.Desc, parcel.AccessBlackList.Count, parcel.Dwell, parcel.AccessWhiteList.Count);
-                });
+                }
 
                 result = sb.ToString();
             }

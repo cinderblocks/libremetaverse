@@ -173,7 +173,7 @@ namespace LibreMetaverse
             p.Data[0] = b;
 
             Client.Network.SendPacket(p);
-            ActiveGestures.Remove(invID);
+            ActiveGestures.TryRemove(invID, out _);
         }
     }
 }

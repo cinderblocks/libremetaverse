@@ -201,13 +201,13 @@ namespace LibreMetaverse
         internal AssetManager.AssetReceivedCallback? Callback;
 
         public int nextPacket;
-        public LockingDictionary<int, byte[]> outOfOrderPackets;
+        public ConcurrentDictionary<int, byte[]> outOfOrderPackets;
         internal TaskCompletionSource<bool> HeaderReceivedTcs;
 
         public AssetDownload()
         {
             nextPacket = 0;
-            outOfOrderPackets = new LockingDictionary<int, byte[]>();
+            outOfOrderPackets = new ConcurrentDictionary<int, byte[]>();
             HeaderReceivedTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         }
     }

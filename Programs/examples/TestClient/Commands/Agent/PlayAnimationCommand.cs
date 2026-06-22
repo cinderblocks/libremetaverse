@@ -53,7 +53,8 @@ namespace TestClient.Commands.Agent
             }
             else if (arg.ToLower().Equals("show"))
             {
-                Client.Self.SignaledAnimations.ForEach(delegate(KeyValuePair<UUID, int> kvp) {
+                foreach (var kvp in Client.Self.SignaledAnimations)
+                {
                     if (m_BuiltInAnimations.TryGetValue(kvp.Key, out var animation))
                     {
                         result.AppendFormat("The {0} System Animation is being played, sequence is {1}", animation, kvp.Value);
@@ -62,7 +63,7 @@ namespace TestClient.Commands.Agent
                     {
                         result.AppendFormat("The {0} Asset Animation is being played, sequence is {1}", kvp.Key, kvp.Value);
                     }
-                });
+                }
             }
             else if (m_BuiltInAnimations.ContainsValue(args[0].Trim().ToUpper()))
             {

@@ -466,7 +466,7 @@ namespace LibreMetaverse
         /// Provides access to an internal thread-safe dictionary containing parcel
         /// information found in this simulator
         /// </summary>
-        public LockingDictionary<int, Parcel> Parcels
+        public ConcurrentDictionary<int, Parcel> Parcels
         {
             get
             {
@@ -475,10 +475,10 @@ namespace LibreMetaverse
                     var poolParcels = DataPool?.Parcels;
                     if (poolParcels != null) return poolParcels;
                 }
-                return _Parcels ?? (_Parcels = new LockingDictionary<int, Parcel>());
+                return _Parcels ?? (_Parcels = new ConcurrentDictionary<int, Parcel>());
             }
         }
-        private LockingDictionary<int, Parcel>? _Parcels;
+        private ConcurrentDictionary<int, Parcel>? _Parcels;
 
         /// <summary>
         /// Provides access to an internal thread-safe multidimensional array containing a x,y grid mapped
@@ -1840,7 +1840,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Shared parcel info only when POOL_PARCEL_DATA == true
         /// </summary>
-        public LockingDictionary<int, Parcel> Parcels = new LockingDictionary<int, Parcel>();
+        public ConcurrentDictionary<int, Parcel> Parcels = new ConcurrentDictionary<int, Parcel>();
         public int[,] ParcelMap = new int[64, 64];
         public bool DownloadingParcelMap = false;
 

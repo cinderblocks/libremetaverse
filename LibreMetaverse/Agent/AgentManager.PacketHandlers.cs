@@ -31,6 +31,7 @@ using LibreMetaverse.Packets;
 using LibreMetaverse.StructuredData;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -141,11 +142,7 @@ namespace LibreMetaverse
 
                 if (IsGroupMessage(message))
                 {
-                    lock (GroupChatSessions.Dictionary)
-                    {
-                        if (!GroupChatSessions.ContainsKey(message.IMSessionID))
-                            GroupChatSessions.Add(message.IMSessionID, new List<ChatSessionMember>());
-                    }
+                    GroupChatSessions.TryAdd(message.IMSessionID, new List<ChatSessionMember>());
                 }
 
                 OnInstantMessage(new InstantMessageEventArgs(message, simulator));
@@ -529,10 +526,9 @@ namespace LibreMetaverse
 
             if (animation.Sender.ID == Client.Self.AgentID)
             {
-                lock (SignaledAnimations.Dictionary)
                 {
                     // Reset the signaled animation list
-                    SignaledAnimations.Dictionary.Clear();
+                    SignaledAnimations.Clear();
 
                     for (int i = 0; i < animation.AnimationList.Length; i++)
                     {
@@ -540,7 +536,7 @@ namespace LibreMetaverse
                         int sequenceID = animation.AnimationList[i].AnimSequenceID;
 
                         // Add this animation to the list of currently signaled animations
-                        SignaledAnimations.Dictionary[animID] = sequenceID;
+                        SignaledAnimations[animID] = sequenceID;
 
                         if (i < animation.AnimationSourceList.Length)
                         {
@@ -739,9 +735,8 @@ namespace LibreMetaverse
                     {
                         muteList = Utils.BytesToString(assetData ?? Utils.EmptyBytes);
 
-                        lock (MuteList.Dictionary)
                         {
-                            MuteList.Dictionary.Clear();
+                            MuteList.Clear();
                             foreach (var line in muteList.Split('\n'))
                             {
                                 if (line.Trim() == string.Empty) continue;
@@ -793,11 +788,8 @@ namespace LibreMetaverse
             if (message.GroupIM)
                 return true;
 
-            lock (GroupChatSessions.Dictionary)
-            {
-                if (GroupChatSessions.ContainsKey(message.IMSessionID))
-                    return true;
-            }
+            if (GroupChatSessions.ContainsKey(message.IMSessionID))
+                return true;
 
             return false;
         }
@@ -859,11 +851,7 @@ namespace LibreMetaverse
 
                         if (message.GroupIM)
                         {
-                            lock (GroupChatSessions.Dictionary)
-                            {
-                                if (!GroupChatSessions.ContainsKey(message.IMSessionID))
-                                    GroupChatSessions.Add(message.IMSessionID, new List<ChatSessionMember>());
-                            }
+                            GroupChatSessions.TryAdd(message.IMSessionID, new List<ChatSessionMember>());
                         }
                         
                         OnInstantMessage(new InstantMessageEventArgs(message, null));
@@ -1023,7 +1011,7 @@ namespace LibreMetaverse
             {
                 foreach (var gesture in reply.Gestures)
                 {
-                    ActiveGestures.Add(gesture.Key, gesture.Value);
+                    ActiveGestures[gesture.Key] = gesture.Value;
                 }
             }
         }
@@ -1089,11 +1077,7 @@ namespace LibreMetaverse
 
             if (msg.Success)
             {
-                lock (GroupChatSessions.Dictionary)
-                {
-                    if (!GroupChatSessions.ContainsKey(msg.SessionID))
-                        GroupChatSessions.Add(msg.SessionID, new List<ChatSessionMember>());
-                }
+                GroupChatSessions.TryAdd(msg.SessionID, new List<ChatSessionMember>());
             }
 
             OnGroupChatJoined(new GroupChatJoinedEventArgs(msg.SessionID, msg.SessionName, msg.TempSessionID, msg.Success));
@@ -1109,18 +1093,14 @@ namespace LibreMetaverse
         {
             ChatterBoxSessionAgentListUpdatesMessage msg = (ChatterBoxSessionAgentListUpdatesMessage)message;
 
-            lock (GroupChatSessions.Dictionary)
-            {
-                if (!GroupChatSessions.ContainsKey(msg.SessionID))
-                    GroupChatSessions.Add(msg.SessionID, new List<ChatSessionMember>());
-            }
+            var sessionMembers = GroupChatSessions.GetOrAdd(msg.SessionID, _ => new List<ChatSessionMember>());
 
             foreach (ChatterBoxSessionAgentListUpdatesMessage.AgentUpdatesBlock t in msg.Updates)
             {
                 ChatSessionMember fndMbr;
-                lock (GroupChatSessions.Dictionary)
+                lock (sessionMembers)
                 {
-                    fndMbr = GroupChatSessions[msg.SessionID].Find(member => member.AvatarKey == t.AgentID);
+                    fndMbr = sessionMembers.Find(member => member.AvatarKey == t.AgentID);
                 }
 
                 if (t.Transition != null)
@@ -1131,8 +1111,8 @@ namespace LibreMetaverse
                         {
                             fndMbr = new ChatSessionMember {AvatarKey = t.AgentID};
 
-                            lock (GroupChatSessions.Dictionary)
-                                GroupChatSessions[msg.SessionID].Add(fndMbr);
+                            lock (sessionMembers)
+                                sessionMembers.Add(fndMbr);
 
                             if (m_ChatSessionMemberAdded != null)
                             {
@@ -1144,8 +1124,8 @@ namespace LibreMetaverse
                     {
                         if (fndMbr.AvatarKey != UUID.Zero)
                         {
-                            lock (GroupChatSessions.Dictionary)
-                                GroupChatSessions[msg.SessionID].Remove(fndMbr);
+                            lock (sessionMembers)
+                                sessionMembers.Remove(fndMbr);
                         }
 
                         if (m_ChatSessionMemberLeft != null)
@@ -1156,9 +1136,11 @@ namespace LibreMetaverse
                 }
 
                 // handle updates
-                ChatSessionMember update_member = GroupChatSessions.Dictionary[msg.SessionID].Find(
-                    m => m.AvatarKey == t.AgentID);
-
+                ChatSessionMember update_member;
+                lock (sessionMembers)
+                {
+                    update_member = sessionMembers.Find(m => m.AvatarKey == t.AgentID);
+                }
 
                 update_member.MuteText = t.MuteText;
                 update_member.MuteVoice = t.MuteVoice;
@@ -1167,12 +1149,12 @@ namespace LibreMetaverse
                 update_member.IsModerator = t.IsModerator;
 
                 // replace existing member record
-                lock (GroupChatSessions.Dictionary)
+                lock (sessionMembers)
                 {
-                    int found = GroupChatSessions.Dictionary[msg.SessionID].FindIndex(m => m.AvatarKey == t.AgentID);
+                    int found = sessionMembers.FindIndex(m => m.AvatarKey == t.AgentID);
 
                     if (found >= 0)
-                        GroupChatSessions.Dictionary[msg.SessionID][found] = update_member;
+                        sessionMembers[found] = update_member;
                 }
             }
         }
@@ -1209,13 +1191,7 @@ namespace LibreMetaverse
                 BinaryBucket = msg.BinaryBucket
             };
 
-            lock (GroupChatSessions.Dictionary)
-            {
-                if (!GroupChatSessions.ContainsKey(msg.IMSessionID))
-                {
-                    GroupChatSessions.Add(msg.IMSessionID, new List<ChatSessionMember>());
-                }
-            }
+            GroupChatSessions.TryAdd(msg.IMSessionID, new List<ChatSessionMember>());
 
             try
             {

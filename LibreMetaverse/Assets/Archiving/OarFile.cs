@@ -373,11 +373,11 @@ namespace LibreMetaverse.Assets
 
             Directory.CreateDirectory(parcelPath);
 
-            sim.Parcels.ForEach(parcel =>
-                {
-                    UUID globalID = UUID.Random();
-                    SerializeParcel(parcel, globalID, Path.Combine(parcelPath, globalID + ".xml"));
-                });
+            foreach (var parcel in sim.Parcels.Values)
+            {
+                UUID globalID = UUID.Random();
+                SerializeParcel(parcel, globalID, Path.Combine(parcelPath, globalID + ".xml"));
+            }
         }
 
         private static void SerializeParcel(Parcel parcel, UUID globalID, string filename)

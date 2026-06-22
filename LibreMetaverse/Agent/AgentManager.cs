@@ -28,6 +28,7 @@
 using System;
 using System.Threading;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using LibreMetaverse.StructuredData;
@@ -671,12 +672,12 @@ namespace LibreMetaverse
         /// <summary>Currently playing animations for the agent. Can be used to
         /// check the current movement status such as walking, hovering, aiming,
         /// etc. by checking against system animations found in the Animations class</summary>
-        public LockingDictionary<UUID, int> SignaledAnimations = new LockingDictionary<UUID, int>();
+        public ConcurrentDictionary<UUID, int> SignaledAnimations = new ConcurrentDictionary<UUID, int>();
         /// <summary>Dictionary containing current Group Chat sessions and members</summary>
-        public LockingDictionary<UUID, List<ChatSessionMember>> GroupChatSessions = new LockingDictionary<UUID, List<ChatSessionMember>>();
+        public ConcurrentDictionary<UUID, List<ChatSessionMember>> GroupChatSessions = new ConcurrentDictionary<UUID, List<ChatSessionMember>>();
         /// <summary>Dictionary containing mute list keyed on mute name and key</summary>
-        public LockingDictionary<string, MuteEntry> MuteList = new LockingDictionary<string, MuteEntry>();
-        public LockingDictionary<UUID, UUID> ActiveGestures { get; } = new LockingDictionary<UUID, UUID>();
+        public ConcurrentDictionary<string, MuteEntry> MuteList = new ConcurrentDictionary<string, MuteEntry>();
+        public ConcurrentDictionary<UUID, UUID> ActiveGestures { get; } = new ConcurrentDictionary<UUID, UUID>();
 
         #region Properties
 
@@ -1574,10 +1575,7 @@ namespace LibreMetaverse
                 Name = name,
                 Flags = flags
             };
-            lock (MuteList.Dictionary)
-            {
-                MuteList[$"{me.ID}|{me.Name}"] = me;
-            }
+            MuteList[$"{me.ID}|{me.Name}"] = me;
             OnMuteListUpdated(EventArgs.Empty);
 
         }
@@ -1609,10 +1607,7 @@ namespace LibreMetaverse
             string listKey = $"{id}|{name}";
             if (MuteList.ContainsKey(listKey))
             {
-                lock (MuteList.Dictionary)
-                {
-                    MuteList.Remove(listKey);
-                }
+                MuteList.TryRemove(listKey, out _);
                 OnMuteListUpdated(EventArgs.Empty);
             }
         }
@@ -2629,10 +2624,10 @@ namespace LibreMetaverse
                     try { Client.Network.UnregisterCallback(PacketType.MuteListUpdate, MuteListUpdateHandler); } catch { }
 
                     // Clear local collections
-                    try { GroupChatSessions.Dictionary.Clear(); } catch { }
-                    try { MuteList.Dictionary.Clear(); } catch { }
-                    try { ActiveGestures.Dictionary.Clear(); } catch { }
-                    try { SignaledAnimations.Dictionary.Clear(); } catch { }
+                    try { GroupChatSessions.Clear(); } catch { }
+                    try { MuteList.Clear(); } catch { }
+                    try { ActiveGestures.Clear(); } catch { }
+                    try { SignaledAnimations.Clear(); } catch { }
                     // Clear multi-sim tracking data
                     try { _simulatorStates.Clear(); } catch { }
                     try { _childAgentStatus.Clear(); } catch { }

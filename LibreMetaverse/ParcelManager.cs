@@ -28,6 +28,7 @@
 using System;
 using System.Threading;
 using System.Reflection;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using LibreMetaverse.Packets;
@@ -1902,11 +1903,8 @@ namespace LibreMetaverse
             var dwell = (ParcelDwellReplyPacket)e.Packet;
             var simulator = e.Simulator;
 
-            lock (simulator.Parcels.Dictionary)
-            {
-                if (simulator.Parcels.Dictionary.TryGetValue(dwell.Data.LocalID, out var parcel))
-                    parcel.Dwell = dwell.Data.Dwell;
-            }
+            if (simulator.Parcels.TryGetValue(dwell.Data.LocalID, out var parcel))
+                parcel.Dwell = dwell.Data.Dwell;
 
             if (m_DwellReply != null)
                 OnParcelDwellReply(
@@ -2022,8 +2020,7 @@ namespace LibreMetaverse
 
             if (Client.Settings.Parcel.TrackParcels)
             {
-                lock (simulator.Parcels.Dictionary)
-                    simulator.Parcels.Dictionary[parcel.LocalID] = parcel;
+                simulator.Parcels[parcel.LocalID] = parcel;
 
                 var set = false;
                 for (var y = 0; y < PARCEL_MAP_SIZE; y++)
@@ -2109,15 +2106,12 @@ namespace LibreMetaverse
                 accessList.Add(pae);
             }
 
-            lock (simulator.Parcels.Dictionary)
+            if (simulator.Parcels.TryGetValue(reply.Data.LocalID, out var parcel))
             {
-                if (simulator.Parcels.Dictionary.TryGetValue(reply.Data.LocalID, out var parcel))
-                {
-                    if ((AccessList)reply.Data.Flags == AccessList.Ban)
-                        parcel.AccessBlackList = accessList;
-                    else
-                        parcel.AccessWhiteList = accessList;
-                }
+                if ((AccessList)reply.Data.Flags == AccessList.Ban)
+                    parcel.AccessBlackList = accessList;
+                else
+                    parcel.AccessWhiteList = accessList;
             }
             
             if (m_ParcelACL != null)
@@ -2492,7 +2486,7 @@ namespace LibreMetaverse
         public Simulator Simulator { get; }
 
         /// <summary>A dictionary containing the parcel data where the key correlates to the ParcelMap entry</summary>
-        public LockingDictionary<int, Parcel> Parcels { get; }
+        public ConcurrentDictionary<int, Parcel> Parcels { get; }
 
         /// <summary>Get the multidimensional array containing an x,y grid mapped
         /// to each 64x64 parcel's LocalID.</summary>
@@ -2505,7 +2499,7 @@ namespace LibreMetaverse
         /// <param name="simParcels">The dictionary containing the parcel data</param>
         /// <param name="parcelMap">The multidimensional array containing a x,y grid mapped
         /// to each 64x64 parcel's LocalID.</param>
-        public SimParcelsDownloadedEventArgs(Simulator simulator, LockingDictionary<int, Parcel> simParcels, int[,] parcelMap)
+        public SimParcelsDownloadedEventArgs(Simulator simulator, ConcurrentDictionary<int, Parcel> simParcels, int[,] parcelMap)
         {
             Simulator = simulator;
             Parcels = simParcels;

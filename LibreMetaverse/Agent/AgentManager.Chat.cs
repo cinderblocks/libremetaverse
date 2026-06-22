@@ -308,41 +308,38 @@ namespace LibreMetaverse
         /// <param name="message">Message text to send</param>
         public void InstantMessageGroup(string fromName, UUID groupID, string message)
         {
-            lock (GroupChatSessions.Dictionary)
+            if (!GroupChatSessions.ContainsKey(groupID))
             {
-                if (!GroupChatSessions.ContainsKey(groupID))
-                {
-                    Logger.Error("No Active group chat session appears to exist, use RequestJoinGroupChat() to join one", Client);
-                    return;
-                }
+                Logger.Error("No Active group chat session appears to exist, use RequestJoinGroupChat() to join one", Client);
+                return;
+            }
 
-                var messageChunks = SplitMultibyteString(message, MaxChatMessageSize);
-                foreach (var messageChunk in messageChunks)
+            var messageChunks = SplitMultibyteString(message, MaxChatMessageSize);
+            foreach (var messageChunk in messageChunks)
+            {
+                ImprovedInstantMessagePacket im = new ImprovedInstantMessagePacket
                 {
-                    ImprovedInstantMessagePacket im = new ImprovedInstantMessagePacket
+                    AgentData =
                     {
-                        AgentData =
-                        {
-                            AgentID = Client.Self.AgentID,
-                            SessionID = Client.Self.SessionID
-                        },
-                        MessageBlock =
-                        {
-                            Dialog = (byte) InstantMessageDialog.SessionSend,
-                            FromAgentName = Utils.StringToBytes(fromName),
-                            FromGroup = false,
-                            Message = Utils.StringToBytes(messageChunk),
-                            Offline = 0,
-                            ID = groupID,
-                            ToAgentID = groupID,
-                            Position = Vector3.Zero,
-                            RegionID = UUID.Zero,
-                            BinaryBucket = Utils.StringToBytes("\0")
-                        }
-                    };
+                        AgentID = Client.Self.AgentID,
+                        SessionID = Client.Self.SessionID
+                    },
+                    MessageBlock =
+                    {
+                        Dialog = (byte) InstantMessageDialog.SessionSend,
+                        FromAgentName = Utils.StringToBytes(fromName),
+                        FromGroup = false,
+                        Message = Utils.StringToBytes(messageChunk),
+                        Offline = 0,
+                        ID = groupID,
+                        ToAgentID = groupID,
+                        Position = Vector3.Zero,
+                        RegionID = UUID.Zero,
+                        BinaryBucket = Utils.StringToBytes("\0")
+                    }
+                };
 
-                    Client.Network.SendPacket(im);
-                }
+                Client.Network.SendPacket(im);
             }
         }
 
@@ -404,11 +401,7 @@ namespace LibreMetaverse
 
             Client.Network.SendPacket(im);
 
-            lock (GroupChatSessions.Dictionary)
-            {
-                if (GroupChatSessions.ContainsKey(groupID))
-                    GroupChatSessions.Remove(groupID);
-            }
+            GroupChatSessions.TryRemove(groupID, out _);
         }
 
         /// <summary>Reply to an in-world script dialog by selecting one of its buttons</summary>
