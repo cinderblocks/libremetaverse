@@ -3,6 +3,7 @@
 Quick examples for common tasks with LibreMetaverse.
 
 ## Table of Contents
+- [Dependency Injection](#dependency-injection)
 - [Connection & Login](#connection--login)
 - [Object Inspection](#object-inspection)
 - [Avatar Control](#avatar-control)
@@ -11,6 +12,51 @@ Quick examples for common tasks with LibreMetaverse.
 - [Textures & Assets](#textures--assets)
 - [OSD Serialization](#osd-serialization)
 - [Voice (WebRTC)](#voice-webrtc)
+
+## Dependency Injection
+
+`GridClient` implements `IGridClient` and can be registered as a singleton in any `IServiceCollection`-based container (ASP.NET Core, .NET Generic Host, etc.).
+
+### Register and inject
+
+```csharp
+// Program.cs / Startup.cs
+builder.Services.AddGridClient(settings =>
+{
+    settings.UserAgent = "MyBot/1.0";
+    settings.Timing.LoginTimeout = 30_000;
+});
+
+// Consumer — inject IGridClient (or GridClient directly, both resolve to the same singleton)
+public class BotService(IGridClient client)
+{
+    public async Task RunAsync()
+    {
+        var loginParams = client.Network.DefaultLoginParams(
+            "FirstName", "LastName", "password", "MyBot", "1.0");
+        await client.Network.LoginAsync(loginParams);
+    }
+}
+```
+
+### Manual construction (no DI container)
+
+```csharp
+// Works exactly as before
+var client = new GridClient();
+```
+
+### Testing with FakeGridClient
+
+`FakeGridClient` extends `GridClient` (which implements `IGridClient`), so it works wherever `IGridClient` is accepted:
+
+```csharp
+IGridClient client = new FakeGridClient();
+client.AddHttpResponse(capsUri, HttpStatusCode.OK, responseBody);
+// pass client to the code under test
+```
+
+---
 
 ## Connection & Login
 

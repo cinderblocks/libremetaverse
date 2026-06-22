@@ -75,59 +75,59 @@ namespace LibreMetaverse
     /// }
     /// </code>
     /// </example>
-    public partial class GridClient : IDisposable
+    public partial class GridClient : IGridClient
 #if NET8_0_OR_GREATER
         , IAsyncDisposable
 #endif
     {
         /// <summary>Networking subsystem</summary>
-        public NetworkManager Network;
+        public NetworkManager Network { get; private set; }
         /// <summary>Settings class including constant values and changeable
         /// parameters for everything</summary>
-        public Settings Settings;
+        public Settings Settings { get; private set; }
         /// <summary>Parcel (subdivided simulator lots) subsystem</summary>
-        public ParcelManager Parcels;
+        public ParcelManager Parcels { get; private set; }
         /// <summary>Our own avatars subsystem</summary>
-        public AgentManager Self;
+        public AgentManager Self { get; private set; }
         /// <summary>Other avatars subsystem</summary>
-        public AvatarManager Avatars;
+        public AvatarManager Avatars { get; private set; }
         /// <summary>Estate subsystem</summary>
-        public EstateTools Estate;
+        public EstateTools Estate { get; private set; }
         /// <summary>Friends list subsystem</summary>
-        public FriendsManager Friends;
+        public FriendsManager Friends { get; private set; }
         /// <summary>Grid (aka simulator group) subsystem</summary>
-        public GridManager Grid;
+        public GridManager Grid { get; private set; }
         /// <summary>Object subsystem</summary>
-        public ObjectManager Objects;
+        public ObjectManager Objects { get; private set; }
         /// <summary>Group subsystem</summary>
-        public GroupManager Groups;
+        public GroupManager Groups { get; private set; }
         /// <summary>Asset subsystem</summary>
-        public AssetManager Assets;
+        public AssetManager Assets { get; private set; }
         /// <summary>Inventory AIS client</summary>
-        public InventoryAISClient AisClient;
+        public InventoryAISClient AisClient { get; private set; }
         /// <summary>Appearance subsystem</summary>
-        public AppearanceManager Appearance;
+        public AppearanceManager Appearance { get; private set; }
         /// <summary>Inventory subsystem</summary>
-        public InventoryManager Inventory;
+        public InventoryManager Inventory { get; private set; }
         /// <summary>Directory searches including classifieds, people, land sales, etc</summary>
-        public DirectoryManager Directory;
+        public DirectoryManager Directory { get; private set; }
         /// <summary>Handles land, wind, and cloud height maps</summary>
-        public TerrainManager Terrain;
+        public TerrainManager Terrain { get; private set; }
         /// <summary>Handles sound-related networking</summary>
-        public SoundManager Sound;
+        public SoundManager Sound { get; private set; }
         /// <summary>Throttling total bandwidth usage, or allocating bandwidth
         /// for specific data stream types</summary>
-        public AgentThrottle Throttle;
+        public AgentThrottle Throttle { get; private set; }
         /// <summary>Utilization statistics, obviously</summary>
-        public Stats.UtilizationStatistics Stats;
+        public Stats.UtilizationStatistics Stats { get; private set; }
         /// <summary>HttpClient chiefly used for Caps</summary>
-        public HttpCapsClient HttpCapsClient;
+        public HttpCapsClient HttpCapsClient { get; set; }
         /// <summary>Second Life Marketplace subsystem</summary>
-        public Marketplace.MarketplaceManager Marketplace;
+        public Marketplace.MarketplaceManager Marketplace { get; private set; }
         /// <summary>EEP (Extended Environment Protocol) and legacy WindLight environment subsystem</summary>
-        public EnvironmentManager Environment;
+        public EnvironmentManager Environment { get; private set; }
         /// <summary>Interest list mode subsystem (controls simulator object update culling)</summary>
-        public InterestListManager InterestList;
+        public InterestListManager InterestList { get; private set; }
 
         /// <summary>
         /// Time provider used for all time-dependent operations (throttling, timeouts, retry back-off).

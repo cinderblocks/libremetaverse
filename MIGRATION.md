@@ -498,6 +498,48 @@ new CoarseLocationUpdateEventArgs(sim, positions, newEntries, removedEntries)
 
 ---
 
+## 12. `GridClient` manager fields are now properties
+
+All manager references on `GridClient` (`Network`, `Settings`, `Inventory`, etc.) are now `{ get; private set; }` auto-properties instead of plain public fields. `HttpCapsClient` is the exception and remains `{ get; set; }` to allow subclass swapping (as used by `FakeGridClient`).
+
+**Read access is source-compatible** — `client.Network`, `client.Inventory`, and all other managers are accessed with identical syntax. The only code that will fail to compile is the rare case of taking a `ref` or `out` of a manager field:
+
+```csharp
+// Will not compile after 3.0 — cannot take a ref to a property
+ref var net = ref client.Network;
+```
+
+### New: `IGridClient` interface
+
+All subsystems are now declared on the `IGridClient` interface. Accepting `IGridClient` instead of the concrete `GridClient` in consumer code enables testing and DI without any loss of functionality:
+
+```csharp
+// Before
+public class MyBot(GridClient client) { ... }
+
+// After — accept the interface; concrete GridClient still works too
+public class MyBot(IGridClient client) { ... }
+```
+
+`FakeGridClient` (included in the test helpers) extends `GridClient`, which implements `IGridClient`, so existing test code requires no changes.
+
+### New: dependency injection extension
+
+A `services.AddGridClient()` extension is now included in the main library:
+
+```csharp
+// Register with ASP.NET Core / generic host
+builder.Services.AddGridClient(settings =>
+{
+    settings.UserAgent = "MyBot/1.0";
+});
+
+// Both IGridClient and GridClient resolve to the same singleton
+public class MyBot(IGridClient client) { ... }
+```
+
+---
+
 ## Quick checklist
 
 - [ ] Update all `using OpenMetaverse` → `using LibreMetaverse`
@@ -516,3 +558,5 @@ new CoarseLocationUpdateEventArgs(sim, positions, newEntries, removedEntries)
 - [ ] Audit Vector3/Quaternion mutation calls (`.Normalize()` etc.) and update to static value-returning forms
 - [ ] Replace `LibreMetaverse.Rendering.Meshmerizer` NuGet reference with `LibreMetaverse.Rendering.MeshFoundry`
 - [ ] Remove any use of `AsyncHelper.Sync`, `FindObjectByPath`, `GetInventoryRecursive`
+- [ ] Rewrite any `ref client.<Manager>` expressions — manager fields are now properties and cannot be passed by `ref`
+- [ ] Optionally update constructor parameters from `GridClient` to `IGridClient` to take advantage of the new interface
