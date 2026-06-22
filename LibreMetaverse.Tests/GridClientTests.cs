@@ -26,6 +26,7 @@
 
 using NUnit.Framework;
 using System;
+using System.Threading.Tasks;
 using LibreMetaverse;
 
 namespace LibreMetaverse.Tests
@@ -88,14 +89,15 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        public void GetGridRegion()
+        public async Task GetGridRegion()
         {
-            if (!Client.Grid.GetGridRegion("Hippo Hollow", GridLayerType.Terrain, out var region))
+            var region = await Client.Grid.GetGridRegionAsync("Hippo Hollow", GridLayerType.Terrain);
+            if (region == null)
             {
                 Assert.Warn("Grid region 'Hippo Hollow' not found; skipping assertion");
                 return;
             }
-            Assert.That(region.Name, Is.EqualTo("hippo hollow").IgnoreCase);
+            Assert.That(region.Value.Name, Is.EqualTo("hippo hollow").IgnoreCase);
         }
     }
 }

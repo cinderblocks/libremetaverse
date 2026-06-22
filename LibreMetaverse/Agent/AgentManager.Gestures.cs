@@ -40,17 +40,21 @@ namespace LibreMetaverse
         /// Plays a gesture
         /// </summary>
         /// <param name="gestureID">Asset <see cref="UUID"/> of the gesture</param>
-        public void PlayGesture(UUID gestureID)
+        /// <param name="cancellationToken">Cancellation token</param>
+        public Task PlayGestureAsync(UUID gestureID, CancellationToken cancellationToken = default)
         {
-            _ = Task.Run(async () =>
+            return Task.Run(async () =>
             {
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                cts.CancelAfter(TimeSpan.FromSeconds(30));
+
                 var asset = await Client.Assets.RequestAssetAsync(gestureID, AssetType.Gesture, true, cts.Token)
                     .ConfigureAwait(false);
 
                 if (!(asset is AssetGesture gesture) || !gesture.Decode()) return;
                 foreach (GestureStep step in gesture.Sequence)
                 {
+                    cts.Token.ThrowIfCancellationRequested();
                     switch (step.GestureStepType)
                     {
                         case GestureStepType.Chat:
@@ -97,7 +101,7 @@ namespace LibreMetaverse
                             GestureStepWait wait = (GestureStepWait) step;
                             if (wait.WaitForTime)
                             {
-                                Thread.Sleep((int) (1000f * wait.WaitTime));
+                                await Task.Delay((int)(1000f * wait.WaitTime), cts.Token).ConfigureAwait(false);
                             }
                             if (wait.WaitForAnimation)
                             {
@@ -107,7 +111,7 @@ namespace LibreMetaverse
                             break;
                     }
                 }
-            });
+            }, cancellationToken);
         }
 
         /// <summary>

@@ -516,7 +516,6 @@ namespace LibreMetaverse
             if (finished)
             {
                 _teleportTcs?.TrySetResult(teleportStatus == TeleportStatus.Finished);
-                teleportEvent.Set();
             }
         }
 

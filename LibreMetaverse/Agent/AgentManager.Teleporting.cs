@@ -55,7 +55,6 @@ namespace LibreMetaverse
             }
 
             teleportStatus = TeleportStatus.None;
-            teleportEvent.Reset();
 
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             _teleportTcs = tcs;
@@ -111,7 +110,6 @@ namespace LibreMetaverse
             }
 
             teleportStatus = TeleportStatus.None;
-            teleportEvent.Reset();
 
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             _teleportTcs = tcs;
@@ -252,7 +250,6 @@ namespace LibreMetaverse
                 TeleportMessage = "CAPS event queue is not running";
                 teleportStatus = TeleportStatus.Failed;
                 _teleportTcs?.TrySetResult(false);
-                teleportEvent.Set();
             }
         }
 
