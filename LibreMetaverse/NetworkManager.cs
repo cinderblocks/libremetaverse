@@ -295,6 +295,30 @@ namespace LibreMetaverse
             remove { lock (m_EventQueueRunningLock) { m_EventQueueRunning -= value; } }
         }
 
+        private EventHandler<GenericStreamingMessageEventArgs>? m_GenericStreamingMessage;
+
+        ///<summary>Raises the GenericStreamingMessage Event</summary>
+        /// <param name="e">A GenericStreamingMessageEventArgs object containing the data sent from the simulator</param>
+        protected virtual void OnGenericStreamingMessage(GenericStreamingMessageEventArgs e)
+        {
+            EventHandler<GenericStreamingMessageEventArgs>? handler = m_GenericStreamingMessage;
+            handler?.Invoke(this, e);
+        }
+
+        /// <summary>Thread sync lock object</summary>
+        private readonly object m_GenericStreamingMessageLock = new object();
+
+        /// <summary>Raised when the simulator sends a GenericStreamingMessage packet.
+        /// Currently used for GLTF PBR material override data
+        /// (<see cref="GenericStreamingMethod.GltfMaterialOverride"/>); future simulator
+        /// versions may introduce additional method IDs.
+        /// Corresponds to process_generic_streaming_message in the SL C++ viewer.</summary>
+        public event EventHandler<GenericStreamingMessageEventArgs> GenericStreamingMessage
+        {
+            add { lock (m_GenericStreamingMessageLock) { m_GenericStreamingMessage += value; } }
+            remove { lock (m_GenericStreamingMessageLock) { m_GenericStreamingMessage -= value; } }
+        }
+
         #endregion Delegates
 
         #region Properties
@@ -373,15 +397,25 @@ namespace LibreMetaverse
             RegisterCallback(PacketType.CompletePingCheck, CompletePingCheckHandler, false);
             RegisterCallback(PacketType.SimStats, SimStatsHandler, false);
             RegisterCallback(PacketType.GenericMessage, GenericMessageHandler);
+            RegisterCallback(PacketType.GenericStreamingMessage, GenericStreamingMessageHandler);
         }
 
         private void GenericMessageHandler(object? sender, PacketReceivedEventArgs e)
         {
-            if (!(e.Packet is GenericMessagePacket message)) 
+            if (!(e.Packet is GenericMessagePacket message))
                 return;
-            
+
             var method = Utils.BytesToString(message.MethodData.Method);
             Logger.Info("Received Unhandled Generic Message: " + method, Client);
+        }
+
+        private void GenericStreamingMessageHandler(object? sender, PacketReceivedEventArgs e)
+        {
+            if (!(e.Packet is GenericStreamingMessagePacket packet)) return;
+            OnGenericStreamingMessage(new GenericStreamingMessageEventArgs(
+                e.Simulator,
+                (GenericStreamingMethod)packet.MethodData.Method,
+                packet.DataBlock.Data));
         }
 
         /// <summary>
@@ -1585,6 +1619,56 @@ namespace LibreMetaverse
             Simulator = simulator;
         }
     }
+
+    /// <summary>
+    /// Identifies the payload type carried in a GenericStreamingMessage UDP packet.
+    /// Corresponds to LLGenericStreamingMessage::Method in llgenericstreamingmessage.h
+    /// (shared viewer/sim header).
+    /// </summary>
+    public enum GenericStreamingMethod : ushort
+    {
+        /// <summary>
+        /// GLTF PBR material override data for a set of object faces.
+        /// Payload is LLSD notation text keyed by object local ID.
+        /// Corresponds to METHOD_GLTF_MATERIAL_OVERRIDE (0x4175).
+        /// </summary>
+        GltfMaterialOverride = 0x4175,
+
+        /// <summary>
+        /// Sentinel value mirroring METHOD_UNKNOWN (0xFFFF) in the SL C++ sources.
+        /// Will not arrive over the wire; present so switch statements have an
+        /// explicit unknown case.
+        /// </summary>
+        Unknown = 0xFFFF,
+    }
+
+    /// <summary>Provides data for the <see cref="NetworkManager.GenericStreamingMessage"/> event</summary>
+    public class GenericStreamingMessageEventArgs : EventArgs
+    {
+        /// <summary>Get the simulator the packet originated from</summary>
+        public Simulator Simulator { get; }
+
+        /// <summary>
+        /// Get the method identifier that describes how to interpret <see cref="Data"/>.
+        /// Known values are defined in <see cref="GenericStreamingMethod"/>.
+        /// Unrecognised values may appear in future simulator versions.
+        /// </summary>
+        public GenericStreamingMethod Method { get; }
+
+        /// <summary>Get the raw payload bytes. Interpretation depends on <see cref="Method"/>.</summary>
+        public byte[] Data { get; }
+
+        /// <param name="simulator">The simulator the packet originated from</param>
+        /// <param name="method">The method identifier</param>
+        /// <param name="data">The raw payload bytes</param>
+        public GenericStreamingMessageEventArgs(Simulator simulator, GenericStreamingMethod method, byte[] data)
+        {
+            Simulator = simulator;
+            Method = method;
+            Data = data;
+        }
+    }
+
     #endregion
 }
 
