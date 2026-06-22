@@ -115,14 +115,14 @@ namespace LibreMetaverse.Appearance
         /// <param name="addedItems">Items that were added to the outfit</param>
         /// <param name="removedItems">Items that were removed from the outfit</param>
         /// <param name="cancellationToken">Cancellation token</param>
-        public async Task ReportItemChange(List<InventoryItem>? addedItems, List<InventoryItem>? removedItems, CancellationToken cancellationToken = default)
+        public async Task ReportItemChangeAsync(List<InventoryItem>? addedItems, List<InventoryItem>? removedItems, CancellationToken cancellationToken = default)
         {
             var currentPolicies = GetCurrentPolicies();
 
             foreach (var policy in currentPolicies)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await policy.ReportItemChange(addedItems, removedItems, cancellationToken);
+                await policy.ReportItemChangeAsync(addedItems, removedItems, cancellationToken);
             }
         }
     }

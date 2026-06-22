@@ -324,7 +324,101 @@ The following were sync-over-async wrappers or dead code with no callers; they h
 
 ---
 
-## 9. `AnimationsChangedEventArgs.Animations` type narrowed
+## 9. Async method renames
+
+All `public async Task` methods that were missing the `Async` suffix have been renamed. Update every call site.
+
+### AgentManager
+
+| Before | After |
+|--------|-------|
+| `RetrieveInstantMessages(ct)` | `RetrieveInstantMessagesAsync(ct)` |
+| `ChatterBoxAcceptInvite(id, ct)` | `ChatterBoxAcceptInviteAsync(id, ct)` |
+| `StartIMConference(participants, id, ct)` | `StartIMConferenceAsync(participants, id, ct)` — now returns `Task` |
+| `UpdateProfileHttp(profile, ct)` | `UpdateProfileAsync(profile, ct)` |
+| `UpdateProfileNotesHttp(target, notes, ct)` | `UpdateProfileNotesAsync(target, notes, ct)` |
+
+### EstateTools
+
+| Before | After |
+|--------|-------|
+| `SendEstateChangeInfo(name, sun, flags)` | `SendEstateChangeInfoAsync(name, sun, flags, ct)` |
+| `SetRegionInfoHttp(...)` *(public)* | made private — use `SetRegionInfoAsync(...)` |
+| `SendEstateChangeInfoHttp(uri, ...)` *(public)* | made private — use `SendEstateChangeInfoAsync(...)` |
+
+### GroupManager
+
+| Before | After |
+|--------|-------|
+| `RequestBannedAgents(id, ct)` | `RequestBannedAgentsAsync(id, ct)` |
+| `RequestBanAction(id, action, agents, ct)` | `RequestBanActionAsync(id, action, agents, ct)` |
+
+### InventoryManager
+
+| Before | After |
+|--------|-------|
+| `RequestFolderContents(folderID, ownerID, ...)` | `RequestFolderContentsAsync(folderID, ownerID, ...)` |
+| `RequestFolderContents(batch, uri, ...)` | `RequestFolderContentsAsync(batch, uri, ...)` |
+| `RequestFetchInventoryHttpAsync(items, ct, callback)` *(public)* | made private — use `RequestFetchInventoryAsync(items, ct, callback)` |
+
+### ModelUploader
+
+| Before | After |
+|--------|-------|
+| `Upload(ct)` | `UploadAsync(ct)` |
+| `PrepareUpload(ct)` | `PrepareUploadAsync(ct)` |
+| `PerformUpload(uri, ct)` | `PerformUploadAsync(uri, ct)` |
+
+### ObjectManager
+
+| Before | After |
+|--------|-------|
+| `RequestMaterials(sim, ct)` | `RequestMaterialsAsync(sim, ct)` |
+| `RequestMaterials(sim, materials, ct)` | `RequestMaterialsAsync(sim, materials, ct)` |
+
+### InventoryAISClient
+
+| Before | After |
+|--------|-------|
+| `EmptyTrash(ct)` | `EmptyTrashAsync(ct)` |
+
+### AppearanceManager
+
+| Before | After |
+|--------|-------|
+| `GetCurrentOutfitFolder(ct)` | `GetCurrentOutfitFolderAsync(ct)` |
+
+### CurrentOutfitFolder
+
+| Before | After |
+|--------|-------|
+| `GetCurrentOutfitLinks(ct)` | `GetCurrentOutfitLinksAsync(ct)` |
+| `GetWornAt(type, ct)` | `GetWornAtAsync(type, ct)` |
+| `CanAttachItem(item, ct)` | `CanAttachItemAsync(item, ct)` |
+| `CanDetachItem(item, ct)` | `CanDetachItemAsync(item, ct)` |
+| `Attach(item, point, replace, ct)` | `AttachAsync(item, point, replace, ct)` |
+| `Detach(item, ct)` | `DetachAsync(item, ct)` |
+| `ReplaceOutfit(folderID, ct)` | `ReplaceOutfitAsync(folderID, ct)` |
+| `AddToOutfit(item, replace, ct)` | `AddToOutfitAsync(item, replace, ct)` |
+| `AddToOutfit(items, replace, ct)` | `AddToOutfitAsync(items, replace, ct)` |
+| `RemoveFromOutfit(item, ct)` | `RemoveFromOutfitAsync(item, ct)` |
+| `RemoveFromOutfit(items, ct)` | `RemoveFromOutfitAsync(items, ct)` |
+| `FetchParent(item, ct)` | `FetchParentAsync(item, ct)` |
+| `IsObjectDescendentOf(item, parentID, ct)` | `IsObjectDescendentOfAsync(item, parentID, ct)` |
+
+### ICurrentOutfitPolicy / CompositeCurrentOutfitPolicy
+
+| Before | After |
+|--------|-------|
+| `ReportItemChange(added, removed, ct)` | `ReportItemChangeAsync(added, removed, ct)` |
+
+### AgentDisplayName
+
+`AgentDisplayName` fields `ID`, `UserName`, `DisplayName`, `LegacyFirstName`, `LegacyLastName`, `IsDefaultDisplayName`, `NextUpdate`, and `Updated` are now auto-properties with `{ get; set; }`. Object initializer syntax continues to work unchanged. Direct field access (`obj.ID = x`) also continues to work.
+
+---
+
+## 10. `AnimationsChangedEventArgs.Animations` type narrowed
 
 The `Animations` property on `AnimationsChangedEventArgs` changed from `LockingDictionary<UUID, int>` to `IReadOnlyDictionary<UUID, int>`. Code that called write methods (`.TryAdd`, `.TryRemove`, etc.) on the event-args value will no longer compile — subscribe to the event and use `AgentManager.SignaledAnimations` directly if you need a mutable reference.
 
@@ -356,13 +450,14 @@ new CoarseLocationUpdateEventArgs(sim, positions, newEntries, removedEntries)
 ## Quick checklist
 
 - [ ] Update all `using OpenMetaverse` → `using LibreMetaverse`
+- [ ] Rename all async method calls per section 9 (30+ renames — search for the old names from the table)
 - [ ] Update `Settings.*` references to use the new nested groups (`Timing`, `Connection`, `Agent`, `Packets`, `TexturePipeline`, `AssetCache`, `World`, `Parcel`)
 - [ ] Replace all sync `Teleport()`/`GoHome()` calls with `await TeleportAsync()`/`await GoHomeAsync()`
 - [ ] Replace callback-delegate patterns on `GetDisplayNames`, `RequestAgentProfile`, `GetAttachmentResources`, `RequestObjectMedia`, `GetParcelResources`, `SetAgentAccessAsync`, and inventory upload methods with `await` + tuple deconstruct
 - [ ] Replace `GetGridRegion(name, layer, out var r)` with `var r = await GetGridRegionAsync(name, layer)` and check `r != null` / use `r.Value`
 - [ ] Replace `MapItems(handle, type, layer, timeout)` with `await MapItemsAsync(handle, type, layer)`
-- [ ] Replace `RequestBannedAgents(id, callback)` with `await RequestBannedAgents(id)` + `BannedAgents` event subscription
-- [ ] Replace `RequestBanAction(id, action, agents, callback)` with `await RequestBanAction(id, action, agents)`
+- [ ] Replace `RequestBannedAgents(id, callback)` with `await RequestBannedAgentsAsync(id)` + `BannedAgents` event subscription
+- [ ] Replace `RequestBanAction(id, action, agents, callback)` with `await RequestBanActionAsync(id, action, agents)`
 - [ ] Remove any references to `GroupManager.GroupName2KeyCache`; maintain your own dictionary via `GroupNamesReply`
 - [ ] Remove any references to `Simulator.AvatarPositions`; subscribe to `GridManager.CoarseLocationUpdate` and use `e.Positions`
 - [ ] Remove any use of the `GestureManager` class

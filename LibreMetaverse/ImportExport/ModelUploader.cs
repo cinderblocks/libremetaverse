@@ -161,14 +161,14 @@ namespace LibreMetaverse.ImportExport
         /// </summary>
         /// <param name="cancellationToken">Cancellation token for upload operation</param>
         /// <returns>Server response OSD on success, null on failure</returns>
-        public async Task<OSD?> Upload(CancellationToken cancellationToken)
+        public async Task<OSD?> UploadAsync(CancellationToken cancellationToken)
         {
-            var prepareResult = await PrepareUpload(cancellationToken).ConfigureAwait(false);
+            var prepareResult = await PrepareUploadAsync(cancellationToken).ConfigureAwait(false);
             if (prepareResult is not OSDMap res)
                 return null;
 
             Uri uploader = new Uri(res["uploader"]);
-            var uploadResult = await PerformUpload(uploader, cancellationToken).ConfigureAwait(false);
+            var uploadResult = await PerformUploadAsync(uploader, cancellationToken).ConfigureAwait(false);
 
             if (uploadResult is OSDMap reply && reply.ContainsKey("new_inventory_item") && reply.ContainsKey("new_asset"))
                 Client.Inventory.RequestFetchInventory(reply["new_inventory_item"].AsUUID(), Client.Self.AgentID);
@@ -181,7 +181,7 @@ namespace LibreMetaverse.ImportExport
         /// </summary>
         /// <param name="cancellationToken">Cancellation token for network operation</param>
         /// <returns>Server response OSD on success, null on failure</returns>
-        public async Task<OSD?> PrepareUpload(CancellationToken cancellationToken)
+        public async Task<OSD?> PrepareUploadAsync(CancellationToken cancellationToken)
         {
             Uri? cap = null;
             if (Client.Network.CurrentSim == null ||
@@ -246,7 +246,7 @@ namespace LibreMetaverse.ImportExport
         /// <param name="uploader">Uri received in the upload prepare stage</param>
         /// <param name="cancellationToken">Cancellation token for network operation</param>
         /// <returns>Server response OSD on success, null on failure</returns>
-        public async Task<OSD?> PerformUpload(Uri uploader, CancellationToken cancellationToken)
+        public async Task<OSD?> PerformUploadAsync(Uri uploader, CancellationToken cancellationToken)
         {
             Uri? cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("MeshUploader");
             if (cap == null)

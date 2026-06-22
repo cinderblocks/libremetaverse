@@ -765,7 +765,7 @@ namespace LibreMetaverse
         /// </summary>
         public async Task<List<InventoryBase>> RequestAgentWornAsync(CancellationToken cancellationToken = default)
         {
-            var cof = await GetCurrentOutfitFolder(cancellationToken).ConfigureAwait(false);
+            var cof = await GetCurrentOutfitFolderAsync(cancellationToken).ConfigureAwait(false);
             if (cof == null)
             {
                 Logger.Warn("Could not retrieve 'Current Outfit' folder", Client);
@@ -2003,7 +2003,7 @@ namespace LibreMetaverse
 
             // Fetch COF once outside the retry loop — SL viewer does getCOFVersion() which
             // is a single local store lookup; re-fetching on every iteration wastes network.
-            var currentOutfitFolder = await GetCurrentOutfitFolder(cancellationToken);
+            var currentOutfitFolder = await GetCurrentOutfitFolderAsync(cancellationToken);
             if (currentOutfitFolder == null)
             {
                 Logger.Warn("Could not retrieve Current Outfit folder", Client);
@@ -2288,7 +2288,7 @@ namespace LibreMetaverse
         /// Get the latest version of COF
         /// </summary>
         /// <returns>Current Outfit Folder (or null if getting the data failed)</returns>
-        public async Task<InventoryFolder?> GetCurrentOutfitFolder(CancellationToken cancellationToken = default)
+        public async Task<InventoryFolder?> GetCurrentOutfitFolderAsync(CancellationToken cancellationToken = default)
         {
             var clientLocal = Client;
             if (clientLocal?.Inventory?.Store?.RootFolder == null) return null;
@@ -2310,7 +2310,7 @@ namespace LibreMetaverse
             // Slow path: scan the root folder to locate the COF.
             var rootFolder = clientLocal.Inventory.Store.RootFolder;
 
-            List<InventoryBase>? root = await clientLocal.Inventory.RequestFolderContents(rootFolder.UUID,
+            List<InventoryBase>? root = await clientLocal.Inventory.RequestFolderContentsAsync(rootFolder.UUID,
                 clientLocal.Self.AgentID, true, false, InventorySortOrder.ByDate,
                 cancellationToken).ConfigureAwait(false);
 
@@ -2732,7 +2732,7 @@ namespace LibreMetaverse
                         {
                             var version = map["version"].AsInteger();
                             Logger.Info($"Slamming {version} version to Current Outfit Folder", Client);
-                            var cof = await GetCurrentOutfitFolder(cancellationToken).ConfigureAwait(false);
+                            var cof = await GetCurrentOutfitFolderAsync(cancellationToken).ConfigureAwait(false);
                             if (cof != null)
                             {
                                 cof.Version = version;

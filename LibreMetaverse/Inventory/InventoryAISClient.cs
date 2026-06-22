@@ -902,7 +902,7 @@ namespace LibreMetaverse
 
         /// <summary>Empty the Trash folder.</summary>
         /// <returns>True if successful, false otherwise.</returns>
-        public async Task<bool> EmptyTrash(CancellationToken cancellationToken = default)
+        public async Task<bool> EmptyTrashAsync(CancellationToken cancellationToken = default)
         {
             if (!getInventoryCap(out var cap)) { return false; }
 

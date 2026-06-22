@@ -633,7 +633,7 @@ namespace LibreMetaverse
             }
         }
         
-        public async Task<bool> SetRegionInfoHttp(bool blockTerraform, bool blockFly, bool blockFlyOver, bool allowDamage, 
+        private async Task<bool> SetRegionInfoHttp(bool blockTerraform, bool blockFly, bool blockFlyOver, bool allowDamage, 
             bool allowLandResell, bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, 
             bool blockParcelSearch, RegionMaturity maturity)
         {
@@ -935,12 +935,12 @@ namespace LibreMetaverse
         /// <param name="sunHour">Sun hour</param>
         /// <param name="flags"><see cref="RegionFlags"/> to commit</param>
         /// <returns></returns>
-        public async Task SendEstateChangeInfo(string estateName, float sunHour, RegionFlags flags)
+        public async Task SendEstateChangeInfoAsync(string estateName, float sunHour, RegionFlags flags, CancellationToken cancellationToken = default)
         {
             var cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("EstateChangeInfo");
             if (cap != null)
             {
-                if (await SendEstateChangeInfoHttp(cap, estateName, sunHour, flags))
+                if (await SendEstateChangeInfoHttp(cap, estateName, sunHour, flags, cancellationToken))
                 {
                     return;
                 }
@@ -959,7 +959,7 @@ namespace LibreMetaverse
         /// <returns>Success of request</returns>
         /// <seealso cref="SendEstateChangeInfo"/>
         /// <remarks>Prefer <see cref="SendEstateChangeInfo"/> which handles HTTP with LLUDP fallback</remarks>
-        public async Task<bool> SendEstateChangeInfoHttp(Uri uri, string estateName, float sunHour, RegionFlags flags, CancellationToken cancellationToken = default)
+        private async Task<bool> SendEstateChangeInfoHttp(Uri uri, string estateName, float sunHour, RegionFlags flags, CancellationToken cancellationToken = default)
         {
             var payload = new OSDMap
             {

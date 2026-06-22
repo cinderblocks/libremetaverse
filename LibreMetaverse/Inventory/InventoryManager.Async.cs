@@ -400,7 +400,7 @@ namespace LibreMetaverse
             {
                 try
                 {
-                    await RequestFetchInventoryAsync(itemID, ownerID, cancellationToken);
+                    await RequestFetchInventoryAsync(itemID, ownerID, cancellationToken).ConfigureAwait(false);
                     return await tcs.Task.ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
@@ -421,7 +421,7 @@ namespace LibreMetaverse
 
             try
             {
-                inventory = await RequestFolderContents(folder, owner, fetchFolders, fetchItems, order, cancellationToken).ConfigureAwait(false);
+                inventory = await RequestFolderContentsAsync(folder, owner, fetchFolders, fetchItems, order, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -1044,7 +1044,7 @@ namespace LibreMetaverse
                         List<InventoryBase>? contents = null;
                         try
                         {
-                            contents = await RequestFolderContents(folderID, ownerID, fetchFolders, fetchItems, order, cancellationToken).ConfigureAwait(false);
+                            contents = await RequestFolderContentsAsync(folderID, ownerID, fetchFolders, fetchItems, order, cancellationToken).ConfigureAwait(false);
                         }
                         catch
                         {
@@ -1070,7 +1070,7 @@ namespace LibreMetaverse
                 try
                 {
                     // Trigger the fetch which will cause the server to emit FolderUpdated
-                    _ = RequestFolderContents(folderID, ownerID, fetchFolders, fetchItems, order, cancellationToken);
+                    _ = RequestFolderContentsAsync(folderID, ownerID, fetchFolders, fetchItems, order, cancellationToken);
 
                     return await tcs.Task.ConfigureAwait(false);
                 }

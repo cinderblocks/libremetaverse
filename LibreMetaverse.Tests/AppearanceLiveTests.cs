@@ -40,8 +40,8 @@ namespace LibreMetaverse.Tests
     /// changes introduced in the "Follow SL semantics for COF/appearance tracking" commit:
     ///
     ///   - COF initializes successfully and exposes a valid InventoryFolder.
-    ///   - GetCurrentOutfitLinks returns the links stored in the COF.
-    ///   - GetWornAt(Shape) returns at least one result (every avatar wears a shape).
+    ///   - GetCurrentOutfitLinksAsync returns the links stored in the COF.
+    ///   - GetWornAtAsync(Shape) returns at least one result (every avatar wears a shape).
     ///   - The AvatarAppearance UDP pipeline updates LastUpdateReceivedCOFVersion.
     ///   - RequestOwnAvatarTextures triggers an AvatarAppearance packet that further
     ///     advances LastUpdateReceivedCOFVersion (SL stale-version guard round-trip).
@@ -125,10 +125,10 @@ namespace LibreMetaverse.Tests
         [CancelAfter(30000)]
         public async Task COF_IsInitializedAfterLogin(CancellationToken cancellationToken)
         {
-            // GetCurrentOutfitLinks triggers lazy COF initialization if it hasn't happened yet
-            var links = await COF.GetCurrentOutfitLinks(cancellationToken);
+            // GetCurrentOutfitLinksAsync triggers lazy COF initialization if it hasn't happened yet
+            var links = await COF.GetCurrentOutfitLinksAsync(cancellationToken);
 
-            Assert.That(COF.COF, Is.Not.Null, "COF folder is null after GetCurrentOutfitLinks");
+            Assert.That(COF.COF, Is.Not.Null, "COF folder is null after GetCurrentOutfitLinksAsync");
             Assert.That(COF.COF!.UUID, Is.Not.EqualTo(UUID.Zero), "COF folder UUID is Zero");
             Console.WriteLine($"COF UUID: {COF.COF.UUID}, Name: {COF.COF.Name}");
         }
@@ -141,24 +141,24 @@ namespace LibreMetaverse.Tests
         [CancelAfter(30000)]
         public async Task COF_HasExpectedFolderName(CancellationToken cancellationToken)
         {
-            await COF.GetCurrentOutfitLinks(cancellationToken); // ensure initialized
+            await COF.GetCurrentOutfitLinksAsync(cancellationToken); // ensure initialized
 
             Assert.That(COF.COF, Is.Not.Null);
             Assert.That(COF.COF!.Name, Is.EqualTo("Current Outfit").IgnoreCase,
                 "COF folder name does not match 'Current Outfit'");
         }
 
-        // ── GetCurrentOutfitLinks ─────────────────────────────────────────────
+        // ── GetCurrentOutfitLinksAsync ─────────────────────────────────────────────
 
         /// <summary>
-        /// GetCurrentOutfitLinks must return a list (possibly empty for a bare avatar,
+        /// GetCurrentOutfitLinksAsync must return a list (possibly empty for a bare avatar,
         /// but typically populated). Every element must be an inventory link.
         /// </summary>
         [Test]
         [CancelAfter(30000)]
-        public async Task GetCurrentOutfitLinks_ReturnsLinks(CancellationToken cancellationToken)
+        public async Task GetCurrentOutfitLinksAsync_ReturnsLinks(CancellationToken cancellationToken)
         {
-            var links = await COF.GetCurrentOutfitLinks(cancellationToken);
+            var links = await COF.GetCurrentOutfitLinksAsync(cancellationToken);
 
             Assert.That(links, Is.Not.Null);
 
@@ -178,9 +178,9 @@ namespace LibreMetaverse.Tests
         /// </summary>
         [Test]
         [CancelAfter(30000)]
-        public async Task GetCurrentOutfitLinks_ContainsAtLeastOneLink(CancellationToken cancellationToken)
+        public async Task GetCurrentOutfitLinksAsync_ContainsAtLeastOneLink(CancellationToken cancellationToken)
         {
-            var links = await COF.GetCurrentOutfitLinks(cancellationToken);
+            var links = await COF.GetCurrentOutfitLinksAsync(cancellationToken);
 
             if (links.Count == 0)
             {
@@ -195,18 +195,18 @@ namespace LibreMetaverse.Tests
         // ── GetWornAt ─────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Every SL avatar must have a shape. GetWornAt(WearableType.Shape) must
+        /// Every SL avatar must have a shape. GetWornAtAsync(WearableType.Shape) must
         /// return at least one item after the COF has been resolved.
         /// </summary>
         [Test]
         [CancelAfter(30000)]
         public async Task GetWornAt_Shape_ReturnsAtLeastOne(CancellationToken cancellationToken)
         {
-            var worn = await COF.GetWornAt(WearableType.Shape, cancellationToken);
+            var worn = await COF.GetWornAtAsync(WearableType.Shape, cancellationToken);
 
             if (worn == null || worn.Count == 0)
             {
-                Assert.Warn("GetWornAt(Shape) returned no items. The test account may not have a shape in its COF.");
+                Assert.Warn("GetWornAtAsync(Shape) returned no items. The test account may not have a shape in its COF.");
                 return;
             }
 

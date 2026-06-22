@@ -193,7 +193,7 @@ namespace LibreMetaverse
             await RequestFetchInventoryHttpAsync(itemId, ownerId, token, list =>
             {
                 item = list.FirstOrDefault();
-            });
+            }).ConfigureAwait(false);
             return item;
         }
 
@@ -268,7 +268,7 @@ namespace LibreMetaverse
             CancellationToken cancellationToken, Action<List<InventoryItem>>? callback = null)
         {
             await RequestFetchInventoryHttpAsync(new Dictionary<UUID, UUID>(1) { { itemID, ownerID } },
-                cancellationToken, callback);
+                cancellationToken, callback).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -277,8 +277,8 @@ namespace LibreMetaverse
         /// <param name="items">Inventory items to request with owner</param>
         /// <param name="cancellationToken">Cancellation token to cancel the request</param>
         /// <param name="callback">Action</param>
-        public async Task RequestFetchInventoryHttpAsync(Dictionary<UUID, UUID> items,
-            CancellationToken cancellationToken, Action<List<InventoryItem> >? callback = null)
+        private async Task RequestFetchInventoryHttpAsync(Dictionary<UUID, UUID> items,
+            CancellationToken cancellationToken, Action<List<InventoryItem>>? callback = null)
         {
 
             var cap = GetCapabilityURI("FetchInventory2");
@@ -346,7 +346,7 @@ namespace LibreMetaverse
         /// <param name="order">the sort order to return items in</param>
         /// <param name="cancellationToken">CancellationToken for operation</param>
         /// <see cref="InventoryManager.FolderContents"/>
-        public async Task<List<InventoryBase>> RequestFolderContents(UUID folderID, UUID ownerID,
+        public async Task<List<InventoryBase>> RequestFolderContentsAsync(UUID folderID, UUID ownerID,
             bool fetchFolders, bool fetchItems, InventorySortOrder order, CancellationToken cancellationToken = default)
         {
             var cap = (ownerID == Client.Self.AgentID) ? "FetchInventoryDescendents2" : "FetchLibDescendents2";
@@ -361,7 +361,7 @@ namespace LibreMetaverse
                 OwnerID = ownerID,
                 UUID = folderID
             };
-            return await RequestFolderContents(new List<InventoryFolder>(1) { folder },
+            return await RequestFolderContentsAsync(new List<InventoryFolder>(1) { folder },
                 url, fetchFolders, fetchItems, order, cancellationToken);
         }
 
@@ -375,7 +375,7 @@ namespace LibreMetaverse
         /// <param name="order">the sort order to return items in</param>
         /// <param name="cancellationToken">CancellationToken for operation</param>
         /// <see cref="InventoryManager.FolderContents"/>
-        public async Task<List<InventoryBase>> RequestFolderContents(List<InventoryFolder> batch, Uri capabilityUri,
+        public async Task<List<InventoryBase>> RequestFolderContentsAsync(List<InventoryFolder> batch, Uri capabilityUri,
             bool fetchFolders, bool fetchItems, InventorySortOrder order, CancellationToken cancellationToken = default)
         {
             List <InventoryBase> ret = new List<InventoryBase>();
@@ -664,7 +664,7 @@ namespace LibreMetaverse
             _Searches[id] = search;
 
             // Start the search
-            await RequestFolderContents(baseFolder, inventoryOwner, true, true, InventorySortOrder.ByName, cancellationToken);
+            await RequestFolderContentsAsync(baseFolder, inventoryOwner, true, true, InventorySortOrder.ByName, cancellationToken);
         }
 
         /// <summary>
@@ -1384,7 +1384,7 @@ namespace LibreMetaverse
             {
                 try
                 {
-                    var success = await Client.AisClient.EmptyTrash(cancellationToken).ConfigureAwait(false);
+                    var success = await Client.AisClient.EmptyTrashAsync(cancellationToken).ConfigureAwait(false);
                     if (success && folderKey != UUID.Zero)
                     {
                         RemoveLocalUi(true, folderKey);

@@ -1219,7 +1219,7 @@ namespace LibreMetaverse
 
             try
             {
-                await ChatterBoxAcceptInvite(msg.IMSessionID).ConfigureAwait(false);
+                await ChatterBoxAcceptInviteAsync(msg.IMSessionID).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

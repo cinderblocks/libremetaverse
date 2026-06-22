@@ -873,7 +873,7 @@ namespace LibreMetaverse
 
                 if (response != null && response.IsSuccessStatusCode && responseData != null)
                 {
-                    await Client.Assets.Cache.SaveAssetToCacheAsync(assetID, responseData);
+                    await Client.Assets.Cache.SaveAssetToCacheAsync(assetID, responseData).ConfigureAwait(false);
 
                     if (callback != null)
                     {
@@ -1468,7 +1468,7 @@ namespace LibreMetaverse
                     callback(TextureRequestState.Finished, new AssetTexture(image.ID, image.AssetData));
                     FireImageProgressEvent(image.ID, image.Transferred, image.Size);
 
-                    await Client.Assets.Cache.SaveAssetToCacheAsync(textureID, responseData);
+                    await Client.Assets.Cache.SaveAssetToCacheAsync(textureID, responseData).ConfigureAwait(false);
                 }
                 else // download failed
                 {
@@ -1850,7 +1850,7 @@ namespace LibreMetaverse
                     Logger.DebugLog($"Transfer for asset {download.AssetID} completed", Client);
 
                     // Cache successful asset download
-                    await Cache.SaveAssetToCacheAsync(download.AssetID, download.AssetData);
+                    await Cache.SaveAssetToCacheAsync(download.AssetID, download.AssetData).ConfigureAwait(false);
 
                     if (download.Callback != null)
                     {

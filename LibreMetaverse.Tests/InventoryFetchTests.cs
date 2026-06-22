@@ -222,7 +222,7 @@ namespace LibreMetaverse.Tests
             }
 
             // Iterate the immediate sub-folders of the inventory root until items are found.
-            // fetchFolders must be true: RequestFolderContents only parses items inside the
+            // fetchFolders must be true: RequestFolderContentsAsync only parses items inside the
             // "categories" OSDArray block, so omitting folders risks silently skipping items
             // if the server elides that key when fetch_folders=false.
             InventoryFolder folderWithItems = null;

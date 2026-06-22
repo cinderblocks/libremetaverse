@@ -35,7 +35,7 @@ namespace LibreMetaverse.Tests
             return AllowDetach;
         }
 
-        public Task ReportItemChange(List<InventoryItem>? addedItems, List<InventoryItem>? removedItems, CancellationToken cancellationToken = default)
+        public Task ReportItemChangeAsync(List<InventoryItem>? addedItems, List<InventoryItem>? removedItems, CancellationToken cancellationToken = default)
         {
             ReportChangeCallCount++;
             LastAddedItems = addedItems;
@@ -249,7 +249,7 @@ namespace LibreMetaverse.Tests
             {
                 var item = new InventoryItem(UUID.Random());
             
-                var result = await cof.IsObjectDescendentOf(item, UUID.Zero, CancellationToken.None);
+                var result = await cof.IsObjectDescendentOfAsync(item, UUID.Zero, CancellationToken.None);
             
                 Assert.That(result, Is.False);
             }
@@ -267,7 +267,7 @@ namespace LibreMetaverse.Tests
                     ParentUUID = parentId
                 };
             
-                var result = await cof.IsObjectDescendentOf(item, parentId, CancellationToken.None);
+                var result = await cof.IsObjectDescendentOfAsync(item, parentId, CancellationToken.None);
             
                 Assert.That(result, Is.True);
             }
@@ -284,7 +284,7 @@ namespace LibreMetaverse.Tests
                     ParentUUID = UUID.Zero
                 };
             
-                var result = await cof.FetchParent(item, CancellationToken.None);
+                var result = await cof.FetchParentAsync(item, CancellationToken.None);
             
                 Assert.That(result, Is.Null);
             }
@@ -296,7 +296,7 @@ namespace LibreMetaverse.Tests
             var client = new GridClient();
             using (var cof = new CurrentOutfitFolder(client))
             {
-                var result = await cof.GetCurrentOutfitLinks(CancellationToken.None);
+                var result = await cof.GetCurrentOutfitLinksAsync(CancellationToken.None);
             
                 Assert.That(result, Is.Not.Null);
                 Assert.That(result, Is.Empty);
@@ -528,21 +528,21 @@ namespace LibreMetaverse.Tests
 
         #endregion
 
-        #region ReportItemChange Tests
+        #region ReportItemChangeAsync Tests
 
         [Test]
-        public async Task ReportItemChange_WithNoPolicies_CompletesSuccessfully()
+        public async Task ReportItemChangeAsync_WithNoPolicies_CompletesSuccessfully()
         {
             var addedItems = new List<InventoryItem> { testItem };
             var removedItems = new List<InventoryItem>();
             
-            await compositePolicy.ReportItemChange(addedItems, removedItems, CancellationToken.None);
+            await compositePolicy.ReportItemChangeAsync(addedItems, removedItems, CancellationToken.None);
             
             Assert.Pass("Completed without exception");
         }
 
         [Test]
-        public async Task ReportItemChange_WithMultiplePolicies_CallsAllPolicies()
+        public async Task ReportItemChangeAsync_WithMultiplePolicies_CallsAllPolicies()
         {
             compositePolicy.AddPolicy(testPolicy1);
             compositePolicy.AddPolicy(testPolicy2);
@@ -550,7 +550,7 @@ namespace LibreMetaverse.Tests
             var addedItems = new List<InventoryItem> { testItem };
             var removedItems = new List<InventoryItem>();
             
-            await compositePolicy.ReportItemChange(addedItems, removedItems, CancellationToken.None);
+            await compositePolicy.ReportItemChangeAsync(addedItems, removedItems, CancellationToken.None);
             
             Assert.That(testPolicy1.ReportChangeCallCount, Is.EqualTo(1));
             Assert.That(testPolicy2.ReportChangeCallCount, Is.EqualTo(1));
@@ -559,7 +559,7 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        public void ReportItemChange_WithCancelledToken_ThrowsOperationCanceledException()
+        public void ReportItemChangeAsync_WithCancelledToken_ThrowsOperationCanceledException()
         {
             compositePolicy.AddPolicy(testPolicy1);
             
@@ -569,28 +569,28 @@ namespace LibreMetaverse.Tests
             cts.Cancel();
             
             Assert.That(async () => 
-                await compositePolicy.ReportItemChange(addedItems, removedItems, cts.Token), 
+                await compositePolicy.ReportItemChangeAsync(addedItems, removedItems, cts.Token), 
                 Throws.InstanceOf<OperationCanceledException>());
         }
 
         [Test]
-        public async Task ReportItemChange_WithEmptyLists_DoesNotThrow()
+        public async Task ReportItemChangeAsync_WithEmptyLists_DoesNotThrow()
         {
             compositePolicy.AddPolicy(testPolicy1);
             
             var addedItems = new List<InventoryItem>();
             var removedItems = new List<InventoryItem>();
             
-            await compositePolicy.ReportItemChange(addedItems, removedItems, CancellationToken.None);
+            await compositePolicy.ReportItemChangeAsync(addedItems, removedItems, CancellationToken.None);
             
             Assert.That(testPolicy1.ReportChangeCallCount, Is.EqualTo(1));
         }
 
         [Test]
-        public async Task ReportItemChange_WithNullLists_DoesNotThrowFromComposite()
+        public async Task ReportItemChangeAsync_WithNullLists_DoesNotThrowFromComposite()
         {
             // The composite doesn't validate nulls, that's up to individual policies
-            await compositePolicy.ReportItemChange(null, null, CancellationToken.None);
+            await compositePolicy.ReportItemChangeAsync(null, null, CancellationToken.None);
             
             Assert.Pass("Completed without exception");
         }

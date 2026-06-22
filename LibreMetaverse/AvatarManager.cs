@@ -43,23 +43,23 @@ namespace LibreMetaverse
     public class AgentDisplayName
     {
         /// <summary> Agent UUID </summary>
-        public UUID ID;
+        public UUID ID { get; set; }
         /// <summary> Username </summary>
-        public string? UserName;
+        public string? UserName { get; set; }
         /// <summary> Display name </summary>
-        public string? DisplayName;
+        public string? DisplayName { get; set; }
         /// <summary> First name (legacy) </summary>
-        public string? LegacyFirstName;
+        public string? LegacyFirstName { get; set; }
         /// <summary> Last name (legacy) </summary>
-        public string? LegacyLastName;
+        public string? LegacyLastName { get; set; }
         /// <summary> Full name (legacy) </summary>
         public string LegacyFullName => $"{LegacyFirstName} {LegacyLastName}";
         /// <summary> Is display name default display name </summary>
-        public bool IsDefaultDisplayName;
+        public bool IsDefaultDisplayName { get; set; }
         /// <summary> Cache display name until </summary>
-        public DateTime NextUpdate;
+        public DateTime NextUpdate { get; set; }
         /// <summary> Last updated timestamp </summary>
-        public DateTime Updated;
+        public DateTime Updated { get; set; }
 
         /// <summary>
         /// Creates AgentDisplayName object from OSD

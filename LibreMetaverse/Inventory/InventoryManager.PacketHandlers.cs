@@ -213,7 +213,7 @@ namespace LibreMetaverse
                             _Searches[key] = updated;
 
                             // Request the next level contents asynchronously
-                            _ = RequestFolderContents(updated.Folder, updated.Owner, true, true, InventorySortOrder.ByName);
+                            _ = RequestFolderContentsAsync(updated.Folder, updated.Owner, true, true, InventorySortOrder.ByName);
                             break; // only handle the first match at this level for this search
                         }
                     }

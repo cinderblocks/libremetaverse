@@ -42,7 +42,7 @@ namespace TestClient.Commands.Appearance
                 List<InventoryBase> contents;
                 try
                 {
-                    contents = await Client.Inventory.RequestFolderContents(folder, Client.Self.AgentID, true, true, InventorySortOrder.ByName, cts.Token).ConfigureAwait(false);
+                    contents = await Client.Inventory.RequestFolderContentsAsync(folder, Client.Self.AgentID, true, true, InventorySortOrder.ByName, cts.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {

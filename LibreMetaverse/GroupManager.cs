@@ -1803,7 +1803,7 @@ namespace LibreMetaverse
         /// <param name="groupID">UUID of the group</param>
         /// <param name="callback">Callback on request completion</param>
         /// <param name="cancellationToken"></param>
-        public async Task RequestBannedAgents(UUID groupID, CancellationToken cancellationToken = default)
+        public async Task RequestBannedAgentsAsync(UUID groupID, CancellationToken cancellationToken = default)
         {
             Uri? capUri = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("GroupAPIv1");
             if (capUri == null)
@@ -1845,7 +1845,7 @@ namespace LibreMetaverse
         /// <param name="action">Ban/Unban action</param>
         /// <param name="agents">Array of agents UUIDs to ban</param>
         /// <param name="cancellationToken"></param>
-        public async Task RequestBanAction(UUID groupID, GroupBanAction action, UUID[] agents,
+        public async Task RequestBanActionAsync(UUID groupID, GroupBanAction action, UUID[] agents,
             CancellationToken cancellationToken = default)
         {
             Uri? capUri2 = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("GroupAPIv1");
@@ -1867,7 +1867,7 @@ namespace LibreMetaverse
 
             try
             {
-                await Client!.HttpCapsClient.PostAsync(uri, OSDFormat.Xml, payload, cancellationToken);
+                await Client!.HttpCapsClient.PostAsync(uri, OSDFormat.Xml, payload, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {

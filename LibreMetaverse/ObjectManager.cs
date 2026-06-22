@@ -2224,7 +2224,7 @@ namespace LibreMetaverse
             }
         }
 
-        public async Task<IEnumerable<LegacyMaterial>> RequestMaterials(Simulator sim, CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<LegacyMaterial>> RequestMaterialsAsync(Simulator sim, CancellationToken cancellationToken = default)
         {
             if (sim == null) { return new List<LegacyMaterial>(); }
 
@@ -2318,7 +2318,7 @@ namespace LibreMetaverse
             return matsToReturn;
         }
 
-        public async Task<IEnumerable<LegacyMaterial>> RequestMaterials(Simulator sim, IEnumerable<UUID> materials, CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<LegacyMaterial>> RequestMaterialsAsync(Simulator sim, IEnumerable<UUID> materials, CancellationToken cancellationToken = default)
         {
             if (sim == null) { return new List<LegacyMaterial>(); }
 

@@ -116,7 +116,7 @@ namespace LibreMetaverse.Appearance
                 cts.CancelAfter(TimeSpan.FromSeconds(20));
                 try
                 {
-                    return await client.Inventory.RequestFolderContents(folder.UUID, folder.OwnerID,
+                    return await client.Inventory.RequestFolderContentsAsync(folder.UUID, folder.OwnerID,
                         true, true, InventorySortOrder.ByName, cts.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -261,7 +261,7 @@ namespace LibreMetaverse.Appearance
             // Wear the outfit by replacing COF
             try
             {
-                await cof.ReplaceOutfit(newClothingFolder, cancellationToken).ConfigureAwait(false);
+                await cof.ReplaceOutfitAsync(newClothingFolder, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {

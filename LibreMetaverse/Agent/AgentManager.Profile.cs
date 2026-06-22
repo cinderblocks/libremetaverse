@@ -49,12 +49,12 @@ namespace LibreMetaverse
         /// The behavior between LLUDP and Http Capability differs. See each method's remarks
         /// </remarks>
         /// <seealso cref="UpdateProfileUdp"/>
-        /// <seealso cref="UpdateProfileHttp"/>
+        /// <seealso cref="UpdateProfileAsync"/>
         public void UpdateProfile(Avatar.AvatarProperties profile)
         {
             if (Client?.Network?.CurrentSim?.Caps?.CapabilityURI(AGENT_PROFILE_CAP) != null)
             {
-                _ = UpdateProfileHttp(profile);
+                _ = UpdateProfileAsync(profile);
             }
             else
             {
@@ -101,7 +101,7 @@ namespace LibreMetaverse
         /// Only updates about text fields, profile url, and allow_publish.
         /// Does not update image UUID, etc. like the legacy LLUDP request.
         /// </remarks>
-        public async Task UpdateProfileHttp(Avatar.AvatarProperties profile, CancellationToken cancellationToken = default)
+        public async Task UpdateProfileAsync(Avatar.AvatarProperties profile, CancellationToken cancellationToken = default)
         {
             var payload = new OSDMap
             {
@@ -152,13 +152,13 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="target">target avatar for notes</param>
         /// <param name="notes">notes to store</param>
-        /// <seealso cref="UpdateProfileHttp"/>
+        /// <seealso cref="UpdateProfileAsync"/>
         /// <seealso cref="UpdateProfileUdp"/>
         public void UpdateProfileNotes(UUID target, string notes)
         {
             if (Client?.Network?.CurrentSim?.Caps?.CapabilityURI(AGENT_PROFILE_CAP) != null)
             {
-                _ = UpdateProfileNotesHttp(target, notes);
+                _ = UpdateProfileNotesAsync(target, notes);
             }
             else
             {
@@ -190,7 +190,7 @@ namespace LibreMetaverse
         /// <param name="target">target avatar for notes</param>
         /// <param name="notes">notes to store</param>
         /// <param name="cancellationToken"></param>
-        public async Task UpdateProfileNotesHttp(UUID target, string notes, CancellationToken cancellationToken = default)
+        public async Task UpdateProfileNotesAsync(UUID target, string notes, CancellationToken cancellationToken = default)
         {
             var payload = new OSDMap { ["notes"] = notes };
 
