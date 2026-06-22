@@ -186,7 +186,7 @@ namespace LibreMetaverse
                 {"everyone_mask", OSD.FromInteger((int) permissions.EveryoneMask)},
                 {"group_mask", OSD.FromInteger((int) permissions.GroupMask)},
                 {"next_owner_mask", OSD.FromInteger((int) permissions.NextOwnerMask)},
-                {"expected_upload_cost", OSD.FromInteger(Client.Settings.UploadCost)}
+                {"expected_upload_cost", OSD.FromInteger(GetUploadCostForAssetType(assetType))}
             };
 
             try
@@ -789,7 +789,7 @@ namespace LibreMetaverse
                 {"everyone_mask", OSD.FromInteger((int) permissions.EveryoneMask)},
                 {"group_mask", OSD.FromInteger((int) permissions.GroupMask)},
                 {"next_owner_mask", OSD.FromInteger((int) permissions.NextOwnerMask)},
-                {"expected_upload_cost", OSD.FromInteger(Client.Settings.UploadCost)}
+                {"expected_upload_cost", OSD.FromInteger(GetUploadCostForAssetType(assetType))}
             };
 
             try

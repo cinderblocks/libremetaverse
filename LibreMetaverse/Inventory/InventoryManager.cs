@@ -2167,6 +2167,23 @@ namespace LibreMetaverse
             }
             return uri;
         }
+
+        /// <summary>
+        /// Returns the correct <c>expected_upload_cost</c> in L$ for the given asset type,
+        /// using account-level benefit costs where available and falling back to
+        /// <see cref="Settings.UploadCost"/> (the texture cost) for types not separately priced.
+        /// </summary>
+        private int GetUploadCostForAssetType(AssetType assetType)
+        {
+            var b = Client.Self.Benefits;
+            return assetType switch
+            {
+                AssetType.Animation => b.AnimationUploadCost > 0 ? b.AnimationUploadCost : Client.Settings.UploadCost,
+                AssetType.Sound     => b.SoundUploadCost     > 0 ? b.SoundUploadCost     : Client.Settings.UploadCost,
+                AssetType.Object    => b.MeshUploadCost      > 0 ? b.MeshUploadCost      : Client.Settings.UploadCost,
+                _                   => Client.Settings.UploadCost
+            };
+        }
     }
 }
 

@@ -620,6 +620,28 @@ namespace LibreMetaverse
             remove { lock (m_CurrentGroupsLock) { m_CurrentGroups -= value; } }
         }
 
+        private volatile int _currentGroupCount = -1;
+
+        /// <summary>
+        /// Number of groups the agent currently belongs to. -1 until the first
+        /// <see cref="CurrentGroups"/> update is received (call <see cref="RequestCurrentGroups"/> to trigger one).
+        /// </summary>
+        public int CurrentGroupCount => _currentGroupCount;
+
+        /// <summary>
+        /// Maximum number of groups this account tier allows, from login benefits.
+        /// Free accounts get 42; Premium accounts get 60 or more.
+        /// </summary>
+        public int GroupMembershipLimit => Client.Self.Benefits.GroupMembershipLimit;
+
+        /// <summary>
+        /// Returns true when the agent can join or create at least one more group.
+        /// Returns null if <see cref="CurrentGroupCount"/> has not yet been populated.
+        /// </summary>
+        public bool? CanJoinMoreGroups => _currentGroupCount < 0
+            ? null
+            : _currentGroupCount < Client.Self.Benefits.GroupMembershipLimit;
+
         /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<GroupNamesEventArgs>? m_GroupNames;
 
@@ -1877,6 +1899,8 @@ namespace LibreMetaverse
 
                 currentGroups.Add(group.ID, group);
             }
+
+            _currentGroupCount = currentGroups.Count;
 
             if (m_CurrentGroups != null)
             {

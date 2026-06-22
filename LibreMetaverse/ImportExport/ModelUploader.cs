@@ -195,6 +195,10 @@ namespace LibreMetaverse.ImportExport
             Images = new List<byte[]>();
             ImgIndex = new Dictionary<string, int>();
 
+            var meshCost = Client.Self.Benefits.MeshUploadCost > 0
+                ? Client.Self.Benefits.MeshUploadCost
+                : Client.Settings.UploadCost;
+
             OSDMap payload = new OSDMap
             {
                 ["name"] = InvName,
@@ -206,7 +210,8 @@ namespace LibreMetaverse.ImportExport
                 ["texture_folder_id"] = Client.Inventory.FindFolderForType(AssetType.Texture),
                 ["everyone_mask"] = (int) PermissionMask.All,
                 ["group_mask"] = (int) PermissionMask.All,
-                ["next_owner_mask"] = (int) PermissionMask.All
+                ["next_owner_mask"] = (int) PermissionMask.All,
+                ["expected_upload_cost"] = meshCost
             };
 
             try
