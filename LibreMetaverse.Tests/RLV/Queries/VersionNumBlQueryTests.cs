@@ -21,7 +21,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
             var actual = _actionCallbacks.RecordReplies();
             SeedBlacklist(seed);
 
-            await _rlv.ProcessMessage("@versionnumbl=1234", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@versionnumbl=1234", _sender.Id, _sender.Name);
 
             var expected = new List<(int Channel, string Text)>
             {

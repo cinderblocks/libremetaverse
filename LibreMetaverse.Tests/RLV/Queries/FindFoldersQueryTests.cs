@@ -49,7 +49,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "Clothing/Hats,Clothing/Hats/Sub Hats"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@findfolders:at=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@findfolders:at=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -89,7 +89,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "Clothing/Hats AND Clothing/Hats/Sub Hats"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@findfolders:at; AND =1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@findfolders:at; AND =1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
         #endregion

@@ -25,7 +25,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
         [Test]
         public async Task CanTpLure()
         {
-            await _rlv.ProcessMessage("@tplure=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@tplure=n", _sender.Id, _sender.Name);
 
             var userId1 = new Guid("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
 

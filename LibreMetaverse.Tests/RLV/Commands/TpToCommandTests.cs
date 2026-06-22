@@ -22,7 +22,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
                 .Returns(Task.CompletedTask);
 
             // Act
-            await _rlv.ProcessMessage("@tpto:1.5/2.5/3.5=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@tpto:1.5/2.5/3.5=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -40,7 +40,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
                 .Returns(Task.CompletedTask);
 
             // Act
-            await _rlv.ProcessMessage("@tpto:Region Name/1.5/2.5/3.5=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@tpto:Region Name/1.5/2.5/3.5=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -58,7 +58,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
                 .Returns(Task.CompletedTask);
 
             // Act
-            await _rlv.ProcessMessage("@tpto:Region Name/1.5/2.5/3.5;3.1415=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@tpto:Region Name/1.5/2.5/3.5;3.1415=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -71,14 +71,14 @@ namespace LibreMetaverse.Tests.RLV.Commands
         [Test]
         public async Task TpTo_RestrictedUnsit()
         {
-            await _rlv.ProcessMessage("@unsit=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@unsit=n", _sender.Id, _sender.Name);
 
             _actionCallbacks
                 .Setup(e => e.TpToAsync(It.IsAny<float>(), It.IsAny<float>(), It.IsAny<float>(), It.IsAny<string?>(), It.IsAny<float?>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             // Act
-            Assert.That(await _rlv.ProcessMessage("@tpto:1.5/2.5/3.5=force", _sender.Id, _sender.Name), Is.False);
+            Assert.That(await _rlv.ProcessMessageAsync("@tpto:1.5/2.5/3.5=force", _sender.Id, _sender.Name), Is.False);
 
             // Assert
             _actionCallbacks.VerifyNoOtherCalls();
@@ -87,14 +87,14 @@ namespace LibreMetaverse.Tests.RLV.Commands
         [Test]
         public async Task TpTo_RestrictedTpLoc()
         {
-            await _rlv.ProcessMessage("@tploc=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@tploc=n", _sender.Id, _sender.Name);
 
             _actionCallbacks
                 .Setup(e => e.TpToAsync(It.IsAny<float>(), It.IsAny<float>(), It.IsAny<float>(), It.IsAny<string?>(), It.IsAny<float?>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             // Act
-            Assert.That(await _rlv.ProcessMessage("@tpto:1.5/2.5/3.5=force", _sender.Id, _sender.Name), Is.False);
+            Assert.That(await _rlv.ProcessMessageAsync("@tpto:1.5/2.5/3.5=force", _sender.Id, _sender.Name), Is.False);
 
             // Assert
             _actionCallbacks.VerifyNoOtherCalls();

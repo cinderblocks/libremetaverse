@@ -16,12 +16,12 @@ namespace LibreMetaverse.Tests.RLV.Commands
         [Test]
         public async Task Clear()
         {
-            await _rlv.ProcessMessage("@tploc=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@tplm=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@unsit=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@fly=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@tploc=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@tplm=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@unsit=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@fly=n", _sender.Id, _sender.Name);
 
-            await _rlv.ProcessMessage("@clear", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@clear", _sender.Id, _sender.Name);
 
             var restrictions = _rlv.Restrictions.FindRestrictions();
             Assert.That(restrictions, Is.Empty);
@@ -30,12 +30,12 @@ namespace LibreMetaverse.Tests.RLV.Commands
         [Test]
         public async Task Clear_CaseInSensitive()
         {
-            await _rlv.ProcessMessage("@tploc=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@tplm=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@unsit=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@fly=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@tploc=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@tplm=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@unsit=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@fly=n", _sender.Id, _sender.Name);
 
-            await _rlv.ProcessMessage("@cLEaR", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@cLEaR", _sender.Id, _sender.Name);
 
             var restrictions = _rlv.Restrictions.FindRestrictions();
             Assert.That(restrictions, Is.Empty);
@@ -46,12 +46,12 @@ namespace LibreMetaverse.Tests.RLV.Commands
         {
             var sender2 = new RlvObject("Sender 2", new Guid("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"));
 
-            await _rlv.ProcessMessage("@tploc=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@tplm=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@unsit=n", sender2.Id, sender2.Name);
-            await _rlv.ProcessMessage("@fly=n", sender2.Id, sender2.Name);
+            await _rlv.ProcessMessageAsync("@tploc=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@tplm=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@unsit=n", sender2.Id, sender2.Name);
+            await _rlv.ProcessMessageAsync("@fly=n", sender2.Id, sender2.Name);
 
-            await _rlv.ProcessMessage("@clear", sender2.Id, sender2.Name);
+            await _rlv.ProcessMessageAsync("@clear", sender2.Id, sender2.Name);
 
             Assert.That(_rlv.Permissions.CanTpLoc(), Is.False);
             Assert.That(_rlv.Permissions.CanTpLm(), Is.False);
@@ -62,12 +62,12 @@ namespace LibreMetaverse.Tests.RLV.Commands
         [Test]
         public async Task Clear_Filtered()
         {
-            await _rlv.ProcessMessage("@tploc=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@tplm=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@unsit=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@fly=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@tploc=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@tplm=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@unsit=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@fly=n", _sender.Id, _sender.Name);
 
-            await _rlv.ProcessMessage("@clear=tp", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@clear=tp", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanTpLoc(), Is.True);
             Assert.That(_rlv.Permissions.CanTpLm(), Is.True);

@@ -14,7 +14,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
         [Test]
         public async Task CanRecvChat()
         {
-            await _rlv.ProcessMessage("@recvchat=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@recvchat=n", _sender.Id, _sender.Name);
             var userId = new Guid("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
 
             Assert.That(_rlv.Permissions.CanReceiveChat("Hello world", userId), Is.False);

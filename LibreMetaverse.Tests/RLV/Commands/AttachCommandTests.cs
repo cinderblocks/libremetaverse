@@ -38,7 +38,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}:Clothing/Hats=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:Clothing/Hats=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -82,7 +82,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}:Clothing=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:Clothing=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -127,7 +127,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}:Clothing=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:Clothing=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -175,7 +175,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}:{sampleTree.Clothing_Folder.Name}/{sampleTree.Clothing_Hats_Folder.Name}=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:{sampleTree.Clothing_Folder.Name}/{sampleTree.Clothing_Hats_Folder.Name}=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -220,7 +220,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}:{sampleTree.Clothing_Folder.Name}/{sampleTree.Clothing_Hats_Folder.Name}=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:{sampleTree.Clothing_Folder.Name}/{sampleTree.Clothing_Hats_Folder.Name}=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -265,7 +265,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}:{sampleTree.Clothing_Folder.Name}/{sampleTree.Clothing_Hats_Folder.Name}=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:{sampleTree.Clothing_Folder.Name}/{sampleTree.Clothing_Hats_Folder.Name}=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>

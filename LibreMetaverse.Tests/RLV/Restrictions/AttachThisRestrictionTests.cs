@@ -47,7 +47,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
                 e.TryGetInventoryMapAsync(default)
             ).ReturnsAsync((true, inventoryMap));
 
-            Assert.That(await _rlv.ProcessMessage("@attachthis=n", sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedPrimId!.Value, sampleTree.Root_Clothing_Hats_PartyHat_Spine.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@attachthis=n", sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedPrimId!.Value, sampleTree.Root_Clothing_Hats_PartyHat_Spine.Name), Is.True);
 
             // #RLV/Clothing/Hats/Party Hat (LOCKED)
             Assert.That(_rlv.Permissions.CanAttach(sampleTree.Root_Clothing_Hats_PartyHat_Spine, true), Is.False);
@@ -117,7 +117,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
 
             // This should lock the #RLV/Clothing folder because the Business Pants are issuing the command, which is in the Clothing folder.
             //   Business Pants cannot be attached, but hats are still attachable.
-            Assert.That(await _rlv.ProcessMessage("@attachthis=n", sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedPrimId!.Value, sampleTree.Root_Clothing_BusinessPants_Pelvis.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@attachthis=n", sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedPrimId!.Value, sampleTree.Root_Clothing_BusinessPants_Pelvis.Name), Is.True);
 
             // #RLV/Clothing/Hats/Party Hat ()
             Assert.That(_rlv.Permissions.CanAttach(sampleTree.Root_Clothing_Hats_PartyHat_Spine, true), Is.True);
@@ -182,7 +182,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
                 e.TryGetInventoryMapAsync(default)
             ).ReturnsAsync((true, inventoryMap));
 
-            Assert.That(await _rlv.ProcessMessage("@attachthis:Clothing/Hats=n", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@attachthis:Clothing/Hats=n", _sender.Id, _sender.Name), Is.True);
 
             // #RLV/Clothing/Hats/Party Hat (LOCKED)
             Assert.That(_rlv.Permissions.CanAttach(sampleTree.Root_Clothing_Hats_PartyHat_Spine, true), Is.False);
@@ -254,7 +254,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
             ).ReturnsAsync((true, inventoryMap));
 
             // This should lock the Hats folder, all hats are no longer attachable
-            Assert.That(await _rlv.ProcessMessage("@attachthis:pelvis=n", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@attachthis:pelvis=n", _sender.Id, _sender.Name), Is.True);
 
             // #RLV/Clothing/Hats/Party Hat (LOCKED)
             Assert.That(_rlv.Permissions.CanAttach(sampleTree.Root_Clothing_Hats_PartyHat_Spine, true), Is.False);
@@ -329,7 +329,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
             ).ReturnsAsync((true, inventoryMap));
 
             // This should lock the Hats folder, all hats are no longer attachable
-            Assert.That(await _rlv.ProcessMessage("@attachthis:tattoo=n", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@attachthis:tattoo=n", _sender.Id, _sender.Name), Is.True);
 
             // #RLV/Clothing/Hats/Party Hat ()
             Assert.That(_rlv.Permissions.CanAttach(sampleTree.Root_Clothing_Hats_PartyHat_Spine, true), Is.True);
@@ -404,8 +404,8 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
             ).ReturnsAsync((true, inventoryMap));
 
             // This should lock the Hats folder, all hats are no longer attachable
-            Assert.That(await _rlv.ProcessMessage("@attachthis:tattoo=n", _sender.Id, _sender.Name), Is.True);
-            Assert.That(await _rlv.ProcessMessage("@attachthis:tattoo=y", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@attachthis:tattoo=n", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@attachthis:tattoo=y", _sender.Id, _sender.Name), Is.True);
 
             Assert.That(_rlv.Permissions.CanAttach(sampleTree.Root_Clothing_Hats_PartyHat_Spine, true), Is.True);
             Assert.That(_rlv.Permissions.CanAttach(sampleTree.Root_Clothing_Hats_FancyHat_Chin, true), Is.True);

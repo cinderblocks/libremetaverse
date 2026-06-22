@@ -59,7 +59,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}=force", sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedPrimId!.Value, sampleTree.Root_Clothing_Hats_FancyHat_Chin.Name);
+            await _rlv.ProcessMessageAsync($"@{command}=force", sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedPrimId!.Value, sampleTree.Root_Clothing_Hats_FancyHat_Chin.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -123,7 +123,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}:{sampleTree.Root_Clothing_HappyShirt.AttachedPrimId}=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:{sampleTree.Root_Clothing_HappyShirt.AttachedPrimId}=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -190,7 +190,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}=force", sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedPrimId!.Value, sampleTree.Root_Clothing_BusinessPants_Pelvis.Name);
+            await _rlv.ProcessMessageAsync($"@{command}=force", sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedPrimId!.Value, sampleTree.Root_Clothing_BusinessPants_Pelvis.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -258,7 +258,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}=force", sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedPrimId!.Value, sampleTree.Root_Clothing_Hats_FancyHat_Chin.Name);
+            await _rlv.ProcessMessageAsync($"@{command}=force", sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedPrimId!.Value, sampleTree.Root_Clothing_Hats_FancyHat_Chin.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -324,7 +324,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}=force", sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedPrimId!.Value, sampleTree.Root_Clothing_Hats_FancyHat_Chin.Name);
+            await _rlv.ProcessMessageAsync($"@{command}=force", sampleTree.Root_Clothing_Hats_FancyHat_Chin.AttachedPrimId!.Value, sampleTree.Root_Clothing_Hats_FancyHat_Chin.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -394,7 +394,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}:spine=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:spine=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -459,7 +459,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}:tattoo=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:tattoo=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>

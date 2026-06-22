@@ -23,7 +23,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
             var actual = _actionCallbacks.RecordReplies();
             SeedBlacklist(seed);
 
-            await _rlv.ProcessMessage($"{command}={channel}", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"{command}={channel}", _sender.Id, _sender.Name);
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -43,7 +43,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
 
             SeedBlacklist(seed);
 
-            await _rlv.ProcessInstantMessage(command, _sender.Id);
+            await _rlv.ProcessInstantMessageAsync(command, _sender.Id);
 
             _actionCallbacks.Verify(c =>
                 c.SendInstantMessageAsync(_sender.Id, expected, It.IsAny<CancellationToken>()),

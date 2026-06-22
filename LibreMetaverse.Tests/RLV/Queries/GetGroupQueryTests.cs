@@ -29,7 +29,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, actualGroupName),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getgroup=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getgroup=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -48,7 +48,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "none"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getgroup=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getgroup=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 

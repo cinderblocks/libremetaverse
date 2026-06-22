@@ -73,7 +73,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "|03,Clothing|33,Accessories|33"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getinvworn=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getinvworn=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -123,7 +123,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "|02,Clothing|22,Accessories|22"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getinvworn=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getinvworn=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -168,7 +168,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "|01,Clothing|11,Accessories|11"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getinvworn=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getinvworn=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -213,7 +213,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "|00"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getinvworn:Clothing/Hats/Sub Hats=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getinvworn:Clothing/Hats/Sub Hats=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -264,7 +264,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "|33,Sub Hats|00"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getinvworn:Clothing/Hats=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getinvworn:Clothing/Hats=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
         #endregion

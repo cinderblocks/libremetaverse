@@ -29,7 +29,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, settingValue),
             };
 
-            Assert.That(await _rlv.ProcessMessage($"@getenv_{settingName}=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync($"@getenv_{settingName}=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 

@@ -115,7 +115,7 @@ namespace LibreMetaverse.Voice.WebRTC
         private readonly SemaphoreSlim _regionTransitionLock = new SemaphoreSlim(1, 1);
         private bool _isTransitioning = false;
 
-        // Prevent concurrent ConnectPrimaryRegion calls
+        // Prevent concurrent ConnectPrimaryRegionAsync calls
         private readonly SemaphoreSlim _connectLock = new SemaphoreSlim(1, 1);
 
         // Expose session/channel info for primary session
@@ -298,7 +298,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     try
                     {
                         try { _primarySession.Session.OnDataChannelReady -= CurrentSessionOnOnDataChannelReady; } catch { }
-                        await _primarySession.Session.CloseSession().ConfigureAwait(false);
+                        await _primarySession.Session.CloseSessionAsync().ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -334,7 +334,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
                 // Start new session
                 await session.StartAsync().ConfigureAwait(false);
-                await session.RequestProvision().ConfigureAwait(false);
+                await session.RequestProvisionAsync().ConfigureAwait(false);
 
                 // Do not restore recording here — OnPeerConnectionReady fires OnConnectionReady
                 // in the UI which owns mic/PTT state. Restoring blindly fights PTT mode.
@@ -362,9 +362,9 @@ namespace LibreMetaverse.Voice.WebRTC
         }
 
 
-        public async Task<bool> ConnectPrimaryRegion()
+        public async Task<bool> ConnectPrimaryRegionAsync()
         {
-            _log.Debug("ConnectPrimaryRegion started", Client);
+            _log.Debug("ConnectPrimaryRegionAsync started", Client);
             if (!Client.Network.Connected) { return false; }
             if (!_enabled) 
             {
@@ -376,7 +376,7 @@ namespace LibreMetaverse.Voice.WebRTC
             // Non-blocking: if a connect is already in progress, drop this call.
             if (!await _connectLock.WaitAsync(0).ConfigureAwait(false))
             {
-                _log.Debug("ConnectPrimaryRegion already in progress, dropping duplicate call", Client);
+                _log.Debug("ConnectPrimaryRegionAsync already in progress, dropping duplicate call", Client);
                 return false;
             }
 
@@ -387,10 +387,10 @@ namespace LibreMetaverse.Voice.WebRTC
                 // the new ICE exchange fails immediately.
                 if (_primarySession?.Session != null)
                 {
-                    _log.Debug("ConnectPrimaryRegion: closing existing primary session before reconnect", Client);
+                    _log.Debug("ConnectPrimaryRegionAsync: closing existing primary session before reconnect", Client);
                     StopNeighborLoop();
                     try { _primarySession.Session.OnDataChannelReady -= CurrentSessionOnOnDataChannelReady; } catch { }
-                    try { await _primarySession.Session.CloseSession().ConfigureAwait(false); } catch { }
+                    try { await _primarySession.Session.CloseSessionAsync().ConfigureAwait(false); } catch { }
                     _primarySession = null;
                 }
 
@@ -426,7 +426,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 WirePrimarySessionEvents(session);
 
                 await session.StartAsync().ConfigureAwait(false);
-                var provisioned = await session.RequestProvision().ConfigureAwait(false);
+                var provisioned = await session.RequestProvisionAsync().ConfigureAwait(false);
 
                 // Start estate-voice neighbour loop if applicable
                 if (_estateVoiceActive)
@@ -447,7 +447,7 @@ namespace LibreMetaverse.Voice.WebRTC
             {
                 try
                 {
-                    _ = kvp.Value.Session?.CloseSession();
+                    _ = kvp.Value.Session?.CloseSessionAsync();
                     try { kvp.Value.Session?.Dispose(); } catch { }
                 }
                 catch { }
@@ -459,7 +459,7 @@ namespace LibreMetaverse.Voice.WebRTC
             {
                 try
                 {
-                    _ = kvp.Value.Session?.CloseSession();
+                    _ = kvp.Value.Session?.CloseSessionAsync();
                     try { kvp.Value.Session?.Dispose(); } catch { }
                 }
                 catch { }
@@ -474,7 +474,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     if (_primarySession.Session != null)
                     {
                         try { _primarySession.Session.OnDataChannelReady -= CurrentSessionOnOnDataChannelReady; } catch { }
-                        _ = _primarySession.Session.CloseSession();
+                        _ = _primarySession.Session.CloseSessionAsync();
                         try { _primarySession.Session.Dispose(); } catch { }
                     }
                 }
@@ -505,7 +505,7 @@ namespace LibreMetaverse.Voice.WebRTC
         /// <summary>
         /// Wires all forwarding event handlers from a primary <see cref="VoiceSession"/> to the
         /// manager-level events consumed by the UI. Centralises what was previously repeated in
-        /// <see cref="ConnectPrimaryRegion"/> and <see cref="ReprovisionForNewRegion"/>.
+        /// <see cref="ConnectPrimaryRegionAsync"/> and <see cref="ReprovisionForNewRegion"/>.
         /// </summary>
         private void WirePrimarySessionEvents(VoiceSession session)
         {
@@ -612,7 +612,7 @@ namespace LibreMetaverse.Voice.WebRTC
         {
             foreach (var kvp in _neighborSessions)
             {
-                try { _ = kvp.Value.CloseSession(); } catch { }
+                try { _ = kvp.Value.CloseSessionAsync(); } catch { }
                 try { kvp.Value.Dispose(); } catch { }
             }
             _neighborSessions.Clear();
@@ -679,7 +679,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 if (_neighborSessions.TryRemove(handle, out var old))
                 {
                     _log.Debug($"Closing neighbour voice session for region handle {handle}", Client);
-                    try { _ = old.CloseSession(); } catch { }
+                    try { _ = old.CloseSessionAsync(); } catch { }
                     try { old.Dispose(); } catch { }
                 }
             }
@@ -703,7 +703,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     };
                     _neighborSessions[handle] = nbSession;
                     await nbSession.StartAsync().ConfigureAwait(false);
-                    await nbSession.RequestProvision().ConfigureAwait(false);
+                    await nbSession.RequestProvisionAsync().ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -802,7 +802,7 @@ namespace LibreMetaverse.Voice.WebRTC
             return peers.ToList();
         }
 
-        public async Task<bool> RequestParcelVoiceInfo()
+        public async Task<bool> RequestParcelVoiceInfoAsync()
         {
             var cap = Client.Network?.CurrentSim?.Caps?.CapabilityURI("ParcelVoiceInfoRequest");
             if (cap == null)
@@ -885,7 +885,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 if (kvp.Value.Session?.SessionId == sessionId)
                 {
                     _log.Warn($"P2P voice session start failed for agent {kvp.Key} (session {sessionId})", Client);
-                    _ = EndP2PCall(kvp.Key);
+                    _ = EndP2PCallAsync(kvp.Key);
                     try { OnP2PCallFailed?.Invoke(kvp.Key, new Exception($"Session start rejected by server")); } catch { }
                     return;
                 }
@@ -897,7 +897,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 if (kvp.Value.Session?.SessionId == sessionId)
                 {
                     _log.Warn($"Group voice session start failed for group {kvp.Key} (session {sessionId})", Client);
-                    _ = LeaveGroupVoice(kvp.Key);
+                    _ = LeaveGroupVoiceAsync(kvp.Key);
                     try { OnGroupVoiceJoinFailed?.Invoke(kvp.Key, new Exception($"Session start rejected by server")); } catch { }
                     return;
                 }
@@ -924,7 +924,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 if (p2p.Session?.SessionId == sessionId || expectedId == sessionId)
                 {
                     _log.Info($"Force-closing P2P voice session with {kvp.Key}", Client);
-                    _ = EndP2PCall(kvp.Key);
+                    _ = EndP2PCallAsync(kvp.Key);
                     return;
                 }
             }
@@ -935,7 +935,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 if (kvp.Value.Session?.SessionId == sessionId || kvp.Key == sessionId)
                 {
                     _log.Info($"Force-closing group voice session for {kvp.Key}", Client);
-                    _ = LeaveGroupVoice(kvp.Key);
+                    _ = LeaveGroupVoiceAsync(kvp.Key);
                     return;
                 }
             }
@@ -967,7 +967,7 @@ namespace LibreMetaverse.Voice.WebRTC
             _log.Info($"Incoming P2P voice call from {callerId} (session {msg.IMSessionID})", Client);
 
             // Cache credentials and session-id so accept/decline can use them without a separate round-trip.
-            // Keyed by caller UUID; the UI calls AcceptIncomingP2PCall/DeclineIncomingP2PCall.
+            // Keyed by caller UUID; the UI calls AcceptIncomingP2PCallAsync/DeclineIncomingP2PCall.
             _pendingP2PInvites[callerId] = (channelUri, credentials, msg.IMSessionID);
 
             try { OnP2PCallIncoming?.Invoke(callerId); } catch { }
@@ -981,11 +981,11 @@ namespace LibreMetaverse.Voice.WebRTC
         /// Accept a pending incoming P2P voice call that was signalled via <see cref="OnP2PCallIncoming"/>.
         /// Sends the SL-protocol "accept invitation" CAP POST before connecting the WebRTC session.
         /// </summary>
-        public async Task<bool> AcceptIncomingP2PCall(UUID callerId)
+        public async Task<bool> AcceptIncomingP2PCallAsync(UUID callerId)
         {
             if (!_pendingP2PInvites.TryRemove(callerId, out var invite))
             {
-                _log.Warn($"AcceptIncomingP2PCall: no pending invite found for {callerId}", Client);
+                _log.Warn($"AcceptIncomingP2PCallAsync: no pending invite found for {callerId}", Client);
                 return false;
             }
 
@@ -993,7 +993,7 @@ namespace LibreMetaverse.Voice.WebRTC
             // so the server knows we accepted and sends us the agent list for the session.
             await PostChatSessionRequestAsync("accept invitation", invite.SessionId).ConfigureAwait(false);
 
-            return await AcceptP2PCall(callerId, invite.ChannelUri, invite.Credentials).ConfigureAwait(false);
+            return await AcceptP2PCallAsync(callerId, invite.ChannelUri, invite.Credentials).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -1109,14 +1109,14 @@ namespace LibreMetaverse.Voice.WebRTC
         /// </summary>
         /// <param name="sessionId">The UUID of the conference session</param>
         /// <returns>True if the join was successful, false otherwise</returns>
-        public Task<bool> JoinConferenceVoice(UUID sessionId) => JoinGroupVoice(sessionId);
+        public Task<bool> JoinConferenceVoiceAsync(UUID sessionId) => JoinGroupVoiceAsync(sessionId);
 
         /// <summary>Leaves voice for a conference (ad-hoc multi-agent) session.</summary>
-        public Task LeaveConferenceVoice(UUID sessionId) => LeaveGroupVoice(sessionId);
+        public Task LeaveConferenceVoiceAsync(UUID sessionId) => LeaveGroupVoiceAsync(sessionId);
 
         /// <param name="groupId">The UUID of the group to join voice for</param>
         /// <returns>True if the join was successful, false otherwise</returns>
-        public async Task<bool> JoinGroupVoice(UUID groupId)
+        public async Task<bool> JoinGroupVoiceAsync(UUID groupId)
         {
             if (groupId == UUID.Zero)
             {
@@ -1180,7 +1180,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
                 // Start and provision the session
                 await session.StartAsync().ConfigureAwait(false);
-                var provisioned = await session.RequestProvision().ConfigureAwait(false);
+                var provisioned = await session.RequestProvisionAsync().ConfigureAwait(false);
 
                 if (provisioned)
                 {
@@ -1209,7 +1209,7 @@ namespace LibreMetaverse.Voice.WebRTC
         /// Leave a group voice channel.
         /// </summary>
         /// <param name="groupId">The UUID of the group to leave voice for</param>
-        public async Task LeaveGroupVoice(UUID groupId)
+        public async Task LeaveGroupVoiceAsync(UUID groupId)
         {
             if (!_groupSessions.TryRemove(groupId, out var groupSession))
             {
@@ -1224,7 +1224,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 // Close and dispose the session
                 if (groupSession?.Session != null)
                 {
-                    await groupSession.Session.CloseSession().ConfigureAwait(false);
+                    await groupSession.Session.CloseSessionAsync().ConfigureAwait(false);
                     groupSession.Session.Dispose();
                 }
 
@@ -1357,7 +1357,7 @@ namespace LibreMetaverse.Voice.WebRTC
         /// </summary>
         /// <param name="agentId">The UUID of the agent to call</param>
         /// <returns>True if the call was initiated successfully</returns>
-        public async Task<bool> StartP2PCall(UUID agentId)
+        public async Task<bool> StartP2PCallAsync(UUID agentId)
         {
             if (agentId == UUID.Zero)
             {
@@ -1421,7 +1421,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     PeerLeft?.Invoke(id);
                     if (id == agentId)
                     {
-                        _ = EndP2PCall(agentId);
+                        _ = EndP2PCallAsync(agentId);
                     }
                 };
                 session.OnPeerPositionUpdated += (id, map) => PeerPositionUpdated?.Invoke(id, map);
@@ -1436,7 +1436,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
                 // Start and provision the session
                 await session.StartAsync().ConfigureAwait(false);
-                var provisioned = await session.RequestProvision().ConfigureAwait(false);
+                var provisioned = await session.RequestProvisionAsync().ConfigureAwait(false);
 
                 if (provisioned)
                 {
@@ -1469,7 +1469,7 @@ namespace LibreMetaverse.Voice.WebRTC
         /// End a P2P voice call with another agent.
         /// </summary>
         /// <param name="agentId">The UUID of the agent to end the call with</param>
-        public async Task EndP2PCall(UUID agentId)
+        public async Task EndP2PCallAsync(UUID agentId)
         {
             if (!_p2pSessions.TryRemove(agentId, out var p2pSession))
             {
@@ -1484,7 +1484,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 // Close and dispose the session
                 if (p2pSession?.Session != null)
                 {
-                    await p2pSession.Session.CloseSession().ConfigureAwait(false);
+                    await p2pSession.Session.CloseSessionAsync().ConfigureAwait(false);
                     p2pSession.Session.Dispose();
                 }
 
@@ -1503,7 +1503,7 @@ namespace LibreMetaverse.Voice.WebRTC
         /// <param name="channelUri">The channel URI from the call invitation</param>
         /// <param name="credentials">The credentials from the call invitation</param>
         /// <returns>True if the call was accepted successfully</returns>
-        public async Task<bool> AcceptP2PCall(UUID agentId, string channelUri, string credentials)
+        public async Task<bool> AcceptP2PCallAsync(UUID agentId, string channelUri, string credentials)
         {
             if (agentId == UUID.Zero || string.IsNullOrEmpty(channelUri) || string.IsNullOrEmpty(credentials))
             {
@@ -1544,7 +1544,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     PeerLeft?.Invoke(id);
                     if (id == agentId)
                     {
-                        _ = EndP2PCall(agentId);
+                        _ = EndP2PCallAsync(agentId);
                     }
                 };
                 session.OnPeerPositionUpdated += (id, map) => PeerPositionUpdated?.Invoke(id, map);
@@ -1559,7 +1559,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
                 // Start and provision the session
                 await session.StartAsync().ConfigureAwait(false);
-                var provisioned = await session.RequestProvision().ConfigureAwait(false);
+                var provisioned = await session.RequestProvisionAsync().ConfigureAwait(false);
 
                 if (provisioned)
                 {

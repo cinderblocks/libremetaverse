@@ -21,7 +21,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
         [Test]
         public async Task CanChat_SendChatRestriction()
         {
-            await _rlv.ProcessMessage("@sendchat=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@sendchat=n", _sender.Id, _sender.Name);
 
             // No public chat allowed unless it starts with '/'
             Assert.That(_rlv.Permissions.CanChat(0, "Hello"), Is.False);

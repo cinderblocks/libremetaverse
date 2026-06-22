@@ -59,7 +59,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@detachme=force", sampleTree.Root_Clothing_RetroPants.AttachedPrimId!.Value, sampleTree.Root_Clothing_RetroPants.Name);
+            await _rlv.ProcessMessageAsync("@detachme=force", sampleTree.Root_Clothing_RetroPants.AttachedPrimId!.Value, sampleTree.Root_Clothing_RetroPants.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -126,7 +126,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@detachme=force", sampleTree.Root_Clothing_RetroPants.AttachedPrimId!.Value, sampleTree.Root_Clothing_RetroPants.Name);
+            await _rlv.ProcessMessageAsync("@detachme=force", sampleTree.Root_Clothing_RetroPants.AttachedPrimId!.Value, sampleTree.Root_Clothing_RetroPants.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -201,10 +201,10 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Lock the 'Hats' folder, which contains an exact copy of the item we're going to detach. This should prevent the detaching of this item from the non locked folder
-            await _rlv.ProcessMessage($"@detachthis:{sampleTree.Clothing_Folder.Name}/{sampleTree.Clothing_Hats_Folder.Name}=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@detachthis:{sampleTree.Clothing_Folder.Name}/{sampleTree.Clothing_Hats_Folder.Name}=n", _sender.Id, _sender.Name);
 
             // Act
-            await _rlv.ProcessMessage("@detachme=force", sampleTree.Root_Clothing_RetroPants.AttachedPrimId!.Value, sampleTree.Root_Clothing_RetroPants.Name);
+            await _rlv.ProcessMessageAsync("@detachme=force", sampleTree.Root_Clothing_RetroPants.AttachedPrimId!.Value, sampleTree.Root_Clothing_RetroPants.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -281,7 +281,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@detachme=force", sampleTree.Root_Clothing_RetroPants.AttachedPrimId!.Value, sampleTree.Root_Clothing_RetroPants.Name);
+            await _rlv.ProcessMessageAsync("@detachme=force", sampleTree.Root_Clothing_RetroPants.AttachedPrimId!.Value, sampleTree.Root_Clothing_RetroPants.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>

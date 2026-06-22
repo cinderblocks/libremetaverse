@@ -17,8 +17,8 @@ namespace LibreMetaverse.Tests.RLV.Exceptions
         {
             var userId1 = new Guid("00000000-0000-4000-8000-000000000000");
 
-            await _rlv.ProcessMessage("@sendim=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage($"@sendim:{userId1}=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@sendim=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@sendim:{userId1}=add", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanSendIM("Hello world", userId1), Is.True);
         }
@@ -28,8 +28,8 @@ namespace LibreMetaverse.Tests.RLV.Exceptions
         {
             var groupId1 = new Guid("00000000-0000-4000-8000-000000000000");
 
-            await _rlv.ProcessMessage("@sendim=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage($"@sendim:Group Name=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@sendim=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@sendim:Group Name=add", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanSendIM("Hello world", groupId1, "Group Name"), Is.True);
         }
@@ -39,8 +39,8 @@ namespace LibreMetaverse.Tests.RLV.Exceptions
         {
             var groupId1 = new Guid("00000000-0000-4000-8000-000000000000");
 
-            await _rlv.ProcessMessage("@sendim=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage($"@sendim:allgroups=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@sendim=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@sendim:allgroups=add", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanSendIM("Hello world", groupId1, "Group name"), Is.True);
         }

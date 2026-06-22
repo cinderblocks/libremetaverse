@@ -59,7 +59,7 @@ namespace LibreMetaverse.RLV
         /// <param name="senderName">Name of the object sending the command</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>True if all of the command were processed successfully</returns>
-        public async Task<bool> ProcessMessage(string message, Guid senderId, string senderName, CancellationToken cancellationToken = default)
+        public async Task<bool> ProcessMessageAsync(string message, Guid senderId, string senderName, CancellationToken cancellationToken = default)
         {
             if (!Enabled || !message.StartsWith("@", StringComparison.OrdinalIgnoreCase))
             {
@@ -87,7 +87,7 @@ namespace LibreMetaverse.RLV
         /// <param name="senderId">ID of the user sending the instant message</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>True if the command was successfully processed</returns>
-        public async Task<bool> ProcessInstantMessage(string message, Guid senderId, CancellationToken cancellationToken = default)
+        public async Task<bool> ProcessInstantMessageAsync(string message, Guid senderId, CancellationToken cancellationToken = default)
         {
             if (!EnableInstantMessageProcessing || !Enabled || !message.StartsWith("@", StringComparison.OrdinalIgnoreCase))
             {
@@ -108,7 +108,7 @@ namespace LibreMetaverse.RLV
         /// <param name="message">Message being sent to public chat (channel 0)</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Task</returns>
-        public async Task ReportSendPublicMessage(string message, CancellationToken cancellationToken = default)
+        public async Task ReportSendPublicMessageAsync(string message, CancellationToken cancellationToken = default)
         {
             IReadOnlyList<int> channels;
 
@@ -139,7 +139,7 @@ namespace LibreMetaverse.RLV
         /// <param name="folderPath">Path to the accepted folder</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Task</returns>
-        public async Task ReportInventoryOfferAccepted(string folderPath, CancellationToken cancellationToken = default)
+        public async Task ReportInventoryOfferAcceptedAsync(string folderPath, CancellationToken cancellationToken = default)
         {
             var isSharedFolder = false;
 
@@ -168,7 +168,7 @@ namespace LibreMetaverse.RLV
         /// <param name="folderPath">Path to the declined folder</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Task</returns>
-        public async Task ReportInventoryOfferDeclined(string folderPath, CancellationToken cancellationToken = default)
+        public async Task ReportInventoryOfferDeclinedAsync(string folderPath, CancellationToken cancellationToken = default)
         {
             if (folderPath.StartsWith("#RLV/", StringComparison.Ordinal))
             {
@@ -187,7 +187,7 @@ namespace LibreMetaverse.RLV
         /// <param name="wearableType">Type of wearable being worn</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Task</returns>
-        public async Task ReportItemWorn(Guid objectFolderId, bool isShared, RlvWearableType wearableType, CancellationToken cancellationToken = default)
+        public async Task ReportItemWornAsync(Guid objectFolderId, bool isShared, RlvWearableType wearableType, CancellationToken cancellationToken = default)
         {
             var notificationText = "";
             var isLegal = Permissions.CanAttach(objectFolderId, isShared, null, wearableType);
@@ -213,7 +213,7 @@ namespace LibreMetaverse.RLV
         /// <param name="wearableType">Type of wearable being removed</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Task</returns>
-        public async Task ReportItemUnworn(Guid itemId, Guid objectFolderId, bool isShared, RlvWearableType wearableType, CancellationToken cancellationToken = default)
+        public async Task ReportItemUnwornAsync(Guid itemId, Guid objectFolderId, bool isShared, RlvWearableType wearableType, CancellationToken cancellationToken = default)
         {
             var notificationText = "";
             var isLegal = Permissions.CanDetach(itemId, null, objectFolderId, isShared, null, wearableType);
@@ -238,7 +238,7 @@ namespace LibreMetaverse.RLV
         /// <param name="attachmentPoint">Attachment point where the item was attached</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Task</returns>
-        public async Task ReportItemAttached(Guid objectFolderId, bool isShared, RlvAttachmentPoint attachmentPoint, CancellationToken cancellationToken = default)
+        public async Task ReportItemAttachedAsync(Guid objectFolderId, bool isShared, RlvAttachmentPoint attachmentPoint, CancellationToken cancellationToken = default)
         {
             var notificationText = "";
             var isLegal = Permissions.CanAttach(objectFolderId, isShared, attachmentPoint, null);
@@ -270,7 +270,7 @@ namespace LibreMetaverse.RLV
         /// <param name="attachmentPoint">Attachment point where the item was detached from</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Task</returns>
-        public async Task ReportItemDetached(Guid itemId, Guid primId, Guid objectFolderId, bool isShared, RlvAttachmentPoint attachmentPoint, CancellationToken cancellationToken = default)
+        public async Task ReportItemDetachedAsync(Guid itemId, Guid primId, Guid objectFolderId, bool isShared, RlvAttachmentPoint attachmentPoint, CancellationToken cancellationToken = default)
         {
             var notificationText = "";
             var isLegal = Permissions.CanDetach(itemId, primId, objectFolderId, isShared, attachmentPoint, null);
@@ -298,7 +298,7 @@ namespace LibreMetaverse.RLV
         /// <param name="objectId">Null if user sat on the ground, otherwise ID of the object being sat on</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns></returns>
-        public async Task ReportSit(Guid? objectId, CancellationToken cancellationToken = default)
+        public async Task ReportSitAsync(Guid? objectId, CancellationToken cancellationToken = default)
         {
             var notificationText = "";
 
@@ -338,7 +338,7 @@ namespace LibreMetaverse.RLV
         /// <param name="objectId">Null if user was sitting on the ground, otherwise ID of the object user was sitting on</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Task</returns>
-        public async Task ReportUnsit(Guid? objectId, CancellationToken cancellationToken = default)
+        public async Task ReportUnsitAsync(Guid? objectId, CancellationToken cancellationToken = default)
         {
             var notificationText = "";
 

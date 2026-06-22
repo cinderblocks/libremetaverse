@@ -15,10 +15,10 @@ namespace LibreMetaverse.Tests.RLV.Exceptions
         [Test]
         public async Task DenyPermission()
         {
-            Assert.That(await _rlv.ProcessMessage($"@denypermission=add", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync($"@denypermission=add", _sender.Id, _sender.Name), Is.True);
             Assert.That(_rlv.Permissions.IsAutoDenyPermissions(), Is.True);
 
-            Assert.That(await _rlv.ProcessMessage($"@denypermission=rem", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync($"@denypermission=rem", _sender.Id, _sender.Name), Is.True);
             Assert.That(_rlv.Permissions.IsAutoDenyPermissions(), Is.False);
         }
         #endregion

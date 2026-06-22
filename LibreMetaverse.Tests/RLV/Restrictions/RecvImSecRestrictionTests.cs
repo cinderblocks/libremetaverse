@@ -21,9 +21,9 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
             var userId1 = new Guid("00000000-0000-4000-8000-000000000000");
             var userId2 = new Guid("11111111-1111-4111-8111-111111111111");
 
-            await _rlv.ProcessMessage("@recvim_sec=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage($"@recvim:{userId1}=add", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage($"@recvim:{userId2}=add", sender2.Id, sender2.Name);
+            await _rlv.ProcessMessageAsync("@recvim_sec=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@recvim:{userId1}=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@recvim:{userId2}=add", sender2.Id, sender2.Name);
 
             Assert.That(_rlv.Permissions.CanReceiveIM("Hello world", userId1), Is.True);
             Assert.That(_rlv.Permissions.CanReceiveIM("Hello world", userId2), Is.False);
@@ -36,9 +36,9 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
 
             var groupId1 = new Guid("00000000-0000-4000-8000-000000000000");
 
-            await _rlv.ProcessMessage("@recvim_sec=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage($"@recvim:Group Name=add", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage($"@recvim:allgroups=add", sender2.Id, sender2.Name);
+            await _rlv.ProcessMessageAsync("@recvim_sec=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@recvim:Group Name=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@recvim:allgroups=add", sender2.Id, sender2.Name);
 
             Assert.That(_rlv.Permissions.CanReceiveIM("Hello world", groupId1, "Group Name"), Is.True);
             Assert.That(_rlv.Permissions.CanReceiveIM("Hello world", groupId1, "Another Group"), Is.False);
@@ -49,8 +49,8 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
         {
             var groupId1 = new Guid("00000000-0000-4000-8000-000000000000");
 
-            await _rlv.ProcessMessage("@recvim_sec=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage($"@recvim:allgroups=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@recvim_sec=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@recvim:allgroups=add", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanReceiveIM("Hello world", groupId1, "Group Name"), Is.True);
             Assert.That(_rlv.Permissions.CanReceiveIM("Hello world", groupId1, "Another Group"), Is.True);

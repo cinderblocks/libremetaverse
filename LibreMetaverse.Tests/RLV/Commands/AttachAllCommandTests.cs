@@ -42,7 +42,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}:Clothing=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:Clothing=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -88,7 +88,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}:Clothing=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:Clothing=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -136,7 +136,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}:Clothing=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:Clothing=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -184,7 +184,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}:.auto_attach=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:.auto_attach=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>

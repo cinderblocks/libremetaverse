@@ -642,7 +642,7 @@ namespace LibreMetaverse
         /// <param name="path">A string path to search, folders/objects separated by a '/'</param>
         /// <param name="cancellationToken">Cancellation token for the operation</param>
         /// <remarks>Results are sent to the <see cref="InventoryManager.OnFindObjectByPath"/> event</remarks>
-        public async Task RequestFindObjectByPath(UUID baseFolder, UUID inventoryOwner, string path, CancellationToken cancellationToken = default)
+        public async Task RequestFindObjectByPathAsync(UUID baseFolder, UUID inventoryOwner, string path, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentException("Empty path is not supported");

@@ -15,7 +15,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
         [Test]
         public async Task CanRecvChat_RecvEmote()
         {
-            await _rlv.ProcessMessage("@recvemote=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@recvemote=n", _sender.Id, _sender.Name);
 
             var userId = new Guid("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
 

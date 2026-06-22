@@ -21,7 +21,7 @@ namespace LibreMetaverse.Tests.RLV.Exceptions
 
             var userId1 = new Guid("55555555-5555-4555-8555-555555555555");
 
-            await _rlv.ProcessMessage($"@touchthis:{objectPrimId1}=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@touchthis:{objectPrimId1}=add", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanTouch(RlvPermissionsService.TouchLocation.AttachedSelf, objectPrimId1, null, null), Is.False);
             Assert.That(_rlv.Permissions.CanTouch(RlvPermissionsService.TouchLocation.AttachedOther, objectPrimId1, userId1, null), Is.False);

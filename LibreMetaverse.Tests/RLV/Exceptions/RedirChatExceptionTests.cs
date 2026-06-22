@@ -16,7 +16,7 @@ namespace LibreMetaverse.Tests.RLV.Exceptions
         [Test]
         public async Task IsRedirChat()
         {
-            await _rlv.ProcessMessage("@redirchat:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@redirchat:1234=add", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.TryGetRedirChatChannels(out var channels), Is.True);
 
@@ -31,8 +31,8 @@ namespace LibreMetaverse.Tests.RLV.Exceptions
         [Test]
         public async Task IsRedirChat_Removed()
         {
-            await _rlv.ProcessMessage("@redirchat:1234=add", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@redirchat:1234=rem", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@redirchat:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@redirchat:1234=rem", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.TryGetRedirChatChannels(out var channels), Is.False);
         }
@@ -40,8 +40,8 @@ namespace LibreMetaverse.Tests.RLV.Exceptions
         [Test]
         public async Task IsRedirChat_MultipleChannels()
         {
-            await _rlv.ProcessMessage("@redirchat:1234=add", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@redirchat:12345=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@redirchat:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@redirchat:12345=add", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.TryGetRedirChatChannels(out var channels), Is.True);
 
@@ -59,8 +59,8 @@ namespace LibreMetaverse.Tests.RLV.Exceptions
         {
             var actual = _actionCallbacks.RecordReplies();
 
-            await _rlv.ProcessMessage("@redirchat:1234=add", _sender.Id, _sender.Name);
-            await _rlv.ReportSendPublicMessage("Hello World");
+            await _rlv.ProcessMessageAsync("@redirchat:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ReportSendPublicMessageAsync("Hello World");
 
             Assert.That(_rlv.Permissions.TryGetRedirChatChannels(out var channels), Is.True);
             var expected = new List<(int Channel, string Text)>
@@ -76,10 +76,10 @@ namespace LibreMetaverse.Tests.RLV.Exceptions
         {
             var actual = _actionCallbacks.RecordReplies();
 
-            await _rlv.ProcessMessage("@redirchat:1234=add", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@redirchat:5678=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@redirchat:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@redirchat:5678=add", _sender.Id, _sender.Name);
 
-            await _rlv.ReportSendPublicMessage("Hello World");
+            await _rlv.ReportSendPublicMessageAsync("Hello World");
             _rlv.Permissions.TryGetRedirChatChannels(out var channels);
 
             var expected = new List<(int Channel, string Text)>
@@ -96,9 +96,9 @@ namespace LibreMetaverse.Tests.RLV.Exceptions
         {
             var actual = _actionCallbacks.RecordReplies();
 
-            await _rlv.ProcessMessage("@redirchat:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@redirchat:1234=add", _sender.Id, _sender.Name);
 
-            await _rlv.ReportSendPublicMessage("/me says Hello World");
+            await _rlv.ReportSendPublicMessageAsync("/me says Hello World");
 
             Assert.That(_rlv.Permissions.TryGetRedirChatChannels(out var channels), Is.True);
             Assert.That(actual, Is.Empty);

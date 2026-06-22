@@ -18,7 +18,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
         {
             _rlv.EnableInstantMessageProcessing = true;
 
-            await _rlv.ProcessInstantMessage("@version", _sender.Id);
+            await _rlv.ProcessInstantMessageAsync("@version", _sender.Id);
 
             _actionCallbacks.Verify(c =>
                 c.SendInstantMessageAsync(_sender.Id, RlvService.RLVVersion, It.IsAny<CancellationToken>()),
@@ -36,7 +36,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
         {
             var actual = _actionCallbacks.RecordReplies();
 
-            await _rlv.ProcessMessage($"{command}={channel}", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"{command}={channel}", _sender.Id, _sender.Name);
 
             var expected = new List<(int Channel, string Text)>
             {

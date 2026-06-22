@@ -23,7 +23,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
                 .Returns(Task.CompletedTask);
 
             // Act
-            await _rlv.ProcessMessage($"@setdebug_{settingName}:{settingValue}=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@setdebug_{settingName}:{settingValue}=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -41,7 +41,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
                 .Returns(Task.CompletedTask);
 
             // Act
-            Assert.That(await _rlv.ProcessMessage($"@setdebug_:42=force", _sender.Id, _sender.Name), Is.False);
+            Assert.That(await _rlv.ProcessMessageAsync($"@setdebug_:42=force", _sender.Id, _sender.Name), Is.False);
 
             // Assert
             _actionCallbacks.VerifyNoOtherCalls();

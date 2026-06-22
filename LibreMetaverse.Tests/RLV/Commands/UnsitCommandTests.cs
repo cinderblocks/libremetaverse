@@ -16,15 +16,15 @@ namespace LibreMetaverse.Tests.RLV.Commands
         [Test]
         public async Task ForceUnSit()
         {
-            Assert.That(await _rlv.ProcessMessage("@unsit=force", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@unsit=force", _sender.Id, _sender.Name), Is.True);
         }
 
         [Test]
         public async Task ForceUnSit_RestrictedUnsit()
         {
-            await _rlv.ProcessMessage("@unsit=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@unsit=n", _sender.Id, _sender.Name);
 
-            Assert.That(await _rlv.ProcessMessage("@unsit=force", _sender.Id, _sender.Name), Is.False);
+            Assert.That(await _rlv.ProcessMessageAsync("@unsit=force", _sender.Id, _sender.Name), Is.False);
         }
 
         #endregion

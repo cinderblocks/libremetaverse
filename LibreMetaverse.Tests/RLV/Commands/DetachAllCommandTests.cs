@@ -65,7 +65,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@detachall:Clothing=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@detachall:Clothing=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -130,11 +130,11 @@ namespace LibreMetaverse.Tests.RLV.Commands
             {
                 sampleTree.Root_Clothing_Hats_FancyHat_Chin.Id,
             };
-            await _rlv.ProcessMessage("@detachthis:Clothing=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@detachthis:Clothing=n", _sender.Id, _sender.Name);
 
             // Act - Nothing from 'Clothing' is detached because it's locked, but item in the 'Hats' folder
             //       inside of Clothing will be detached.
-            await _rlv.ProcessMessage("@detachall:Clothing=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@detachall:Clothing=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -206,7 +206,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@detachall:.clothing=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@detachall:.clothing=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -278,7 +278,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@detachall:.clothing=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@detachall:.clothing=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -350,7 +350,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@detachall:.clothing=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@detachall:.clothing=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -430,7 +430,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@detachall:.clothing=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@detachall:.clothing=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -498,7 +498,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@detachall:Clothing=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@detachall:Clothing=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>

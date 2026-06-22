@@ -18,8 +18,8 @@ namespace LibreMetaverse.Tests.RLV.Exceptions
             var objectId1 = new Guid("00000000-0000-4000-8000-000000000000");
             var objectId2 = new Guid("11111111-1111-4111-8111-111111111111");
 
-            await _rlv.ProcessMessage("@edit=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage($"@edit:{objectId1}=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@edit=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@edit:{objectId1}=add", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanEdit(RlvPermissionsService.ObjectLocation.Hud, null), Is.False);
             Assert.That(_rlv.Permissions.CanEdit(RlvPermissionsService.ObjectLocation.Attached, null), Is.False);
@@ -40,7 +40,7 @@ namespace LibreMetaverse.Tests.RLV.Exceptions
             var objectId1 = new Guid("00000000-0000-4000-8000-000000000000");
             var objectId2 = new Guid("11111111-1111-4111-8111-111111111111");
 
-            await _rlv.ProcessMessage($"@editobj:{objectId1}=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@editobj:{objectId1}=n", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanEdit(RlvPermissionsService.ObjectLocation.Hud, null), Is.True);
             Assert.That(_rlv.Permissions.CanEdit(RlvPermissionsService.ObjectLocation.Attached, null), Is.True);

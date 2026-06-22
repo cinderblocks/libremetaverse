@@ -21,7 +21,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
                 .Returns(Task.CompletedTask);
 
             // Act
-            await _rlv.ProcessMessage("@adjustheight:4.3;1.25=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@adjustheight:4.3;1.25=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -39,7 +39,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
                 .Returns(Task.CompletedTask);
 
             // Act
-            await _rlv.ProcessMessage("@adjustheight:4.3;1.25;12.34=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@adjustheight:4.3;1.25;12.34=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>

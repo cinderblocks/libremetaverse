@@ -63,7 +63,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage(command, _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync(command, _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -134,7 +134,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage(command, _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync(command, _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -207,7 +207,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage(command, _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync(command, _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -300,7 +300,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage(command, _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync(command, _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -367,7 +367,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage(command, _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync(command, _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -435,7 +435,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage(command, _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync(command, _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -505,7 +505,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage(command, _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync(command, _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -587,7 +587,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage(command, _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync(command, _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -685,7 +685,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage(command, _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync(command, _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -785,7 +785,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage(command, _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync(command, _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -851,7 +851,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage(command, _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync(command, _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -918,7 +918,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}:{sampleTree.Root_Clothing_HappyShirt.AttachedPrimId}=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:{sampleTree.Root_Clothing_HappyShirt.AttachedPrimId}=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -985,7 +985,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}:{sampleTree.Root_Clothing_HappyShirt.AttachedPrimId}=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:{sampleTree.Root_Clothing_HappyShirt.AttachedPrimId}=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -1053,7 +1053,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}:{sampleTree.Root_Clothing_HappyShirt.AttachedPrimId}=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:{sampleTree.Root_Clothing_HappyShirt.AttachedPrimId}=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -1123,7 +1123,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}:{sampleTree.Root_Clothing_HappyShirt.AttachedPrimId}=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:{sampleTree.Root_Clothing_HappyShirt.AttachedPrimId}=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -1188,10 +1188,10 @@ namespace LibreMetaverse.Tests.RLV.Commands
             {
             };
 
-            await _rlv.ProcessMessage($"@detachallthis:{sampleTree.Clothing_Folder.Name}=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@detachallthis:{sampleTree.Clothing_Folder.Name}=n", _sender.Id, _sender.Name);
 
             // Act
-            await _rlv.ProcessMessage($"@{command}:{sampleTree.Root_Clothing_HappyShirt.AttachedPrimId}=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:{sampleTree.Root_Clothing_HappyShirt.AttachedPrimId}=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -1271,7 +1271,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@{command}:{externalAttachable.AttachedPrimId}=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:{externalAttachable.AttachedPrimId}=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>

@@ -16,7 +16,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
         [Test]
         public async Task CanTpRequest()
         {
-            await _rlv.ProcessMessage("@tprequest=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@tprequest=n", _sender.Id, _sender.Name);
 
             var userId1 = new Guid("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
 
@@ -30,8 +30,8 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
             var userId1 = new Guid("00000000-0000-4000-8000-000000000000");
             var userId2 = new Guid("11111111-1111-4111-8111-111111111111");
 
-            await _rlv.ProcessMessage("@tprequest=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage($"@tprequest:{userId1}=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@tprequest=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@tprequest:{userId1}=add", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanTpRequest(null), Is.False);
             Assert.That(_rlv.Permissions.CanTpRequest(userId1), Is.True);

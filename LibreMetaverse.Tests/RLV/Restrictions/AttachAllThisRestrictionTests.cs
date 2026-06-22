@@ -48,7 +48,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
                 e.TryGetInventoryMapAsync(default)
             ).ReturnsAsync((true, inventoryMap));
 
-            Assert.That(await _rlv.ProcessMessage("@attachallthis=n", sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedPrimId!.Value, sampleTree.Root_Clothing_Hats_PartyHat_Spine.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@attachallthis=n", sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedPrimId!.Value, sampleTree.Root_Clothing_Hats_PartyHat_Spine.Name), Is.True);
 
             // #RLV/Clothing/Hats/Party Hat (LOCKED)
             Assert.That(_rlv.Permissions.CanAttach(sampleTree.Root_Clothing_Hats_PartyHat_Spine, true), Is.False);
@@ -122,7 +122,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
                 e.TryGetInventoryMapAsync(default)
             ).ReturnsAsync((true, inventoryMap));
 
-            Assert.That(await _rlv.ProcessMessage("@attachallthis=n", sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedPrimId!.Value, sampleTree.Root_Clothing_BusinessPants_Pelvis.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@attachallthis=n", sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedPrimId!.Value, sampleTree.Root_Clothing_BusinessPants_Pelvis.Name), Is.True);
 
             // #RLV/Clothing/Hats/Party Hat (LOCKED) - Parent folder locked recursively
             Assert.That(_rlv.Permissions.CanAttach(sampleTree.Root_Clothing_Hats_PartyHat_Spine, true), Is.False);
@@ -202,7 +202,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
                 e.TryGetInventoryMapAsync(default)
             ).ReturnsAsync((true, inventoryMap));
 
-            Assert.That(await _rlv.ProcessMessage("@attachallthis:Clothing=n", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@attachallthis:Clothing=n", _sender.Id, _sender.Name), Is.True);
 
             // #RLV/Clothing/Hats/Party Hat (LOCKED) - Parent folder locked recursively
             Assert.That(_rlv.Permissions.CanAttach(sampleTree.Root_Clothing_Hats_PartyHat_Spine, true), Is.False);
@@ -281,7 +281,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
                 e.TryGetInventoryMapAsync(default)
             ).ReturnsAsync((true, inventoryMap));
 
-            Assert.That(await _rlv.ProcessMessage("@attachallthis:pants=n", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@attachallthis:pants=n", _sender.Id, _sender.Name), Is.True);
 
             // #RLV/Clothing/Hats/Party Hat (LOCKED) - Parent folder locked recursively
             Assert.That(_rlv.Permissions.CanAttach(sampleTree.Root_Clothing_Hats_PartyHat_Spine, true), Is.False);
@@ -361,7 +361,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
                 e.TryGetInventoryMapAsync(default)
             ).ReturnsAsync((true, inventoryMap));
 
-            Assert.That(await _rlv.ProcessMessage("@attachallthis:chest=n", sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedPrimId!.Value, sampleTree.Root_Clothing_BusinessPants_Pelvis.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@attachallthis:chest=n", sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedPrimId!.Value, sampleTree.Root_Clothing_BusinessPants_Pelvis.Name), Is.True);
 
             // #RLV/Clothing/Hats/Party Hat (LOCKED) - Parent folder locked recursively
             Assert.That(_rlv.Permissions.CanAttach(sampleTree.Root_Clothing_Hats_PartyHat_Spine, true), Is.False);
@@ -459,8 +459,8 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
                 e.TryGetInventoryMapAsync(default)
             ).ReturnsAsync((true, inventoryMap));
 
-            Assert.That(await _rlv.ProcessMessage("@attachallthis:chest=n", sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedPrimId!.Value, sampleTree.Root_Clothing_BusinessPants_Pelvis.Name), Is.True);
-            Assert.That(await _rlv.ProcessMessage("@attachallthis:chest=y", sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedPrimId!.Value, sampleTree.Root_Clothing_BusinessPants_Pelvis.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@attachallthis:chest=n", sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedPrimId!.Value, sampleTree.Root_Clothing_BusinessPants_Pelvis.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@attachallthis:chest=y", sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedPrimId!.Value, sampleTree.Root_Clothing_BusinessPants_Pelvis.Name), Is.True);
 
             Assert.That(_rlv.Permissions.CanAttach(sampleTree.Root_Clothing_Hats_PartyHat_Spine, true), Is.True);
             Assert.That(_rlv.Permissions.CanAttach(sampleTree.Root_Clothing_Hats_FancyHat_Chin, true), Is.True);

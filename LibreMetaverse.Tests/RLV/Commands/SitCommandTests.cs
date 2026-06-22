@@ -40,7 +40,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
                 .Returns(Task.CompletedTask);
 
             // Act
-            await _rlv.ProcessMessage($"@sit:{objectId1}=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@sit:{objectId1}=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -57,14 +57,14 @@ namespace LibreMetaverse.Tests.RLV.Commands
             SetObjectExists(objectId1);
             SetIsSitting(false);
 
-            await _rlv.ProcessMessage("@unsit=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@unsit=n", _sender.Id, _sender.Name);
 
             _actionCallbacks
                 .Setup(e => e.SitAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             // Act
-            await _rlv.ProcessMessage($"@sit:{objectId1}=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@sit:{objectId1}=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -81,14 +81,14 @@ namespace LibreMetaverse.Tests.RLV.Commands
             SetObjectExists(objectId1);
             SetIsSitting(true);
 
-            await _rlv.ProcessMessage("@unsit=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@unsit=n", _sender.Id, _sender.Name);
 
             _actionCallbacks
                 .Setup(e => e.SitAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             // Act
-            Assert.That(await _rlv.ProcessMessage($"@sit:{objectId1}=force", _sender.Id, _sender.Name), Is.False);
+            Assert.That(await _rlv.ProcessMessageAsync($"@sit:{objectId1}=force", _sender.Id, _sender.Name), Is.False);
 
             // Assert
             _actionCallbacks.VerifyNoOtherCalls();
@@ -102,14 +102,14 @@ namespace LibreMetaverse.Tests.RLV.Commands
             SetObjectExists(objectId1);
             SetIsSitting(true);
 
-            await _rlv.ProcessMessage("@sit=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@sit=n", _sender.Id, _sender.Name);
 
             _actionCallbacks
                 .Setup(e => e.SitAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             // Act
-            Assert.That(await _rlv.ProcessMessage($"@sit:{objectId1}=force", _sender.Id, _sender.Name), Is.False);
+            Assert.That(await _rlv.ProcessMessageAsync($"@sit:{objectId1}=force", _sender.Id, _sender.Name), Is.False);
 
             // Assert
             _actionCallbacks.VerifyNoOtherCalls();
@@ -122,14 +122,14 @@ namespace LibreMetaverse.Tests.RLV.Commands
             SetObjectExists(objectId1);
             SetIsSitting(true);
 
-            await _rlv.ProcessMessage("@standtp=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@standtp=n", _sender.Id, _sender.Name);
 
             _actionCallbacks
                 .Setup(e => e.SitAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
             // Act
-            Assert.That(await _rlv.ProcessMessage($"@sit:{objectId1}=force", _sender.Id, _sender.Name), Is.False);
+            Assert.That(await _rlv.ProcessMessageAsync($"@sit:{objectId1}=force", _sender.Id, _sender.Name), Is.False);
 
             // Assert
             _actionCallbacks.VerifyNoOtherCalls();
@@ -146,7 +146,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
                 .Returns(Task.CompletedTask);
 
             // Act
-            Assert.That(await _rlv.ProcessMessage($"@sit:{objectId1}=force", _sender.Id, _sender.Name), Is.False);
+            Assert.That(await _rlv.ProcessMessageAsync($"@sit:{objectId1}=force", _sender.Id, _sender.Name), Is.False);
 
             // Assert
             _actionCallbacks.VerifyNoOtherCalls();

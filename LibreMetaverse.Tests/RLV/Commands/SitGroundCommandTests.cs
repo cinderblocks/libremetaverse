@@ -17,15 +17,15 @@ namespace LibreMetaverse.Tests.RLV.Commands
         [Test]
         public async Task ForceSitGround()
         {
-            Assert.That(await _rlv.ProcessMessage("@sitground=force", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@sitground=force", _sender.Id, _sender.Name), Is.True);
         }
 
         [Test]
         public async Task ForceSitGround_RestrictedSit()
         {
-            await _rlv.ProcessMessage("@sit=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@sit=n", _sender.Id, _sender.Name);
 
-            Assert.That(await _rlv.ProcessMessage("@sitground=force", _sender.Id, _sender.Name), Is.False);
+            Assert.That(await _rlv.ProcessMessageAsync("@sitground=force", _sender.Id, _sender.Name), Is.False);
         }
 
         #endregion

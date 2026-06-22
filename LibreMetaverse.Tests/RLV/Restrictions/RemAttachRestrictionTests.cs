@@ -49,7 +49,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
                 e.TryGetInventoryMapAsync(default)
             ).ReturnsAsync((true, inventoryMap));
 
-            Assert.That(await _rlv.ProcessMessage("@remattach=n", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@remattach=n", _sender.Id, _sender.Name), Is.True);
 
             Assert.That(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_FancyHat_Chin), Is.False);
             Assert.That(_rlv.Permissions.CanDetach(sampleTree.Root_Accessories_Watch), Is.True);
@@ -94,7 +94,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
                 e.TryGetInventoryMapAsync(default)
             ).ReturnsAsync((true, inventoryMap));
 
-            Assert.That(await _rlv.ProcessMessage("@remattach:spine=n", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@remattach:spine=n", _sender.Id, _sender.Name), Is.True);
 
             Assert.That(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine), Is.False);
             Assert.That(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_FancyHat_Chin), Is.True);

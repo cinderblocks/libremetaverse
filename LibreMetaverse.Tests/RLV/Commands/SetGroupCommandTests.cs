@@ -22,7 +22,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
              .Returns(Task.CompletedTask);
 
             // Act
-            await _rlv.ProcessMessage("@setgroup:Group Name=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@setgroup:Group Name=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -40,7 +40,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
              .Returns(Task.CompletedTask);
 
             // Act
-            await _rlv.ProcessMessage("@setgroup:Group Name;Admin Role=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@setgroup:Group Name;Admin Role=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -60,7 +60,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
                 .Returns(Task.CompletedTask);
 
             // Act
-            await _rlv.ProcessMessage($"@setgroup:{objectId1}=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@setgroup:{objectId1}=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -80,7 +80,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
                 .Returns(Task.CompletedTask);
 
             // Act
-            await _rlv.ProcessMessage($"@setgroup:{objectId1};Admin Role=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@setgroup:{objectId1};Admin Role=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>

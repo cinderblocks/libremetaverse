@@ -15,7 +15,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
         [Test]
         public async Task Permissive_On()
         {
-            await _rlv.ProcessMessage("@permissive=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@permissive=n", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.IsPermissive(), Is.False);
         }
@@ -23,8 +23,8 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
         [Test]
         public async Task Permissive_Off()
         {
-            await _rlv.ProcessMessage("@permissive=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@permissive=y", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@permissive=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@permissive=y", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.IsPermissive(), Is.True);
         }

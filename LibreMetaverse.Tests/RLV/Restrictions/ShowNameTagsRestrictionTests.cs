@@ -17,7 +17,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
         {
             var userId1 = new Guid("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
 
-            await _rlv.ProcessMessage("@shownametags=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@shownametags=n", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanShowNameTags(null), Is.False);
             Assert.That(_rlv.Permissions.CanShowNameTags(userId1), Is.False);

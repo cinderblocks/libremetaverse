@@ -17,7 +17,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
         {
             var userId1 = new Guid("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
 
-            await _rlv.ProcessMessage("@shownames=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@shownames=n", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanShowNames(null), Is.False);
             Assert.That(_rlv.Permissions.CanShowNames(userId1), Is.False);

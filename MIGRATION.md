@@ -412,6 +412,57 @@ All `public async Task` methods that were missing the `Async` suffix have been r
 |--------|-------|
 | `ReportItemChange(added, removed, ct)` | `ReportItemChangeAsync(added, removed, ct)` |
 
+### InventoryManager (additional)
+
+| Before | After |
+|--------|-------|
+| `RequestFindObjectByPath(folder, owner, path, ct)` | `RequestFindObjectByPathAsync(folder, owner, path, ct)` |
+
+### LibreMetaverse.RLV — RlvService
+
+| Before | After |
+|--------|-------|
+| `ProcessMessage(msg, id, name, ct)` | `ProcessMessageAsync(msg, id, name, ct)` |
+| `ProcessInstantMessage(msg, id, ct)` | `ProcessInstantMessageAsync(msg, id, ct)` |
+| `ReportSendPublicMessage(msg, ct)` | `ReportSendPublicMessageAsync(msg, ct)` |
+| `ReportInventoryOfferAccepted(path, ct)` | `ReportInventoryOfferAcceptedAsync(path, ct)` |
+| `ReportInventoryOfferDeclined(path, ct)` | `ReportInventoryOfferDeclinedAsync(path, ct)` |
+| `ReportItemWorn(folderId, shared, type, ct)` | `ReportItemWornAsync(folderId, shared, type, ct)` |
+| `ReportItemUnworn(id, folderId, shared, type, ct)` | `ReportItemUnwornAsync(id, folderId, shared, type, ct)` |
+| `ReportItemAttached(folderId, shared, point, ct)` | `ReportItemAttachedAsync(folderId, shared, point, ct)` |
+| `ReportItemDetached(id, primId, folderId, shared, point, ct)` | `ReportItemDetachedAsync(id, primId, folderId, shared, point, ct)` |
+| `ReportSit(objectId, ct)` | `ReportSitAsync(objectId, ct)` |
+| `ReportUnsit(objectId, ct)` | `ReportUnsitAsync(objectId, ct)` |
+
+### LibreMetaverse.RLV — RlvRestrictionManager
+
+| Before | After |
+|--------|-------|
+| `RemoveRestrictionsForObjects(primIds, ct)` | `RemoveRestrictionsForObjectsAsync(primIds, ct)` |
+
+### LibreMetaverse.Voice.WebRTC — VoiceManager
+
+| Before | After |
+|--------|-------|
+| `ConnectPrimaryRegion()` | `ConnectPrimaryRegionAsync()` |
+| `RequestParcelVoiceInfo()` | `RequestParcelVoiceInfoAsync()` |
+| `AcceptIncomingP2PCall(id)` | `AcceptIncomingP2PCallAsync(id)` |
+| `JoinGroupVoice(id)` | `JoinGroupVoiceAsync(id)` |
+| `LeaveGroupVoice(id)` | `LeaveGroupVoiceAsync(id)` |
+| `JoinConferenceVoice(id)` | `JoinConferenceVoiceAsync(id)` |
+| `LeaveConferenceVoice(id)` | `LeaveConferenceVoiceAsync(id)` |
+| `StartP2PCall(id)` | `StartP2PCallAsync(id)` |
+| `EndP2PCall(id)` | `EndP2PCallAsync(id)` |
+| `AcceptP2PCall(id, uri, creds)` | `AcceptP2PCallAsync(id, uri, creds)` |
+
+### LibreMetaverse.Voice.WebRTC — VoiceSession
+
+| Before | After |
+|--------|-------|
+| `CreatePeerConnection(ct)` | `CreatePeerConnectionAsync(ct)` |
+| `RequestProvision()` | `RequestProvisionAsync()` |
+| `CloseSession()` | `CloseSessionAsync()` |
+
 ### AgentDisplayName
 
 `AgentDisplayName` fields `ID`, `UserName`, `DisplayName`, `LegacyFirstName`, `LegacyLastName`, `IsDefaultDisplayName`, `NextUpdate`, and `Updated` are now auto-properties with `{ get; set; }`. Object initializer syntax continues to work unchanged. Direct field access (`obj.ID = x`) also continues to work.
@@ -432,7 +483,7 @@ client.Self.SignaledAnimations.TryAdd(animID, seqNum); // or don't write at all
 
 ---
 
-## 10. `CoarseLocationUpdateEventArgs` constructor change
+## 11. `CoarseLocationUpdateEventArgs` constructor change
 
 If you construct `CoarseLocationUpdateEventArgs` directly (e.g. in tests), the constructor now requires a `positions` parameter:
 

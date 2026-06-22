@@ -19,7 +19,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
             var userId1 = new Guid("00000000-0000-4000-8000-000000000000");
             var userId2 = new Guid("11111111-1111-4111-8111-111111111111");
 
-            await _rlv.ProcessMessage($"@sendimto:{userId1}=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@sendimto:{userId1}=n", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanSendIM("Hello world", userId1), Is.False);
             Assert.That(_rlv.Permissions.CanSendIM("Hello world", userId2), Is.True);
@@ -31,7 +31,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
             var groupId1 = new Guid("00000000-0000-4000-8000-000000000000");
             var groupId2 = new Guid("11111111-1111-4111-8111-111111111111");
 
-            await _rlv.ProcessMessage($"@sendimto:First Group=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@sendimto:First Group=n", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanSendIM("Hello world", groupId1, "First Group"), Is.False);
             Assert.That(_rlv.Permissions.CanSendIM("Hello world", groupId2, "Second Group"), Is.True);
@@ -43,7 +43,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
             var groupId1 = new Guid("00000000-0000-4000-8000-000000000000");
             var groupId2 = new Guid("11111111-1111-4111-8111-111111111111");
 
-            await _rlv.ProcessMessage($"@sendimto:allgroups=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@sendimto:allgroups=n", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanSendIM("Hello world", groupId1, "First Group"), Is.False);
             Assert.That(_rlv.Permissions.CanSendIM("Hello world", groupId2, "Second Group"), Is.False);

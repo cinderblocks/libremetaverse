@@ -45,7 +45,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
 
             var folderId1 = new Guid("99999999-9999-4999-8999-999999999999");
 
-            Assert.That(await _rlv.ProcessMessage("@detach=n", objectPrimId2, "objectPrimId2"), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@detach=n", objectPrimId2, "objectPrimId2"), Is.True);
 
             Assert.That(_rlv.Permissions.CanDetach(objectId1, null, folderId1, false, null, null), Is.True);
             Assert.That(_rlv.Permissions.CanDetach(objectId1, objectPrimId1, folderId1, false, RlvAttachmentPoint.Chest, null), Is.True);
@@ -67,7 +67,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
 
             var folderId1 = new Guid("99999999-9999-4999-8999-999999999999");
 
-            Assert.That(await _rlv.ProcessMessage("@detach:skull=n", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@detach:skull=n", _sender.Id, _sender.Name), Is.True);
 
             Assert.That(_rlv.Permissions.CanDetach(objectId1, null, folderId1, false, null, null), Is.True);
             Assert.That(_rlv.Permissions.CanDetach(objectId1, objectPrimId1, folderId1, false, RlvAttachmentPoint.Chest, null), Is.True);

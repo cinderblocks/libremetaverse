@@ -487,7 +487,7 @@ namespace LibreMetaverse
             {
                 try
                 {
-                    await RequestFindObjectByPath(baseFolder, inventoryOwner, path, cancellationToken).ConfigureAwait(false);
+                    await RequestFindObjectByPathAsync(baseFolder, inventoryOwner, path, cancellationToken).ConfigureAwait(false);
                     return await tcs.Task.ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)

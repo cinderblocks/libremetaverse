@@ -18,7 +18,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
         {
             var userId1 = new Guid("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
 
-            await _rlv.ProcessMessage("@share=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@share=n", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanShare(null), Is.False);
             Assert.That(_rlv.Permissions.CanShare(userId1), Is.False);

@@ -22,7 +22,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
                 .Returns(Task.CompletedTask);
 
             // Act
-            await _rlv.ProcessMessage("@setrot:1.5=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@setrot:1.5=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>

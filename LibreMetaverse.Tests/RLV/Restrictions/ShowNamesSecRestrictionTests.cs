@@ -18,7 +18,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
             var userId1 = new Guid("00000000-0000-4000-8000-000000000000");
             var userId2 = new Guid("11111111-1111-4111-8111-111111111111");
 
-            await _rlv.ProcessMessage("@shownames_sec=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@shownames_sec=n", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanShowNames(null), Is.False);
             Assert.That(_rlv.Permissions.CanShowNames(userId1), Is.False);
@@ -32,9 +32,9 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
             var userId1 = new Guid("00000000-0000-4000-8000-000000000000");
             var userId2 = new Guid("11111111-1111-4111-8111-111111111111");
 
-            await _rlv.ProcessMessage("@shownames_sec=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage($"@shownames:{userId1}=add", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage($"@shownames:{userId2}=add", sender2.Id, sender2.Name);
+            await _rlv.ProcessMessageAsync("@shownames_sec=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@shownames:{userId1}=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@shownames:{userId2}=add", sender2.Id, sender2.Name);
 
             Assert.That(_rlv.Permissions.CanShowNames(null), Is.False);
             Assert.That(_rlv.Permissions.CanShowNames(userId1), Is.True);
@@ -48,8 +48,8 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
             var userId1 = new Guid("00000000-0000-4000-8000-000000000000");
             var userId2 = new Guid("11111111-1111-4111-8111-111111111111");
 
-            await _rlv.ProcessMessage("@shownames_sec=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage($"@shownames_sec:{userId1}=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@shownames_sec=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@shownames_sec:{userId1}=n", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanShowNames(null), Is.False);
             Assert.That(_rlv.Permissions.CanShowNames(userId1), Is.True);

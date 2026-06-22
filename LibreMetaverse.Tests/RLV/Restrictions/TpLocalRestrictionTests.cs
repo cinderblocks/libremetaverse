@@ -15,7 +15,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
         [Test]
         public async Task CanTpLocal_Default()
         {
-            await _rlv.ProcessMessage("@TpLocal=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@TpLocal=n", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanTpLocal(out var distance), Is.True);
             Assert.That(distance, Is.EqualTo(0.0f).Within(FloatTolerance));
@@ -24,7 +24,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
         [Test]
         public async Task CanTpLocal()
         {
-            await _rlv.ProcessMessage("@TpLocal:0.9=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@TpLocal:0.9=n", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanTpLocal(out var distance), Is.True);
             Assert.That(distance, Is.EqualTo(0.9f).Within(FloatTolerance));

@@ -63,7 +63,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@remoutfit=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@remoutfit=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -133,7 +133,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@remoutfit=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@remoutfit=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -215,7 +215,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@remoutfit=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@remoutfit=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -310,7 +310,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@remoutfit=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@remoutfit=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -408,7 +408,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@remoutfit=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@remoutfit=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -488,7 +488,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@remoutfit:tattoo=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@remoutfit:tattoo=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -553,7 +553,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@remoutfit:Clothing/Hats=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@remoutfit:Clothing/Hats=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -620,7 +620,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@remoutfit:Clothing/Hats=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@remoutfit:Clothing/Hats=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -686,7 +686,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@remoutfit:Clothing/Hats=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@remoutfit:Clothing/Hats=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -752,7 +752,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@remoutfit:Clothing/{sampleTree.Clothing_Hats_Folder.Name}=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@remoutfit:Clothing/{sampleTree.Clothing_Hats_Folder.Name}=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -821,7 +821,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage($"@remoutfit:Clothing/{sampleTree.Clothing_Hats_Folder.Name}=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@remoutfit:Clothing/{sampleTree.Clothing_Hats_Folder.Name}=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -887,7 +887,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@remoutfit:tattoo=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@remoutfit:tattoo=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -955,7 +955,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@remoutfit:tattoo=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@remoutfit:tattoo=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -1022,7 +1022,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@remoutfit:pants=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@remoutfit:pants=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -1092,7 +1092,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             };
 
             // Act
-            await _rlv.ProcessMessage("@remoutfit:pants=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@remoutfit:pants=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>
@@ -1154,7 +1154,7 @@ namespace LibreMetaverse.Tests.RLV.Commands
             var expected = new HashSet<Guid>();
 
             // Act
-            await _rlv.ProcessMessage("@remoutfit:skin=force", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@remoutfit:skin=force", _sender.Id, _sender.Name);
 
             // Assert
             _actionCallbacks.Verify(e =>

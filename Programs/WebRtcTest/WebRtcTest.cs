@@ -122,7 +122,7 @@ namespace WebRtcTest
 
 
                 Console.WriteLine($"Requesting a provisional account from {currentSim?.Name ?? "(unknown)"}...");
-                bool success = await voice.ConnectPrimaryRegion();
+                bool success = await voice.ConnectPrimaryRegionAsync();
                 if (!success)
                 {
                     Console.WriteLine($"Failed to connect voice to '{currentSim?.Name ?? "(unknown)"}'.");

@@ -18,7 +18,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamZoomMin_Single()
         {
-            await _rlv.ProcessMessage("@CamZoomMin:1.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMin:1.5=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.ZoomMin, Is.Not.Null);
@@ -28,9 +28,9 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamZoomMin_Multiple_SingleSender()
         {
-            await _rlv.ProcessMessage("@CamZoomMin:3.5=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@CamZoomMin:4.5=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@CamZoomMin:1.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMin:3.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMin:4.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMin:1.5=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.ZoomMin, Is.Not.Null);
@@ -40,12 +40,12 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamZoomMin_Multiple_SingleSender_WithRemoval()
         {
-            await _rlv.ProcessMessage("@CamZoomMin:3.5=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@CamZoomMin:4.5=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@CamZoomMin:1.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMin:3.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMin:4.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMin:1.5=n", _sender.Id, _sender.Name);
 
-            await _rlv.ProcessMessage("@CamZoomMin:8.5=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@CamZoomMin:8.5=y", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMin:8.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMin:8.5=y", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.ZoomMin, Is.Not.Null);
@@ -58,9 +58,9 @@ namespace LibreMetaverse.Tests.RLV
             var sender2 = new RlvObject("Sender 2", new Guid("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"));
             var sender3 = new RlvObject("Sender 3", new Guid("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"));
 
-            await _rlv.ProcessMessage("@CamZoomMin:3.5=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@CamZoomMin:4.5=n", sender2.Id, sender2.Name);
-            await _rlv.ProcessMessage("@CamZoomMin:1.5=n", sender3.Id, sender3.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMin:3.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMin:4.5=n", sender2.Id, sender2.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMin:1.5=n", sender3.Id, sender3.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.ZoomMin, Is.Not.Null);
@@ -70,8 +70,8 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamZoomMin_Off()
         {
-            await _rlv.ProcessMessage("@CamZoomMin:1.5=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@CamZoomMin:1.5=y", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMin:1.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMin:1.5=y", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.ZoomMin, Is.Null);
@@ -89,7 +89,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamZoomMax_Single()
         {
-            await _rlv.ProcessMessage("@CamZoomMax:1.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMax:1.5=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.ZoomMax, Is.Not.Null);
@@ -99,9 +99,9 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamZoomMax_Multiple_SingleSender()
         {
-            await _rlv.ProcessMessage("@CamZoomMax:3.5=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@CamZoomMax:4.5=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@CamZoomMax:1.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMax:3.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMax:4.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMax:1.5=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.ZoomMax, Is.Not.Null);
@@ -111,12 +111,12 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamZoomMax_Multiple_SingleSender_WithRemoval()
         {
-            await _rlv.ProcessMessage("@CamZoomMax:3.5=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@CamZoomMax:4.5=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@CamZoomMax:1.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMax:3.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMax:4.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMax:1.5=n", _sender.Id, _sender.Name);
 
-            await _rlv.ProcessMessage("@CamZoomMax:0.5=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@CamZoomMax:0.5=y", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMax:0.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMax:0.5=y", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.ZoomMax, Is.Not.Null);
@@ -129,9 +129,9 @@ namespace LibreMetaverse.Tests.RLV
             var sender2 = new RlvObject("Sender 2", new Guid("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"));
             var sender3 = new RlvObject("Sender 3", new Guid("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"));
 
-            await _rlv.ProcessMessage("@CamZoomMax:3.5=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@CamZoomMax:4.5=n", sender2.Id, sender2.Name);
-            await _rlv.ProcessMessage("@CamZoomMax:1.5=n", sender3.Id, sender3.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMax:3.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMax:4.5=n", sender2.Id, sender2.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMax:1.5=n", sender3.Id, sender3.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.ZoomMax, Is.Not.Null);
@@ -141,8 +141,8 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamZoomMax_Off()
         {
-            await _rlv.ProcessMessage("@CamZoomMax:1.5=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@CamZoomMax:1.5=y", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMax:1.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMax:1.5=y", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.ZoomMax, Is.Null);
@@ -154,7 +154,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamZoomMin()
         {
-            await _rlv.ProcessMessage("@CamZoomMin:0.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMin:0.5=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.ZoomMin, Is.Not.Null);
@@ -166,7 +166,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamZoomMax()
         {
-            await _rlv.ProcessMessage("@CamZoomMax:1.5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamZoomMax:1.5=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.ZoomMax, Is.Not.Null);
@@ -178,7 +178,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task SetCamFovMin()
         {
-            await _rlv.ProcessMessage("@setcam_fovmin:15=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@setcam_fovmin:15=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.FovMin, Is.Not.Null);
@@ -190,7 +190,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task SetCamFovMax()
         {
-            await _rlv.ProcessMessage("@setcam_fovmax:45=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@setcam_fovmax:45=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.FovMax, Is.Not.Null);
@@ -202,7 +202,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task SetCamFov()
         {
-            Assert.That(await _rlv.ProcessMessage("@setcam_fov:1.75=force", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@setcam_fov:1.75=force", _sender.Id, _sender.Name), Is.True);
 
             _actionCallbacks.Verify(x => x.SetCamFOVAsync(
                 1.75f,
@@ -215,9 +215,9 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task SetCamFov_Restricted()
         {
-            await _rlv.ProcessMessage("@setcam_unlock=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@setcam_unlock=n", _sender.Id, _sender.Name);
 
-            Assert.That(await _rlv.ProcessMessage("@setcam_fov:1.75=force", _sender.Id, _sender.Name), Is.False);
+            Assert.That(await _rlv.ProcessMessageAsync("@setcam_fov:1.75=force", _sender.Id, _sender.Name), Is.False);
 
             _actionCallbacks.Verify(x => x.SetCamFOVAsync(
                 It.IsAny<float>(),
@@ -230,9 +230,9 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task SetCamFov_Restricted_Synonym()
         {
-            await _rlv.ProcessMessage("@camunlock=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@camunlock=n", _sender.Id, _sender.Name);
 
-            Assert.That(await _rlv.ProcessMessage("@setcam_fov:1.75=force", _sender.Id, _sender.Name), Is.False);
+            Assert.That(await _rlv.ProcessMessageAsync("@setcam_fov:1.75=force", _sender.Id, _sender.Name), Is.False);
 
             _actionCallbacks.Verify(x => x.SetCamFOVAsync(
                 It.IsAny<float>(),
@@ -247,7 +247,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task SetCamAvDistMax()
         {
-            await _rlv.ProcessMessage("@setcam_avdistmax:30=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@setcam_avdistmax:30=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.AvDistMax, Is.Not.Null);
@@ -256,7 +256,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task SetCamAvDistMax_Synonym()
         {
-            await _rlv.ProcessMessage("@camdistmax:30=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@camdistmax:30=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.AvDistMax, Is.Not.Null);
@@ -268,7 +268,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task SetCamAvDistMin()
         {
-            await _rlv.ProcessMessage("@setcam_avdistmin:0.3=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@setcam_avdistmin:0.3=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.AvDistMin, Is.Not.Null);
@@ -278,7 +278,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task SetCamAvDistMin_Synonym()
         {
-            await _rlv.ProcessMessage("@camdistmin:0.3=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@camdistmin:0.3=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.AvDistMin, Is.Not.Null);
@@ -290,7 +290,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamDrawAlphaMax()
         {
-            await _rlv.ProcessMessage("@CamDrawAlphaMax:0.9=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamDrawAlphaMax:0.9=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.DrawAlphaMax, Is.Not.Null);
@@ -303,7 +303,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamDrawMin()
         {
-            await _rlv.ProcessMessage("@camdrawmin:1.75=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@camdrawmin:1.75=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.DrawMin, Is.Not.Null);
@@ -313,7 +313,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamDrawMin_Small()
         {
-            Assert.That(await _rlv.ProcessMessage("@camdrawmin:0.15=n", _sender.Id, _sender.Name), Is.False);
+            Assert.That(await _rlv.ProcessMessageAsync("@camdrawmin:0.15=n", _sender.Id, _sender.Name), Is.False);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.DrawMin, Is.Null);
@@ -326,7 +326,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamDrawMax()
         {
-            await _rlv.ProcessMessage("@camdrawmax:1.75=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@camdrawmax:1.75=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.DrawMax, Is.Not.Null);
@@ -336,7 +336,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamDrawMax_Small()
         {
-            Assert.That(await _rlv.ProcessMessage("@camdrawmax:0.15=n", _sender.Id, _sender.Name), Is.False);
+            Assert.That(await _rlv.ProcessMessageAsync("@camdrawmax:0.15=n", _sender.Id, _sender.Name), Is.False);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.DrawMax, Is.Null);
@@ -349,7 +349,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamDrawAlphaMin()
         {
-            await _rlv.ProcessMessage("@camdrawalphamin:1.75=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@camdrawalphamin:1.75=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.DrawAlphaMin, Is.Not.Null);
@@ -363,7 +363,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamDrawColor()
         {
-            await _rlv.ProcessMessage("@CamDrawColor:0.1;0.2;0.3=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamDrawColor:0.1;0.2;0.3=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
 
@@ -383,7 +383,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamDrawColor_Large()
         {
-            await _rlv.ProcessMessage("@CamDrawColor:5;6;7=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamDrawColor:5;6;7=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
 
@@ -396,7 +396,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamDrawColor_Negative()
         {
-            await _rlv.ProcessMessage("@CamDrawColor:-5;-6;-7=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamDrawColor:-5;-6;-7=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
 
@@ -409,8 +409,8 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamDrawColor_Removal()
         {
-            await _rlv.ProcessMessage("@CamDrawColor:0.1;0.2;0.3=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@CamDrawColor:0.1;0.2;0.3=y", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamDrawColor:0.1;0.2;0.3=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamDrawColor:0.1;0.2;0.3=y", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.DrawColor, Is.Null);
@@ -419,8 +419,8 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamDrawColor_Multi()
         {
-            await _rlv.ProcessMessage("@CamDrawColor:0.1;0.2;0.3=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@CamDrawColor:0.2;0.3;0.6=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamDrawColor:0.1;0.2;0.3=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamDrawColor:0.2;0.3;0.6=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
 
@@ -435,11 +435,11 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CanSetCamUnlock()
         {
-            await _rlv.ProcessMessage("@setcam_unlock=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@setcam_unlock=n", _sender.Id, _sender.Name);
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.IsLocked, Is.True);
 
-            await _rlv.ProcessMessage("@setcam_unlock=y", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@setcam_unlock=y", _sender.Id, _sender.Name);
             cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.IsLocked, Is.False);
         }
@@ -449,11 +449,11 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CanCamUnlock()
         {
-            await _rlv.ProcessMessage("@camunlock=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@camunlock=n", _sender.Id, _sender.Name);
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.IsLocked, Is.True);
 
-            await _rlv.ProcessMessage("@camunlock=y", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@camunlock=y", _sender.Id, _sender.Name);
             cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.IsLocked, Is.False);
         }
@@ -463,7 +463,7 @@ namespace LibreMetaverse.Tests.RLV
         [Test]
         public async Task CamAvDist()
         {
-            await _rlv.ProcessMessage("@CamAvDist:5=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@CamAvDist:5=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
 
@@ -478,7 +478,7 @@ namespace LibreMetaverse.Tests.RLV
         [TestCase("camtextures")]
         public async Task SetCamTextures(string command)
         {
-            await _rlv.ProcessMessage($"@{command}=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.Texture, Is.EqualTo(Guid.Empty));
@@ -490,7 +490,7 @@ namespace LibreMetaverse.Tests.RLV
         {
             var textureId1 = new Guid("00000000-0000-4000-8000-000000000000");
 
-            await _rlv.ProcessMessage($"@{command}:{textureId1}=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command}:{textureId1}=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.Texture, Is.EqualTo(textureId1));
@@ -505,13 +505,13 @@ namespace LibreMetaverse.Tests.RLV
             var textureId1 = new Guid("00000000-0000-4000-8000-000000000000");
             var textureId2 = new Guid("11111111-1111-4111-8111-111111111111");
 
-            await _rlv.ProcessMessage($"@{command1}:{textureId1}=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage($"@{command2}:{textureId2}=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command1}:{textureId1}=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command2}:{textureId2}=n", _sender.Id, _sender.Name);
 
             var cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.Texture == textureId2, Is.True);
 
-            await _rlv.ProcessMessage($"@{command1}:{textureId2}=y", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{command1}:{textureId2}=y", _sender.Id, _sender.Name);
 
             cameraRestrictions = _rlv.Permissions.GetCameraRestrictions();
             Assert.That(cameraRestrictions.Texture == textureId1, Is.True);
@@ -547,7 +547,7 @@ namespace LibreMetaverse.Tests.RLV
                 (1234, cameraSettings.AvDistMin.ToString()),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getcam_avdistmin=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getcam_avdistmin=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -570,7 +570,7 @@ namespace LibreMetaverse.Tests.RLV
                 (1234, cameraSettings.AvDistMax.ToString()),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getcam_avdistmax=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getcam_avdistmax=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
         #endregion
@@ -591,7 +591,7 @@ namespace LibreMetaverse.Tests.RLV
                 (1234, cameraSettings.FovMin.ToString()),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getcam_fovmin=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getcam_fovmin=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -613,7 +613,7 @@ namespace LibreMetaverse.Tests.RLV
                 (1234, cameraSettings.FovMax.ToString()),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getcam_fovmax=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getcam_fovmax=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -635,7 +635,7 @@ namespace LibreMetaverse.Tests.RLV
                 (1234, cameraSettings.ZoomMin.ToString()),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getcam_zoommin=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getcam_zoommin=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -657,7 +657,7 @@ namespace LibreMetaverse.Tests.RLV
                 (1234, cameraSettings.CurrentFov.ToString()),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getcam_fov=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getcam_fov=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
         #endregion
@@ -676,7 +676,7 @@ namespace LibreMetaverse.Tests.RLV
                 e.TryGetCameraSettingsAsync(default)
             ).ReturnsAsync((false, null));
 
-            Assert.That(await _rlv.ProcessMessage(command, _sender.Id, _sender.Name), Is.False);
+            Assert.That(await _rlv.ProcessMessageAsync(command, _sender.Id, _sender.Name), Is.False);
             Assert.That(actual, Is.Empty);
         }
     }

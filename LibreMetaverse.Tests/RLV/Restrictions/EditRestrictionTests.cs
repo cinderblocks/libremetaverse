@@ -18,7 +18,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
         {
             var objectId1 = new Guid("00000000-0000-4000-8000-000000000000");
 
-            await _rlv.ProcessMessage("@edit=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@edit=n", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanEdit(RlvPermissionsService.ObjectLocation.Hud, null), Is.False);
             Assert.That(_rlv.Permissions.CanEdit(RlvPermissionsService.ObjectLocation.Attached, null), Is.False);

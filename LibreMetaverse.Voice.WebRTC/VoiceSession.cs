@@ -228,7 +228,7 @@ namespace LibreMetaverse.Voice.WebRTC
             {
                 var token = linked.Token;
 
-                _peerConnection = await CreatePeerConnection(token).ConfigureAwait(false);
+                _peerConnection = await CreatePeerConnectionAsync(token).ConfigureAwait(false);
                 _iceTrickleTask = IceTrickleStart(token);
 
                 // Do not start recording here. Recording should follow connection state to avoid
@@ -343,7 +343,7 @@ namespace LibreMetaverse.Voice.WebRTC
             throw new VoiceException($"Failed to POST to capability {cap}: {lastEx?.Message}");
         }
 
-        public async Task<RTCPeerConnection> CreatePeerConnection(CancellationToken ct = default)
+        public async Task<RTCPeerConnection> CreatePeerConnectionAsync(CancellationToken ct = default)
         {
             // SL C++ getConnectionOptions(): use grid-specific STUN servers only.
             // num_servers = 3 for agni, 2 for all other grids (e.g. aditi/beta).
@@ -385,7 +385,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
             _peerConnection = pc; // assign to field early
 
-            // Add this enhanced logging to your VoiceSession.cs CreatePeerConnection method:
+            // Add this enhanced logging to your VoiceSession.cs CreatePeerConnectionAsync method:
 
             pc.OnRtpPacketReceived += (IPEndPoint remoteEndPoint, SDPMediaTypesEnum mediaType, RTPPacket rtpPacket) =>
             {
@@ -501,7 +501,7 @@ namespace LibreMetaverse.Voice.WebRTC
             // Ensure we have a recording source; attempt to create a default one if missing so GetAudioSourceFormats() won't NRE.
             if (_audioDevice == null)
             {
-                _log.Error("_audioDevice is null in VoiceSession.CreatePeerConnection", _client);
+                _log.Error("_audioDevice is null in VoiceSession.CreatePeerConnectionAsync", _client);
                 throw new VoiceException("Internal error: _audioDevice is null.");
             }
             if (_audioDevice.Source == null)
@@ -1407,7 +1407,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 RTCPeerConnection? newPc = null;
                 try
                 {
-                    newPc = await CreatePeerConnection();
+                    newPc = await CreatePeerConnectionAsync();
                 }
                 catch (Exception ex)
                 {
@@ -1424,7 +1424,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     // Re-request provisioning from the simulator
                     try
                     {
-                        var ok = await RequestProvision();
+                        var ok = await RequestProvisionAsync();
                         if (ok)
                         {
                             _log.Debug($"Reprovision completed, new session {SessionId}", _client);
@@ -1454,7 +1454,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     }
                     catch (Exception ex)
                     {
-                        _log.Warn($"Reprovision RequestProvision failed: {ex.Message}", _client);
+                        _log.Warn($"Reprovision RequestProvisionAsync failed: {ex.Message}", _client);
                         try { OnReprovisionFailed?.Invoke(ex); } catch { }
                     }
                 }
@@ -1610,9 +1610,9 @@ namespace LibreMetaverse.Voice.WebRTC
             _audioDevice.SetSsrcGainPercent(ssrc, gainPercent);
         }
 
-        // Minimal implementation of RequestProvision to satisfy callers.
+        // Minimal implementation of RequestProvisionAsync to satisfy callers.
         // The real implementation is more involved; this stub returns false.
-        public async Task<bool> RequestProvision()
+        public async Task<bool> RequestProvisionAsync()
         {
             if (_client?.Network == null || !_client.Network.Connected) { return false; }
             _log.Debug("Requesting voice capability...", _client);
@@ -1864,7 +1864,7 @@ namespace LibreMetaverse.Voice.WebRTC
         }
 
         // Close and cleanup session resources
-        public async Task CloseSession()
+        public async Task CloseSessionAsync()
         {
             // Stop loops
             StopPositionLoop();
@@ -1877,7 +1877,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
             // Use a dedicated short-lived token for the close-sequence network calls so that
             // they never touch _cts.Token.  Dispose() may cancel and dispose _cts concurrently
-            // (e.g. when CloseSession is fire-and-forgotten), which would otherwise cause an
+            // (e.g. when CloseSessionAsync is fire-and-forgotten), which would otherwise cause an
             // ObjectDisposedException inside PostCapsWithRetries.
             using var shutdownCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             await SendCloseSessionRequest(shutdownCts.Token).ConfigureAwait(false);

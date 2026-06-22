@@ -19,7 +19,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
             var objectId2 = new Guid("11111111-1111-4111-8111-111111111111");
             var userId1 = new Guid("55555555-5555-4555-8555-555555555555");
 
-            await _rlv.ProcessMessage("@touchworld=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@touchworld=n", _sender.Id, _sender.Name);
 
             Assert.That(_rlv.Permissions.CanTouch(RlvPermissionsService.TouchLocation.AttachedSelf, objectId1, null, null), Is.True);
             Assert.That(_rlv.Permissions.CanTouch(RlvPermissionsService.TouchLocation.AttachedOther, objectId1, userId1, null), Is.True);

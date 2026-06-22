@@ -54,7 +54,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "Clothing/Hats"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getpathnew=1234", sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedPrimId.Value, sampleTree.Root_Clothing_Hats_PartyHat_Spine.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getpathnew=1234", sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedPrimId.Value, sampleTree.Root_Clothing_Hats_PartyHat_Spine.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -98,7 +98,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "Clothing/Hats"),
             };
 
-            Assert.That(await _rlv.ProcessMessage($"@getpathnew:{sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedPrimId.Value}=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync($"@getpathnew:{sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedPrimId.Value}=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -147,7 +147,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, ""),
             };
 
-            Assert.That(await _rlv.ProcessMessage($"@getpathnew:BADBADBA-DBAD-4BAD-8BAD-BADBADBADBAD=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync($"@getpathnew:BADBADBA-DBAD-4BAD-8BAD-BADBADBADBAD=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -197,7 +197,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "Accessories,Clothing/Hats"),
             };
 
-            Assert.That(await _rlv.ProcessMessage($"@getpathnew:groin=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync($"@getpathnew:groin=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -243,7 +243,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "Accessories,Clothing/Hats"),
             };
 
-            Assert.That(await _rlv.ProcessMessage($"@getpathnew:pants=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync($"@getpathnew:pants=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 

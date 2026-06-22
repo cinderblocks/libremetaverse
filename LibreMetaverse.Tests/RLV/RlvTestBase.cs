@@ -31,10 +31,10 @@ namespace LibreMetaverse.Tests.RLV
 
         protected async Task CheckSimpleCommand(string cmd, Func<RlvPermissionsService, bool> canFunc)
         {
-            await _rlv.ProcessMessage($"@{cmd}=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{cmd}=n", _sender.Id, _sender.Name);
             Assert.That(canFunc(_rlv.Permissions), Is.False);
 
-            await _rlv.ProcessMessage($"@{cmd}=y", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync($"@{cmd}=y", _sender.Id, _sender.Name);
             Assert.That(canFunc(_rlv.Permissions), Is.True);
         }
 

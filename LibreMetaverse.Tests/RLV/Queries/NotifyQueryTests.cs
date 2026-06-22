@@ -18,10 +18,10 @@ namespace LibreMetaverse.Tests.RLV.Queries
         {
             var actual = _actionCallbacks.RecordReplies();
 
-            await _rlv.ProcessMessage("@notify:1234=add", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@sendim=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@alwaysrun=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@sendim:group_name=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@notify:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@sendim=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@alwaysrun=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@sendim:group_name=add", _sender.Id, _sender.Name);
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -39,10 +39,10 @@ namespace LibreMetaverse.Tests.RLV.Queries
         {
             var actual = _actionCallbacks.RecordReplies();
 
-            await _rlv.ProcessMessage("@notify:1234;run=add", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@sendim=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@alwaysrun=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@sendim:group_name=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@notify:1234;run=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@sendim=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@alwaysrun=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@sendim:group_name=add", _sender.Id, _sender.Name);
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -57,8 +57,8 @@ namespace LibreMetaverse.Tests.RLV.Queries
         {
             var actual = _actionCallbacks.RecordReplies();
 
-            await _rlv.ProcessMessage("@notify:1234=add", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@sendim=n,sendim:group_name=add,alwaysrun=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@notify:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@sendim=n,sendim:group_name=add,alwaysrun=n", _sender.Id, _sender.Name);
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -76,9 +76,9 @@ namespace LibreMetaverse.Tests.RLV.Queries
         {
             var actual = _actionCallbacks.RecordReplies();
 
-            await _rlv.ProcessMessage("@notify:1234=add", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@notify:12345=add", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@sendim=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@notify:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@notify:12345=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@sendim=n", _sender.Id, _sender.Name);
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -97,9 +97,9 @@ namespace LibreMetaverse.Tests.RLV.Queries
         {
             var actual = _actionCallbacks.RecordReplies();
 
-            await _rlv.ProcessMessage("@notify:1234=add", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@notify:12345;im=add", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@sendim=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@notify:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@notify:12345;im=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@sendim=n", _sender.Id, _sender.Name);
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -123,8 +123,8 @@ namespace LibreMetaverse.Tests.RLV.Queries
         [TestCase("@fartouch:5=n", "/fartouch:5=n")]
         public async Task NotifySynonyms(string command, string expectedReply)
         {
-            await _rlv.ProcessMessage("@notify:1234=add", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage(command, _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@notify:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync(command, _sender.Id, _sender.Name);
 
             _actionCallbacks.Verify(c => c.SendReplyAsync(1234, "/notify:1234=n", It.IsAny<CancellationToken>()), Times.Once);
             _actionCallbacks.Verify(c => c.SendReplyAsync(1234, expectedReply, It.IsAny<CancellationToken>()), Times.Once);
@@ -137,9 +137,9 @@ namespace LibreMetaverse.Tests.RLV.Queries
         {
             var actual = _actionCallbacks.RecordReplies();
 
-            await _rlv.ProcessMessage("@notify:1234=add", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@fly=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@clear=fly", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@notify:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@fly=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@clear=fly", _sender.Id, _sender.Name);
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -160,9 +160,9 @@ namespace LibreMetaverse.Tests.RLV.Queries
 
             var sender2Id = new Guid("11111111-1111-4111-8111-111111111111");
 
-            await _rlv.ProcessMessage("@notify:1234=add", sender2Id, "Main");
-            await _rlv.ProcessMessage("@fly=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@clear", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@notify:1234=add", sender2Id, "Main");
+            await _rlv.ProcessMessageAsync("@fly=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@clear", _sender.Id, _sender.Name);
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -181,10 +181,10 @@ namespace LibreMetaverse.Tests.RLV.Queries
         {
             var actual = _actionCallbacks.RecordReplies();
 
-            await _rlv.ProcessMessage("@notify:1234=add", _sender.Id, _sender.Name);
-            await _rlv.ReportInventoryOfferAccepted("#RLV/~MyCuffs");
-            await _rlv.ReportInventoryOfferAccepted("Objects/New Folder (3)");
-            await _rlv.ReportInventoryOfferDeclined("#RLV/Foo/Bar");
+            await _rlv.ProcessMessageAsync("@notify:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ReportInventoryOfferAcceptedAsync("#RLV/~MyCuffs");
+            await _rlv.ReportInventoryOfferAcceptedAsync("Objects/New Folder (3)");
+            await _rlv.ReportInventoryOfferDeclinedAsync("#RLV/Foo/Bar");
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -204,11 +204,11 @@ namespace LibreMetaverse.Tests.RLV.Queries
 
             var sitTarget = new Guid("11111111-1111-4111-8111-111111111111");
 
-            await _rlv.ProcessMessage("@notify:1234=add", _sender.Id, _sender.Name);
-            await _rlv.ReportSit(sitTarget);
-            await _rlv.ReportUnsit(sitTarget);
-            await _rlv.ReportSit(null);
-            await _rlv.ReportUnsit(null);
+            await _rlv.ProcessMessageAsync("@notify:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ReportSitAsync(sitTarget);
+            await _rlv.ReportUnsitAsync(sitTarget);
+            await _rlv.ReportSitAsync(null);
+            await _rlv.ReportUnsitAsync(null);
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -229,14 +229,14 @@ namespace LibreMetaverse.Tests.RLV.Queries
 
             var sitTarget = new Guid("11111111-1111-4111-8111-111111111111");
 
-            await _rlv.ProcessMessage("@sit=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@unsit=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@notify:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@sit=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@unsit=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@notify:1234=add", _sender.Id, _sender.Name);
 
-            await _rlv.ReportSit(sitTarget);
-            await _rlv.ReportUnsit(sitTarget);
-            await _rlv.ReportSit(null);
-            await _rlv.ReportUnsit(null);
+            await _rlv.ReportSitAsync(sitTarget);
+            await _rlv.ReportUnsitAsync(sitTarget);
+            await _rlv.ReportSitAsync(null);
+            await _rlv.ReportUnsitAsync(null);
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -258,9 +258,9 @@ namespace LibreMetaverse.Tests.RLV.Queries
             var itemId1 = new Guid("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
             var itemId2 = new Guid("cccccccc-cccc-4ccc-8ccc-cccccccccccc");
 
-            await _rlv.ProcessMessage("@notify:1234=add", _sender.Id, _sender.Name);
-            await _rlv.ReportItemWorn(itemId1, false, RlvWearableType.Skin);
-            await _rlv.ReportItemWorn(itemId2, true, RlvWearableType.Tattoo);
+            await _rlv.ProcessMessageAsync("@notify:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ReportItemWornAsync(itemId1, false, RlvWearableType.Skin);
+            await _rlv.ReportItemWornAsync(itemId2, true, RlvWearableType.Tattoo);
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -280,9 +280,9 @@ namespace LibreMetaverse.Tests.RLV.Queries
 
             var itemId1 = new Guid("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
 
-            await _rlv.ProcessMessage("@addoutfit:skin=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@notify:1234=add", _sender.Id, _sender.Name);
-            await _rlv.ReportItemWorn(itemId1, false, RlvWearableType.Skin);
+            await _rlv.ProcessMessageAsync("@addoutfit:skin=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@notify:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ReportItemWornAsync(itemId1, false, RlvWearableType.Skin);
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -302,9 +302,9 @@ namespace LibreMetaverse.Tests.RLV.Queries
             var folderId1 = new Guid("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
             var folderId2 = new Guid("cccccccc-cccc-4ccc-8ccc-cccccccccccc");
 
-            await _rlv.ProcessMessage("@notify:1234=add", _sender.Id, _sender.Name);
-            await _rlv.ReportItemUnworn(wornItem.Id, folderId1, false, RlvWearableType.Skin);
-            await _rlv.ReportItemUnworn(wornItem.Id, folderId2, true, RlvWearableType.Tattoo);
+            await _rlv.ProcessMessageAsync("@notify:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ReportItemUnwornAsync(wornItem.Id, folderId1, false, RlvWearableType.Skin);
+            await _rlv.ReportItemUnwornAsync(wornItem.Id, folderId2, true, RlvWearableType.Tattoo);
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -324,10 +324,10 @@ namespace LibreMetaverse.Tests.RLV.Queries
 
             var itemId1 = new Guid("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
 
-            await _rlv.ProcessMessage("@remoutfit:skin=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@notify:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@remoutfit:skin=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@notify:1234=add", _sender.Id, _sender.Name);
 
-            await _rlv.ReportItemUnworn(wornItem.Id, itemId1, false, RlvWearableType.Skin);
+            await _rlv.ReportItemUnwornAsync(wornItem.Id, itemId1, false, RlvWearableType.Skin);
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -346,9 +346,9 @@ namespace LibreMetaverse.Tests.RLV.Queries
             var itemId1 = new Guid("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
             var itemId2 = new Guid("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
 
-            await _rlv.ProcessMessage("@notify:1234=add", _sender.Id, _sender.Name);
-            await _rlv.ReportItemAttached(itemId1, false, RlvAttachmentPoint.Chest);
-            await _rlv.ReportItemAttached(itemId2, true, RlvAttachmentPoint.AvatarCenter);
+            await _rlv.ProcessMessageAsync("@notify:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ReportItemAttachedAsync(itemId1, false, RlvAttachmentPoint.Chest);
+            await _rlv.ReportItemAttachedAsync(itemId2, true, RlvAttachmentPoint.AvatarCenter);
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -368,9 +368,9 @@ namespace LibreMetaverse.Tests.RLV.Queries
 
             var itemId1 = new Guid("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
 
-            await _rlv.ProcessMessage("@addattach:chest=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@notify:1234=add", _sender.Id, _sender.Name);
-            await _rlv.ReportItemAttached(itemId1, false, RlvAttachmentPoint.Chest);
+            await _rlv.ProcessMessageAsync("@addattach:chest=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@notify:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ReportItemAttachedAsync(itemId1, false, RlvAttachmentPoint.Chest);
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -391,9 +391,9 @@ namespace LibreMetaverse.Tests.RLV.Queries
             var folderId1 = new Guid("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
             var folderId2 = new Guid("cccccccc-cccc-4ccc-8ccc-cccccccccccc");
 
-            await _rlv.ProcessMessage("@notify:1234=add", _sender.Id, _sender.Name);
-            await _rlv.ReportItemDetached(wornItem.Id, wornItemPrimId, folderId1, false, RlvAttachmentPoint.Chest);
-            await _rlv.ReportItemDetached(wornItem.Id, wornItemPrimId, folderId2, true, RlvAttachmentPoint.Skull);
+            await _rlv.ProcessMessageAsync("@notify:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ReportItemDetachedAsync(wornItem.Id, wornItemPrimId, folderId1, false, RlvAttachmentPoint.Chest);
+            await _rlv.ReportItemDetachedAsync(wornItem.Id, wornItemPrimId, folderId2, true, RlvAttachmentPoint.Skull);
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -414,9 +414,9 @@ namespace LibreMetaverse.Tests.RLV.Queries
 
             var itemId1 = new Guid("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
 
-            await _rlv.ProcessMessage("@remattach:chest=n", _sender.Id, _sender.Name);
-            await _rlv.ProcessMessage("@notify:1234=add", _sender.Id, _sender.Name);
-            await _rlv.ReportItemDetached(wornItem.Id, wornItemPrimId, itemId1, false, RlvAttachmentPoint.Chest);
+            await _rlv.ProcessMessageAsync("@remattach:chest=n", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@notify:1234=add", _sender.Id, _sender.Name);
+            await _rlv.ReportItemDetachedAsync(wornItem.Id, wornItemPrimId, itemId1, false, RlvAttachmentPoint.Chest);
 
             var expected = new List<(int Channel, string Text)>
             {

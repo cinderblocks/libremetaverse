@@ -30,7 +30,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "Clothing,Accessories"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getinv=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getinv=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -62,7 +62,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, $"{outfitSubfolder1.Name},{outfitSubfolder2.Name}"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getinv:.outfits=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getinv:.outfits=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -86,7 +86,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, $"{outfitSubfolder1.Name}"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getinv:/~MyOutfits=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getinv:/~MyOutfits=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -110,7 +110,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, $"{outfitSubfolder1.Name}"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getinv:~MyOutfits/=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getinv:~MyOutfits/=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -134,7 +134,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, $"{outfitSubfolder1.Name}"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getinv:/~MyOutfits/=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getinv:/~MyOutfits/=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -163,7 +163,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, $""),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getinv:.outfits/First outfit=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getinv:.outfits/First outfit=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -184,7 +184,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "Sub Hats"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getinv:Clothing/Hats=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getinv:Clothing/Hats=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -205,7 +205,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, ""),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getinv:Clothing/Hats/Sub Hats=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getinv:Clothing/Hats/Sub Hats=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -226,7 +226,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, ""),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getinv:Invalid Folder=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getinv:Invalid Folder=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
         #endregion

@@ -48,7 +48,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
                 e.TryGetInventoryMapAsync(default)
             ).ReturnsAsync((true, inventoryMap));
 
-            Assert.That(await _rlv.ProcessMessage("@detachthis=n", sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedPrimId!.Value, sampleTree.Root_Clothing_Hats_PartyHat_Spine.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@detachthis=n", sampleTree.Root_Clothing_Hats_PartyHat_Spine.AttachedPrimId!.Value, sampleTree.Root_Clothing_Hats_PartyHat_Spine.Name), Is.True);
 
             // #RLV/Clothing/Hats/Party Hat (LOCKED)
             Assert.That(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine), Is.False);
@@ -119,7 +119,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
 
             // This should lock the #RLV/Clothing folder because the Business Pants are issuing the command, which is in the Clothing folder.
             //   Business Pants cannot be detached, but hats are still detachable.
-            Assert.That(await _rlv.ProcessMessage("@detachthis=n", sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedPrimId!.Value, sampleTree.Root_Clothing_BusinessPants_Pelvis.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@detachthis=n", sampleTree.Root_Clothing_BusinessPants_Pelvis.AttachedPrimId!.Value, sampleTree.Root_Clothing_BusinessPants_Pelvis.Name), Is.True);
 
             // #RLV/Clothing/Hats/Party Hat ()
             Assert.That(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine), Is.True);
@@ -185,7 +185,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
             ).ReturnsAsync((true, inventoryMap));
 
             // This should lock the Hats folder, all hats are no longer detachable
-            Assert.That(await _rlv.ProcessMessage("@detachthis:Clothing=n", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@detachthis:Clothing=n", _sender.Id, _sender.Name), Is.True);
 
             // #RLV/Clothing/Hats/Party Hat ()
             Assert.That(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine), Is.True);
@@ -257,7 +257,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
             ).ReturnsAsync((true, inventoryMap));
 
             // This should lock the Hats folder, all hats are no longer detachable
-            Assert.That(await _rlv.ProcessMessage("@detachthis:pelvis=n", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@detachthis:pelvis=n", _sender.Id, _sender.Name), Is.True);
 
             // #RLV/Clothing/Hats/Party Hat (LOCKED)
             Assert.That(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine), Is.False);
@@ -331,7 +331,7 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
             ).ReturnsAsync((true, inventoryMap));
 
             // This should lock the Hats folder, all hats are no longer detachable
-            Assert.That(await _rlv.ProcessMessage("@detachthis:tattoo=n", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@detachthis:tattoo=n", _sender.Id, _sender.Name), Is.True);
 
             // #RLV/Clothing/Hats/Party Hat ()
             Assert.That(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine), Is.True);
@@ -404,8 +404,8 @@ namespace LibreMetaverse.Tests.RLV.Restrictions
                 e.TryGetInventoryMapAsync(default)
             ).ReturnsAsync((true, inventoryMap));
 
-            Assert.That(await _rlv.ProcessMessage("@detachthis:tattoo=n", _sender.Id, _sender.Name), Is.True);
-            Assert.That(await _rlv.ProcessMessage("@detachthis:tattoo=y", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@detachthis:tattoo=n", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@detachthis:tattoo=y", _sender.Id, _sender.Name), Is.True);
 
             Assert.That(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_PartyHat_Spine), Is.True);
             Assert.That(_rlv.Permissions.CanDetach(sampleTree.Root_Clothing_Hats_FancyHat_Chin), Is.True);

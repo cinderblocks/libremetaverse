@@ -246,7 +246,7 @@ namespace LibreMetaverse.RLV
             }
         }
 
-        public async Task RemoveRestrictionsForObjects(IEnumerable<Guid> primIds, CancellationToken cancellationToken = default)
+        public async Task RemoveRestrictionsForObjectsAsync(IEnumerable<Guid> primIds, CancellationToken cancellationToken = default)
         {
             var objectIdMap = primIds.ToImmutableHashSet();
             var removedRestrictions = new List<RlvRestriction>();

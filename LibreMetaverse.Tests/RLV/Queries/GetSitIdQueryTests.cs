@@ -27,7 +27,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
             var actual = _actionCallbacks.RecordReplies();
             SetCurrentSitId(Guid.Empty);
 
-            await _rlv.ProcessMessage("@getsitid=1234", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@getsitid=1234", _sender.Id, _sender.Name);
 
             var expected = new List<(int Channel, string Text)>
             {
@@ -44,7 +44,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
             var objectId1 = new Guid("00000000-0000-4000-8000-000000000000");
             SetCurrentSitId(objectId1);
 
-            await _rlv.ProcessMessage("@getsitid=1234", _sender.Id, _sender.Name);
+            await _rlv.ProcessMessageAsync("@getsitid=1234", _sender.Id, _sender.Name);
 
             var expected = new List<(int Channel, string Text)>
             {

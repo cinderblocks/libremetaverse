@@ -31,7 +31,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "00000000000000000000000000000000000000000000000000000000"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getattach=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getattach=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -73,7 +73,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "00000000000000000000000000000000000000000000000100000000"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getattach=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getattach=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -100,7 +100,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "00100001000000000000000000000000000000000000000000000000"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getattach=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getattach=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -136,7 +136,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "11111111111111111111111111111111111111111111111111111111"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getattach=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getattach=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -170,7 +170,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "1"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getattach:left foot=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getattach:left foot=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
 
@@ -205,7 +205,7 @@ namespace LibreMetaverse.Tests.RLV.Queries
                 (1234, "0"),
             };
 
-            Assert.That(await _rlv.ProcessMessage("@getattach:left foot=1234", _sender.Id, _sender.Name), Is.True);
+            Assert.That(await _rlv.ProcessMessageAsync("@getattach:left foot=1234", _sender.Id, _sender.Name), Is.True);
             Assert.That(actual, Is.EqualTo(expected));
         }
         #endregion

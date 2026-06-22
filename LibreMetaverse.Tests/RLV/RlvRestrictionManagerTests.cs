@@ -31,7 +31,7 @@ namespace LibreMetaverse.Tests.RLV
             var primId = new Guid("11111111-1111-1111-1111-111111111111");
 
             // Act
-            await _rlv.ProcessMessage("@fly=n", primId, "TestObject");
+            await _rlv.ProcessMessageAsync("@fly=n", primId, "TestObject");
             var trackedIds = _rlv.Restrictions.GetTrackedPrimIds();
 
             // Assert
@@ -46,9 +46,9 @@ namespace LibreMetaverse.Tests.RLV
             var primId = new Guid("11111111-1111-1111-1111-111111111111");
 
             // Act
-            await _rlv.ProcessMessage("@fly=n", primId, "TestObject");
-            await _rlv.ProcessMessage("@jump=n", primId, "TestObject");
-            await _rlv.ProcessMessage("@sit=n", primId, "TestObject");
+            await _rlv.ProcessMessageAsync("@fly=n", primId, "TestObject");
+            await _rlv.ProcessMessageAsync("@jump=n", primId, "TestObject");
+            await _rlv.ProcessMessageAsync("@sit=n", primId, "TestObject");
             var trackedIds = _rlv.Restrictions.GetTrackedPrimIds();
 
             // Assert
@@ -65,9 +65,9 @@ namespace LibreMetaverse.Tests.RLV
             var primId3 = new Guid("33333333-3333-3333-3333-333333333333");
 
             // Act
-            await _rlv.ProcessMessage("@fly=n", primId1, "TestObject1");
-            await _rlv.ProcessMessage("@jump=n", primId2, "TestObject2");
-            await _rlv.ProcessMessage("@sit=n", primId3, "TestObject3");
+            await _rlv.ProcessMessageAsync("@fly=n", primId1, "TestObject1");
+            await _rlv.ProcessMessageAsync("@jump=n", primId2, "TestObject2");
+            await _rlv.ProcessMessageAsync("@sit=n", primId3, "TestObject3");
             var trackedIds = _rlv.Restrictions.GetTrackedPrimIds();
 
             // Assert
@@ -85,8 +85,8 @@ namespace LibreMetaverse.Tests.RLV
             var primId2 = new Guid("22222222-2222-2222-2222-222222222222");
 
             // Act
-            await _rlv.ProcessMessage("@detachthis=n", primId1, "TestObject1");
-            await _rlv.ProcessMessage("@detachthis_except:folder=n", primId2, "TestObject2");
+            await _rlv.ProcessMessageAsync("@detachthis=n", primId1, "TestObject1");
+            await _rlv.ProcessMessageAsync("@detachthis_except:folder=n", primId2, "TestObject2");
             var trackedIds = _rlv.Restrictions.GetTrackedPrimIds();
 
             // Assert
@@ -103,9 +103,9 @@ namespace LibreMetaverse.Tests.RLV
             var primId2 = new Guid("22222222-2222-2222-2222-222222222222");
 
             // Act
-            await _rlv.ProcessMessage("@fly=n", primId1, "TestObject1");
-            await _rlv.ProcessMessage("@jump=n", primId2, "TestObject2");
-            await _rlv.ProcessMessage("@fly=y", primId1, "TestObject1");
+            await _rlv.ProcessMessageAsync("@fly=n", primId1, "TestObject1");
+            await _rlv.ProcessMessageAsync("@jump=n", primId2, "TestObject2");
+            await _rlv.ProcessMessageAsync("@fly=y", primId1, "TestObject1");
             var trackedIds = _rlv.Restrictions.GetTrackedPrimIds();
 
             // Assert
@@ -121,9 +121,9 @@ namespace LibreMetaverse.Tests.RLV
             var primId = new Guid("11111111-1111-1111-1111-111111111111");
 
             // Act
-            await _rlv.ProcessMessage("@fly=n", primId, "TestObject");
-            await _rlv.ProcessMessage("@jump=n", primId, "TestObject");
-            await _rlv.ProcessMessage("@clear", primId, "TestObject");
+            await _rlv.ProcessMessageAsync("@fly=n", primId, "TestObject");
+            await _rlv.ProcessMessageAsync("@jump=n", primId, "TestObject");
+            await _rlv.ProcessMessageAsync("@clear", primId, "TestObject");
             var trackedIds = _rlv.Restrictions.GetTrackedPrimIds();
 
             // Assert
@@ -139,10 +139,10 @@ namespace LibreMetaverse.Tests.RLV
         {
             // Arrange
             var primId = new Guid("11111111-1111-1111-1111-111111111111");
-            await _rlv.ProcessMessage("@fly=n", primId, "TestObject");
+            await _rlv.ProcessMessageAsync("@fly=n", primId, "TestObject");
 
             // Act
-            await _rlv.Restrictions.RemoveRestrictionsForObjects(Array.Empty<Guid>());
+            await _rlv.Restrictions.RemoveRestrictionsForObjectsAsync(Array.Empty<Guid>());
 
             // Assert
             Assert.That(_rlv.Permissions.CanFly(), Is.False);
@@ -156,10 +156,10 @@ namespace LibreMetaverse.Tests.RLV
             // Arrange
             var primId = new Guid("11111111-1111-1111-1111-111111111111");
             var nonExistentId = new Guid("99999999-9999-9999-9999-999999999999");
-            await _rlv.ProcessMessage("@fly=n", primId, "TestObject");
+            await _rlv.ProcessMessageAsync("@fly=n", primId, "TestObject");
 
             // Act
-            await _rlv.Restrictions.RemoveRestrictionsForObjects(new[] { nonExistentId });
+            await _rlv.Restrictions.RemoveRestrictionsForObjectsAsync(new[] { nonExistentId });
 
             // Assert
             Assert.That(_rlv.Permissions.CanFly(), Is.False);
@@ -173,16 +173,16 @@ namespace LibreMetaverse.Tests.RLV
         {
             // Arrange
             var primId = new Guid("11111111-1111-1111-1111-111111111111");
-            await _rlv.ProcessMessage("@fly=n", primId, "TestObject");
-            await _rlv.ProcessMessage("@jump=n", primId, "TestObject");
-            await _rlv.ProcessMessage("@sit=n", primId, "TestObject");
+            await _rlv.ProcessMessageAsync("@fly=n", primId, "TestObject");
+            await _rlv.ProcessMessageAsync("@jump=n", primId, "TestObject");
+            await _rlv.ProcessMessageAsync("@sit=n", primId, "TestObject");
 
             // Verify restrictions are in place
             Assert.That(_rlv.Permissions.CanFly(), Is.False);
             Assert.That(_rlv.Permissions.CanJump(), Is.False);
 
             // Act
-            await _rlv.Restrictions.RemoveRestrictionsForObjects(new[] { primId });
+            await _rlv.Restrictions.RemoveRestrictionsForObjectsAsync(new[] { primId });
 
             // Assert
             Assert.That(_rlv.Permissions.CanFly(), Is.True);
@@ -199,16 +199,16 @@ namespace LibreMetaverse.Tests.RLV
             var primId2 = new Guid("22222222-2222-2222-2222-222222222222");
             var primId3 = new Guid("33333333-3333-3333-3333-333333333333");
 
-            await _rlv.ProcessMessage("@fly=n", primId1, "TestObject1");
-            await _rlv.ProcessMessage("@jump=n", primId2, "TestObject2");
-            await _rlv.ProcessMessage("@sit=n", primId3, "TestObject3");
+            await _rlv.ProcessMessageAsync("@fly=n", primId1, "TestObject1");
+            await _rlv.ProcessMessageAsync("@jump=n", primId2, "TestObject2");
+            await _rlv.ProcessMessageAsync("@sit=n", primId3, "TestObject3");
 
             // Verify all restrictions are in place
             Assert.That(_rlv.Permissions.CanFly(), Is.False);
             Assert.That(_rlv.Permissions.CanJump(), Is.False);
 
             // Act - Remove restrictions from primId1 and primId3
-            await _rlv.Restrictions.RemoveRestrictionsForObjects(new[] { primId1, primId3 });
+            await _rlv.Restrictions.RemoveRestrictionsForObjectsAsync(new[] { primId1, primId3 });
 
             // Assert
             Assert.That(_rlv.Permissions.CanFly(), Is.True); // fly restriction removed
@@ -226,11 +226,11 @@ namespace LibreMetaverse.Tests.RLV
             var primId2 = new Guid("22222222-2222-2222-2222-222222222222");
             var nonExistentId = new Guid("99999999-9999-9999-9999-999999999999");
 
-            await _rlv.ProcessMessage("@fly=n", primId1, "TestObject1");
-            await _rlv.ProcessMessage("@jump=n", primId2, "TestObject2");
+            await _rlv.ProcessMessageAsync("@fly=n", primId1, "TestObject1");
+            await _rlv.ProcessMessageAsync("@jump=n", primId2, "TestObject2");
 
             // Act - Try to remove restrictions from one existing and one non-existent object
-            await _rlv.Restrictions.RemoveRestrictionsForObjects(new[] { primId1, nonExistentId });
+            await _rlv.Restrictions.RemoveRestrictionsForObjectsAsync(new[] { primId1, nonExistentId });
 
             // Assert
             Assert.That(_rlv.Permissions.CanFly(), Is.True); // fly restriction removed
@@ -249,11 +249,11 @@ namespace LibreMetaverse.Tests.RLV
             var notificationChannel = 123;
 
             // Set up notification
-            await _rlv.ProcessMessage($"@notify:{notificationChannel}=n", primId2, "NotificationObject");
-            await _rlv.ProcessMessage("@fly=n", primId1, "TestObject");
+            await _rlv.ProcessMessageAsync($"@notify:{notificationChannel}=n", primId2, "NotificationObject");
+            await _rlv.ProcessMessageAsync("@fly=n", primId1, "TestObject");
 
             // Act
-            await _rlv.Restrictions.RemoveRestrictionsForObjects(new[] { primId1 });
+            await _rlv.Restrictions.RemoveRestrictionsForObjectsAsync(new[] { primId1 });
 
             // Assert
             _actionCallbacks.Verify(x => x.SendReplyAsync(
@@ -271,10 +271,10 @@ namespace LibreMetaverse.Tests.RLV
             var primId2 = new Guid("22222222-2222-2222-2222-222222222222");
 
             // Add various types of restrictions
-            await _rlv.ProcessMessage("@detachthis=n", primId1, "TestObject1");
-            await _rlv.ProcessMessage("@detachthis_except:folder=n", primId1, "TestObject1");
-            await _rlv.ProcessMessage("@touchfar:1.5=n", primId1, "TestObject1");
-            await _rlv.ProcessMessage("@fly=n", primId2, "TestObject2");
+            await _rlv.ProcessMessageAsync("@detachthis=n", primId1, "TestObject1");
+            await _rlv.ProcessMessageAsync("@detachthis_except:folder=n", primId1, "TestObject1");
+            await _rlv.ProcessMessageAsync("@touchfar:1.5=n", primId1, "TestObject1");
+            await _rlv.ProcessMessageAsync("@fly=n", primId2, "TestObject2");
 
             // Verify restrictions
             var restrictionsFromPrimId1 = _rlv.Restrictions.FindRestrictions(senderFilter: primId1);
@@ -283,7 +283,7 @@ namespace LibreMetaverse.Tests.RLV
             Assert.That(restrictionsFromPrimId2, Has.Exactly(1).Items);
 
             // Act
-            await _rlv.Restrictions.RemoveRestrictionsForObjects(new[] { primId1 });
+            await _rlv.Restrictions.RemoveRestrictionsForObjectsAsync(new[] { primId1 });
 
             // Assert
             restrictionsFromPrimId1 = _rlv.Restrictions.FindRestrictions(senderFilter: primId1);
@@ -297,7 +297,7 @@ namespace LibreMetaverse.Tests.RLV
         {
             // Arrange
             var primId = new Guid("11111111-1111-1111-1111-111111111111");
-            await _rlv.ProcessMessage("@fly=n", primId, "TestObject");
+            await _rlv.ProcessMessageAsync("@fly=n", primId, "TestObject");
 
             var eventFired = false;
             RlvRestriction? removedRestriction = null;
@@ -312,7 +312,7 @@ namespace LibreMetaverse.Tests.RLV
             };
 
             // Act
-            await _rlv.Restrictions.RemoveRestrictionsForObjects(new[] { primId });
+            await _rlv.Restrictions.RemoveRestrictionsForObjectsAsync(new[] { primId });
 
             // Assert
             Assert.That(eventFired, Is.True);

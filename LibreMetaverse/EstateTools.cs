@@ -957,8 +957,8 @@ namespace LibreMetaverse
         /// <param name="flags"></param>
         /// <param name="cancellationToken"></param>
         /// <returns>Success of request</returns>
-        /// <seealso cref="SendEstateChangeInfo"/>
-        /// <remarks>Prefer <see cref="SendEstateChangeInfo"/> which handles HTTP with LLUDP fallback</remarks>
+        /// <seealso cref="SendEstateChangeInfoAsync"/>
+        /// <remarks>Prefer <see cref="SendEstateChangeInfoAsync"/> which handles HTTP with LLUDP fallback</remarks>
         private async Task<bool> SendEstateChangeInfoHttp(Uri uri, string estateName, float sunHour, RegionFlags flags, CancellationToken cancellationToken = default)
         {
             var payload = new OSDMap
@@ -995,9 +995,9 @@ namespace LibreMetaverse
         /// <param name="estateName"></param>
         /// <param name="sunHour"></param>
         /// <param name="flags"></param>
-        /// <seealso cref="SendEstateChangeInfo"/>
+        /// <seealso cref="SendEstateChangeInfoAsync"/>
         /// <remarks>This is the deprecated way of doing things and is best NOT to use outright.
-        /// Prefer <see cref="SendEstateChangeInfo"/></remarks>
+        /// Prefer <see cref="SendEstateChangeInfoAsync"/></remarks>
         public void SendEstateChangeInfoDataserver(string estateName, float sunHour, RegionFlags flags)
         {
             var payload = new List<string>
