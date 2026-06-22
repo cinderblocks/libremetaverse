@@ -1,11 +1,7 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
-using LibreMetaverse;
-using LibreMetaverse;
 
 namespace LibreMetaverse.Tests
 {

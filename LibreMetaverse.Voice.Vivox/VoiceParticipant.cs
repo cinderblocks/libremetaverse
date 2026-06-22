@@ -28,7 +28,6 @@
 using System;
 using System.Text;
 using System.Text.RegularExpressions;
-using LibreMetaverse;
 
 namespace LibreMetaverse.Voice.Vivox
 {

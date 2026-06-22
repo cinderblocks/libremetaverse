@@ -27,7 +27,6 @@
 
 using System;
 using System.Collections.Generic;
-using LibreMetaverse;
 using LibreMetaverse.StructuredData;
 using NUnit.Framework;
 

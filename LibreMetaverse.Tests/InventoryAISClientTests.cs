@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using NUnit.Framework;
-using LibreMetaverse;
 using LibreMetaverse.StructuredData;
 
 namespace LibreMetaverse.Tests

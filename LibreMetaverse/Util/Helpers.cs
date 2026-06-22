@@ -30,7 +30,6 @@ using System.IO;
 using System.IO.Compression;
 using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
 using ComponentAce.Compression.Libs.zlib;
 using LibreMetaverse.StructuredData;
 

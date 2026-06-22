@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using LibreMetaverse;
-using LibreMetaverse.Assets;
 using LibreMetaverse.StructuredData;
 
 namespace TestClient.Commands.Prims

@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using LibreMetaverse;
-using LibreMetaverse.Assets;
 
 namespace TestClient.Commands.Prims
 {

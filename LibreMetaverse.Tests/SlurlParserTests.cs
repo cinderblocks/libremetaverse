@@ -26,7 +26,6 @@
 
 using System;
 using NUnit.Framework;
-using LibreMetaverse;
 
 namespace LibreMetaverse.Tests
 {

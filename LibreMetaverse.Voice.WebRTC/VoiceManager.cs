@@ -28,8 +28,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using LitJson;
-using LibreMetaverse;
 using LibreMetaverse.Interfaces;
 using LibreMetaverse.Messages.Linden;
 using LibreMetaverse.StructuredData;

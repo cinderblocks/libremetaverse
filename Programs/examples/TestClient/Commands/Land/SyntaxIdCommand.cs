@@ -1,6 +1,5 @@
 using System.Text;
 using LibreMetaverse;
-using LibreMetaverse;
 
 namespace TestClient.Commands.Land
 {

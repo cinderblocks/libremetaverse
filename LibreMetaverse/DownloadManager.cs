@@ -31,7 +31,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Http;
 using System.Diagnostics;
-using LibreMetaverse;
 
 namespace LibreMetaverse.Http
 {

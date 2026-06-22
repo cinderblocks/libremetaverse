@@ -1,8 +1,5 @@
-using System;
 using System.Collections.Generic;
 using NUnit.Framework;
-using LibreMetaverse;
-using LibreMetaverse.Rendering;
 
 namespace LibreMetaverse.Rendering.Tests.MeshFoundry
 {

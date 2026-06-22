@@ -1,7 +1,5 @@
 using System;
 using NUnit.Framework;
-using LibreMetaverse;
-using LibreMetaverse;
 
 namespace LibreMetaverse.Tests
 {

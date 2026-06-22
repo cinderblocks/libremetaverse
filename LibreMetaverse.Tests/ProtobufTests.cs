@@ -26,7 +26,6 @@
 
 using System;
 using NUnit.Framework;
-using LibreMetaverse;
 using LibreMetaverse.StructuredData;
 
 namespace LibreMetaverse.Tests

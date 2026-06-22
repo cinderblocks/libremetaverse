@@ -32,9 +32,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
-using LibreMetaverse;
 using LibreMetaverse.StructuredData;
-using Logger = LibreMetaverse.Logger;
 
 namespace LibreMetaverse
 {

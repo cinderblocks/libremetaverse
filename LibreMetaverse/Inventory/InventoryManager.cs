@@ -30,7 +30,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using LibreMetaverse.Messages.Linden;
 using LibreMetaverse.StructuredData;
 using LibreMetaverse.Packets;
 using System.Collections.Concurrent;

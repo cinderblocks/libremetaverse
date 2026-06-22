@@ -1,5 +1,4 @@
 using NUnit.Framework;
-using LibreMetaverse;
 using LibreMetaverse.Appearance;
 using System;
 using System.Collections.Generic;

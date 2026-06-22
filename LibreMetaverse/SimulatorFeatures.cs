@@ -26,7 +26,6 @@
 
 using System;
 using System.Net.Http;
-using LibreMetaverse;
 using LibreMetaverse.StructuredData;
 
 namespace LibreMetaverse

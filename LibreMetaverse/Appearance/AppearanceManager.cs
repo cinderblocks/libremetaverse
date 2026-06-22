@@ -35,7 +35,6 @@ using System.Threading.Tasks;
 using LibreMetaverse.Packets;
 using LibreMetaverse.Assets;
 using LibreMetaverse.StructuredData;
-using LibreMetaverse;
 
 namespace LibreMetaverse
 {

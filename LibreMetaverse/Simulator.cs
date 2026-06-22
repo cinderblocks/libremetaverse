@@ -32,7 +32,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Net;
-using LibreMetaverse;
 using LibreMetaverse.Threading;
 using LibreMetaverse.Packets;
 

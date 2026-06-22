@@ -34,7 +34,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using LibreMetaverse.StructuredData;
-using LibreMetaverse;
 using LibreMetaverse.Interfaces;
 using LibreMetaverse.Messages.Linden;
 using System.Net.Http;

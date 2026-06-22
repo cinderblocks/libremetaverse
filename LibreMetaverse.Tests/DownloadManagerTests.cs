@@ -1,5 +1,4 @@
 using NUnit.Framework;
-using LibreMetaverse;
 using LibreMetaverse.Http;
 using System;
 using System.Net;

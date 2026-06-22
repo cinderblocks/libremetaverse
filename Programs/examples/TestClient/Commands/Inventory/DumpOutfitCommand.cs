@@ -33,7 +33,6 @@ using System.Text;
 using System.Threading.Tasks;
 using CoreJ2K;
 using LibreMetaverse;
-using LibreMetaverse.Assets;
 using LibreMetaverse.Imaging;
 using SkiaSharp;
 using Targa = LibreMetaverse.Imaging.Targa;

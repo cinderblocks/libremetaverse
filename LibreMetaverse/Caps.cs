@@ -36,7 +36,6 @@ using LibreMetaverse.StructuredData;
 using LibreMetaverse.Interfaces;
 using LibreMetaverse.Http;
 using System.Net.Http;
-using LibreMetaverse;
 
 namespace LibreMetaverse
 {

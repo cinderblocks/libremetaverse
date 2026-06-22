@@ -25,7 +25,6 @@
  */
 
 using NUnit.Framework;
-using LibreMetaverse;
 using System.IO;
 using System.Threading.Tasks;
 using System.Collections.Generic;

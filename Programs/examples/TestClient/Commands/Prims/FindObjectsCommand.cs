@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using LibreMetaverse;
 using Vector3 = LibreMetaverse.Vector3;
-using LibreMetaverse;
 
 namespace TestClient.Commands.Prims
 {

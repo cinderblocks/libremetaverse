@@ -25,7 +25,6 @@
  */
 
 using Microsoft.Extensions.Logging;
-using LibreMetaverse;
 
 namespace LibreMetaverse.Voice.WebRTC
 {

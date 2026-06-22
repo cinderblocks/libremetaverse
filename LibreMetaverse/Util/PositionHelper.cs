@@ -24,7 +24,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using LibreMetaverse;
 using System.Collections.Generic;
 
 namespace LibreMetaverse

@@ -35,7 +35,6 @@ using System.Threading.Tasks;
 using LibreMetaverse.Packets;
 using LibreMetaverse.Interfaces;
 using LibreMetaverse.Messages.Linden;
-using LibreMetaverse;
 
 namespace LibreMetaverse
 {

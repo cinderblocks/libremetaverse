@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using LibreMetaverse;
-using LibreMetaverse;
 using LibreMetaverse.Packets;
 #nullable enable
 

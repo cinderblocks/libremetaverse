@@ -30,7 +30,6 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Xml.Serialization;
-using LibreMetaverse;
 using LibreMetaverse.StructuredData;
 using LibreMetaverse.Messages.Linden;
 using NUnit.Framework;

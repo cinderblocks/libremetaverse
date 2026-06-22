@@ -27,7 +27,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using LibreMetaverse.StructuredData;
 using LibreMetaverse.Packets;
@@ -35,7 +34,6 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
-using LibreMetaverse;
 
 namespace LibreMetaverse
 {

@@ -26,7 +26,6 @@
  */
 
 using System;
-using LibreMetaverse;
 using LibreMetaverse.Packets;
 using NUnit.Framework;
 

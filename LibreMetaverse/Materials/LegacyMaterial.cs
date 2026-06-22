@@ -1,5 +1,4 @@
 using System;
-using LibreMetaverse;
 using LibreMetaverse.StructuredData;
 
 namespace LibreMetaverse.Materials

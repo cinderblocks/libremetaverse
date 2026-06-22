@@ -28,7 +28,6 @@ using System;
 using System.IO;
 using System.Text;
 using NUnit.Framework;
-using LibreMetaverse;
 using LibreMetaverse.Assets;
 using LibreMetaverse.Assets.Gltf;
 

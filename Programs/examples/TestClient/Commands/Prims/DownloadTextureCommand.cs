@@ -3,7 +3,6 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using LibreMetaverse;
-using LibreMetaverse.Assets;
 
 namespace TestClient.Commands.Prims
 {
