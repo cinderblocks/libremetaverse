@@ -199,6 +199,13 @@ All upload and script methods had their callback parameters removed and now retu
 
 The sync helpers `FindObjectByPath` and `GetInventoryRecursive` have been deleted. Use the existing async variants (`FindObjectsByPath`, `FetchInventoryDescendants`).
 
+### GroupManager (`client.Groups`)
+
+| 2.6 | 3.0 |
+|-----|-----|
+| `RequestBannedAgents(id, callback, ct)` | subscribe to `BannedAgents` event, then `await RequestBannedAgents(id, ct)` — callback removed |
+| `RequestBanAction(id, action, agents, callback, ct)` | `await RequestBanAction(id, action, agents, ct)` — callback removed |
+
 ### EstateTools (`client.Estate`)
 
 `SetRegionInfo()` sync wrapper deleted (was a blocking wrapper with no callers outside the library). Use the async variant.
@@ -317,7 +324,21 @@ The following were sync-over-async wrappers or dead code with no callers; they h
 
 ---
 
-## 9. `CoarseLocationUpdateEventArgs` constructor change
+## 9. `AnimationsChangedEventArgs.Animations` type narrowed
+
+The `Animations` property on `AnimationsChangedEventArgs` changed from `LockingDictionary<UUID, int>` to `IReadOnlyDictionary<UUID, int>`. Code that called write methods (`.TryAdd`, `.TryRemove`, etc.) on the event-args value will no longer compile — subscribe to the event and use `AgentManager.SignaledAnimations` directly if you need a mutable reference.
+
+```csharp
+// Before — could mutate through event args (unsupported behavior)
+e.Animations.TryAdd(animID, seqNum);
+
+// After — read only through event args; write via the source field
+client.Self.SignaledAnimations.TryAdd(animID, seqNum); // or don't write at all
+```
+
+---
+
+## 10. `CoarseLocationUpdateEventArgs` constructor change
 
 If you construct `CoarseLocationUpdateEventArgs` directly (e.g. in tests), the constructor now requires a `positions` parameter:
 
@@ -340,6 +361,8 @@ new CoarseLocationUpdateEventArgs(sim, positions, newEntries, removedEntries)
 - [ ] Replace callback-delegate patterns on `GetDisplayNames`, `RequestAgentProfile`, `GetAttachmentResources`, `RequestObjectMedia`, `GetParcelResources`, `SetAgentAccessAsync`, and inventory upload methods with `await` + tuple deconstruct
 - [ ] Replace `GetGridRegion(name, layer, out var r)` with `var r = await GetGridRegionAsync(name, layer)` and check `r != null` / use `r.Value`
 - [ ] Replace `MapItems(handle, type, layer, timeout)` with `await MapItemsAsync(handle, type, layer)`
+- [ ] Replace `RequestBannedAgents(id, callback)` with `await RequestBannedAgents(id)` + `BannedAgents` event subscription
+- [ ] Replace `RequestBanAction(id, action, agents, callback)` with `await RequestBanAction(id, action, agents)`
 - [ ] Remove any references to `GroupManager.GroupName2KeyCache`; maintain your own dictionary via `GroupNamesReply`
 - [ ] Remove any references to `Simulator.AvatarPositions`; subscribe to `GridManager.CoarseLocationUpdate` and use `e.Positions`
 - [ ] Remove any use of the `GestureManager` class

@@ -1781,19 +1781,13 @@ namespace LibreMetaverse
         /// <param name="groupID">UUID of the group</param>
         /// <param name="callback">Callback on request completion</param>
         /// <param name="cancellationToken"></param>
-        public async Task RequestBannedAgents(UUID groupID, EventHandler<BannedAgentsEventArgs>? callback = null, 
-            CancellationToken cancellationToken = default)
+        public async Task RequestBannedAgents(UUID groupID, CancellationToken cancellationToken = default)
         {
             Uri? capUri = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("GroupAPIv1");
             if (capUri == null)
             {
                 Logger.Warn($"GroupAPIv1 capability not available for RequestBannedAgents({groupID})", Client);
-                var retFail = new BannedAgentsEventArgs(groupID, false, null);
-                OnBannedAgents(retFail);
-                if (callback != null)
-                {
-                    try { callback(this, retFail); } catch { }
-                }
+                OnBannedAgents(new BannedAgentsEventArgs(groupID, false, null));
                 return;
             }
             var uri = new UriBuilder(capUri.ToString()) { Query = $"group_id={groupID}" }.Uri;
@@ -1805,7 +1799,6 @@ namespace LibreMetaverse
                 OSD? resultOsd = OSDParser.Deserialize(data);
                 if (resultOsd == null || resultOsd.Type != OSDType.Map) throw new Exception("Invalid response from GroupAPIv1");
                 OSDMap result = (OSDMap)resultOsd;
-                UUID gid = result.ContainsKey("group_id") ? result["group_id"] : UUID.Zero;
                 var banList = result.ContainsKey("ban_list") ? (OSDMap)result["ban_list"] : new OSDMap();
                 var bannedAgents = new Dictionary<UUID, DateTime>(banList.Count);
 
@@ -1814,24 +1807,12 @@ namespace LibreMetaverse
                     bannedAgents[new UUID(id)] = ((OSDMap)banList[id])["ban_date"].AsDate();
                 }
 
-                var ret = new BannedAgentsEventArgs(groupID, true, bannedAgents);
-                OnBannedAgents(ret);
-                if (callback != null)
-                {
-                    try { callback(this, ret); }
-                    catch { }
-                }
+                OnBannedAgents(new BannedAgentsEventArgs(groupID, true, bannedAgents));
             }
             catch (Exception ex)
             {
                 Logger.Warn($"Failed to fetch group ban list for {groupID}: {ex.Message}", Client);
-                var ret = new BannedAgentsEventArgs(groupID, false, null);
-                OnBannedAgents(ret);
-                if (callback != null)
-                {
-                    try { callback(this, ret); }
-                    catch { }
-                }
+                OnBannedAgents(new BannedAgentsEventArgs(groupID, false, null));
             }
         }
 
@@ -1841,19 +1822,14 @@ namespace LibreMetaverse
         /// <param name="groupID">Group ID</param>
         /// <param name="action">Ban/Unban action</param>
         /// <param name="agents">Array of agents UUIDs to ban</param>
-        /// <param name="callback">Callback</param>
         /// <param name="cancellationToken"></param>
-        public async Task RequestBanAction(UUID groupID, GroupBanAction action, UUID[] agents, EventHandler<EventArgs>? callback = null, 
+        public async Task RequestBanAction(UUID groupID, GroupBanAction action, UUID[] agents,
             CancellationToken cancellationToken = default)
         {
             Uri? capUri2 = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("GroupAPIv1");
             if (capUri2 == null)
             {
                 Logger.Warn($"GroupAPIv1 capability not available for RequestBanAction({groupID})", Client);
-                if (callback != null)
-                {
-                    try { callback(this, EventArgs.Empty); } catch { }
-                }
                 return;
             }
 
@@ -1869,12 +1845,7 @@ namespace LibreMetaverse
 
             try
             {
-                var (response, data) = await Client!.HttpCapsClient.PostAsync(uri, OSDFormat.Xml, payload, cancellationToken);
-                if (callback != null)
-                {
-                    try { callback(this, EventArgs.Empty); }
-                    catch { }
-                }
+                await Client!.HttpCapsClient.PostAsync(uri, OSDFormat.Xml, payload, cancellationToken);
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {

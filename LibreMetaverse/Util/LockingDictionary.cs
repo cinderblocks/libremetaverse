@@ -41,7 +41,7 @@ namespace LibreMetaverse
     /// </summary>
     /// <typeparam name="TKey">Key <see langword="Tkey"/></typeparam>
     /// <typeparam name="TValue">Value <see langword="TValue"/></typeparam>
-    public class LockingDictionary<TKey, TValue> : IDictionary<TKey, TValue>
+    public class LockingDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>
         where TKey : notnull
     {
         /// <summary>
@@ -433,5 +433,8 @@ namespace LibreMetaverse
         {
             return GetEnumerator();
         }
+
+        IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys;
+        IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
     }
 }
