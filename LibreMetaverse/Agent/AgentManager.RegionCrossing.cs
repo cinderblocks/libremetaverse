@@ -2,31 +2,32 @@
  * Copyright (c) 2026, Sjofn LLC
  * All rights reserved.
  *
- * - Redistribution and use in source and binary forms, with or without 
+ * - Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions are met:
  *
  * - Redistributions of source code must retain the above copyright notice, this
  *   list of conditions and the following disclaimer.
- * - Neither the name of the openmetaverse.co nor the names 
+ * - Neither the name of the openmetaverse.co nor the names
  *   of its contributors may be used to endorse or promote products derived from
  *   this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
 using System;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace LibreMetaverse
 {
@@ -98,64 +99,65 @@ namespace LibreMetaverse
             public CrossingFailureReason FailureReason;
             public string FailureMessage = string.Empty;
             public Exception? LastException;
-            public readonly object SyncLock = new object();
-            
-            /// <summary>
-            /// Track if we've already restored the old simulator connection
-            /// </summary>
             public bool HasRestoredOldSim;
+            // Cancelled when this crossing is superseded or the state machine should abort
+            public readonly CancellationTokenSource WorkCts = new CancellationTokenSource();
         }
 
-        private CrossingInfo? _currentCrossing;
-        private readonly object _crossingLock = new object();
+        // _currentCrossing is read from monitoring methods without the semaphore — volatile ensures
+        // they always see the latest reference without a torn read.
+        private volatile CrossingInfo? _currentCrossing;
+        // Single semaphore protects all mutations of _currentCrossing and its State field.
+        // Not held across awaits — acquired briefly, released before any async work begins.
+        private readonly SemaphoreSlim _stateLock = new SemaphoreSlim(1, 1);
         private Timer? _crossingTimeoutTimer;
-        private const int CrossingTimeoutMs = 30000; // 30 second timeout
-        private const int RetryDelayMs = 1000; // 1 second delay between retries
-        private const int RecoveryTimeoutMs = 10000; // 10 second recovery timeout
+        private const int CrossingTimeoutMs = 30000;
+        private const int RetryDelayMs = 1000;
 
-        /// <summary>
-        /// Initialize the region crossing state machine
-        /// </summary>
         private void InitializeCrossingStateMachine()
         {
             _currentCrossing = null;
             _crossingTimeoutTimer = new Timer(CrossingTimeoutCallback, null, Timeout.Infinite, Timeout.Infinite);
         }
 
-        /// <summary>
-        /// Start a region crossing
-        /// </summary>
-        private bool BeginRegionCrossing(Simulator? oldSim, ulong regionHandle, IPEndPoint endPoint, 
+        private bool BeginRegionCrossing(Simulator? oldSim, ulong regionHandle, IPEndPoint endPoint,
             Uri seedCap, Vector3 position, Vector3 lookAt)
         {
-            lock (_crossingLock)
+            if (endPoint == null || seedCap == null)
             {
-                // Check if we're already crossing
-                if (_currentCrossing != null && _currentCrossing.State != CrossingState.Idle &&
-                    _currentCrossing.State != CrossingState.Failed && _currentCrossing.State != CrossingState.Completed)
+                Logger.Error("Invalid crossing parameters: endPoint or seedCap is null", Client);
+                return false;
+            }
+
+            if (!_stateLock.Wait(0))
+            {
+                Logger.Warn("Region crossing state machine is busy; ignoring new crossing request", Client);
+                return false;
+            }
+
+            CrossingInfo crossing;
+            try
+            {
+                var existing = _currentCrossing;
+                if (existing != null)
                 {
-                    Logger.Warn($"Attempted to begin region crossing while already in state {_currentCrossing.State}", Client);
-                    
-                    // If we're recovering from a previous crossing, allow the new crossing to proceed
-                    if (_currentCrossing.State == CrossingState.Recovering)
+                    var s = existing.State;
+                    if (s != CrossingState.Idle && s != CrossingState.Failed && s != CrossingState.Completed)
                     {
-                        Logger.Info("Aborting recovery to begin new crossing", Client);
-                    }
-                    else
-                    {
-                        return false;
+                        if (s == CrossingState.Recovering)
+                        {
+                            Logger.Info("Aborting recovery to begin new crossing", Client);
+                            existing.WorkCts.Cancel();
+                        }
+                        else
+                        {
+                            Logger.Warn($"Cannot begin crossing: already in state {s}", Client);
+                            return false;
+                        }
                     }
                 }
 
-                // Validate crossing parameters
-                if (endPoint == null || seedCap == null)
-                {
-                    Logger.Error("Invalid crossing parameters: endPoint or seedCap is null", Client);
-                    return false;
-                }
-
-                // Create new crossing info
-                _currentCrossing = new CrossingInfo
+                crossing = new CrossingInfo
                 {
                     State = CrossingState.PreparingCross,
                     StartTime = Client.UtcNow,
@@ -165,504 +167,330 @@ namespace LibreMetaverse
                     SeedCapability = seedCap,
                     Position = position,
                     LookAt = lookAt,
-                    RetryCount = 0,
-                    FailureReason = CrossingFailureReason.Unknown,
-                    FailureMessage = string.Empty,
-                    LastException = null,
-                    HasRestoredOldSim = false
                 };
-
-                Logger.Info($"Beginning region crossing from {oldSim?.Name ?? "unknown"} to {endPoint}", Client);
-
-                // Start timeout timer
+                _currentCrossing = crossing;
                 _crossingTimeoutTimer?.Change(CrossingTimeoutMs, Timeout.Infinite);
-
-                // Proceed to connection phase
-                return TransitionCrossingState(CrossingState.Connecting);
+                Logger.Info($"Beginning region crossing from {oldSim?.Name ?? "unknown"} to {endPoint}", Client);
             }
+            finally { _stateLock.Release(); }
+
+            _ = TransitionCrossingStateAsync(CrossingState.Connecting, crossing.WorkCts.Token);
+            return true;
         }
 
-        /// <summary>
-        /// Transition to a new crossing state
-        /// </summary>
-        private bool TransitionCrossingState(CrossingState newState)
+        // Acquires _stateLock briefly to update State, then releases before doing any async work.
+        private async Task<bool> TransitionCrossingStateAsync(CrossingState newState, CancellationToken workToken)
         {
-            lock (_crossingLock)
-            {
-                if (_currentCrossing == null)
-                    return false;
+            CrossingInfo? crossing;
+            try { await _stateLock.WaitAsync(workToken).ConfigureAwait(false); }
+            catch (OperationCanceledException) { return false; }
 
-                lock (_currentCrossing.SyncLock)
+            try
+            {
+                crossing = _currentCrossing;
+                if (crossing == null || workToken.IsCancellationRequested) return false;
+
+                if (!IsValidCrossingStateTransition(crossing.State, newState))
                 {
-                    CrossingState oldState = _currentCrossing.State;
-
-                    // Validate state transitions
-                    if (!IsValidCrossingStateTransition(oldState, newState))
-                    {
-                        Logger.Warn($"Invalid region crossing state transition: {oldState} -> {newState}", Client);
-                        return false;
-                    }
-
-                    Logger.Debug($"Region crossing state transition: {oldState} -> {newState}", Client);
-                    _currentCrossing.State = newState;
-
-                    // Handle state-specific actions
-                    switch (newState)
-                    {
-                        case CrossingState.Connecting:
-                            return AttemptConnection();
-
-                        case CrossingState.WaitingForComplete:
-                            // Nothing to do, waiting for MovementComplete packet
-                            break;
-
-                        case CrossingState.Completed:
-                            OnCrossingCompleted();
-                            break;
-
-                        case CrossingState.Failed:
-                            OnCrossingFailed();
-                            break;
-
-                        case CrossingState.Recovering:
-                            return AttemptRecovery();
-                    }
-
-                    return true;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Check if a state transition is valid
-        /// </summary>
-        private bool IsValidCrossingStateTransition(CrossingState from, CrossingState to)
-        {
-            switch (from)
-            {
-                case CrossingState.Idle:
-                    return to == CrossingState.PreparingCross;
-
-                case CrossingState.PreparingCross:
-                    return to == CrossingState.Connecting || to == CrossingState.Failed;
-
-                case CrossingState.Connecting:
-                    return to == CrossingState.WaitingForComplete || to == CrossingState.Failed || to == CrossingState.Recovering;
-
-                case CrossingState.WaitingForComplete:
-                    return to == CrossingState.Completed || to == CrossingState.Failed || 
-                           to == CrossingState.Connecting || to == CrossingState.Recovering; // Allow retry
-
-                case CrossingState.Recovering:
-                    return to == CrossingState.Idle || to == CrossingState.Failed || to == CrossingState.Connecting;
-
-                case CrossingState.Completed:
-                case CrossingState.Failed:
-                    return to == CrossingState.Idle || to == CrossingState.PreparingCross;
-
-                default:
+                    Logger.Warn($"Invalid region crossing state transition: {crossing.State} -> {newState}", Client);
                     return false;
+                }
+
+                Logger.Debug($"Region crossing state transition: {crossing.State} -> {newState}", Client);
+                crossing.State = newState;
             }
+            finally { _stateLock.Release(); }
+
+            if (workToken.IsCancellationRequested) return false;
+
+            return newState switch
+            {
+                CrossingState.Connecting       => await AttemptConnectionAsync(crossing!, workToken).ConfigureAwait(false),
+                CrossingState.Recovering       => await AttemptRecoveryAsync(crossing!, workToken).ConfigureAwait(false),
+                CrossingState.Completed        => OnCrossingCompleted(crossing!),
+                CrossingState.Failed           => OnCrossingFailed(crossing!),
+                _                              => true
+            };
         }
 
-        /// <summary>
-        /// Attempt to connect to the new simulator
-        /// </summary>
-        private bool AttemptConnection()
+        private static bool IsValidCrossingStateTransition(CrossingState from, CrossingState to)
         {
-            if (_currentCrossing == null)
-                return false;
-
-            lock (_currentCrossing.SyncLock)
+            return from switch
             {
+                CrossingState.Idle             => to == CrossingState.PreparingCross,
+                CrossingState.PreparingCross   => to is CrossingState.Connecting or CrossingState.Failed,
+                CrossingState.Connecting       => to is CrossingState.WaitingForComplete or CrossingState.Failed or CrossingState.Recovering,
+                CrossingState.WaitingForComplete => to is CrossingState.Completed or CrossingState.Failed or CrossingState.Connecting or CrossingState.Recovering,
+                CrossingState.Recovering       => to is CrossingState.Idle or CrossingState.Failed or CrossingState.Connecting,
+                CrossingState.Completed or CrossingState.Failed => to is CrossingState.Idle or CrossingState.PreparingCross,
+                _                              => false
+            };
+        }
+
+        private async Task<bool> AttemptConnectionAsync(CrossingInfo crossing, CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                Logger.Info($"Connecting to new region: {crossing.EndPoint} (attempt {crossing.RetryCount + 1}/{CrossingInfo.MaxRetries})", Client);
+
+                if (crossing.EndPoint == null)
+                {
+                    crossing.FailureReason = CrossingFailureReason.InvalidData;
+                    crossing.FailureMessage = "EndPoint is null";
+                    Logger.Error("Cannot connect: EndPoint is null", Client);
+                    return await TransitionCrossingStateAsync(CrossingState.Failed, token).ConfigureAwait(false);
+                }
+
+                if (crossing.SeedCapability == null)
+                {
+                    crossing.FailureReason = CrossingFailureReason.InvalidData;
+                    crossing.FailureMessage = "SeedCapability is null";
+                    Logger.Error("Cannot connect: SeedCapability is null", Client);
+                    return await TransitionCrossingStateAsync(CrossingState.Failed, token).ConfigureAwait(false);
+                }
+
+                Simulator? newSim;
                 try
                 {
-                    Logger.Info($"Connecting to new region: {_currentCrossing.EndPoint} (attempt {_currentCrossing.RetryCount + 1}/{CrossingInfo.MaxRetries})", Client);
-
-                    // Validate connection parameters
-                    if (_currentCrossing.EndPoint == null)
-                    {
-                        _currentCrossing.FailureReason = CrossingFailureReason.InvalidData;
-                        _currentCrossing.FailureMessage = "EndPoint is null";
-                        Logger.Error("Cannot connect: EndPoint is null", Client);
-                        return TransitionCrossingState(CrossingState.Failed);
-                    }
-
-                    if (_currentCrossing.SeedCapability == null)
-                    {
-                        _currentCrossing.FailureReason = CrossingFailureReason.InvalidData;
-                        _currentCrossing.FailureMessage = "SeedCapability is null";
-                        Logger.Error("Cannot connect: SeedCapability is null", Client);
-                        return TransitionCrossingState(CrossingState.Failed);
-                    }
-
-                    // Attempt the connection
-                    Simulator? newSim = Client?.Network?.Connect(
-                        _currentCrossing.EndPoint,
-                        _currentCrossing.RegionHandle,
-                        true,
-                        _currentCrossing.SeedCapability);
-
-                    if (newSim != null)
-                    {
-                        _currentCrossing.NewSimulator = newSim;
-
-                        // Update position and look direction
-                        relativePosition = _currentCrossing.Position;
-                        LastPositionUpdate = Client!.UtcNow;
-                        Movement.Camera.LookDirection(_currentCrossing.LookAt);
-
-                        // Mark old sim as no longer current
-                        if (_currentCrossing.OldSimulator != null && _currentCrossing.OldSimulator != newSim)
-                        {
-                            _currentCrossing.OldSimulator.AgentMovementComplete = false;
-                        }
-
-                        Logger.Info($"Successfully connected to new region: {newSim.Name}", Client);
-                        return TransitionCrossingState(CrossingState.WaitingForComplete);
-                    }
-                    else
-                    {
-                        _currentCrossing.FailureReason = CrossingFailureReason.ConnectionFailed;
-                        _currentCrossing.FailureMessage = $"Failed to connect to {_currentCrossing.EndPoint}";
-                        Logger.Warn(_currentCrossing.FailureMessage, Client);
-
-                        // Retry if we haven't exceeded max retries
-                        if (_currentCrossing.RetryCount < CrossingInfo.MaxRetries)
-                        {
-                            _currentCrossing.RetryCount++;
-                            Logger.Info($"Retrying region crossing (attempt {_currentCrossing.RetryCount}/{CrossingInfo.MaxRetries})", Client);
-
-                            // Wait a bit before retrying
-                            Thread.Sleep(RetryDelayMs * _currentCrossing.RetryCount); // Exponential backoff
-                            return AttemptConnection();
-                        }
-                        else
-                        {
-                            _currentCrossing.FailureReason = CrossingFailureReason.MaxRetriesExceeded;
-                            _currentCrossing.FailureMessage += $" after {CrossingInfo.MaxRetries} attempts";
-                            Logger.Error($"Exceeded max retry attempts for region crossing", Client);
-                            
-                            // Try to recover by restoring connection to old simulator
-                            return TransitionCrossingState(CrossingState.Recovering);
-                        }
-                    }
+                    newSim = Client?.Network?.Connect(
+                        crossing.EndPoint, crossing.RegionHandle, true, crossing.SeedCapability);
                 }
                 catch (Exception ex)
                 {
-                    _currentCrossing.LastException = ex;
-                    _currentCrossing.FailureReason = CrossingFailureReason.NetworkError;
-                    _currentCrossing.FailureMessage = $"Exception during connection: {ex.Message}";
+                    crossing.LastException = ex;
+                    crossing.FailureReason = CrossingFailureReason.NetworkError;
+                    crossing.FailureMessage = $"Exception during connection: {ex.Message}";
                     Logger.Error($"Exception during region crossing connection: {ex.Message}", ex, Client);
-                    
-                    // Try to recover instead of immediately failing
-                    return TransitionCrossingState(CrossingState.Recovering);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Attempt to recover from a failed crossing by restoring connection to old simulator
-        /// </summary>
-        private bool AttemptRecovery()
-        {
-            if (_currentCrossing == null)
-                return false;
-
-            lock (_currentCrossing.SyncLock)
-            {
-                try
-                {
-                    Logger.Info("Attempting to recover from failed crossing by restoring old simulator connection", Client);
-
-                    // Check if we have an old simulator to restore
-                    if (_currentCrossing.OldSimulator == null)
-                    {
-                        Logger.Warn("Cannot recover: Old simulator is null", Client);
-                        return TransitionCrossingState(CrossingState.Failed);
-                    }
-
-                    // Avoid multiple recovery attempts
-                    if (_currentCrossing.HasRestoredOldSim)
-                    {
-                        Logger.Warn("Already attempted recovery, transitioning to Failed state", Client);
-                        return TransitionCrossingState(CrossingState.Failed);
-                    }
-
-                    _currentCrossing.HasRestoredOldSim = true;
-
-                    // Restore the old simulator as current
-                    if (!_currentCrossing.OldSimulator.AgentMovementComplete)
-                    {
-                        Logger.Info($"Restoring connection to old simulator: {_currentCrossing.OldSimulator.Name}", Client);
-                        _currentCrossing.OldSimulator.AgentMovementComplete = true;
-                        
-                        // Update Network's CurrentSim if needed
-                        if (Client.Network.CurrentSim != _currentCrossing.OldSimulator)
-                        {
-                            Client.Network.CurrentSim = _currentCrossing.OldSimulator;
-                        }
-
-                        // Send a CompleteAgentMovement to ensure we're properly connected
-                        CompleteAgentMovement(_currentCrossing.OldSimulator);
-                    }
-
-                    // If we have a new simulator that partially connected, disconnect it
-                    if (_currentCrossing.NewSimulator != null)
-                    {
-                        Logger.Info($"Disconnecting from partially connected new simulator: {_currentCrossing.NewSimulator.Name}", Client);
-                        try
-                        {
-                            Client.Network.DisconnectSim(_currentCrossing.NewSimulator, false);
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Warn($"Error disconnecting from new simulator during recovery: {ex.Message}", Client);
-                        }
-                    }
-
-                    Logger.Info("Recovery completed, remaining in old simulator", Client);
-                    
-                    // Give the recovery a moment to stabilize before marking as failed
-                    Thread.Sleep(500);
-                    
-                    return TransitionCrossingState(CrossingState.Failed);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"Exception during recovery: {ex.Message}", ex, Client);
-                    return TransitionCrossingState(CrossingState.Failed);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Called when crossing is completed successfully
-        /// </summary>
-        private void OnCrossingCompleted()
-        {
-            if (_currentCrossing == null)
-                return;
-
-            lock (_currentCrossing.SyncLock)
-            {
-                // Stop timeout timer
-                _crossingTimeoutTimer?.Change(Timeout.Infinite, Timeout.Infinite);
-
-                TimeSpan duration = Client.UtcNow - _currentCrossing.StartTime;
-                Logger.Info($"Region crossing completed successfully in {duration.TotalSeconds:F2} seconds", Client);
-
-                // Fire the RegionCrossed event
-                if (m_RegionCrossed != null)
-                {
-                    OnRegionCrossed(new RegionCrossedEventArgs(_currentCrossing.OldSimulator, _currentCrossing.NewSimulator));
+                    return await TransitionCrossingStateAsync(CrossingState.Recovering, token).ConfigureAwait(false);
                 }
 
-                // Clean up crossing info
-                var oldSim = _currentCrossing.OldSimulator;
-                var newSim = _currentCrossing.NewSimulator;
-                
-                // Reset state
-                _currentCrossing.State = CrossingState.Idle;
-                
-                Logger.Debug($"Crossing cleanup: Old sim {oldSim?.Name ?? "null"}, New sim {newSim?.Name ?? "null"}", Client);
-            }
-        }
+                if (token.IsCancellationRequested) return false;
 
-        /// <summary>
-        /// Called when crossing fails
-        /// </summary>
-        private void OnCrossingFailed()
-        {
-            if (_currentCrossing == null)
-                return;
-
-            lock (_currentCrossing.SyncLock)
-            {
-                // Stop timeout timer
-                _crossingTimeoutTimer?.Change(Timeout.Infinite, Timeout.Infinite);
-
-                TimeSpan duration = Client.UtcNow - _currentCrossing.StartTime;
-                
-                // Build detailed failure message
-                string failureDetails = $"Region crossing failed after {duration.TotalSeconds:F2} seconds. " +
-                                      $"Reason: {_currentCrossing.FailureReason}";
-                
-                if (!string.IsNullOrEmpty(_currentCrossing.FailureMessage))
+                if (newSim != null)
                 {
-                    failureDetails += $" - {_currentCrossing.FailureMessage}";
-                }
-                
-                if (_currentCrossing.LastException != null)
-                {
-                    failureDetails += $" - Exception: {_currentCrossing.LastException.Message}";
+                    crossing.NewSimulator = newSim;
+                    relativePosition = crossing.Position;
+                    LastPositionUpdate = Client!.UtcNow;
+                    Movement.Camera.LookDirection(crossing.LookAt);
+
+                    if (crossing.OldSimulator != null && crossing.OldSimulator != newSim)
+                        crossing.OldSimulator.AgentMovementComplete = false;
+
+                    Logger.Info($"Successfully connected to new region: {newSim.Name}", Client);
+                    return await TransitionCrossingStateAsync(CrossingState.WaitingForComplete, token).ConfigureAwait(false);
                 }
 
-                Logger.Warn(failureDetails, Client);
+                crossing.FailureReason = CrossingFailureReason.ConnectionFailed;
+                crossing.FailureMessage = $"Failed to connect to {crossing.EndPoint}";
+                Logger.Warn(crossing.FailureMessage, Client);
 
-                // Log the fallback behavior
-                if (_currentCrossing.OldSimulator != null)
+                if (crossing.RetryCount < CrossingInfo.MaxRetries)
                 {
-                    if (_currentCrossing.HasRestoredOldSim)
-                    {
-                        Logger.Info($"Recovered by restoring connection to old simulator: {_currentCrossing.OldSimulator.Name}", Client);
-                    }
-                    else
-                    {
-                        Logger.Info($"Remaining in old simulator: {_currentCrossing.OldSimulator.Name}", Client);
-                    }
+                    crossing.RetryCount++;
+                    Logger.Info($"Retrying region crossing (attempt {crossing.RetryCount}/{CrossingInfo.MaxRetries})", Client);
+                    try { await Task.Delay(RetryDelayMs * crossing.RetryCount, token).ConfigureAwait(false); }
+                    catch (OperationCanceledException) { return false; }
+                    // Loop to retry
                 }
                 else
                 {
-                    Logger.Error("Critical: No valid simulator connection after failed crossing", Client);
+                    crossing.FailureReason = CrossingFailureReason.MaxRetriesExceeded;
+                    crossing.FailureMessage += $" after {CrossingInfo.MaxRetries} attempts";
+                    Logger.Error("Exceeded max retry attempts for region crossing", Client);
+                    return await TransitionCrossingStateAsync(CrossingState.Recovering, token).ConfigureAwait(false);
                 }
-
-                // Fire RegionCrossed event with null new simulator to indicate failure
-                if (m_RegionCrossed != null)
-                {
-                    OnRegionCrossed(new RegionCrossedEventArgs(_currentCrossing.OldSimulator, null));
-                }
-
-                // Reset state
-                _currentCrossing.State = CrossingState.Idle;
             }
+            return false;
         }
 
-        /// <summary>
-        /// Called when movement complete is received
-        /// </summary>
+        private async Task<bool> AttemptRecoveryAsync(CrossingInfo crossing, CancellationToken token)
+        {
+            Logger.Info("Attempting to recover from failed crossing by restoring old simulator connection", Client);
+
+            if (crossing.OldSimulator == null)
+            {
+                Logger.Warn("Cannot recover: Old simulator is null", Client);
+                return await TransitionCrossingStateAsync(CrossingState.Failed, token).ConfigureAwait(false);
+            }
+
+            if (crossing.HasRestoredOldSim)
+            {
+                Logger.Warn("Already attempted recovery, transitioning to Failed state", Client);
+                return await TransitionCrossingStateAsync(CrossingState.Failed, token).ConfigureAwait(false);
+            }
+
+            crossing.HasRestoredOldSim = true;
+
+            try
+            {
+                if (!crossing.OldSimulator.AgentMovementComplete)
+                {
+                    Logger.Info($"Restoring connection to old simulator: {crossing.OldSimulator.Name}", Client);
+                    crossing.OldSimulator.AgentMovementComplete = true;
+
+                    if (Client.Network.CurrentSim != crossing.OldSimulator)
+                        Client.Network.CurrentSim = crossing.OldSimulator;
+
+                    CompleteAgentMovement(crossing.OldSimulator);
+                }
+
+                if (crossing.NewSimulator != null)
+                {
+                    Logger.Info($"Disconnecting from partially connected new simulator: {crossing.NewSimulator.Name}", Client);
+                    try { Client.Network.DisconnectSim(crossing.NewSimulator, false); }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn($"Error disconnecting from new simulator during recovery: {ex.Message}", Client);
+                    }
+                }
+
+                Logger.Info("Recovery completed, remaining in old simulator", Client);
+                await Task.Delay(500, token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) { return false; }
+            catch (Exception ex)
+            {
+                Logger.Error($"Exception during recovery: {ex.Message}", ex, Client);
+            }
+
+            return await TransitionCrossingStateAsync(CrossingState.Failed, token).ConfigureAwait(false);
+        }
+
+        private bool OnCrossingCompleted(CrossingInfo crossing)
+        {
+            _crossingTimeoutTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+
+            var duration = Client.UtcNow - crossing.StartTime;
+            Logger.Info($"Region crossing completed successfully in {duration.TotalSeconds:F2} seconds", Client);
+
+            if (m_RegionCrossed != null)
+                OnRegionCrossed(new RegionCrossedEventArgs(crossing.OldSimulator, crossing.NewSimulator));
+
+            crossing.State = CrossingState.Idle;
+            Logger.Debug($"Crossing cleanup: Old sim {crossing.OldSimulator?.Name ?? "null"}, New sim {crossing.NewSimulator?.Name ?? "null"}", Client);
+            return true;
+        }
+
+        private bool OnCrossingFailed(CrossingInfo crossing)
+        {
+            _crossingTimeoutTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+
+            var duration = Client.UtcNow - crossing.StartTime;
+            string failureDetails = $"Region crossing failed after {duration.TotalSeconds:F2} seconds. Reason: {crossing.FailureReason}";
+
+            if (!string.IsNullOrEmpty(crossing.FailureMessage))
+                failureDetails += $" - {crossing.FailureMessage}";
+            if (crossing.LastException != null)
+                failureDetails += $" - Exception: {crossing.LastException.Message}";
+
+            Logger.Warn(failureDetails, Client);
+
+            if (crossing.OldSimulator != null)
+            {
+                Logger.Info(crossing.HasRestoredOldSim
+                    ? $"Recovered by restoring connection to old simulator: {crossing.OldSimulator.Name}"
+                    : $"Remaining in old simulator: {crossing.OldSimulator.Name}", Client);
+            }
+            else
+            {
+                Logger.Error("Critical: No valid simulator connection after failed crossing", Client);
+            }
+
+            if (m_RegionCrossed != null)
+                OnRegionCrossed(new RegionCrossedEventArgs(crossing.OldSimulator, null));
+
+            crossing.State = CrossingState.Idle;
+            return false;
+        }
+
         private void NotifyMovementComplete(Simulator simulator)
         {
-            lock (_crossingLock)
+            var crossing = _currentCrossing;
+            if (crossing == null || crossing.State != CrossingState.WaitingForComplete) return;
+
+            _ = Task.Run(async () =>
             {
-                if (_currentCrossing != null && _currentCrossing.State == CrossingState.WaitingForComplete)
+                if (crossing.NewSimulator == simulator)
                 {
-                    if (_currentCrossing.NewSimulator == simulator)
-                    {
-                        Logger.Debug($"Received MovementComplete for new simulator: {simulator?.Name}", Client);
-                        TransitionCrossingState(CrossingState.Completed);
-                    }
-                    else if (_currentCrossing.OldSimulator == simulator)
-                    {
-                        // We received MovementComplete from the old simulator while waiting for the new one
-                        // This might indicate the crossing failed and we're being kept in the old sim
-                        Logger.Warn($"Received MovementComplete from old simulator while waiting for new simulator", Client);
-                        
-                        _currentCrossing.FailureReason = CrossingFailureReason.SimulatorRejected;
-                        _currentCrossing.FailureMessage = "Received MovementComplete from old simulator instead of new one";
-                        TransitionCrossingState(CrossingState.Recovering);
-                    }
-                    else
-                    {
-                        Logger.Warn($"Received MovementComplete from unexpected simulator: {simulator?.Name}", Client);
-                    }
+                    Logger.Debug($"Received MovementComplete for new simulator: {simulator?.Name}", Client);
+                    await TransitionCrossingStateAsync(CrossingState.Completed, crossing.WorkCts.Token).ConfigureAwait(false);
                 }
-            }
+                else if (crossing.OldSimulator == simulator)
+                {
+                    Logger.Warn("Received MovementComplete from old simulator while waiting for new simulator", Client);
+                    crossing.FailureReason = CrossingFailureReason.SimulatorRejected;
+                    crossing.FailureMessage = "Received MovementComplete from old simulator instead of new one";
+                    await TransitionCrossingStateAsync(CrossingState.Recovering, crossing.WorkCts.Token).ConfigureAwait(false);
+                }
+                else
+                {
+                    Logger.Warn($"Received MovementComplete from unexpected simulator: {simulator?.Name}", Client);
+                }
+            });
         }
 
-        /// <summary>
-        /// Timeout callback for region crossing
-        /// </summary>
         private void CrossingTimeoutCallback(object? state)
         {
-            lock (_crossingLock)
+            var crossing = _currentCrossing;
+            if (crossing == null) return;
+            var s = crossing.State;
+            if (s is CrossingState.Completed or CrossingState.Failed or CrossingState.Idle) return;
+
+            _ = Task.Run(async () =>
             {
-                if (_currentCrossing != null && _currentCrossing.State != CrossingState.Completed &&
-                    _currentCrossing.State != CrossingState.Failed && _currentCrossing.State != CrossingState.Idle)
-                {
-                    _currentCrossing.FailureReason = CrossingFailureReason.Timeout;
-                    _currentCrossing.FailureMessage = $"Timeout in state {_currentCrossing.State}";
-                    Logger.Warn($"Region crossing timed out in state {_currentCrossing.State}", Client);
-                    
-                    // Try to recover instead of immediately failing
-                    if (_currentCrossing.State != CrossingState.Recovering)
-                    {
-                        TransitionCrossingState(CrossingState.Recovering);
-                    }
-                    else
-                    {
-                        // Already recovering and timed out, just fail
-                        TransitionCrossingState(CrossingState.Failed);
-                    }
-                }
-            }
+                crossing.FailureReason = CrossingFailureReason.Timeout;
+                crossing.FailureMessage = $"Timeout in state {s}";
+                Logger.Warn($"Region crossing timed out in state {s}", Client);
+
+                var next = s == CrossingState.Recovering ? CrossingState.Failed : CrossingState.Recovering;
+                await TransitionCrossingStateAsync(next, crossing.WorkCts.Token).ConfigureAwait(false);
+            });
         }
 
-        /// <summary>
-        /// Get the current crossing state (for debugging/monitoring)
-        /// </summary>
+        /// <summary>Get the current crossing state</summary>
         public CrossingState GetCrossingState()
-        {
-            lock (_crossingLock)
-            {
-                return _currentCrossing?.State ?? CrossingState.Idle;
-            }
-        }
+            => _currentCrossing?.State ?? CrossingState.Idle;
 
-        /// <summary>
-        /// Get the current crossing failure reason (if any)
-        /// </summary>
+        /// <summary>Get the current crossing failure reason, if any</summary>
         public CrossingFailureReason GetCrossingFailureReason()
-        {
-            lock (_crossingLock)
-            {
-                return _currentCrossing?.FailureReason ?? CrossingFailureReason.Unknown;
-            }
-        }
+            => _currentCrossing?.FailureReason ?? CrossingFailureReason.Unknown;
 
-        /// <summary>
-        /// Get detailed information about the current crossing (for debugging)
-        /// </summary>
+        /// <summary>Get detailed diagnostic information about the current crossing</summary>
         public string GetCrossingDetails()
         {
-            lock (_crossingLock)
+            _stateLock.Wait();
+            try
             {
-                if (_currentCrossing == null)
-                    return "No active crossing";
-
-                lock (_currentCrossing.SyncLock)
-                {
-                    var duration = Client.UtcNow - _currentCrossing.StartTime;
-                    return $"State: {_currentCrossing.State}, " +
-                           $"Duration: {duration.TotalSeconds:F2}s, " +
-                           $"Retries: {_currentCrossing.RetryCount}/{CrossingInfo.MaxRetries}, " +
-                           $"Old Sim: {_currentCrossing.OldSimulator?.Name ?? "null"}, " +
-                           $"New Sim: {_currentCrossing.NewSimulator?.Name ?? "null"}, " +
-                           $"Target: {_currentCrossing.EndPoint}, " +
-                           $"Failure: {_currentCrossing.FailureReason} - {_currentCrossing.FailureMessage}";
-                }
+                var crossing = _currentCrossing;
+                if (crossing == null) return "No active crossing";
+                var duration = Client.UtcNow - crossing.StartTime;
+                return $"State: {crossing.State}, " +
+                       $"Duration: {duration.TotalSeconds:F2}s, " +
+                       $"Retries: {crossing.RetryCount}/{CrossingInfo.MaxRetries}, " +
+                       $"Old Sim: {crossing.OldSimulator?.Name ?? "null"}, " +
+                       $"New Sim: {crossing.NewSimulator?.Name ?? "null"}, " +
+                       $"Target: {crossing.EndPoint}, " +
+                       $"Failure: {crossing.FailureReason} - {crossing.FailureMessage}";
             }
+            finally { _stateLock.Release(); }
         }
 
-        /// <summary>
-        /// Check if currently in the middle of a region crossing
-        /// </summary>
+        /// <summary>Check if a region crossing is currently in progress</summary>
         public bool IsCrossing()
         {
-            lock (_crossingLock)
-            {
-                return _currentCrossing != null && 
-                       _currentCrossing.State != CrossingState.Idle &&
-                       _currentCrossing.State != CrossingState.Completed &&
-                       _currentCrossing.State != CrossingState.Failed;
-            }
+            var s = _currentCrossing?.State ?? CrossingState.Idle;
+            return s is not (CrossingState.Idle or CrossingState.Completed or CrossingState.Failed);
         }
 
-        /// <summary>
-        /// Force cancel the current crossing (use with caution)
-        /// </summary>
+        /// <summary>Force cancel the current crossing</summary>
         public void CancelCrossing()
         {
-            lock (_crossingLock)
-            {
-                if (_currentCrossing != null && IsCrossing())
-                {
-                    Logger.Warn("Force cancelling region crossing", Client);
-                    _currentCrossing.FailureReason = CrossingFailureReason.Unknown;
-                    _currentCrossing.FailureMessage = "Crossing was manually cancelled";
-                    TransitionCrossingState(CrossingState.Recovering);
-                }
-            }
+            var crossing = _currentCrossing;
+            if (crossing == null || !IsCrossing()) return;
+
+            Logger.Warn("Force cancelling region crossing", Client);
+            crossing.FailureMessage = "Crossing was manually cancelled";
+            _ = TransitionCrossingStateAsync(CrossingState.Recovering, crossing.WorkCts.Token);
         }
 
         #endregion Region Crossing State Machine

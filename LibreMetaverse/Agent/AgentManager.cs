@@ -2640,9 +2640,11 @@ namespace LibreMetaverse
                     // Clean up crossing state machine
                     try
                     {
+                        _currentCrossing?.WorkCts.Cancel();
                         _crossingTimeoutTimer?.Change(Timeout.Infinite, Timeout.Infinite);
                         _crossingTimeoutTimer?.Dispose();
                         _crossingTimeoutTimer = null;
+                        _stateLock.Dispose();
                     }
                     catch { }
                 }
