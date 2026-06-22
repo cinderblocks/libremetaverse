@@ -14,6 +14,29 @@ Quick examples for common tasks with LibreMetaverse.
 
 ## Connection & Login
 
+### Configuring the Client
+```csharp
+var client = new GridClient();
+
+// Timing
+client.Settings.Timing.TeleportTimeout = 60_000;   // ms
+client.Settings.Timing.LoginTimeout    = 30_000;
+
+// Connection
+client.Settings.Connection.LoginServer = Settings.AgniLoginServer; // default
+client.Settings.Connection.MfaEnabled  = false;
+
+// Agent
+client.Settings.Agent.SendUpdates = true;
+
+// Texture pipeline
+client.Settings.TexturePipeline.MaxConcurrentDownloads = 6;
+
+// Process-wide (static)
+Settings.MaxHttpConnections = 64;
+Settings.UserAgent = "MyApp/1.0";
+```
+
 ### Basic Login
 ```csharp
 var client = new GridClient();
@@ -127,7 +150,7 @@ client.Self.AnimationStop(Animations.DANCE1, true);
 
 ### Teleport
 ```csharp
-var success = client.Self.Teleport("Region Name", new Vector3(128, 128, 25));
+bool success = await client.Self.TeleportAsync("Region Name", new Vector3(128, 128, 25));
 if (success)
     Console.WriteLine("Teleported successfully");
 ```
@@ -226,36 +249,23 @@ client.Self.InstantMessageGroup(groupUUID, "Hello group!");
 
 ### Download Texture
 ```csharp
-client.Assets.RequestImage(textureUUID, (state, asset) =>
-{
-    if (state == TextureRequestState.Finished && asset != null)
-    {
-        var texture = (ImageDownload)asset;
-        File.WriteAllBytes("texture.jp2", texture.AssetData);
-    }
-});
+var texture = await client.Assets.RequestImageAsync(textureUUID);
+if (texture != null)
+    File.WriteAllBytes("texture.jp2", texture.AssetData);
 ```
 
-### Upload Texture
+### Upload Asset
 ```csharp
-var data = File.ReadAllBytes("image.png");
-// Convert to JPEG2000 first...
-var success = await client.Inventory.RequestUploadAsync(
-    data, "MyTexture", "Uploaded texture", 
-    AssetType.Texture, InventoryType.Texture, 
-    folderUUID, permissions);
+var data = File.ReadAllBytes("image.jp2"); // must already be JPEG2000
+var assetID = await client.Assets.RequestUploadAsync(
+    AssetType.Texture, data, storeLocal: false, UUID.Random());
 ```
 
 ### Request Asset
 ```csharp
-client.Assets.RequestAsset(assetUUID, AssetType.Notecard, (transfer, asset) =>
-{
-    if (asset != null)
-    {
-        var text = Utils.BytesToString(asset.AssetData);
-        Console.WriteLine(text);
-    }
-});
+var asset = await client.Assets.RequestAssetAsync(assetUUID, AssetType.Notecard, priority: true);
+if (asset != null)
+    Console.WriteLine(Utils.BytesToString(asset.AssetData));
 ```
 
 ## OSD Serialization
@@ -337,29 +347,22 @@ client.Network.LoginProgress -= MyHandler;
 
 ### Graceful Disconnection
 ```csharp
-try
-{
-    if (client.Network.Connected)
-        client.Network.Logout();
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"Logout error: {ex.Message}");
-}
+if (client.Network.Connected)
+    await client.Network.LogoutAsync();
 ```
 
-### Timeout Patterns
+### Cancellation and Timeouts
 ```csharp
-var completed = false;
-var timeout = DateTime.UtcNow.AddSeconds(10);
-
-while (!completed && DateTime.UtcNow < timeout)
+// Cancel after 10 seconds
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+try
 {
-    await Task.Delay(100);
+    bool success = await client.Self.TeleportAsync("Destination", new Vector3(128, 128, 25), cts.Token);
 }
-
-if (!completed)
-    Console.WriteLine("Operation timed out");
+catch (OperationCanceledException)
+{
+    Console.WriteLine("Operation timed out or was cancelled");
+}
 ```
 
 ## Voice (WebRTC)

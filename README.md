@@ -35,14 +35,16 @@ See all tools in [`Programs/tools/`](Programs/tools/) | [Tools README](Programs/
 
 ## Requirements
 
-- .NET SDK 8.0 or 9.0 installed (recommended). Older .NET SDKs may build some projects but are not tested.
+- .NET SDK 8.0, 9.0, or 10.0 installed (10.0 recommended). Older SDK versions may build some projects but are not tested.
 - `dotnet` CLI available on PATH. Verify with:
 
 ```
 dotnet --info
 ```
 
-- On Windows you can use Visual Studio (2022/2023) with .NET workloads installed. On Linux/macOS use the official .NET SDK installers.
+- On Windows you can use Visual Studio 2022 or later with .NET workloads installed. On Linux/macOS use the official .NET SDK installers.
+
+> **Upgrading from 2.x?** See [MIGRATION.md](MIGRATION.md) for a full list of breaking changes in 3.0.
 
 ## Recommended quick build (CLI)
 
@@ -67,7 +69,7 @@ dotnet restore
 dotnet build -c Release
 ```
 
-This builds projects for their configured target frameworks (net8.0/net9.0/netstandard2.0, etc.). 
+This builds projects for their configured target frameworks (`netstandard2.1`, `net481`, `net8.0`, `net9.0`, `net10.0`). 
 If you need to force a single framework for a specific project use `-f` on the `dotnet build` command for that project.
 
 Notes:
@@ -179,6 +181,7 @@ See the repository for contribution guidelines. Keep changes small and test buil
 ## Documentation
 
 - 📖 [Quick Reference Guide](QUICK_REFERENCE.md) - Code snippets for common tasks
+- 🔀 [Migration Guide](MIGRATION.md) - Upgrading from 2.x to 3.0
 - 📁 [Examples](Programs/examples/README.md) - Sample applications
 - 🔧 [Tools](Programs/tools/README.md) - Utility programs
 - 🤝 [Contributing Guide](CONTRIBUTING.md) - How to contribute

@@ -44,32 +44,46 @@ dotnet test
 - Keep lines under 120 characters where practical
 - Use 4 spaces for indentation (no tabs)
 
-### C# Conventions
+### Async conventions
+
+LibreMetaverse 3.0 is async-first. All methods that perform network I/O must return `Task` or `Task<T>` and accept a `CancellationToken` parameter (defaulting to `default`).
+
+- Never use `.Wait()`, `.Result`, or `GetAwaiter().GetResult()` — these block threads and can deadlock.
+- Never wrap a genuine async method in `Task.Run(async () => await X())` — call it directly.
+- Always propagate the caller's `CancellationToken` to every awaitable you call.
+- Name async methods with the `Async` suffix.
 
 ```csharp
 // Good
-public class MyClass
+public async Task<bool> DoSomethingAsync(CancellationToken cancellationToken = default)
 {
-    private int myField;
-    
-    public int MyProperty { get; set; }
-    
-    public void MyMethod()
-    {
-        // Implementation
-    }
+    var result = await SomeOperationAsync(cancellationToken).ConfigureAwait(false);
+    return result != null;
+}
+
+// Bad — blocks a thread, can deadlock in certain sync contexts
+public bool DoSomething()
+{
+    return SomeOperationAsync().Result;
 }
 ```
+
+### Breaking changes
+
+3.0 is a major version — breaking changes are allowed but must be documented. If your PR removes or renames a public API:
+
+1. Note it clearly in the PR description
+2. Update [MIGRATION.md](MIGRATION.md) with a before/after example
 
 ## What to Contribute
 
 ### Great First Contributions
 
-- ?? **Bug fixes** - Fix issues labeled "good first issue"
-- ?? **Documentation** - Improve README files, add code comments, write tutorials
-- ? **Examples** - Add new example applications demonstrating library features
-- ?? **Tools** - Create utilities for working with LibreMetaverse
-- ?? **Tests** - Add unit tests to improve coverage
+- 🐛 **Bug fixes** - Fix issues labeled "good first issue"
+- 📝 **Documentation** - Improve README files, add code comments, write tutorials
+- ✨ **Examples** - Add new example applications demonstrating library features
+- 🔧 **Tools** - Create utilities for working with LibreMetaverse
+- 🧪 **Tests** - Add unit tests to improve coverage
 
 ### Larger Contributions
 
@@ -91,11 +105,12 @@ public class MyClass
 
 ### Before Submitting
 
-- ? Code builds successfully
-- ? All tests pass
-- ? No new compiler warnings
-- ? Documentation updated if needed
-- ? Commit messages are clear
+- ✅ Code builds successfully (`dotnet build -c Release`)
+- ✅ All tests pass (`dotnet test`)
+- ✅ No new compiler warnings
+- ✅ Documentation updated if needed
+- ✅ [MIGRATION.md](MIGRATION.md) updated if the PR removes or renames a public API
+- ✅ Commit messages are clear
 
 ### PR Description Should Include
 
@@ -212,4 +227,4 @@ All contributors are recognized in the project:
 - Listed in GitHub Contributors
 - Mentioned in release notes for significant contributions
 
-Thank you for contributing to LibreMetaverse! ??
+Thank you for contributing to LibreMetaverse!
