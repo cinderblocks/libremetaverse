@@ -1801,8 +1801,7 @@ namespace LibreMetaverse
         /// Request a list of residents banned from joining a group
         /// </summary>
         /// <param name="groupID">UUID of the group</param>
-        /// <param name="callback">Callback on request completion</param>
-        /// <param name="cancellationToken"></param>
+        /// <param name="cancellationToken">Cancellation token for the request</param>
         public async Task RequestBannedAgentsAsync(UUID groupID, CancellationToken cancellationToken = default)
         {
             Uri? capUri = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("GroupAPIv1");

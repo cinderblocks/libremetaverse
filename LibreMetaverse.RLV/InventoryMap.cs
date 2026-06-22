@@ -20,10 +20,11 @@ namespace LibreMetaverse.RLV
         /// <exception cref="ArgumentNullException">root is null</exception>
         public InventoryMap(RlvSharedFolder root, IReadOnlyCollection<RlvInventoryItem> externalItems)
         {
-            if (root == null)
-            {
-                throw new ArgumentNullException(nameof(root));
-            }
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(root);
+#else
+            if (root == null) throw new ArgumentNullException(nameof(root));
+#endif
 
             var itemsTemp = new Dictionary<Guid, List<RlvInventoryItem>>();
             var foldersTemp = new Dictionary<Guid, RlvSharedFolder>();

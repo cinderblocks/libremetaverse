@@ -428,6 +428,7 @@ namespace LibreMetaverse
         /// Request a map layer from simulator capability
         /// </summary>
         /// <param name="layer">Requested <see cref="GridLayerType"/></param>
+        /// <param name="cancellationToken">Cancellation token for the request</param>
         public async Task RequestMapLayerAsync(GridLayerType layer, CancellationToken cancellationToken = default)
         {
             var client = Client;

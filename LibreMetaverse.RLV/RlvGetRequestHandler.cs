@@ -69,10 +69,10 @@ namespace LibreMetaverse.RLV
                     continue;
                 }
 
-                sb.Append($"{separator}{behaviorName}");
+                sb.Append(separator).Append(behaviorName);
                 if (restriction.Args.Count > 0)
                 {
-                    sb.Append($":{string.Join(";", restriction.Args)}");
+                    sb.Append(':').Append(string.Join(";", restriction.Args));
                 }
             }
 
@@ -180,7 +180,11 @@ namespace LibreMetaverse.RLV
                 }
             }
 
-            var attachmentPointTypes = Enum.GetValues(typeof(RlvAttachmentPoint));
+#if NET5_0_OR_GREATER
+            var attachmentPointTypes = Enum.GetValues<RlvAttachmentPoint>();
+#else
+            var attachmentPointTypes = (RlvAttachmentPoint[])Enum.GetValues(typeof(RlvAttachmentPoint));
+#endif
             var sb = new StringBuilder(attachmentPointTypes.Length);
 
             // digit corresponds directly to the value of enum, unlike ProcessGetOutfit

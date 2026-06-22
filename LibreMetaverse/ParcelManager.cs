@@ -763,8 +763,6 @@ namespace LibreMetaverse
         #endregion Structs
 
         #region Delegates
-        /// <summary>
-        /// Called once parcel resource usage information has been collected
         /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ParcelDwellReplyEventArgs>? m_DwellReply;
 
@@ -1810,8 +1808,7 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="parcelID">UUID of the parcel</param>
         /// <param name="getDetails">Should per object resource usage be requested</param>
-        /// <param name="callback">Callback invoked when the request is complete</param>
-        /// <param name="cancellationToken"></param>
+        /// <param name="cancellationToken">Cancellation token for the request</param>
         public async Task<(bool success, LandResourcesInfo info)> GetParcelResourcesAsync(UUID parcelID, bool getDetails, CancellationToken cancellationToken = default)
         {
             try

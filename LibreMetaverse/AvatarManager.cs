@@ -705,8 +705,7 @@ namespace LibreMetaverse
         /// Request retrieval of display names (max 90 names per request)
         /// </summary>
         /// <param name="ids">List of UUIDs to lookup</param>
-        /// <param name="callback">Callback to report result of the operation</param>
-        /// <param name="cancellationToken"></param>
+        /// <param name="cancellationToken">Cancellation token for the request</param>
         public async Task<(bool success, AgentDisplayName[]? names, UUID[]? badIDs)> GetDisplayNamesAsync(List<UUID> ids, CancellationToken cancellationToken = default)
         {
             if (!DisplayNamesAvailable() || ids.Count == 0)
@@ -805,8 +804,7 @@ namespace LibreMetaverse
         /// Requests the AgentProfile for the specified avatar
         /// </summary>
         /// <param name="avatarid">Avatar to request the AgentProfile of</param>
-        /// <param name="callback">Callback to handle the AgentProfile response</param>
-        /// <param name="cancellationToken"></param>
+        /// <param name="cancellationToken">Cancellation token for the request</param>
         public async Task<(bool success, AgentProfileMessage? profile)> RequestAgentProfileAsync(UUID avatarid, CancellationToken cancellationToken = default)
         {
             var baseUri = Client.Network.CurrentSim?.Caps?.CapabilityURI("AgentProfile");

@@ -633,7 +633,6 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// <summary>
         /// Find inventory items by path
         /// </summary>
         /// <param name="baseFolder">The folder to begin the search in</param>

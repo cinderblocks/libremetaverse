@@ -1,13 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+#if NET8_0_OR_GREATER
+using System.Buffers;
+#endif
 
 namespace LibreMetaverse.RLV
 {
     public class RlvPermissionsService
     {
         private readonly IRestrictionProvider _restrictionProvider;
-        private static readonly char[] _invalidMessageCharacters = new char[] { '(', ')', '"', '-', '*', '=', '_', '^' };
+#if NET8_0_OR_GREATER
+        private static readonly SearchValues<char> _invalidMessageCharacters = SearchValues.Create("()\"- *=_^");
+#else
+        private static readonly char[] _invalidMessageCharacters = { '(', ')', '"', '-', '*', '=', '_', '^' };
+#endif
 
         internal RlvPermissionsService(IRestrictionProvider restrictionProvider)
         {
@@ -465,7 +472,11 @@ namespace LibreMetaverse.RLV
                     //  and will be discarded. When a period ('.') is present, the rest of the
                     //  message is discarded. 
 
+#if NET8_0_OR_GREATER
+                    if (message.AsSpan().IndexOfAny(_invalidMessageCharacters) != -1)
+#else
                     if (message.IndexOfAny(_invalidMessageCharacters) != -1)
+#endif
                     {
                         return false;
                     }

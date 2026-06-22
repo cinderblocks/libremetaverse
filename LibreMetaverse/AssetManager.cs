@@ -1341,16 +1341,12 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Fetch avatar texture on a grid capable of server side baking
+        /// Fetch an avatar texture from a grid that supports server-side baking.
         /// </summary>
         /// <param name="avatarID">ID of the avatar</param>
         /// <param name="textureID">ID of the texture</param>
         /// <param name="bakeName">Name of the part of the avatar texture applies to</param>
-        /// <param name="callback">Callback invoked on operation completion</param>
         /// <param name="cancellationToken">Cancellation token for the request</param>
-        /// <summary>
-        /// Fetch an avatar texture from a grid that supports server-side baking.
-        /// </summary>
         /// <returns>The texture asset on success, null on failure</returns>
         public async Task<AssetTexture?> RequestServerBakedImageAsync(UUID avatarID, UUID textureID, string bakeName, CancellationToken cancellationToken = default)
         {

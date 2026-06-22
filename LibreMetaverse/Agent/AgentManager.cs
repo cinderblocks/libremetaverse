@@ -44,8 +44,6 @@ namespace LibreMetaverse
     public partial class AgentManager
     {
         #region Delegates
-        /// <summary>
-        /// Called once attachment resource usage information has been collected
         #endregion Delegates
 
         #region Event Delegates
@@ -1765,7 +1763,6 @@ namespace LibreMetaverse
         /// <summary>
         /// Fetches resource usage by agents attachments
         /// </summary>
-        /// <param name="callback">Called when the requested information is collected</param>
         /// <param name="cancellationToken">Cancellation token for capability requests</param>
         public async Task<(bool success, AttachmentResourcesMessage? info)> GetAttachmentResourcesAsync(CancellationToken cancellationToken = default)
         {
@@ -1871,8 +1868,7 @@ namespace LibreMetaverse
         /// Sets agents maturity access level
         /// </summary>
         /// <param name="access">PG, M or A</param>
-        /// <param name="callback">Callback function</param>
-        /// <param name="cancellationToken"></param>
+        /// <param name="cancellationToken">Cancellation token for the request</param>
         public async Task<AgentAccessEventArgs> SetAgentAccessAsync(string access, CancellationToken cancellationToken = default)
         {
             if (Client == null || !Client.Network.Connected || Client.Network.CurrentSim?.Caps == null)

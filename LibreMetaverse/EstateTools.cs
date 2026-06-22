@@ -933,7 +933,7 @@ namespace LibreMetaverse
         /// <param name="estateName">Name of estate to change</param>
         /// <param name="sunHour">Sun hour</param>
         /// <param name="flags"><see cref="RegionFlags"/> to commit</param>
-        /// <returns></returns>
+        /// <param name="cancellationToken">Cancellation token for the request</param>
         public async Task SendEstateChangeInfoAsync(string estateName, float sunHour, RegionFlags flags, CancellationToken cancellationToken = default)
         {
             var cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("EstateChangeInfo");

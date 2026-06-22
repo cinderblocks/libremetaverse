@@ -2163,7 +2163,6 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="primID">UUID of the primitive</param>
         /// <param name="sim">Simulator where prim is located</param>
-        /// <param name="callback">Call this callback when done</param>
         /// <param name="cancellationToken">Cancellation token for the request</param>
         public async Task<(bool success, string version, MediaEntry[]? faceMedia)> RequestObjectMediaAsync(UUID primID, Simulator sim, CancellationToken cancellationToken = default)
         {

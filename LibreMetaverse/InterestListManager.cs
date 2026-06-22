@@ -80,7 +80,7 @@ namespace LibreMetaverse
 
         private void OnCapabilitiesReceived(object? sender, CapabilitiesReceivedEventArgs e)
         {
-            e.Simulator.Caps.CapabilitiesReceived -= OnCapabilitiesReceived;
+            e.Simulator.Caps!.CapabilitiesReceived -= OnCapabilitiesReceived;
             _ = SetModeOnSimAsync(e.Simulator, _currentMode, CancellationToken.None);
         }
 

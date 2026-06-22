@@ -230,6 +230,7 @@ namespace LibreMetaverse
         /// <param name="alpha">Alpha blending/bump info</param>
         /// <param name="colorParams">Color information</param>
         /// <param name="drivenParams">Full driven-param info for driver params</param>
+        /// <param name="skeletalDistortions">Per-bone skeletal deformations driven by this parameter</param>
         public VisualParam(int paramID, string name, int group, string? wearable, string label, string labelMin, string labelMax, float def, float min, float max, bool isBumpAttribute, int[]? drivers, VisualAlphaParam? alpha, VisualColorParam? colorParams, DrivenParamInfo[]? drivenParams = null, SkeletalBoneInfo[]? skeletalDistortions = null)
         {
             ParamID = paramID;
