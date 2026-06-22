@@ -2103,7 +2103,7 @@ namespace LibreMetaverse
         /// <param name="cancellationToken">Cancellation token for the request</param>
         public async Task NavigateObjectMediaAsync(UUID primID, int face, string newURL, Simulator sim, CancellationToken cancellationToken = default)
         {
-            Uri? cap = sim?.Caps?.CapabilityURI("ObjectMediaNavigate");
+            Uri? cap = sim.Caps?.CapabilityURI("ObjectMediaNavigate");
             if (cap == null)
             {
                 Logger.Error("ObjectMediaNavigate capability not available", Client);
@@ -2137,7 +2137,7 @@ namespace LibreMetaverse
         /// <param name="cancellationToken">Cancellation token for the request</param>
         public async Task UpdateObjectMediaAsync(UUID primID, MediaEntry[] faceMedia, Simulator sim, CancellationToken cancellationToken = default)
         {
-            Uri? cap = sim?.Caps?.CapabilityURI("ObjectMedia");
+            Uri? cap = sim.Caps?.CapabilityURI("ObjectMedia");
             if (cap == null)
             {
                 Logger.Error("ObjectMedia capability not available", Client);
@@ -2167,7 +2167,7 @@ namespace LibreMetaverse
         /// <param name="cancellationToken">Cancellation token for the request</param>
         public async Task<(bool success, string version, MediaEntry[]? faceMedia)> RequestObjectMediaAsync(UUID primID, Simulator sim, CancellationToken cancellationToken = default)
         {
-            Uri? cap = sim?.Caps?.CapabilityURI("ObjectMedia");
+            Uri? cap = sim.Caps?.CapabilityURI("ObjectMedia");
             if (cap == null)
             {
                 Logger.Error("ObjectMedia capability not available", Client);
