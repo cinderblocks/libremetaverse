@@ -870,6 +870,162 @@ namespace LibreMetaverse
         }
 
         /// <summary>
+        /// Returns true when the current account is permitted to upload large textures (2048×2048 or larger).
+        /// Requires a Premium or higher membership (<see cref="AccountLevelBenefits.PremiumAccess"/> &gt; 0)
+        /// and the <c>NewFileAgentInventoryVariablePrice</c> capability from the current simulator.
+        /// Check this before calling <see cref="CreateItemFromAssetVariablePriceAsync"/>.
+        /// </summary>
+        public bool CanUploadLargeTextures =>
+            Client.Self.Benefits.PremiumAccess > 0 &&
+            GetCapabilityURI("NewFileAgentInventoryVariablePrice") != null;
+
+        /// <summary>
+        /// Uploads an asset using the <c>NewFileAgentInventoryVariablePrice</c> capability, which supports
+        /// high-resolution textures (2048×2048 and 4096×4096) available to Premium/Premium Plus members.
+        /// The server quotes the upload price before charging; the optional <paramref name="confirmCost"/>
+        /// delegate can be used to inspect or reject the quoted fee.
+        /// </summary>
+        /// <param name="data">Raw JPEG2000 asset bytes.</param>
+        /// <param name="name">Inventory item name.</param>
+        /// <param name="description">Inventory item description.</param>
+        /// <param name="assetType">Asset type (typically <see cref="AssetType.Texture"/>).</param>
+        /// <param name="invType">Inventory type (typically <see cref="InventoryType.Texture"/>).</param>
+        /// <param name="folderID">Destination folder UUID.</param>
+        /// <param name="permissions">Permissions to set on the new item.</param>
+        /// <param name="confirmCost">
+        /// Optional delegate called with the server-quoted upload price in L$. Return <c>true</c> to proceed
+        /// with the upload, <c>false</c> to cancel. If <c>null</c>, the upload always proceeds.
+        /// </param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <param name="progress">Optional upload progress reporter.</param>
+        /// <returns>
+        /// A <see cref="CreateItemFromAssetResult"/> with the new item UUID and asset UUID on success.
+        /// </returns>
+        public async Task<CreateItemFromAssetResult> CreateItemFromAssetVariablePriceAsync(
+            byte[] data, string name, string description,
+            AssetType assetType, InventoryType invType, UUID folderID, Permissions permissions,
+            Func<int, bool>? confirmCost = null,
+            CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
+        {
+            var result = new CreateItemFromAssetResult
+            {
+                Success = false,
+                Status = "",
+                ItemID = UUID.Zero,
+                AssetID = UUID.Zero,
+                Error = null,
+                RawResult = null
+            };
+
+            if (Client.Self.Benefits.PremiumAccess <= 0)
+            {
+                result.Status = "membership_required";
+                result.Error = new InvalidOperationException(
+                    "Large texture uploads require Premium or higher membership " +
+                    "(Benefits.PremiumAccess is 0 for this account).");
+                return result;
+            }
+
+            var cap = GetCapabilityURI("NewFileAgentInventoryVariablePrice", false);
+            if (cap == null)
+            {
+                result.Status = "capability_missing";
+                result.Error = new InvalidOperationException(
+                    "NewFileAgentInventoryVariablePrice capability is not currently available");
+                return result;
+            }
+
+            var query = new OSDMap
+            {
+                {"folder_id", OSD.FromUUID(folderID)},
+                {"asset_type", OSD.FromString(Utils.AssetTypeToString(assetType))},
+                {"inventory_type", OSD.FromString(Utils.InventoryTypeToString(invType))},
+                {"name", OSD.FromString(name)},
+                {"description", OSD.FromString(description)},
+                {"everyone_mask", OSD.FromInteger((int) permissions.EveryoneMask)},
+                {"group_mask", OSD.FromInteger((int) permissions.GroupMask)},
+                {"next_owner_mask", OSD.FromInteger((int) permissions.NextOwnerMask)}
+            };
+
+            try
+            {
+                // Step 1 — ask the server for the upload price
+                var osd = await PostCapAsync(cap, query, cancellationToken, progress).ConfigureAwait(false);
+                result.RawResult = osd;
+                if (osd is not OSDMap contents)
+                {
+                    result.Status = "invalid_response";
+                    return result;
+                }
+
+                var state = contents.ContainsKey("state") ? contents["state"].AsString() : string.Empty;
+                result.Status = state;
+
+                if (state != "confirm_upload")
+                {
+                    result.Status = $"unexpected_state:{state}";
+                    return result;
+                }
+
+                var uploadPrice = contents.ContainsKey("upload_price") ? contents["upload_price"].AsInteger() : 0;
+                var rsvpUrl = contents.ContainsKey("rsvp") ? contents["rsvp"].AsUri() : null;
+
+                if (rsvpUrl == null || rsvpUrl.ToString() == "about:blank")
+                {
+                    result.Status = "missing_rsvp_url";
+                    return result;
+                }
+
+                // Step 2 — let the caller approve the quoted price
+                if (confirmCost != null && !confirmCost(uploadPrice))
+                {
+                    result.Status = "cost_rejected";
+                    result.Error = new OperationCanceledException(
+                        $"Upload cancelled: quoted price {uploadPrice} L$ was rejected by confirmCost delegate");
+                    return result;
+                }
+
+                // Step 3 — POST bytes to rsvp URL; server charges the fee and creates the asset
+                var uploadRes = await PostBytesAsync(rsvpUrl, "application/octet-stream", data, cancellationToken, progress)
+                    .ConfigureAwait(false);
+                result.RawResult = uploadRes;
+
+                if (uploadRes is not OSDMap uploadMap)
+                {
+                    result.Status = "invalid_upload_response";
+                    return result;
+                }
+
+                state = uploadMap.ContainsKey("state") ? uploadMap["state"].AsString() : string.Empty;
+                result.Status = state;
+
+                if (state == "complete" &&
+                    uploadMap.ContainsKey("new_inventory_item") && uploadMap.ContainsKey("new_asset"))
+                {
+                    result.ItemID = uploadMap["new_inventory_item"].AsUUID();
+                    result.AssetID = uploadMap["new_asset"].AsUUID();
+
+                    try { RequestFetchInventory(result.ItemID, Client.Self.AgentID, cancellationToken); }
+                    catch { /* best-effort */ }
+
+                    result.Success = true;
+                    return result;
+                }
+
+                result.Success = false;
+                return result;
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.Error = ex;
+                result.Status = ex.Message;
+                return result;
+            }
+        }
+
+        /// <summary>
         /// Request an inventory folder contents update and await the corresponding FolderUpdated event.
         /// Returns a richer result containing success and the folder contents when available.
         /// </summary>

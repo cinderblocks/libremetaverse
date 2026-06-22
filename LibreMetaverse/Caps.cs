@@ -206,6 +206,7 @@ namespace LibreMetaverse
             "MeshUploadFlag",
             "NavMeshGenerationStatus",
             "NewFileAgentInventory",
+            "NewFileAgentInventoryVariablePrice",
             "ObjectAnimation",
             "ObjectMedia",
             "ObjectMediaNavigate",
