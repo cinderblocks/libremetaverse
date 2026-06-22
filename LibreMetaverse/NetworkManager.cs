@@ -763,6 +763,40 @@ namespace LibreMetaverse
         }
 
         /// <summary>
+        /// Initiate an async logout request. Returns when the logout handshake has
+        /// completed or when <paramref name="cancellationToken"/> is cancelled or
+        /// <see cref="TimingSettings.LogoutTimeout"/> has expired, whichever comes first.
+        /// </summary>
+        public async Task LogoutAsync(CancellationToken cancellationToken = default)
+        {
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            EventHandler<LoggedOutEventArgs> callback = delegate { tcs.TrySetResult(true); };
+
+            LoggedOut += callback;
+            try
+            {
+                RequestLogout();
+
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                linkedCts.CancelAfter(Client.Settings.Timing.LogoutTimeout);
+
+                var completed = await Task.WhenAny(tcs.Task,
+                    Task.Delay(Timeout.InfiniteTimeSpan, linkedCts.Token)
+                        .ContinueWith(_ => false, TaskContinuationOptions.OnlyOnCanceled)).ConfigureAwait(false);
+
+                if (completed != tcs.Task)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    Shutdown(DisconnectType.NetworkTimeout);
+                }
+            }
+            finally
+            {
+                LoggedOut -= callback;
+            }
+        }
+
+        /// <summary>
         /// Initiate the logout process. The <see cref="Shutdown" /> function
         /// needs to be manually called.
         /// </summary>
