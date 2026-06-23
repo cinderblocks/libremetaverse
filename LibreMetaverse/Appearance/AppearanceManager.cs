@@ -3039,14 +3039,16 @@ namespace LibreMetaverse
                     // a subsequent teleport can cancel and supersede this work cleanly.
                     await StartAppearanceImmediate(forceRebake: false).ConfigureAwait(false);
                 }
-                else if (Wearables.Any())
+                else
                 {
-                    // Non-SSB region (OpenSim): wearables already cached from a previous session or
-                    // AgentWearablesUpdate arrived before CAPS — rebake immediately using client-side path.
+                    // Non-SSB region (OpenSim): always start the client-side baking pipeline.
+                    // If Wearables is already populated (intra-grid teleport or AgentWearablesUpdate
+                    // arrived first), baking uses the cached data immediately.
+                    // If Wearables is empty, the pipeline tries COF (fails silently on OpenSim) then
+                    // falls back to sending AgentWearablesRequest via LLUDP — more reliable than waiting
+                    // for the server to proactively push AgentWearablesUpdate on its own schedule.
                     await RequestSetAppearance(forceRebake: true).ConfigureAwait(false);
                 }
-                // else: wearables not yet loaded; AgentWearablesUpdateHandler will trigger baking
-                // once the server sends AgentWearablesUpdate for this region.
             }
         }
         catch (OperationCanceledException)
