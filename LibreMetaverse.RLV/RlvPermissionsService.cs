@@ -11,7 +11,7 @@ namespace LibreMetaverse.RLV
     {
         private readonly IRestrictionProvider _restrictionProvider;
 #if NET8_0_OR_GREATER
-        private static readonly SearchValues<char> _invalidMessageCharacters = SearchValues.Create("()\"- *=_^");
+        private static readonly SearchValues<char> _invalidMessageCharacters = SearchValues.Create("()\"-*=_^");
 #else
         private static readonly char[] _invalidMessageCharacters = { '(', ')', '"', '-', '*', '=', '_', '^' };
 #endif
