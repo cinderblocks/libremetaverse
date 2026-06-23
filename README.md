@@ -70,15 +70,15 @@ dotnet restore
 dotnet build -c Release
 ```
 
-This builds projects for their configured target frameworks (`netstandard2.1`, `net481`, `net8.0`, `net9.0`, `net10.0`). 
+This builds projects for their configured target frameworks (`netstandard2.1`, `net481`, `net8.0`, `net9.0`, `net10.0`).
 If you need to force a single framework for a specific project use `-f` on the `dotnet build` command for that project.
 
 Notes:
-- Some sample programs and tests target Windows-only frameworks (e.g. .NET Framework) 
+- Some sample programs and tests target Windows-only frameworks (e.g. .NET Framework)
   and will produce warnings or errors on non-Windows hosts. You can ignore those when building cross-platform.
-- If you prefer MSBuild directly, be aware: some projects include custom source generators under the 
-  `SourceGenerators` folder. When using MSBuild (or `dotnet msbuild`) you may need to build/run those 
-  generator projects manually before building the consumer projects. Using `dotnet build` is recommended 
+- If you prefer MSBuild directly, be aware: some projects include custom source generators under the
+  `SourceGenerators` folder. When using MSBuild (or `dotnet msbuild`) you may need to build/run those
+  generator projects manually before building the consumer projects. Using `dotnet build` is recommended
   because it will execute source generators as part of the normal build flow when configured correctly.
 
 If you still want to run MSBuild directly:
@@ -100,12 +100,12 @@ To build an individual project (example `TestClient`):
 dotnet build Programs/examples/TestClient/TestClient.csproj -c Release
 ```
 
-Outputs for each project are under that project's `bin/<Configuration>/<TargetFramework>/` directory 
+Outputs for each project are under that project's `bin/<Configuration>/<TargetFramework>/` directory
 (for example `LibreMetaverse/bin/Release/net8.0/`).
 
 ## Running examples
 
-Change into the example project's output folder and run with `dotnet` (or execute the produced 
+Change into the example project's output folder and run with `dotnet` (or execute the produced
 executable on platforms that produce a native runnable file):
 
 ```
@@ -124,15 +124,15 @@ dotnet TestClient.dll    # on platforms that require 'dotnet' to run
 ## Platform-specific notes
 
 - Windows
-  - Full .NET Framework projects (e.g. `net48` test/tools) require Windows and Visual Studio/MSBuild. 
+  - Full .NET Framework projects (e.g. `net48` test/tools) require Windows and Visual Studio/MSBuild.
     Use Visual Studio or `dotnet msbuild` from a Developer Command Prompt.
   - Executables built for Windows can be run directly (`./Program.exe`) or via `dotnet` for framework-dependent builds.
-  - Some third-party SDKs (voice/Vivox, native clients) may require platform installers or SDKs — consult the 
+  - Some third-party SDKs (voice/Vivox, native clients) may require platform installers or SDKs — consult the
     specific project folders for details.
 
 - Linux
   - Use the official .NET SDK packages for your distribution. `dotnet build` and `dotnet run` are the recommended workflow.
-  - Some projects may reference native libraries or Windows-only APIs; those projects will fail or warn during build 
+  - Some projects may reference native libraries or Windows-only APIs; those projects will fail or warn during build
     and can be ignored if not required.
   - If you use MSBuild directly, ensure source generators are available (see "MSBuild" notes above).
 
@@ -146,9 +146,9 @@ dotnet TestClient.dll    # on platforms that require 'dotnet' to run
   - Exclude or conditionally run Windows-only projects on non-Windows runners.
 
 - Native dependencies & source generators
-  - Some components (voice, WebRTC, Vivox) may depend on native binaries or SDKs. Check the individual project 
+  - Some components (voice, WebRTC, Vivox) may depend on native binaries or SDKs. Check the individual project
     README files for native prerequisites and installation steps.
-  - If you choose to use `dotnet msbuild` directly instead of `dotnet build`, you may need to build or run 
+  - If you choose to use `dotnet msbuild` directly instead of `dotnet build`, you may need to build or run
     the `SourceGenerators` projects first so generated sources are available to consumer projects.
 
 ## Tests
@@ -161,7 +161,7 @@ dotnet test LibreMetaverse.Tests/LibreMetaverse.Tests.csproj -c Release
 
 ## Troubleshooting
 
-- Missing Windows-only assemblies: you may see warnings/errors for projects that rely on Windows-specific APIs on Linux/macOS. 
+- Missing Windows-only assemblies: you may see warnings/errors for projects that rely on Windows-specific APIs on Linux/macOS.
   These are expected for some example/test projects and can be ignored unless you need those projects.
 - Out-of-date SDK: Ensure the SDK version reported by `dotnet --info` matches the frameworks you want to build (8.0/9.0).
 - If NuGet restore fails, delete the `~/.nuget/packages` cache or run `dotnet restore` with verbosity to inspect failures.
@@ -191,14 +191,14 @@ See the repository for contribution guidelines. Keep changes small and test buil
 
 For more project-specific details check the `Programs/examples/` folders or the individual project README files.
 
-[![LibreMetaverse NuGet-Release](https://img.shields.io/nuget/v/libremetaverse.svg?label=LibreMetaverse)](https://www.nuget.org/packages/LibreMetaverse/)  
-[![BSD Licensed](https://img.shields.io/github/license/cinderblocks/libremetaverse)](https://github.com/cinderblocks/libremetaverse/blob/master/LICENSE.txt)  
-[![NuGet Downloads](https://img.shields.io/nuget/dt/LibreMetaverse?label=NuGet%20downloads)](https://www.nuget.org/packages/LibreMetaverse/)  
-[![Build status](https://ci.appveyor.com/api/projects/status/pga5w0qken2k2nnl?svg=true)](https://ci.appveyor.com/project/cinderblocks57647/libremetaverse-ksbcr)  
-[![Test status](https://img.shields.io/appveyor/tests/cinderblocks57647/libremetaverse-ksbcr?compact_message&svg=true)](https://ci.appveyor.com/project/cinderblocks57647/libremetaverse-ksbcr)  
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/1cb97cd799c64ba49e2721f2ddda56ab)](https://www.codacy.com/gh/cinderblocks/libremetaverse/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=cinderblocks/libremetaverse&amp;utm_campaign=Badge_Grade)  
-[![Commits per month](https://img.shields.io/github/commit-activity/m/cinderblocks/libremetaverse/master)](https://www.github.com/cinderblocks/libremetaverse/)  
-[![ZEC](https://img.shields.io/keybase/zec/cinder)](https://keybase.io/cinder) [![BTC](https://img.shields.io/keybase/btc/cinder)](https://keybase.io/cinder)  
+[![LibreMetaverse NuGet-Release](https://img.shields.io/nuget/v/libremetaverse.svg?label=LibreMetaverse)](https://www.nuget.org/packages/LibreMetaverse/) ![GitHub Release Date](https://img.shields.io/github/release-date/cinderblocks/libremetaverse)
+[![BSD Licensed](https://img.shields.io/github/license/cinderblocks/libremetaverse)](https://github.com/cinderblocks/libremetaverse/blob/master/LICENSE.txt)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/LibreMetaverse?label=NuGet%20downloads)](https://www.nuget.org/packages/LibreMetaverse/)
+[![Release](https://github.com/cinderblocks/libremetaverse/actions/workflows/release.yml/badge.svg)](https://github.com/cinderblocks/libremetaverse/actions/workflows/release.yml) [![Tests](https://github.com/cinderblocks/libremetaverse/actions/workflows/ci-test.yml/badge.svg)](https://github.com/cinderblocks/libremetaverse/actions/workflows/ci-test.yml)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/1cb97cd799c64ba49e2721f2ddda56ab)](https://www.codacy.com/gh/cinderblocks/libremetaverse/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=cinderblocks/libremetaverse&amp;utm_campaign=Badge_Grade)
+[![Commits per month](https://img.shields.io/github/commit-activity/m/cinderblocks/libremetaverse/master)](https://www.github.com/cinderblocks/libremetaverse/)
+![Keybase PGP](https://img.shields.io/keybase/pgp/cinder)  
+[![ZEC](https://img.shields.io/keybase/zec/cinder)](https://keybase.io/cinder) [![BTC](https://img.shields.io/keybase/btc/cinder)](https://keybase.io/cinder)
 
 ## Contributors
 
