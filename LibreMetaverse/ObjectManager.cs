@@ -2266,6 +2266,10 @@ namespace LibreMetaverse
                 }
                 else
                 {
+                    if (System.Text.Encoding.UTF8.GetString(data)
+                            .IndexOf("cap invocation rate", StringComparison.OrdinalIgnoreCase) >= 0)
+                        throw new CapRateLimitException($"RenderMaterials cap rate limit exceeded for {uri}");
+
                     try
                     {
                         OSD result = OSDParser.Deserialize(data);
@@ -2309,7 +2313,7 @@ namespace LibreMetaverse
                     }
                 }
             }
-            catch (Exception ex) when (!(ex is OperationCanceledException))
+            catch (Exception ex) when (ex is not OperationCanceledException && ex is not CapRateLimitException)
             {
                 Logger.Error($"Failed fetching materials: {ex}", Client);
             }
@@ -2374,6 +2378,10 @@ namespace LibreMetaverse
                 }
                 else
                 {
+                    if (System.Text.Encoding.UTF8.GetString(data)
+                            .IndexOf("cap invocation rate", StringComparison.OrdinalIgnoreCase) >= 0)
+                        throw new CapRateLimitException($"RenderMaterials cap rate limit exceeded for {uri}");
+
                     try
                     {
                         OSD result = OSDParser.Deserialize(data);
@@ -2419,7 +2427,7 @@ namespace LibreMetaverse
                     }
                 }
             }
-            catch (Exception ex) when (!(ex is OperationCanceledException))
+            catch (Exception ex) when (ex is not OperationCanceledException && ex is not CapRateLimitException)
             {
                 Logger.Error("Failed fetching materials {error}", Client);
                 Logger.Error("Exception: " + ex.Message, Client);
