@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2025, Sjofn LLC.
+ * Copyright (c) 2025-2026, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -41,13 +41,13 @@ namespace LibreMetaverse
     /// </summary>
     /// <example>
     /// <code>
-    /// // Example minimum code required to instantiate class and 
+    /// // Example minimum code required to instantiate class and
     /// // connect to a simulator.
     /// using System;
     /// using System.Collections.Generic;
     /// using System.Text;
     /// using LibreMetaverse;
-    /// 
+    ///
     /// namespace FirstBot
     /// {
     ///     class Bot
@@ -64,7 +64,7 @@ namespace LibreMetaverse
     ///             {
     ///                 Console.WriteLine("Login successful");
     ///             }
-    /// 
+    ///
     ///             // Wait for a Keypress
     ///             Console.ReadLine();
     ///             // Logout of simulator
@@ -121,6 +121,8 @@ namespace LibreMetaverse
         public Stats.UtilizationStatistics Stats { get; private set; }
         /// <summary>HttpClient chiefly used for Caps</summary>
         public HttpCapsClient HttpCapsClient { get; set; }
+        /// <summary>Per-category rate limiter applied to all caps HTTP requests</summary>
+        public CapsRateLimiter CapsRateLimiter { get; private set; }
         /// <summary>Second Life Marketplace subsystem</summary>
         public Marketplace.MarketplaceManager Marketplace { get; private set; }
         /// <summary>EEP (Extended Environment Protocol) and legacy WindLight environment subsystem</summary>
@@ -155,6 +157,7 @@ namespace LibreMetaverse
             Groups = new GroupManager(this);
             Assets = new AssetManager(this);
             Appearance = new AppearanceManager(this);
+            CapsRateLimiter = new CapsRateLimiter();
             HttpCapsClient = SetupHttpCapsClient();
             AisClient = new InventoryAISClient(this);
             Inventory = new InventoryManager(this);
@@ -186,7 +189,8 @@ namespace LibreMetaverse
             if (Utils.GetRunningRuntime() != Utils.Runtime.Mono)
                 handler.MaxConnectionsPerServer = Settings.MaxHttpConnections;
 
-            HttpCapsClient client = new HttpCapsClient(handler);
+            var rateLimitingHandler = new RateLimitingCapsHandler(CapsRateLimiter, handler);
+            HttpCapsClient client = new HttpCapsClient(rateLimitingHandler);
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Add("User-Agent", $"{Settings.UserAgent}");
             client.Timeout = TimeSpan.FromMilliseconds(Settings.Timing.CapsTimeout);
@@ -242,6 +246,7 @@ namespace LibreMetaverse
                 // Now safe to dispose HttpCapsClient — network is shut down and all subsystems
                 // that used it have been disposed, so no more requests are in flight.
                 if (HttpCapsClient is IDisposable httpDisposable) DisposalHelper.SafeDispose(httpDisposable);
+                CapsRateLimiter?.Dispose();
 
                 // Attempt to shutdown logging synchronously to flush providers when possible
                 try { Logger.Shutdown(); } catch { }

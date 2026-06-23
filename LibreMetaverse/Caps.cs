@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2019-2025, Sjofn LLC.
+ * Copyright (c) 2019-2026, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -306,6 +306,7 @@ namespace LibreMetaverse
                         if (maybeUri != null)
                         {
                             _Caps[cap] = maybeUri;
+                            Simulator.Client.CapsRateLimiter.RegisterCapUri(cap, maybeUri);
                         }
                     }
 

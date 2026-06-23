@@ -33,6 +33,7 @@
     <PackageReference Include="OggVorbisEncoder" />
     <PackageReference Include="Pfim" />
     <PackageReference Include="System.Threading.Channels" />
+    <PackageReference Include="System.Threading.RateLimiting" />
     <PackageReference Include="zlib.net-mutliplatform" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net481'">

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2025, Sjofn LLC.
+ * Copyright (c) 2025-2026, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,7 @@ namespace LibreMetaverse
     #region Enums
 
     /// <summary>
-    /// 
+    ///
     /// </summary>
     public enum ReportType : uint
     {
@@ -57,7 +57,7 @@ namespace LibreMetaverse
     }
 
     /// <summary>
-    /// Bitflag field for ObjectUpdateCompressed data blocks, describing 
+    /// Bitflag field for ObjectUpdateCompressed data blocks, describing
     /// which options are present for each object
     /// </summary>
     [Flags]
@@ -131,7 +131,7 @@ namespace LibreMetaverse
     #region Structs
 
     /// <summary>
-    /// Contains the variables sent in an object update packet for objects. 
+    /// Contains the variables sent in an object update packet for objects.
     /// Used to track position and movement of prims and avatars
     /// </summary>
     public struct ObjectMovementUpdate
@@ -161,7 +161,7 @@ namespace LibreMetaverse
     #endregion Structs
 
     /// <summary>
-    /// Handles all network traffic related to prims and avatar positions and 
+    /// Handles all network traffic related to prims and avatar positions and
     /// movement.
     /// </summary>
     public partial class ObjectManager : IDisposable
@@ -305,7 +305,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Raises the ParticleUpdate Event
         /// </summary>
-        /// <param name="e">A ParticleUpdateEventArgs object containing 
+        /// <param name="e">A ParticleUpdateEventArgs object containing
         /// the data sent from the simulator</param>
         protected virtual void OnParticleUpdate(ParticleUpdateEventArgs e) {
             EventHandler<ParticleUpdateEventArgs>? handler = m_ParticleUpdate;
@@ -514,7 +514,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Tracks which simulators can see a particular object (for border objects)
         /// </summary>
-        private readonly System.Collections.Concurrent.ConcurrentDictionary<UUID, List<Simulator>> 
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<UUID, List<Simulator>>
             _objectSimulators = new System.Collections.Concurrent.ConcurrentDictionary<UUID, List<Simulator>>();
 
         /// <summary>
@@ -589,9 +589,9 @@ namespace LibreMetaverse
         /// <returns>True if object is near any border</returns>
         public bool IsNearBorder(Vector3 position, uint regionSizeX, uint regionSizeY, float threshold = 32f)
         {
-            return position.X < threshold || 
+            return position.X < threshold ||
                    position.X > (regionSizeX - threshold) ||
-                   position.Y < threshold || 
+                   position.Y < threshold ||
                    position.Y > (regionSizeY - threshold);
         }
 
@@ -618,7 +618,7 @@ namespace LibreMetaverse
                 lock (simList)
                 {
                     simList.RemoveAll(s => !connectedSims.Contains(s));
-                    
+
                     if (simList.Count == 0)
                     {
                         _objectSimulators.TryRemove(objectID, out _);
@@ -732,7 +732,7 @@ namespace LibreMetaverse
         #region Public Methods
 
         /// <summary>
-        /// Request information for a single object from a <see cref="Simulator"/> 
+        /// Request information for a single object from a <see cref="Simulator"/>
         /// you are currently connected to
         /// </summary>
         /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>
@@ -791,23 +791,23 @@ namespace LibreMetaverse
         /// Attempt to purchase an original object, a copy, or the contents of
         /// an object
         /// </summary>
-        /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>        
+        /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>
         /// <param name="localID">The Local ID of the object</param>
         /// <param name="saleType">Whether the original, a copy, or the object
         /// contents are on sale. This is used for verification, if the
         /// sale type is not valid for the object the purchase will fail</param>
-        /// <param name="price">Price of the object. This is used for 
+        /// <param name="price">Price of the object. This is used for
         /// verification, if it does not match the actual price the purchase
         /// will fail</param>
         /// <param name="groupID">Group ID that will be associated with the new
         /// purchase</param>
-        /// <param name="categoryID">Inventory folder UUID where the object or objects 
+        /// <param name="categoryID">Inventory folder UUID where the object or objects
         /// purchased should be placed</param>
         /// <example>
         /// <code>
-        ///     BuyObject(Client.Network.CurrentSim, 500, SaleType.Copy, 
+        ///     BuyObject(Client.Network.CurrentSim, 500, SaleType.Copy,
         ///         100, UUID.Zero, Client.Self.InventoryRootFolderUUID);
-        /// </code> 
+        /// </code>
         ///</example>
         public void BuyObject(Simulator simulator, uint localID, SaleType saleType, int price, UUID groupID,
             UUID categoryID)
@@ -855,11 +855,11 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Select a single object. This will cause the <see cref="Simulator"/> to send us 
+        /// Select a single object. This will cause the <see cref="Simulator"/> to send us
         /// an <see cref="ObjectPropertiesPacket"/> which will raise the <see cref="ObjectProperties"/> event
         /// </summary>
-        /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>        
-        /// <param name="localID">The Local ID of the object</param>        
+        /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>
+        /// <param name="localID">The Local ID of the object</param>
         /// <seealso cref="ObjectPropertiesFamilyEventArgs"/>
         public void SelectObject(Simulator simulator, uint localID)
         {
@@ -867,7 +867,7 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Select a single object. This will cause the <see cref="Simulator"/> to send us 
+        /// Select a single object. This will cause the <see cref="Simulator"/> to send us
         /// an <see cref="ObjectPropertiesPacket"/> which will raise the <see cref="ObjectProperties"/> event
         /// </summary>
         /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>
@@ -901,10 +901,10 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Select multiple objects. This will cause the <see cref="Simulator"/> to send us 
+        /// Select multiple objects. This will cause the <see cref="Simulator"/> to send us
         /// an <see cref="ObjectPropertiesPacket"/> which will raise the <see cref="ObjectProperties"/> event
-        /// </summary>        
-        /// <param name="simulator">The <see cref="Simulator"/> the objects are located</param> 
+        /// </summary>
+        /// <param name="simulator">The <see cref="Simulator"/> the objects are located</param>
         /// <param name="localIDs">An array containing the Local IDs of the objects</param>
         /// <param name="automaticDeselect">Should objects be deselected immediately after selection</param>
         /// <seealso cref="ObjectPropertiesFamilyEventArgs"/>
@@ -937,10 +937,10 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Select multiple objects. This will cause the <see cref="Simulator"/> to send us 
+        /// Select multiple objects. This will cause the <see cref="Simulator"/> to send us
         /// an <see cref="ObjectPropertiesPacket"/> which will raise the <see cref="ObjectProperties"/> event
-        /// </summary>        
-        /// <param name="simulator">The <see cref="Simulator"/> the objects are located</param> 
+        /// </summary>
+        /// <param name="simulator">The <see cref="Simulator"/> the objects are located</param>
         /// <param name="localIDs">An array containing the Local IDs of the objects</param>
         /// <seealso cref="ObjectPropertiesFamilyEventArgs"/>
         public void SelectObjects(Simulator simulator, uint[] localIDs)
@@ -951,8 +951,8 @@ namespace LibreMetaverse
         /// <summary>
         /// Update the properties of an object
         /// </summary>
-        /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>        
-        /// <param name="localID">The Local ID of the object</param>        
+        /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>
+        /// <param name="localID">The Local ID of the object</param>
         /// <param name="physical">true to turn the objects physical property on</param>
         /// <param name="temporary">true to turn the objects temporary property on</param>
         /// <param name="phantom">true to turn the objects phantom property on</param>
@@ -965,8 +965,8 @@ namespace LibreMetaverse
         /// <summary>
         /// Update the properties of an object
         /// </summary>
-        /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>        
-        /// <param name="localID">The Local ID of the object</param>        
+        /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>
+        /// <param name="localID">The Local ID of the object</param>
         /// <param name="physical">true to turn the objects physical property on</param>
         /// <param name="temporary">true to turn the objects temporary property on</param>
         /// <param name="phantom">true to turn the objects phantom property on</param>
@@ -1009,8 +1009,8 @@ namespace LibreMetaverse
         /// <summary>
         /// Sets the sale properties of a single object
         /// </summary>
-        /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>        
-        /// <param name="localID">The Local ID of the object</param>        
+        /// <param name="simulator">The <see cref="Simulator"/> the object is located</param>
+        /// <param name="localID">The Local ID of the object</param>
         /// <param name="saleType">One of the options from the <see cref="SaleType"/> enum</param>
         /// <param name="price">The price of the object</param>
         public void SetSaleInfo(Simulator simulator, uint localID, SaleType saleType, int price)
@@ -1036,8 +1036,8 @@ namespace LibreMetaverse
 
         /// <summary>
         /// Sets the sale properties of multiple objects
-        /// </summary>        
-        /// <param name="simulator">The <see cref="Simulator"/> the objects are located</param> 
+        /// </summary>
+        /// <param name="simulator">The <see cref="Simulator"/> the objects are located</param>
         /// <param name="localIDs">An array containing the Local IDs of the objects</param>
         /// <param name="saleType">One of the options from the <see cref="SaleType"/> enum</param>
         /// <param name="price">The price of the object</param>
@@ -1069,7 +1069,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Deselect a single object
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="Simulator"/> object where the object resides</param>        
+        /// <param name="simulator">A reference to the <see cref="Simulator"/> object where the object resides</param>
         /// <param name="localID">The Local ID of the object</param>
         public void DeselectObject(Simulator simulator, uint localID)
         {
@@ -1094,7 +1094,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Deselect multiple objects.
         /// </summary>
-        /// <param name="simulator">The <see cref="Simulator"/> the objects are located</param> 
+        /// <param name="simulator">The <see cref="Simulator"/> the objects are located</param>
         /// <param name="localIDs">An array containing the Local IDs of the objects</param>
         public void DeselectObjects(Simulator simulator, uint[] localIDs)
         {
@@ -1127,7 +1127,7 @@ namespace LibreMetaverse
         {
             await ClickObjectAsync(simulator, localID, Vector3.Zero, Vector3.Zero, 0, Vector3.Zero, Vector3.Zero, Vector3.Zero, cancellationToken).ConfigureAwait(false);
         }
- 
+
          /// <summary>
          /// Async variant of ClickObject. Sends a grab packet, waits a short delay
          /// and then sends the de-grab packet. Uses Task.Delay instead of Thread.Sleep.
@@ -1158,7 +1158,7 @@ namespace LibreMetaverse
                  Normal = normal,
                  Binormal = binormal
              };
- 
+
              Client.Network.SendPacket(grab, simulator);
 
 
@@ -1194,10 +1194,10 @@ namespace LibreMetaverse
                  Normal = normal,
                  Binormal = binormal
              };
- 
+
              Client.Network.SendPacket(degrab, simulator);
          }
-        
+
         /// <summary>
         /// Create (rez) a new prim object in a simulator
         /// </summary>
@@ -1210,9 +1210,9 @@ namespace LibreMetaverse
         /// <param name="rotation">Rotation quaternion to rotate this prim</param>
         /// <remarks>Due to the way client prim rezzing is done on the server,
         /// the requested position for an object is only close to where the prim
-        /// actually ends up. If you desire exact placement you'll need to 
+        /// actually ends up. If you desire exact placement you'll need to
         /// follow up by moving the object after it has been created. This
-        /// function will not set textures, light and flexible data, or other 
+        /// function will not set textures, light and flexible data, or other
         /// extended primitive properties</remarks>
         public void AddPrim(Simulator simulator, Primitive.ConstructionData prim, UUID groupID, Vector3 position,
             Vector3 scale, Quaternion rotation)
@@ -1233,9 +1233,9 @@ namespace LibreMetaverse
         /// <param name="createFlags">Specify the <see cref="PrimFlags"/></param>
         /// <remarks>Due to the way client prim rezzing is done on the server,
         /// the requested position for an object is only close to where the prim
-        /// actually ends up. If you desire exact placement you'll need to 
+        /// actually ends up. If you desire exact placement you'll need to
         /// follow up by moving the object after it has been created. This
-        /// function will not set textures, light and flexible data, or other 
+        /// function will not set textures, light and flexible data, or other
         /// extended primitive properties</remarks>
         public void AddPrim(Simulator simulator, Primitive.ConstructionData prim, UUID groupID, Vector3 position,
             Vector3 scale, Quaternion rotation, PrimFlags createFlags)
@@ -1293,7 +1293,7 @@ namespace LibreMetaverse
         /// <param name="rotation">The rotation of the tree</param>
         /// <param name="position">The position of the tree</param>
         /// <param name="treeType">The Type of tree</param>
-        /// <param name="groupOwner">The <see cref="UUID"/> of the group to set the tree to, 
+        /// <param name="groupOwner">The <see cref="UUID"/> of the group to set the tree to,
         /// or UUID.Zero if no group is to be set</param>
         /// <param name="newTree">true to use the "new" Linden trees, false to use the old</param>
         public void AddTree(Simulator simulator, Vector3 scale, Quaternion rotation, Vector3 position,
@@ -1333,7 +1333,7 @@ namespace LibreMetaverse
         /// <param name="rotation">The rotation of the grass</param>
         /// <param name="position">The position of the grass</param>
         /// <param name="grassType">The type of grass from the <see cref="Grass"/> enum</param>
-        /// <param name="groupOwner">The <see cref="UUID"/> of the group to set the tree to, 
+        /// <param name="groupOwner">The <see cref="UUID"/> of the group to set the tree to,
         /// or UUID.Zero if no group is to be set</param>
         public void AddGrass(Simulator simulator, Vector3 scale, Quaternion rotation, Vector3 position,
             Grass grassType, UUID groupOwner)
@@ -1772,9 +1772,9 @@ namespace LibreMetaverse
         /// <summary>
         /// Detach an object from yourself
         /// </summary>
-        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> 
+        /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/>
         /// object where the objects reside
-        /// 
+        ///
         /// This will always be the simulator the avatar is currently in
         /// </param>
         /// <param name="localIDs">An array which contains the IDs of the objects to detach</param>
@@ -2266,10 +2266,6 @@ namespace LibreMetaverse
                 }
                 else
                 {
-                    if (System.Text.Encoding.UTF8.GetString(data)
-                            .IndexOf("cap invocation rate", StringComparison.OrdinalIgnoreCase) >= 0)
-                        throw new CapRateLimitException($"RenderMaterials cap rate limit exceeded for {uri}");
-
                     try
                     {
                         OSD result = OSDParser.Deserialize(data);
@@ -2313,7 +2309,7 @@ namespace LibreMetaverse
                     }
                 }
             }
-            catch (Exception ex) when (ex is not OperationCanceledException && ex is not CapRateLimitException)
+            catch (Exception ex) when (!(ex is OperationCanceledException))
             {
                 Logger.Error($"Failed fetching materials: {ex}", Client);
             }
@@ -2378,10 +2374,6 @@ namespace LibreMetaverse
                 }
                 else
                 {
-                    if (System.Text.Encoding.UTF8.GetString(data)
-                            .IndexOf("cap invocation rate", StringComparison.OrdinalIgnoreCase) >= 0)
-                        throw new CapRateLimitException($"RenderMaterials cap rate limit exceeded for {uri}");
-
                     try
                     {
                         OSD result = OSDParser.Deserialize(data);
@@ -2427,7 +2419,7 @@ namespace LibreMetaverse
                     }
                 }
             }
-            catch (Exception ex) when (ex is not OperationCanceledException && ex is not CapRateLimitException)
+            catch (Exception ex) when (!(ex is OperationCanceledException))
             {
                 Logger.Error("Failed fetching materials {error}", Client);
                 Logger.Error("Exception: " + ex.Message, Client);
@@ -2536,7 +2528,7 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="sim"></param>
         /// <param name="av"></param>
@@ -2559,7 +2551,7 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="s"></param>
         /// <param name="dilation"></param>
@@ -2646,7 +2638,7 @@ namespace LibreMetaverse
         #region Object Tracking Link
 
                 /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="simulator"></param>
         /// <param name="localID"></param>
@@ -2657,7 +2649,7 @@ namespace LibreMetaverse
             return GetPrimitive(simulator, localID, fullID, true);
         }
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="simulator"></param>
         /// <param name="localID"></param>
@@ -2674,7 +2666,7 @@ namespace LibreMetaverse
                 }
 
                 if (!createIfMissing) { return null!; }
-                
+
                 if (Client.Settings.World.CachePrimitives)
                 {
                     prim = simulator.DataPool != null
@@ -2708,7 +2700,7 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="simulator"></param>
         /// <param name="localID"></param>
