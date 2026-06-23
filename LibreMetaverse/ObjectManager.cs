@@ -40,7 +40,7 @@ namespace LibreMetaverse
     #region Enums
 
     /// <summary>
-    ///
+    /// Reason for submitting a request or report to the simulator
     /// </summary>
     public enum ReportType : uint
     {
@@ -136,25 +136,25 @@ namespace LibreMetaverse
     /// </summary>
     public struct ObjectMovementUpdate
     {
-        /// <summary></summary>
+        /// <summary>True if this update is for an avatar rather than a prim</summary>
         public bool Avatar;
-        /// <summary></summary>
+        /// <summary>Collision plane for avatars standing on surfaces</summary>
         public Vector4 CollisionPlane;
-        /// <summary></summary>
+        /// <summary>Object state flags (e.g. attachment point for avatars)</summary>
         public byte State;
-        /// <summary></summary>
+        /// <summary>Simulator-local object identifier</summary>
         public uint LocalID;
-        /// <summary></summary>
+        /// <summary>Position of the object within the region</summary>
         public Vector3 Position;
-        /// <summary></summary>
+        /// <summary>Current linear velocity of the object</summary>
         public Vector3 Velocity;
-        /// <summary></summary>
+        /// <summary>Current linear acceleration of the object</summary>
         public Vector3 Acceleration;
-        /// <summary></summary>
+        /// <summary>Current orientation of the object</summary>
         public Quaternion Rotation;
-        /// <summary></summary>
+        /// <summary>Current angular (rotational) velocity of the object</summary>
         public Vector3 AngularVelocity;
-        /// <summary></summary>
+        /// <summary>Texture face data for the object</summary>
         public Primitive.TextureEntry Textures;
     }
 
@@ -327,6 +327,8 @@ namespace LibreMetaverse
         #endregion AvatarUpdate event
 
         #region TerseObjectUpdate event
+        /// <summary>Raised when the simulator sends us data containing
+        /// particle system updates for a <see cref="Primitive"/></summary>
         public event EventHandler<ParticleUpdateEventArgs> ParticleUpdate {
             add { lock (m_ParticleUpdateLock) { m_ParticleUpdate += value; } }
             remove { lock (m_ParticleUpdateLock) { m_ParticleUpdate -= value; } }
@@ -1132,6 +1134,15 @@ namespace LibreMetaverse
          /// Async variant of ClickObject. Sends a grab packet, waits a short delay
          /// and then sends the de-grab packet. Uses Task.Delay instead of Thread.Sleep.
          /// </summary>
+         /// <param name="simulator">The <see cref="Simulator"/> the object is located in</param>
+         /// <param name="localID">The Local ID of the object to click</param>
+         /// <param name="uvCoord">UV texture coordinates of the surface hit point</param>
+         /// <param name="stCoord">ST texture coordinates of the surface hit point</param>
+         /// <param name="faceIndex">Index of the prim face that was clicked</param>
+         /// <param name="position">World-space position of the surface hit point</param>
+         /// <param name="normal">Surface normal at the hit point</param>
+         /// <param name="binormal">Surface binormal at the hit point</param>
+         /// <param name="cancellationToken">Cancellation token for the request</param>
         public async Task ClickObjectAsync(Simulator simulator, uint localID, Vector3 uvCoord, Vector3 stCoord, int faceIndex, Vector3 position,
             Vector3 normal, Vector3 binormal, CancellationToken cancellationToken = default)
          {
@@ -2028,7 +2039,7 @@ namespace LibreMetaverse
         /// Request additional properties for an object
         /// </summary>
         /// <param name="simulator">A reference to the <see cref="LibreMetaverse.Simulator"/> object where the object resides</param>
-        /// <param name="objectID"></param>
+        /// <param name="objectID">Absolute UUID of the object</param>
         public void RequestObjectPropertiesFamily(Simulator simulator, UUID objectID)
         {
             RequestObjectPropertiesFamily(simulator, objectID, true);
@@ -2223,6 +2234,12 @@ namespace LibreMetaverse
             }
         }
 
+        /// <summary>
+        /// Retrieve all legacy (RGBA) materials registered in a simulator via the RenderMaterials capability
+        /// </summary>
+        /// <param name="sim">The <see cref="Simulator"/> to request materials from</param>
+        /// <param name="cancellationToken">Cancellation token for the request</param>
+        /// <returns>A collection of <see cref="LegacyMaterial"/> objects, or an empty list on failure</returns>
         public async Task<IEnumerable<LegacyMaterial>> RequestMaterialsAsync(Simulator sim, CancellationToken cancellationToken = default)
         {
             if (sim == null) { return new List<LegacyMaterial>(); }
@@ -2317,6 +2334,13 @@ namespace LibreMetaverse
             return matsToReturn;
         }
 
+        /// <summary>
+        /// Retrieve specific legacy (RGBA) materials from a simulator by UUID via the RenderMaterials capability
+        /// </summary>
+        /// <param name="sim">The <see cref="Simulator"/> to request materials from</param>
+        /// <param name="materials">UUIDs of the materials to retrieve</param>
+        /// <param name="cancellationToken">Cancellation token for the request</param>
+        /// <returns>A collection of <see cref="LegacyMaterial"/> objects, or an empty list on failure</returns>
         public async Task<IEnumerable<LegacyMaterial>> RequestMaterialsAsync(Simulator sim, IEnumerable<UUID> materials, CancellationToken cancellationToken = default)
         {
             if (sim == null) { return new List<LegacyMaterial>(); }
@@ -2528,12 +2552,12 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        ///
+        /// Update the seat an avatar is sitting on and raise the <see cref="AvatarSitChanged"/> event if the seat changed
         /// </summary>
-        /// <param name="sim"></param>
-        /// <param name="av"></param>
-        /// <param name="localid"></param>
-        /// <param name="oldSeatID"></param>
+        /// <param name="sim">The <see cref="Simulator"/> the avatar is in</param>
+        /// <param name="av">The <see cref="Avatar"/> whose seat is being updated</param>
+        /// <param name="localid">Local ID of the object the avatar is now sitting on, or 0 if standing</param>
+        /// <param name="oldSeatID">Local ID of the object the avatar was previously sitting on</param>
         protected void SetAvatarSittingOn(Simulator sim, Avatar av, uint localid, uint oldSeatID)
         {
             if (Client.Network.CurrentSim == sim && av.LocalID == Client.Self.localID)
@@ -2551,10 +2575,10 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        ///
+        /// Update the time dilation statistic for a simulator
         /// </summary>
-        /// <param name="s"></param>
-        /// <param name="dilation"></param>
+        /// <param name="s">The <see cref="Simulator"/> whose dilation is being updated</param>
+        /// <param name="dilation">Raw dilation value from the packet (0–65535); stored as a 0.0–1.0 float</param>
         protected void UpdateDilation(Simulator s, uint dilation)
         {
             s.Stats.Dilation = dilation / 65535.0f;
@@ -2637,25 +2661,28 @@ namespace LibreMetaverse
 
         #region Object Tracking Link
 
-                /// <summary>
-        ///
+        /// <summary>
+        /// Get or create a tracked <see cref="Primitive"/> in the given simulator, creating it if it does not exist
         /// </summary>
-        /// <param name="simulator"></param>
-        /// <param name="localID"></param>
-        /// <param name="fullID"></param>
-        /// <returns></returns>
+        /// <param name="simulator">The <see cref="Simulator"/> that contains the primitive</param>
+        /// <param name="localID">Simulator-local ID of the primitive</param>
+        /// <param name="fullID">Full UUID of the primitive</param>
+        /// <returns>An existing or newly created <see cref="Primitive"/> instance</returns>
         protected Primitive GetPrimitive(Simulator simulator, uint localID, UUID fullID)
         {
             return GetPrimitive(simulator, localID, fullID, true);
         }
+
         /// <summary>
-        ///
+        /// Get or optionally create a tracked <see cref="Primitive"/> in the given simulator
         /// </summary>
-        /// <param name="simulator"></param>
-        /// <param name="localID"></param>
-        /// <param name="fullID"></param>
-        /// <param name="createIfMissing"></param>
-        /// <returns></returns>
+        /// <param name="simulator">The <see cref="Simulator"/> that contains the primitive</param>
+        /// <param name="localID">Simulator-local ID of the primitive</param>
+        /// <param name="fullID">Full UUID of the primitive</param>
+        /// <param name="createIfMissing">When true, a new <see cref="Primitive"/> is added to the
+        /// simulator's object list if one does not already exist; when false, returns null if not found</param>
+        /// <returns>The matching <see cref="Primitive"/>, a newly created one, or null if not found and
+        /// <paramref name="createIfMissing"/> is false</returns>
         public Primitive GetPrimitive(Simulator simulator, uint localID, UUID fullID, bool createIfMissing)
         {
             if (Client.Settings.World.TrackObjects)
@@ -2700,12 +2727,13 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        ///
+        /// Get or create a tracked <see cref="Avatar"/> in the given simulator
         /// </summary>
-        /// <param name="simulator"></param>
-        /// <param name="localID"></param>
-        /// <param name="fullID"></param>
-        /// <returns></returns>
+        /// <param name="simulator">The <see cref="Simulator"/> that contains the avatar</param>
+        /// <param name="localID">Simulator-local ID of the avatar</param>
+        /// <param name="fullID">Full UUID of the avatar</param>
+        /// <returns>An existing or newly added <see cref="Avatar"/> instance, or a transient
+        /// instance if avatar tracking is disabled</returns>
         protected Avatar GetAvatar(Simulator simulator, uint localID, UUID fullID)
         {
             if (!Client.Settings.World.TrackAvatars)
