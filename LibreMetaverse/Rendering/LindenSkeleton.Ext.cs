@@ -86,37 +86,22 @@ namespace LibreMetaverse.Rendering
     public partial class LindenSkeleton
    {
         /// <summary>
-        /// Load a skeleton from a given file.
+        /// Returns the built-in avatar skeleton baked from avatar_skeleton.xml at compile time.
         /// </summary>
-        /// <remarks>
-        /// We use xml schema validation on top of the xml de-serializer, since the schema has
-        /// some stricter checks than the de-serializer provides. E.g. the vector attributes
-        /// are guaranteed to hold only 3 float values. This reduces the need for error checking
-        /// while working with the loaded skeleton.
-        /// </remarks>
-        /// <returns>A valid recursive skeleton</returns>
-        public static LindenSkeleton Load()
-        {
-            return Load(null);
-        }
+        public static LindenSkeleton Load() => GetDefault();
 
         /// <summary>
-        /// Load a skeleton from a given file.
+        /// Load a skeleton from a file, or return the built-in default when <paramref name="fileName"/> is <c>null</c>.
         /// </summary>
-        /// <remarks>
-        /// We use xml schema validation on top of the xml de-serializer, since the schema has
-        /// some stricter checks than the de-serializer provides. E.g. the vector attributes
-        /// are guaranteed to hold only 3 float values. This reduces the need for error checking
-        /// while working with the loaded skeleton.
-        /// </remarks>
-        /// <param name="fileName">The path to the skeleton definition file</param>
-        /// <returns>A valid recursive skeleton</returns>
+        /// <param name="fileName">
+        /// Path to avatar_skeleton.xml, or <c>null</c> to use the compile-time default.
+        /// Pass an explicit path to load a custom skeleton (e.g. for OpenSim grids).
+        /// </param>
+        /// <returns>A valid recursive skeleton.</returns>
         public static LindenSkeleton Load(string? fileName)
         {
             if (fileName == null)
-                fileName = System.IO.Path.Combine(Settings.ResourceDir ?? string.Empty, "character", "avatar_skeleton.xml");
-
-            LindenSkeleton result;
+                return GetDefault();
 
             XmlReaderSettings readerSettings = new XmlReaderSettings
             {
@@ -126,13 +111,10 @@ namespace LibreMetaverse.Rendering
                 IgnoreProcessingInstructions = false,
                 DtdProcessing = DtdProcessing.Ignore
             };
-            using (FileStream skeletonData = new FileStream(fileName, FileMode.Open, FileAccess.Read))
-            using (XmlReader reader = XmlReader.Create(skeletonData, readerSettings))
-            {
-                XmlSerializer ser = new XmlSerializer(typeof(LindenSkeleton));
-                result = (LindenSkeleton?)ser.Deserialize(reader) ?? new LindenSkeleton();
-            }
-            return result;
+            using FileStream skeletonData = new FileStream(fileName, FileMode.Open, FileAccess.Read);
+            using XmlReader reader = XmlReader.Create(skeletonData, readerSettings);
+            XmlSerializer ser = new XmlSerializer(typeof(LindenSkeleton));
+            return (LindenSkeleton?)ser.Deserialize(reader) ?? new LindenSkeleton();
         }
 
         /// <summary>

@@ -49,6 +49,7 @@
     <ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
     <ProjectReference Include="..\SourceGenerators\PacketSourceGenerator\PacketSourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\SourceGenerators\VisualParamGenerator\VisualParamGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\SourceGenerators\SkeletonGenerator\SkeletonGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="linden\**" Pack="true">
@@ -61,5 +62,6 @@
   <ItemGroup>
     <AdditionalFiles Include="..\data\message_template.msg" />
     <AdditionalFiles Include="linden\character\avatar_lad.xml" />
+    <AdditionalFiles Include="linden\character\avatar_skeleton.xml" />
   </ItemGroup>
   </Project>
