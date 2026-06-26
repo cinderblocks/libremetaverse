@@ -27,7 +27,6 @@
 using System;
 using System.Collections.Generic;
 using LibreMetaverse.StructuredData;
-using System.Reflection;
 
 namespace LibreMetaverse
 {
@@ -587,22 +586,12 @@ namespace LibreMetaverse
 
         public new static Avatar FromOSD(OSD O)
         {
-
             OSDMap tex = (OSDMap)O;
 
             Avatar A = new Avatar();
-            
-            Primitive P = Primitive.FromOSD(O);
 
-            Type Prim = typeof(Primitive);
-
-            FieldInfo[] Fields = Prim.GetFields();
-
-            foreach (FieldInfo info in Fields)
-            {
-                Logger.Debug("Field Matched in FromOSD: "+info.Name);
-                info.SetValue(A, info.GetValue(P));
-            }            
+            // Populate all Primitive base-class fields without reflection
+            Primitive.PopulateFromOSD(A, O);
 
             A.Groups = new List<UUID>();
 

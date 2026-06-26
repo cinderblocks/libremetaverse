@@ -25,7 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System.Reflection;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 
 namespace LibreMetaverse
@@ -151,19 +151,47 @@ namespace LibreMetaverse
         /// <returns>A dictionary containing the pre-defined sounds, 
         /// where the key is the sounds ID, and the value is a string
         /// containing a name to identify the purpose of the sound</returns>
-        public static ImmutableDictionary<UUID, string> ToDictionary()
-        {
-            var dict = ImmutableDictionary.CreateBuilder<UUID, string>();
-            var type = typeof(Sounds);
-            foreach (FieldInfo field in type.GetFields(BindingFlags.Public | BindingFlags.Static))
+        public static ImmutableDictionary<UUID, string> ToDictionary() => _dictionary;
+
+        private static readonly ImmutableDictionary<UUID, string> _dictionary =
+            ImmutableDictionary.CreateRange(new[]
             {
-                var val = field.GetValue(type);
-                if (val is UUID id)
-                {
-                    dict.Add(id, field.Name);
-                }
-            }
-            return dict.ToImmutable();
-        }
+                new KeyValuePair<UUID, string>(BELL_TING, nameof(BELL_TING)),
+                new KeyValuePair<UUID, string>(CLICK, nameof(CLICK)),
+                new KeyValuePair<UUID, string>(HEALTH_REDUCTION_FEMALE, nameof(HEALTH_REDUCTION_FEMALE)),
+                new KeyValuePair<UUID, string>(HEALTH_REDUCTION_MALE, nameof(HEALTH_REDUCTION_MALE)),
+                new KeyValuePair<UUID, string>(IM_START, nameof(IM_START)),
+                new KeyValuePair<UUID, string>(INSTANT_MESSAGE_NOTIFICATION, nameof(INSTANT_MESSAGE_NOTIFICATION)),
+                new KeyValuePair<UUID, string>(INVALID_OPERATION, nameof(INVALID_OPERATION)),
+                new KeyValuePair<UUID, string>(KEYBOARD_LOOP, nameof(KEYBOARD_LOOP)),
+                new KeyValuePair<UUID, string>(MONEY_REDUCTION_COINS, nameof(MONEY_REDUCTION_COINS)),
+                new KeyValuePair<UUID, string>(MONEY_INCREASE_CASH_REGISTER_BELL, nameof(MONEY_INCREASE_CASH_REGISTER_BELL)),
+                new KeyValuePair<UUID, string>(NULL_KEYSTROKE, nameof(NULL_KEYSTROKE)),
+                new KeyValuePair<UUID, string>(OBJECT_COLLISION, nameof(OBJECT_COLLISION)),
+                new KeyValuePair<UUID, string>(OBJECT_COLLISION_RUBBER, nameof(OBJECT_COLLISION_RUBBER)),
+                new KeyValuePair<UUID, string>(OBJECT_COLLISION_PLASTIC, nameof(OBJECT_COLLISION_PLASTIC)),
+                new KeyValuePair<UUID, string>(OBJECT_COLLISION_FLESH, nameof(OBJECT_COLLISION_FLESH)),
+                new KeyValuePair<UUID, string>(OBJECT_COLLISION_WOOD_SPLINTERING, nameof(OBJECT_COLLISION_WOOD_SPLINTERING)),
+                new KeyValuePair<UUID, string>(OBJECT_COLLISION_GLASS_BREAK, nameof(OBJECT_COLLISION_GLASS_BREAK)),
+                new KeyValuePair<UUID, string>(OBJECT_COLLISION_METAL_CLUNK, nameof(OBJECT_COLLISION_METAL_CLUNK)),
+                new KeyValuePair<UUID, string>(OBJECT_CREATE_WHOOSH, nameof(OBJECT_CREATE_WHOOSH)),
+                new KeyValuePair<UUID, string>(OBJECT_DELETE_SHAKE, nameof(OBJECT_DELETE_SHAKE)),
+                new KeyValuePair<UUID, string>(OBJECT_REZ, nameof(OBJECT_REZ)),
+                new KeyValuePair<UUID, string>(PIE_MENU_APPEAR_DING, nameof(PIE_MENU_APPEAR_DING)),
+                new KeyValuePair<UUID, string>(PIE_MENU_SLICE_HIGHLIGHT, nameof(PIE_MENU_SLICE_HIGHLIGHT)),
+                new KeyValuePair<UUID, string>(PIE_MENU_SLICE_HIGHLIGHT1, nameof(PIE_MENU_SLICE_HIGHLIGHT1)),
+                new KeyValuePair<UUID, string>(PIE_MENU_SLICE_HIGHLIGHT2, nameof(PIE_MENU_SLICE_HIGHLIGHT2)),
+                new KeyValuePair<UUID, string>(PIE_MENU_SLICE_HIGHLIGHT3, nameof(PIE_MENU_SLICE_HIGHLIGHT3)),
+                new KeyValuePair<UUID, string>(PIE_MENU_SLICE_HIGHLIGHT4, nameof(PIE_MENU_SLICE_HIGHLIGHT4)),
+                new KeyValuePair<UUID, string>(PIE_MENU_SLICE_HIGHLIGHT5, nameof(PIE_MENU_SLICE_HIGHLIGHT5)),
+                new KeyValuePair<UUID, string>(PIE_MENU_SLICE_HIGHLIGHT6, nameof(PIE_MENU_SLICE_HIGHLIGHT6)),
+                new KeyValuePair<UUID, string>(PIE_MENU_SLICE_HIGHLIGHT7, nameof(PIE_MENU_SLICE_HIGHLIGHT7)),
+                new KeyValuePair<UUID, string>(SNAPSHOT, nameof(SNAPSHOT)),
+                new KeyValuePair<UUID, string>(TELEPORT_TEXTURE_APPLY, nameof(TELEPORT_TEXTURE_APPLY)),
+                new KeyValuePair<UUID, string>(THUNDER, nameof(THUNDER)),
+                new KeyValuePair<UUID, string>(WINDOW_CLOSE, nameof(WINDOW_CLOSE)),
+                new KeyValuePair<UUID, string>(WINDOW_OPEN, nameof(WINDOW_OPEN)),
+                new KeyValuePair<UUID, string>(ZIPPER, nameof(ZIPPER)),
+            });
     }
 }

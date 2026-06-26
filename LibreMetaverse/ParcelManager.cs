@@ -27,7 +27,6 @@
 
 using System;
 using System.Threading;
-using System.Reflection;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -585,9 +584,22 @@ namespace LibreMetaverse
         /// <returns>string containing key=value pairs of a parcel object</returns>
         public override string ToString()
         {
-            Type parcelType = this.GetType();
-            FieldInfo[] fields = parcelType.GetFields();
-            return fields.Aggregate("", (current, field) => current + (field.Name + " = " + field.GetValue(this) + " "));
+            return $"SelfCount = {SelfCount} OtherCount = {OtherCount} PublicCount = {PublicCount} " +
+                   $"LocalID = {LocalID} OwnerID = {OwnerID} IsGroupOwned = {IsGroupOwned} " +
+                   $"AuctionID = {AuctionID} ClaimDate = {ClaimDate} ClaimPrice = {ClaimPrice} " +
+                   $"RentPrice = {RentPrice} AABBMin = {AABBMin} AABBMax = {AABBMax} " +
+                   $"Area = {Area} Status = {Status} SimWideMaxPrims = {SimWideMaxPrims} " +
+                   $"SimWideTotalPrims = {SimWideTotalPrims} MaxPrims = {MaxPrims} TotalPrims = {TotalPrims} " +
+                   $"OwnerPrims = {OwnerPrims} GroupPrims = {GroupPrims} OtherPrims = {OtherPrims} " +
+                   $"ParcelPrimBonus = {ParcelPrimBonus} OtherCleanTime = {OtherCleanTime} Flags = {Flags} " +
+                   $"SalePrice = {SalePrice} Name = {Name} Desc = {Desc} MusicURL = {MusicURL} " +
+                   $"GroupID = {GroupID} PassPrice = {PassPrice} PassHours = {PassHours} " +
+                   $"Category = {Category} AuthBuyerID = {AuthBuyerID} SnapshotID = {SnapshotID} " +
+                   $"UserLocation = {UserLocation} UserLookAt = {UserLookAt} Landing = {Landing} " +
+                   $"Dwell = {Dwell} RegionDenyAnonymous = {RegionDenyAnonymous} " +
+                   $"RegionPushOverride = {RegionPushOverride} RegionDenyAgeUnverified = {RegionDenyAgeUnverified} " +
+                   $"ObscureMedia = {ObscureMedia} ObscureMusic = {ObscureMusic} " +
+                   $"SeeAVs = {SeeAVs} AnyAVSounds = {AnyAVSounds} GroupAVSounds = {GroupAVSounds} ";
         }
         /// <summary>
         /// Default constructor

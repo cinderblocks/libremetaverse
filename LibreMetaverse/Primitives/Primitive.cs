@@ -1172,9 +1172,18 @@ namespace LibreMetaverse
         public static Primitive FromOSD(OSD osd)
         {
             Primitive prim = new Primitive();
-            
+            PopulateFromOSD(prim, osd);
+            return prim;
+        }
+
+        /// <summary>
+        /// Populates an existing Primitive (or subclass) instance from an OSD map.
+        /// Called by FromOSD and Avatar.FromOSD to avoid reflection-based field copying.
+        /// </summary>
+        internal static void PopulateFromOSD(Primitive prim, OSD osd)
+        {
             if (!(osd is OSDMap map))
-                return prim; // not a map, return default
+                return;
 
             // Local helpers
             T GetOrDefault<T>(OSDMap? m, string key, Func<OSD, T> conv, T def)
@@ -1285,8 +1294,6 @@ namespace LibreMetaverse
             if (!string.IsNullOrEmpty(name)) prim.Properties.Name = name;
             string desc = GetOrDefault(map, "description", o => o.AsString(), string.Empty);
             if (!string.IsNullOrEmpty(desc)) prim.Properties.Description = desc;
-
-            return prim;
         }
 
         public int SetExtraParamsFromBytes(byte[] data, int pos)

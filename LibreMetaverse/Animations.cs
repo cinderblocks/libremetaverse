@@ -26,7 +26,7 @@
  */
 
 using System;
-using System.Reflection;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 
 namespace LibreMetaverse
@@ -313,20 +313,146 @@ namespace LibreMetaverse
         /// <returns>An immutable dictionary containing the pre-defined animations, 
         /// where the key is the animations ID, and the value is a string
         /// containing a name to identify the purpose of the animation</returns>
-        public static ImmutableDictionary<UUID, string> ToDictionary()
-        {
-            var builder = ImmutableDictionary.CreateBuilder<UUID, string>();
+        public static ImmutableDictionary<UUID, string> ToDictionary() => _dictionary;
 
-            Type type = typeof(Animations);
-            foreach (FieldInfo field in type.GetFields(BindingFlags.Public | BindingFlags.Static))
+        private static readonly ImmutableDictionary<UUID, string> _dictionary =
+            ImmutableDictionary.CreateRange(new[]
             {
-                var val = field.GetValue(type);
-                if (val is UUID id)
-                {
-                    builder.Add(id, field.Name);
-                }
-            }
-            return builder.ToImmutable();
-        }
+                new KeyValuePair<UUID, string>(AFRAID, nameof(AFRAID)),
+                new KeyValuePair<UUID, string>(AIM_BAZOOKA_R, nameof(AIM_BAZOOKA_R)),
+                new KeyValuePair<UUID, string>(AIM_BOW_L, nameof(AIM_BOW_L)),
+                new KeyValuePair<UUID, string>(AIM_HANDGUN_R, nameof(AIM_HANDGUN_R)),
+                new KeyValuePair<UUID, string>(AIM_RIFLE_R, nameof(AIM_RIFLE_R)),
+                new KeyValuePair<UUID, string>(ANGRY, nameof(ANGRY)),
+                new KeyValuePair<UUID, string>(AWAY, nameof(AWAY)),
+                new KeyValuePair<UUID, string>(BACKFLIP, nameof(BACKFLIP)),
+                new KeyValuePair<UUID, string>(BELLY_LAUGH, nameof(BELLY_LAUGH)),
+                new KeyValuePair<UUID, string>(BLOW_KISS, nameof(BLOW_KISS)),
+                new KeyValuePair<UUID, string>(BORED, nameof(BORED)),
+                new KeyValuePair<UUID, string>(BOW, nameof(BOW)),
+                new KeyValuePair<UUID, string>(BRUSH, nameof(BRUSH)),
+                new KeyValuePair<UUID, string>(BUSY, nameof(BUSY)),
+                new KeyValuePair<UUID, string>(CLAP, nameof(CLAP)),
+                new KeyValuePair<UUID, string>(COURTBOW, nameof(COURTBOW)),
+                new KeyValuePair<UUID, string>(CROUCH, nameof(CROUCH)),
+                new KeyValuePair<UUID, string>(CROUCHWALK, nameof(CROUCHWALK)),
+                new KeyValuePair<UUID, string>(CRY, nameof(CRY)),
+                new KeyValuePair<UUID, string>(CUSTOMIZE, nameof(CUSTOMIZE)),
+                new KeyValuePair<UUID, string>(CUSTOMIZE_DONE, nameof(CUSTOMIZE_DONE)),
+                new KeyValuePair<UUID, string>(DANCE1, nameof(DANCE1)),
+                new KeyValuePair<UUID, string>(DANCE2, nameof(DANCE2)),
+                new KeyValuePair<UUID, string>(DANCE3, nameof(DANCE3)),
+                new KeyValuePair<UUID, string>(DANCE4, nameof(DANCE4)),
+                new KeyValuePair<UUID, string>(DANCE5, nameof(DANCE5)),
+                new KeyValuePair<UUID, string>(DANCE6, nameof(DANCE6)),
+                new KeyValuePair<UUID, string>(DANCE7, nameof(DANCE7)),
+                new KeyValuePair<UUID, string>(DANCE8, nameof(DANCE8)),
+                new KeyValuePair<UUID, string>(DEAD, nameof(DEAD)),
+                new KeyValuePair<UUID, string>(DRINK, nameof(DRINK)),
+                new KeyValuePair<UUID, string>(EMBARRASSED, nameof(EMBARRASSED)),
+                new KeyValuePair<UUID, string>(EXPRESS_AFRAID, nameof(EXPRESS_AFRAID)),
+                new KeyValuePair<UUID, string>(EXPRESS_ANGER, nameof(EXPRESS_ANGER)),
+                new KeyValuePair<UUID, string>(EXPRESS_BORED, nameof(EXPRESS_BORED)),
+                new KeyValuePair<UUID, string>(EXPRESS_CRY, nameof(EXPRESS_CRY)),
+                new KeyValuePair<UUID, string>(EXPRESS_DISDAIN, nameof(EXPRESS_DISDAIN)),
+                new KeyValuePair<UUID, string>(EXPRESS_EMBARRASSED, nameof(EXPRESS_EMBARRASSED)),
+                new KeyValuePair<UUID, string>(EXPRESS_FROWN, nameof(EXPRESS_FROWN)),
+                new KeyValuePair<UUID, string>(EXPRESS_KISS, nameof(EXPRESS_KISS)),
+                new KeyValuePair<UUID, string>(EXPRESS_LAUGH, nameof(EXPRESS_LAUGH)),
+                new KeyValuePair<UUID, string>(EXPRESS_OPEN_MOUTH, nameof(EXPRESS_OPEN_MOUTH)),
+                new KeyValuePair<UUID, string>(EXPRESS_REPULSED, nameof(EXPRESS_REPULSED)),
+                new KeyValuePair<UUID, string>(EXPRESS_SAD, nameof(EXPRESS_SAD)),
+                new KeyValuePair<UUID, string>(EXPRESS_SHRUG, nameof(EXPRESS_SHRUG)),
+                new KeyValuePair<UUID, string>(EXPRESS_SMILE, nameof(EXPRESS_SMILE)),
+                new KeyValuePair<UUID, string>(EXPRESS_SURPRISE, nameof(EXPRESS_SURPRISE)),
+                new KeyValuePair<UUID, string>(EXPRESS_TONGUE_OUT, nameof(EXPRESS_TONGUE_OUT)),
+                new KeyValuePair<UUID, string>(EXPRESS_TOOTHSMILE, nameof(EXPRESS_TOOTHSMILE)),
+                new KeyValuePair<UUID, string>(EXPRESS_WINK, nameof(EXPRESS_WINK)),
+                new KeyValuePair<UUID, string>(EXPRESS_WORRY, nameof(EXPRESS_WORRY)),
+                new KeyValuePair<UUID, string>(FALLDOWN, nameof(FALLDOWN)),
+                new KeyValuePair<UUID, string>(FEMALE_WALK, nameof(FEMALE_WALK)),
+                new KeyValuePair<UUID, string>(FINGER_WAG, nameof(FINGER_WAG)),
+                new KeyValuePair<UUID, string>(FIST_PUMP, nameof(FIST_PUMP)),
+                new KeyValuePair<UUID, string>(FLY, nameof(FLY)),
+                new KeyValuePair<UUID, string>(FLYSLOW, nameof(FLYSLOW)),
+                new KeyValuePair<UUID, string>(HELLO, nameof(HELLO)),
+                new KeyValuePair<UUID, string>(HOLD_BAZOOKA_R, nameof(HOLD_BAZOOKA_R)),
+                new KeyValuePair<UUID, string>(HOLD_BOW_L, nameof(HOLD_BOW_L)),
+                new KeyValuePair<UUID, string>(HOLD_HANDGUN_R, nameof(HOLD_HANDGUN_R)),
+                new KeyValuePair<UUID, string>(HOLD_RIFLE_R, nameof(HOLD_RIFLE_R)),
+                new KeyValuePair<UUID, string>(HOLD_THROW_R, nameof(HOLD_THROW_R)),
+                new KeyValuePair<UUID, string>(HOVER, nameof(HOVER)),
+                new KeyValuePair<UUID, string>(HOVER_DOWN, nameof(HOVER_DOWN)),
+                new KeyValuePair<UUID, string>(HOVER_UP, nameof(HOVER_UP)),
+                new KeyValuePair<UUID, string>(IMPATIENT, nameof(IMPATIENT)),
+                new KeyValuePair<UUID, string>(JUMP, nameof(JUMP)),
+                new KeyValuePair<UUID, string>(JUMP_FOR_JOY, nameof(JUMP_FOR_JOY)),
+                new KeyValuePair<UUID, string>(KISS_MY_BUTT, nameof(KISS_MY_BUTT)),
+                new KeyValuePair<UUID, string>(LAND, nameof(LAND)),
+                new KeyValuePair<UUID, string>(LAUGH_SHORT, nameof(LAUGH_SHORT)),
+                new KeyValuePair<UUID, string>(MEDIUM_LAND, nameof(MEDIUM_LAND)),
+                new KeyValuePair<UUID, string>(MOTORCYCLE_SIT, nameof(MOTORCYCLE_SIT)),
+                new KeyValuePair<UUID, string>(MUSCLE_BEACH, nameof(MUSCLE_BEACH)),
+                new KeyValuePair<UUID, string>(NO, nameof(NO)),
+                new KeyValuePair<UUID, string>(NO_UNHAPPY, nameof(NO_UNHAPPY)),
+                new KeyValuePair<UUID, string>(NYAH_NYAH, nameof(NYAH_NYAH)),
+                new KeyValuePair<UUID, string>(ONETWO_PUNCH, nameof(ONETWO_PUNCH)),
+                new KeyValuePair<UUID, string>(PEACE, nameof(PEACE)),
+                new KeyValuePair<UUID, string>(POINT_ME, nameof(POINT_ME)),
+                new KeyValuePair<UUID, string>(POINT_YOU, nameof(POINT_YOU)),
+                new KeyValuePair<UUID, string>(PRE_JUMP, nameof(PRE_JUMP)),
+                new KeyValuePair<UUID, string>(PUNCH_LEFT, nameof(PUNCH_LEFT)),
+                new KeyValuePair<UUID, string>(PUNCH_RIGHT, nameof(PUNCH_RIGHT)),
+                new KeyValuePair<UUID, string>(REPULSED, nameof(REPULSED)),
+                new KeyValuePair<UUID, string>(ROUNDHOUSE_KICK, nameof(ROUNDHOUSE_KICK)),
+                new KeyValuePair<UUID, string>(RPS_COUNTDOWN, nameof(RPS_COUNTDOWN)),
+                new KeyValuePair<UUID, string>(RPS_PAPER, nameof(RPS_PAPER)),
+                new KeyValuePair<UUID, string>(RPS_ROCK, nameof(RPS_ROCK)),
+                new KeyValuePair<UUID, string>(RPS_SCISSORS, nameof(RPS_SCISSORS)),
+                new KeyValuePair<UUID, string>(RUN, nameof(RUN)),
+                new KeyValuePair<UUID, string>(SAD, nameof(SAD)),
+                new KeyValuePair<UUID, string>(SALUTE, nameof(SALUTE)),
+                new KeyValuePair<UUID, string>(SHOOT_BOW_L, nameof(SHOOT_BOW_L)),
+                new KeyValuePair<UUID, string>(SHOUT, nameof(SHOUT)),
+                new KeyValuePair<UUID, string>(SHRUG, nameof(SHRUG)),
+                new KeyValuePair<UUID, string>(SIT, nameof(SIT)),
+                new KeyValuePair<UUID, string>(SIT_FEMALE, nameof(SIT_FEMALE)),
+                new KeyValuePair<UUID, string>(SIT_GENERIC, nameof(SIT_GENERIC)),
+                new KeyValuePair<UUID, string>(SIT_GROUND, nameof(SIT_GROUND)),
+                new KeyValuePair<UUID, string>(SIT_GROUND_staticRAINED, nameof(SIT_GROUND_staticRAINED)),
+                new KeyValuePair<UUID, string>(SIT_TO_STAND, nameof(SIT_TO_STAND)),
+                new KeyValuePair<UUID, string>(SLEEP, nameof(SLEEP)),
+                new KeyValuePair<UUID, string>(SMOKE_IDLE, nameof(SMOKE_IDLE)),
+                new KeyValuePair<UUID, string>(SMOKE_INHALE, nameof(SMOKE_INHALE)),
+                new KeyValuePair<UUID, string>(SMOKE_THROW_DOWN, nameof(SMOKE_THROW_DOWN)),
+                new KeyValuePair<UUID, string>(SNAPSHOT, nameof(SNAPSHOT)),
+                new KeyValuePair<UUID, string>(STAND, nameof(STAND)),
+                new KeyValuePair<UUID, string>(STANDUP, nameof(STANDUP)),
+                new KeyValuePair<UUID, string>(STAND_1, nameof(STAND_1)),
+                new KeyValuePair<UUID, string>(STAND_2, nameof(STAND_2)),
+                new KeyValuePair<UUID, string>(STAND_3, nameof(STAND_3)),
+                new KeyValuePair<UUID, string>(STAND_4, nameof(STAND_4)),
+                new KeyValuePair<UUID, string>(STRETCH, nameof(STRETCH)),
+                new KeyValuePair<UUID, string>(STRIDE, nameof(STRIDE)),
+                new KeyValuePair<UUID, string>(SURF, nameof(SURF)),
+                new KeyValuePair<UUID, string>(SURPRISE, nameof(SURPRISE)),
+                new KeyValuePair<UUID, string>(SWORD_STRIKE, nameof(SWORD_STRIKE)),
+                new KeyValuePair<UUID, string>(TALK, nameof(TALK)),
+                new KeyValuePair<UUID, string>(TANTRUM, nameof(TANTRUM)),
+                new KeyValuePair<UUID, string>(THROW_R, nameof(THROW_R)),
+                new KeyValuePair<UUID, string>(TRYON_SHIRT, nameof(TRYON_SHIRT)),
+                new KeyValuePair<UUID, string>(TURNLEFT, nameof(TURNLEFT)),
+                new KeyValuePair<UUID, string>(TURNRIGHT, nameof(TURNRIGHT)),
+                new KeyValuePair<UUID, string>(TYPE, nameof(TYPE)),
+                new KeyValuePair<UUID, string>(WALK, nameof(WALK)),
+                new KeyValuePair<UUID, string>(WHISPER, nameof(WHISPER)),
+                new KeyValuePair<UUID, string>(WHISTLE, nameof(WHISTLE)),
+                new KeyValuePair<UUID, string>(WINK, nameof(WINK)),
+                new KeyValuePair<UUID, string>(WINK_HOLLYWOOD, nameof(WINK_HOLLYWOOD)),
+                new KeyValuePair<UUID, string>(WORRY, nameof(WORRY)),
+                new KeyValuePair<UUID, string>(YES, nameof(YES)),
+                new KeyValuePair<UUID, string>(YES_HAPPY, nameof(YES_HAPPY)),
+                new KeyValuePair<UUID, string>(YOGA_FLOAT, nameof(YOGA_FLOAT)),
+            });
     }
 }

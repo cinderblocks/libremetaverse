@@ -615,6 +615,7 @@ namespace LibreMetaverse
         ///}
         /// </code>
         /// </example>
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Uses runtime reflection to enumerate struct fields. Not AOT-safe. Consider an explicit ToString() override instead.")]
         public static string StructToString(object t)
         {
             StringBuilder result = new StringBuilder();
