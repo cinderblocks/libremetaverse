@@ -32,6 +32,7 @@
     <PackageReference Include="Microsoft.Extensions.ObjectPool" />
     <PackageReference Include="OggVorbisEncoder" />
     <PackageReference Include="Pfim" />
+    <PackageReference Include="System.Collections.Immutable" />
     <PackageReference Include="System.Threading.Channels" />
     <PackageReference Include="System.Threading.RateLimiting" />
     <PackageReference Include="zlib.net-mutliplatform" />
