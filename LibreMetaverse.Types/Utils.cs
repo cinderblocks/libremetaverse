@@ -51,17 +51,6 @@ namespace LibreMetaverse
             OSX
         }
 
-        /// <summary>
-        /// Runtime platform
-        /// </summary>
-        public enum Runtime
-        {
-            /// <summary>.NET runtime</summary>
-            Windows,
-            /// <summary>Mono runtime: http://www.mono-project.com/</summary>
-            Mono
-        }
-
         public const float E = (float)Math.E;
         public const float LOG10E = 0.4342945f;
         public const float LOG2E = 1.442695f;
@@ -449,16 +438,6 @@ namespace LibreMetaverse
             }
             return System.IO.File.Exists(OSX_CHECK_FILE)
                 ? Platform.OSX : Platform.Linux;
-        }
-
-        /// <summary>
-        /// Get the current running runtime
-        /// </summary>
-        /// <returns>Enumeration of the current runtime we are running on</returns>
-        public static Runtime GetRunningRuntime()
-        {
-            Type? t = Type.GetType("Mono.Runtime");
-            return t != null ? Runtime.Mono : Runtime.Windows;
         }
 
         #endregion Platform

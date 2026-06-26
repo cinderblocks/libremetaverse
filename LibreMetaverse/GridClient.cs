@@ -29,6 +29,7 @@ using System;
 using System.Net;
 using System.Net.Http;
 using System.Net.Security;
+using System.Runtime.InteropServices;
 #if NET8_0_OR_GREATER
 using System.Threading.Tasks;
 #endif
@@ -186,8 +187,10 @@ namespace LibreMetaverse
                 }
             };
 
-            if (Utils.GetRunningRuntime() != Utils.Runtime.Mono)
+            if (!RuntimeInformation.FrameworkDescription.StartsWith("mono", StringComparison.OrdinalIgnoreCase))
+            {
                 handler.MaxConnectionsPerServer = Settings.MaxHttpConnections;
+            }
 
             var rateLimitingHandler = new RateLimitingCapsHandler(CapsRateLimiter, handler);
             HttpCapsClient client = new HttpCapsClient(rateLimitingHandler);
