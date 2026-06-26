@@ -535,7 +535,7 @@ namespace LibreMetaverse
         /// <param name="uuid">The unique identifier of the item to retrieve.</param>
         /// <param name="item">When this method returns <c>true</c>, contains the <see cref="InventoryBase"/> item if found; otherwise, <c>null</c>.</param>
         /// <returns><c>true</c> if a node with the specified UUID exists; otherwise, <c>false</c>.</returns>
-        public bool TryGetValue(UUID uuid, out InventoryBase? item)
+        public bool TryGetValue(UUID uuid, [NotNullWhen(true)] out InventoryBase? item)
         {
             if (TryGetNodeFor(uuid, out var node))
             {
@@ -557,7 +557,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Attempts to retrieve an item of type <typeparamref name="T"/> associated with the specified UUID.
         /// </summary>
-        public bool TryGetValue<T>(UUID uuid, out T? item) where T : class
+        public bool TryGetValue<T>(UUID uuid, [NotNullWhen(true)] out T? item) where T : class
         {
             if (TryGetNodeFor(uuid, out var node) && node!.Data is T requestedItem)
             {
