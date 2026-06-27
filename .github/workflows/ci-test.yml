@@ -109,7 +109,6 @@ jobs:
           -f net9.0
           -r linux-x64
           --self-contained
-          /p:PublishAot=true
 
   test-net48:
     name: Test (.NET Framework 4.8.1)
