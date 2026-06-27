@@ -140,29 +140,29 @@ namespace TreesGenerator
             sb.AppendLine();
 
             sb.AppendLine("    /// <summary>Parameters for a single Linden tree species from trees.xml.</summary>");
-            sb.AppendLine("    public struct TreeDefinition");
+            sb.AppendLine("    public readonly struct TreeDefinition");
             sb.AppendLine("    {");
-            sb.AppendLine("        public string Name;");
-            sb.AppendLine("        public int SpeciesId;");
-            sb.AppendLine("        public UUID TextureId;");
-            sb.AppendLine("        public float Droop;");
-            sb.AppendLine("        public float Twist;");
-            sb.AppendLine("        public float Branches;");
-            sb.AppendLine("        public int Depth;");
-            sb.AppendLine("        public float ScaleStep;");
-            sb.AppendLine("        public float TrunkDepth;");
-            sb.AppendLine("        public float BranchLength;");
-            sb.AppendLine("        public float TrunkLength;");
-            sb.AppendLine("        public float LeafScale;");
-            sb.AppendLine("        public float BillboardScale;");
-            sb.AppendLine("        public float BillboardRatio;");
-            sb.AppendLine("        public float TrunkAspect;");
-            sb.AppendLine("        public float BranchAspect;");
-            sb.AppendLine("        public float LeafRotate;");
-            sb.AppendLine("        public float NoiseMag;");
-            sb.AppendLine("        public float NoiseScale;");
-            sb.AppendLine("        public float Taper;");
-            sb.AppendLine("        public int RepeatZ;");
+            sb.AppendLine("        public string Name { get; init; }");
+            sb.AppendLine("        public int SpeciesId { get; init; }");
+            sb.AppendLine("        public UUID TextureId { get; init; }");
+            sb.AppendLine("        public float Droop { get; init; }");
+            sb.AppendLine("        public float Twist { get; init; }");
+            sb.AppendLine("        public float Branches { get; init; }");
+            sb.AppendLine("        public int Depth { get; init; }");
+            sb.AppendLine("        public float ScaleStep { get; init; }");
+            sb.AppendLine("        public float TrunkDepth { get; init; }");
+            sb.AppendLine("        public float BranchLength { get; init; }");
+            sb.AppendLine("        public float TrunkLength { get; init; }");
+            sb.AppendLine("        public float LeafScale { get; init; }");
+            sb.AppendLine("        public float BillboardScale { get; init; }");
+            sb.AppendLine("        public float BillboardRatio { get; init; }");
+            sb.AppendLine("        public float TrunkAspect { get; init; }");
+            sb.AppendLine("        public float BranchAspect { get; init; }");
+            sb.AppendLine("        public float LeafRotate { get; init; }");
+            sb.AppendLine("        public float NoiseMag { get; init; }");
+            sb.AppendLine("        public float NoiseScale { get; init; }");
+            sb.AppendLine("        public float Taper { get; init; }");
+            sb.AppendLine("        public int RepeatZ { get; init; }");
             sb.AppendLine("    }");
             sb.AppendLine();
 
@@ -209,7 +209,7 @@ namespace TreesGenerator
             sb.AppendLine("        };");
             sb.AppendLine();
             sb.AppendLine("        /// <summary>Returns the definition for the given tree species.</summary>");
-            sb.AppendLine("        public static ref TreeDefinition Get(Tree species) => ref All[(byte)species];");
+            sb.AppendLine("        public static ref readonly TreeDefinition Get(Tree species) => ref All[(byte)species];");
             sb.AppendLine("    }");
             sb.AppendLine("}");
 
@@ -244,13 +244,13 @@ namespace TreesGenerator
             sb.AppendLine();
 
             sb.AppendLine("    /// <summary>Parameters for a single Linden grass species from grass.xml.</summary>");
-            sb.AppendLine("    public struct GrassDefinition");
+            sb.AppendLine("    public readonly struct GrassDefinition");
             sb.AppendLine("    {");
-            sb.AppendLine("        public string Name;");
-            sb.AppendLine("        public int SpeciesId;");
-            sb.AppendLine("        public UUID TextureId;");
-            sb.AppendLine("        public float BladeSizeX;");
-            sb.AppendLine("        public float BladeSizeY;");
+            sb.AppendLine("        public string Name { get; init; }");
+            sb.AppendLine("        public int SpeciesId { get; init; }");
+            sb.AppendLine("        public UUID TextureId { get; init; }");
+            sb.AppendLine("        public float BladeSizeX { get; init; }");
+            sb.AppendLine("        public float BladeSizeY { get; init; }");
             sb.AppendLine("    }");
             sb.AppendLine();
 
@@ -276,7 +276,7 @@ namespace TreesGenerator
             sb.AppendLine("        };");
             sb.AppendLine();
             sb.AppendLine("        /// <summary>Returns the definition for the given grass species.</summary>");
-            sb.AppendLine("        public static ref GrassDefinition Get(Grass species) => ref All[(byte)species];");
+            sb.AppendLine("        public static ref readonly GrassDefinition Get(Grass species) => ref All[(byte)species];");
             sb.AppendLine("    }");
             sb.AppendLine("}");
 

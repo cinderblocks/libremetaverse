@@ -519,6 +519,35 @@ namespace LibreMetaverse
         }
 
         /// <summary>
+        /// Blends the currently loaded wearable visual params toward those of <paramref name="archetype"/>
+        /// by weight <paramref name="t"/> (0 = no change, 1 = full archetype values), then triggers a rebake.
+        /// This mirrors <c>LLVOAvatar::randomizeEverything()</c> in the SL viewer, which interpolates
+        /// between two archetypes rather than snapping to one.
+        /// </summary>
+        public Task BlendToArchetype(GenepoolArchetype archetype, float t)
+        {
+            if (t <= 0f) return Task.CompletedTask;
+            t = Math.Min(t, 1f);
+
+            lock (Wearables)
+            {
+                foreach (var wearableList in Wearables.Values)
+                {
+                    foreach (var wearable in wearableList)
+                    {
+                        if (wearable.Asset == null) continue;
+                        foreach (var param in archetype.Params)
+                        {
+                            if (!wearable.Asset.Params.TryGetValue(param.Id, out var current)) continue;
+                            wearable.Asset.Params[param.Id] = current + t * (param.Value - current);
+                        }
+                    }
+                }
+            }
+            return RequestSetAppearance(true);
+        }
+
+        /// <summary>
         /// Picks a random archetype from <see cref="Genepool.Archetypes"/> and applies it.
         /// </summary>
         public Task RandomizeAppearance(Random? rng = null)

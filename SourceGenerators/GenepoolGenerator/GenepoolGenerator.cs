@@ -95,19 +95,19 @@ namespace GenepoolGenerator
             sb.AppendLine("{");
 
             sb.AppendLine("    /// <summary>A single visual parameter value within a genepool archetype.</summary>");
-            sb.AppendLine("    public struct ArchetypeParam");
+            sb.AppendLine("    public readonly struct ArchetypeParam");
             sb.AppendLine("    {");
-            sb.AppendLine("        public int Id;");
-            sb.AppendLine("        public string Name;");
-            sb.AppendLine("        public float Value;");
+            sb.AppendLine("        public int Id { get; init; }");
+            sb.AppendLine("        public string Name { get; init; }");
+            sb.AppendLine("        public float Value { get; init; }");
             sb.AppendLine("    }");
             sb.AppendLine();
 
             sb.AppendLine("    /// <summary>A named set of visual parameter values representing an avatar body archetype.</summary>");
-            sb.AppendLine("    public struct GenepoolArchetype");
+            sb.AppendLine("    public readonly struct GenepoolArchetype");
             sb.AppendLine("    {");
-            sb.AppendLine("        public string Name;");
-            sb.AppendLine("        public ArchetypeParam[] Params;");
+            sb.AppendLine("        public string Name { get; init; }");
+            sb.AppendLine("        public ArchetypeParam[] Params { get; init; }");
             sb.AppendLine("    }");
             sb.AppendLine();
 
@@ -143,6 +143,17 @@ namespace GenepoolGenerator
             }
 
             sb.AppendLine("        };");
+            sb.AppendLine();
+            sb.AppendLine("        /// <summary>Returns the index of the archetype with the given name, or -1 if not found.</summary>");
+            sb.AppendLine("        public static int FindIndex(string name)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            for (int i = 0; i < Archetypes.Length; i++)");
+            sb.AppendLine("                if (Archetypes[i].Name == name) return i;");
+            sb.AppendLine("            return -1;");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        /// <summary>Returns a reference to the archetype at the given index.</summary>");
+            sb.AppendLine("        public static ref readonly GenepoolArchetype Get(int index) => ref Archetypes[index];");
             sb.AppendLine("    }");
             sb.AppendLine("}");
 

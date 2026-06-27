@@ -153,24 +153,24 @@ namespace AttentionsGenerator
 
             // AttentionData struct
             sb.AppendLine("    /// <summary>Priority and timeout for a single avatar attention (look-at) event.</summary>");
-            sb.AppendLine("    public struct AttentionData");
+            sb.AppendLine("    public readonly struct AttentionData");
             sb.AppendLine("    {");
             sb.AppendLine("        /// <summary>Priority of this attention relative to others; higher wins.</summary>");
-            sb.AppendLine("        public float Priority;");
+            sb.AppendLine("        public float Priority { get; init; }");
             sb.AppendLine("        /// <summary>Duration in seconds before reverting to idle. Negative means no timeout.</summary>");
-            sb.AppendLine("        public float Timeout;");
+            sb.AppendLine("        public float Timeout { get; init; }");
             sb.AppendLine("    }");
             sb.AppendLine();
 
             // AttentionSet struct
             sb.AppendLine("    /// <summary>Attention parameters for one avatar gender, indexed by <see cref=\"LookAtType\"/>.</summary>");
-            sb.AppendLine("    public struct AttentionSet");
+            sb.AppendLine("    public readonly struct AttentionSet");
             sb.AppendLine("    {");
-            sb.AppendLine("        public string Name;");
+            sb.AppendLine("        public string Name { get; init; }");
             sb.AppendLine("        /// <summary>Entries indexed by <c>(byte)LookAtType</c>. None and Clear slots are zero-initialized.</summary>");
-            sb.AppendLine("        public AttentionData[] Entries;");
+            sb.AppendLine("        public AttentionData[] Entries { get; init; }");
             sb.AppendLine("        /// <summary>Returns the attention data for the given look-at type.</summary>");
-            sb.AppendLine("        public ref AttentionData Get(LookAtType type) => ref Entries[(byte)type];");
+            sb.AppendLine("        public ref readonly AttentionData Get(LookAtType type) => ref Entries[(byte)type];");
             sb.AppendLine("    }");
             sb.AppendLine();
 
@@ -183,6 +183,15 @@ namespace AttentionsGenerator
             sb.AppendLine();
             sb.AppendLine("        /// <summary>Updated attention parameters with refined conversation/select/focus tuning (attentionsN.xml).</summary>");
             EmitSet(sb, "Updated", updatedText);
+            sb.AppendLine();
+            sb.AppendLine("        /// <summary>Default masculine (attentions.xml) attention parameters.</summary>");
+            sb.AppendLine("        public static ref readonly AttentionSet DefaultMasculine => ref Default[0];");
+            sb.AppendLine("        /// <summary>Default feminine (attentions.xml) attention parameters.</summary>");
+            sb.AppendLine("        public static ref readonly AttentionSet DefaultFeminine => ref Default[1];");
+            sb.AppendLine("        /// <summary>Updated masculine (attentionsN.xml) attention parameters.</summary>");
+            sb.AppendLine("        public static ref readonly AttentionSet UpdatedMasculine => ref Updated[0];");
+            sb.AppendLine("        /// <summary>Updated feminine (attentionsN.xml) attention parameters.</summary>");
+            sb.AppendLine("        public static ref readonly AttentionSet UpdatedFeminine => ref Updated[1];");
             sb.AppendLine("    }");
             sb.AppendLine("}");
 
