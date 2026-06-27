@@ -829,6 +829,20 @@ namespace LibreMetaverse
         /// <summary>Foliage type for this primitive. Only applicable if this
         /// primitive is foliage</summary>
         public Tree TreeSpecies;
+        /// <summary>Returns the procedural rendering parameters for this tree's species.
+        /// Only meaningful when <see cref="ConstructionData.PCode"/> is
+        /// <see cref="PCode.Tree"/> or <see cref="PCode.NewTree"/>.</summary>
+        public TreeDefinition GetTreeDefinition() => TreeDefinitions.Get(TreeSpecies);
+        /// <summary>Grass species when <see cref="ConstructionData.PCode"/> is <see cref="PCode.Grass"/>.
+        /// The SL viewer stores the grass species in the object State byte, not in the tree extra-data byte.</summary>
+        public Grass GrassSpecies
+        {
+            get => (Grass)PrimData.State;
+            set => PrimData.State = (byte)value;
+        }
+        /// <summary>Returns the rendering parameters for this grass prim's species.
+        /// Only meaningful when <see cref="ConstructionData.PCode"/> is <see cref="PCode.Grass"/>.</summary>
+        public GrassDefinition GetGrassDefinition() => GrassDefinitions.Get(GrassSpecies);
         /// <summary>Unknown</summary>
         public byte[] ScratchPad;
         /// <summary></summary>

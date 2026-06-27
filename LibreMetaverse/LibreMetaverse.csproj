@@ -51,9 +51,12 @@
   <ItemGroup>
     <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
     <ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
+    <ProjectReference Include="..\SourceGenerators\AttentionsGenerator\AttentionsGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\SourceGenerators\GenepoolGenerator\GenepoolGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\SourceGenerators\PacketSourceGenerator\PacketSourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\SourceGenerators\VisualParamGenerator\VisualParamGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\SourceGenerators\SkeletonGenerator\SkeletonGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\SourceGenerators\TreesGenerator\TreesGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\SourceGenerators\VisualParamGenerator\VisualParamGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="linden\**" Pack="true">
@@ -65,7 +68,12 @@
   </ItemGroup>
   <ItemGroup>
     <AdditionalFiles Include="..\data\message_template.msg" />
+    <AdditionalFiles Include="linden\character\attentions.xml" />
+    <AdditionalFiles Include="linden\character\attentionsN.xml" />
     <AdditionalFiles Include="linden\character\avatar_lad.xml" />
     <AdditionalFiles Include="linden\character\avatar_skeleton.xml" />
+    <AdditionalFiles Include="linden\character\genepool.xml" />
+    <AdditionalFiles Include="linden\grass.xml" />
+    <AdditionalFiles Include="linden\trees.xml" />
   </ItemGroup>
   </Project>

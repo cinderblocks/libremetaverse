@@ -145,22 +145,6 @@ namespace LibreMetaverse
         PointAt
     }
 
-    public enum LookAtType : byte
-    {
-        None,
-        Idle,
-        AutoListen,
-        FreeLook,
-        Respond,
-        Hover,
-        [Obsolete]
-        Conversation,
-        Select,
-        Focus,
-        Mouselook,
-        Clear
-    }
-
     public enum PointAtType : byte
     {
         None,

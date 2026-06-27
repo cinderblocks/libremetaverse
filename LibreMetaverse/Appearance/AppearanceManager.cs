@@ -492,6 +492,41 @@ namespace LibreMetaverse
             return result;
         }
 
+        /// <summary>
+        /// Applies a genepool archetype to the currently loaded wearables by writing each
+        /// archetype param into whichever wearable asset owns that param ID, then triggers
+        /// a full rebake. Wearable assets must already be downloaded; call
+        /// <see cref="RequestSetAppearance"/> after wearing a new outfit before calling this.
+        /// </summary>
+        public Task ApplyArchetype(GenepoolArchetype archetype)
+        {
+            lock (Wearables)
+            {
+                foreach (var wearableList in Wearables.Values)
+                {
+                    foreach (var wearable in wearableList)
+                    {
+                        if (wearable.Asset == null) continue;
+                        foreach (var param in archetype.Params)
+                        {
+                            if (wearable.Asset.Params.ContainsKey(param.Id))
+                                wearable.Asset.Params[param.Id] = param.Value;
+                        }
+                    }
+                }
+            }
+            return RequestSetAppearance(true);
+        }
+
+        /// <summary>
+        /// Picks a random archetype from <see cref="Genepool.Archetypes"/> and applies it.
+        /// </summary>
+        public Task RandomizeAppearance(Random? rng = null)
+        {
+            rng ??= new Random();
+            return ApplyArchetype(Genepool.Archetypes[rng.Next(Genepool.Archetypes.Length)]);
+        }
+
         #endregion Properties
 
         #region Private Members
