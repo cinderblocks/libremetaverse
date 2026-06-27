@@ -26,6 +26,7 @@
  */
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -103,6 +104,7 @@ namespace LibreMetaverse
             return map;
         }
 
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "StructToString is a debug helper; reflection loss is acceptable here.")]
         public override string ToString()
         {
             return Helpers.StructToString(this);

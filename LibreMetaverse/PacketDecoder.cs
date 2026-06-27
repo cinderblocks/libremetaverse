@@ -38,8 +38,9 @@ namespace LibreMetaverse.Packets
     public static class PacketDecoder
     {
         
-        private static readonly Lazy<Dictionary<string, Func<string, object, string>>> Callbacks =
-            new Lazy<Dictionary<string, Func<string, object, string>>>(() =>
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026",
+            Justification = "PacketDecoder is a debug-only facility; all delegate targets are intentionally reflection-based.")]
+        private static Dictionary<string, Func<string, object, string>> CreateCallbacks() =>
             new Dictionary<string, Func<string, object, string>>
             {
                 {"Color", DecodeColorField},
@@ -163,7 +164,12 @@ namespace LibreMetaverse.Packets
                 {"LayerData.LayerID.Type", DecodeLayerDataType},
 
                 {"GroupPowers", DecodeGroupPowers}
-            });
+            };
+
+#pragma warning disable IL2026
+        private static readonly Lazy<Dictionary<string, Func<string, object, string>>> Callbacks =
+            new Lazy<Dictionary<string, Func<string, object, string>>>(CreateCallbacks);
+#pragma warning restore IL2026
 
         #region Custom Decoders
 
@@ -258,6 +264,7 @@ namespace LibreMetaverse.Packets
             return result.ToString();
         }
 
+        [RequiresUnreferencedCode("Calls reflection-based sub-decoders (DecodeTextureEntry, DecodeObjectParticleSystem, etc). Not AOT-safe.")]
         private static string DecodeObjectCompressedData(string fieldName, object fieldData)
         {
             StringBuilder result = new StringBuilder();
@@ -1266,6 +1273,7 @@ namespace LibreMetaverse.Packets
         /// Helper: StringBuilder result - internal method for DecodeTextureEntry and DecodeTerseTextureEntry
         /// </summary>
         /// <param name="te"></param>
+        [RequiresUnreferencedCode("Calls GenericFieldsDecoder/GenericPropertiesDecoder which use reflection. Not AOT-safe.")]
         private static string _DecodeTextureEntryStringBuilder(ref Primitive.TextureEntry te)
         {
             var result = new StringBuilder(); // @todo: use of capacity for StringBuilder (in general) ??

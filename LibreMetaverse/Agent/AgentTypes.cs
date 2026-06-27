@@ -26,6 +26,7 @@
  */
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace LibreMetaverse
 {
@@ -362,6 +363,7 @@ namespace LibreMetaverse
         public InstantMessageOnline Offline;
         public byte[] BinaryBucket;
 
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "StructToString is a debug helper; reflection loss is acceptable here.")]
         public override string ToString()
         {
             return Helpers.StructToString(this);

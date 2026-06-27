@@ -82,6 +82,35 @@ jobs:
             **/*.trx
             **/coverage*.xml
 
+  aot-validate:
+    name: AOT publish validation
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install native AOT prerequisites
+        run: sudo apt-get install -y clang zlib1g-dev
+
+      - name: Restore
+        run: dotnet restore LibreMetaverse/LibreMetaverse.csproj
+
+      - name: AOT publish (linux-x64, net9.0)
+        run: >
+          dotnet publish LibreMetaverse/LibreMetaverse.csproj
+          -c Release
+          -f net9.0
+          -r linux-x64
+          --self-contained
+          /p:PublishAot=true
+
   test-net48:
     name: Test (.NET Framework 4.8.1)
     runs-on: windows-2022

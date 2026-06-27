@@ -522,12 +522,13 @@ namespace LibreMetaverse
             if (searchPath != null)
             {
                 Assembly gea = Assembly.GetEntryAssembly() ?? typeof(Helpers).Assembly;
-                string dirname = ".";
-                if (gea.Location != null)
-                {
-                    var baseDir = Path.GetDirectoryName(gea.Location) ?? ".";
-                    dirname = Path.Combine(baseDir, searchPath);
-                }
+#pragma warning disable IL3000 // Location returns empty string in single-file/AOT; we handle that below
+                var loc = gea.Location;
+#pragma warning restore IL3000
+                var baseDir = string.IsNullOrEmpty(loc)
+                    ? AppContext.BaseDirectory
+                    : Path.GetDirectoryName(loc) ?? AppContext.BaseDirectory;
+                string dirname = Path.Combine(baseDir, searchPath);
 
                 string filename = Path.Combine(dirname, resourceName);
                 try

@@ -393,7 +393,9 @@ namespace LibreMetaverse
             var type = value.GetType();
             var name = Enum.GetName(type, value);
             if (name == null) { return string.Empty; }
+#pragma warning disable IL2075 // Enum members are preserved by the trimmer; GetMember is safe here.
             var mem = type.GetMember(name);
+#pragma warning restore IL2075
             if (mem.Length <= 0) { return string.Empty; }
 
             var attrs = mem[0].GetCustomAttributes(typeof(EnumInfoAttribute), false);

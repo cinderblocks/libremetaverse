@@ -27,6 +27,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using LibreMetaverse.Packets;
 using LibreMetaverse.Interfaces;
@@ -273,6 +274,7 @@ namespace LibreMetaverse
 
             /// <summary>Print the struct data as a string</summary>
             /// <returns>A string containing the field name, and field value</returns>
+            [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "StructToString is a debug helper; reflection loss is acceptable here.")]
             public override string ToString()
             {
                 return Helpers.StructToString(this);
@@ -306,6 +308,7 @@ namespace LibreMetaverse
 
             /// <summary>Print the struct data as a string</summary>
             /// <returns>A string containing the field name, and field value</returns>
+            [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "StructToString is a debug helper; reflection loss is acceptable here.")]
             public override string ToString()
             {
                 return Helpers.StructToString(this);
@@ -329,6 +332,7 @@ namespace LibreMetaverse
 
             /// <summary>Print the struct data as a string</summary>
             /// <returns>A string containing the field name, and field value</returns>
+            [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "StructToString is a debug helper; reflection loss is acceptable here.")]
             public override string ToString()
             {
                 return Helpers.StructToString(this);
@@ -349,6 +353,7 @@ namespace LibreMetaverse
 
             /// <summary>Print the struct data as a string</summary>
             /// <returns>A string containing the field name, and field value</returns>
+            [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "StructToString is a debug helper; reflection loss is acceptable here.")]
             public override string ToString()
             {
                 return Helpers.StructToString(this);
@@ -421,6 +426,7 @@ namespace LibreMetaverse
 
             /// <summary>Print the struct data as a string</summary>
             /// <returns>A string containing the field name, and field value</returns>
+            [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "StructToString is a debug helper; reflection loss is acceptable here.")]
             public override string ToString()
             {
                 return Helpers.StructToString(this);
@@ -447,6 +453,7 @@ namespace LibreMetaverse
 
             /// <summary>Print the struct data as a string</summary>
             /// <returns>A string containing the field name, and field value</returns>
+            [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "StructToString is a debug helper; reflection loss is acceptable here.")]
             public override string ToString()
             {
                 return Helpers.StructToString(this);
@@ -496,6 +503,7 @@ namespace LibreMetaverse
 
             /// <summary>Print the struct data as a string</summary>
             /// <returns>A string containing the field name, and field value</returns>
+            [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026", Justification = "StructToString is a debug helper; reflection loss is acceptable here.")]
             public override string ToString()
             {
                 return Helpers.StructToString(this);

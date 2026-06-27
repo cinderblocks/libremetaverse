@@ -26,7 +26,6 @@
  */
 
 using System;
-using System.Reflection;
 using Microsoft.Extensions.Logging;
 using System.Threading;
 using System.Threading.Tasks;
@@ -73,7 +72,7 @@ namespace LibreMetaverse
                 try
                 {
                     _loggerFactory = CreateDefaultConsoleLoggerFactory();
-                    _logger = _loggerFactory.CreateLogger(MethodBase.GetCurrentMethod()?.DeclaringType?.FullName ?? "LibreMetaverse");
+                    _logger = _loggerFactory.CreateLogger(typeof(Logger).FullName ?? "LibreMetaverse");
                     if (Settings.LogLevel != LogLevel.None)
                     {
                         _logger.LogInformation("Default console logger initialized");

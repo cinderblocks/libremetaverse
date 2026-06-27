@@ -163,7 +163,11 @@ namespace LibreMetaverse
 
             var limiters = new Dictionary<CapsCategory, RateLimiter>();
             var defaultOpts = opts[CapsCategory.Default];
+#if NET5_0_OR_GREATER
+            foreach (CapsCategory cat in Enum.GetValues<CapsCategory>())
+#else
             foreach (CapsCategory cat in Enum.GetValues(typeof(CapsCategory)))
+#endif
                 limiters[cat] = CreateLimiter(opts.TryGetValue(cat, out var o) ? o : defaultOpts);
 
             _limiters = limiters;

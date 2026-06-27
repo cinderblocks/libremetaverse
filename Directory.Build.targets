@@ -1,0 +1,9 @@
+<Project>
+	<!-- OutputType and IsTestProject are resolved by the time .targets is evaluated. -->
+	<PropertyGroup Condition="'$(OutputType)' == 'Library' And '$(IsTestProject)' != 'true'">
+		<IsAotCompatible>true</IsAotCompatible>
+	</PropertyGroup>
+	<ItemGroup Condition="'$(OutputType)' == 'Library' And '$(IsTestProject)' != 'true'">
+		<PackageReference Include="Microsoft.NET.ILLink.Tasks" PrivateAssets="all" />
+	</ItemGroup>
+</Project>

@@ -449,7 +449,7 @@ namespace LibreMetaverse
                     NextMethod = adapter.GetString(Keys.NextMethod);
 
                     var opts = adapter.GetArrayList(Keys.NextOptions);
-                    if (opts != null) NextOptions = (string[])opts.ToArray(typeof(string));
+                    if (opts != null) NextOptions = opts.Cast<string>().ToArray();
                 }
             }
         }
