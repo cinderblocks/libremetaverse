@@ -294,9 +294,7 @@ namespace LibreMetaverse.Voice.Vivox
 
         private string GetVoiceDaemonPath()
         {
-            var myDir =
-                Path.GetDirectoryName(
-                    (System.Reflection.Assembly.GetEntryAssembly() ?? typeof (VoiceGateway).Assembly).Location);
+            var myDir = AppContext.BaseDirectory;
             
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {

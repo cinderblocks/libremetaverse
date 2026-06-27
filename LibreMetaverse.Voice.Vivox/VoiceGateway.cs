@@ -266,6 +266,10 @@ namespace LibreMetaverse.Voice.Vivox
                 : string.Format("<{0}>{1}</{0}>", name, text);
         }
 
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
+            Justification = "Voice response/event types are fixed in this assembly; XmlSerializer is safe here.")]
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
+            Justification = "Voice subsystem is not AOT-targeted; XmlSerializer dynamic code is acceptable.")]
         private void daemonPipe_OnReceiveLine(string line)
         {
 #if DEBUG

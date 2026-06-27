@@ -557,9 +557,13 @@ namespace LibreMetaverse.Voice.Vivox
 
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
             Justification = "VoiceEvent is a known type defined in this assembly with fixed XML attributes.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
+            Justification = "Voice subsystem is not AOT-targeted; XmlSerializer dynamic code is acceptable.")]
         private XmlSerializer EventSerializer = new XmlSerializer(typeof(VoiceEvent));
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
             Justification = "VoiceResponse is a known type defined in this assembly with fixed XML attributes.")]
+        [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
+            Justification = "Voice subsystem is not AOT-targeted; XmlSerializer dynamic code is acceptable.")]
         private XmlSerializer ResponseSerializer = new XmlSerializer(typeof(VoiceResponse));
 
         [XmlRoot("Event")]

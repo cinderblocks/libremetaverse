@@ -115,8 +115,10 @@ namespace LibreMetaverse.Rendering
             };
             using FileStream skeletonData = new FileStream(fileName, FileMode.Open, FileAccess.Read);
             using XmlReader reader = XmlReader.Create(skeletonData, readerSettings);
+#pragma warning disable IL3050
             XmlSerializer ser = new XmlSerializer(typeof(LindenSkeleton));
             return (LindenSkeleton?)ser.Deserialize(reader) ?? new LindenSkeleton();
+#pragma warning restore IL3050
         }
 
         /// <summary>

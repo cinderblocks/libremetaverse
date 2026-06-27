@@ -539,7 +539,7 @@ namespace LibreMetaverse
         {
             if (TryGetNodeFor(uuid, out var node))
             {
-                item = node!.Data;
+                item = node!.Data!;
                 return true;
             }
             item = null;

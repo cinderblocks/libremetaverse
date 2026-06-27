@@ -75,7 +75,9 @@ namespace LibreMetaverse.ImportExport
                 // Create an instance of the XmlSerializer specifying type and namespace.
                 if (Serializer == null)
                 {
+#pragma warning disable IL3050
                     Serializer = new XmlSerializer(typeof(COLLADA));
+#pragma warning restore IL3050
                 }
 
                 this.FileName = filename;
@@ -83,7 +85,9 @@ namespace LibreMetaverse.ImportExport
                 // A FileStream is needed to read the XML document.
                 FileStream fs = new FileStream(filename, FileMode.Open);
                 XmlReader reader = XmlReader.Create(fs);
+#pragma warning disable IL3050
                 var des = Serializer.Deserialize(reader);
+#pragma warning restore IL3050
                 Model = des as COLLADA;
                 if (Model == null)
                 {
