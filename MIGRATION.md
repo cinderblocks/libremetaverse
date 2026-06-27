@@ -210,6 +210,21 @@ The sync helpers `FindObjectByPath` and `GetInventoryRecursive` have been delete
 
 `SetRegionInfo()` sync wrapper deleted (was a blocking wrapper with no callers outside the library). Use the async variant.
 
+### Capability rate limiting — `CapRateLimitException`
+
+A new `CapRateLimitException` (inherits `Exception`) is thrown when a simulator cap responds with "cap invocation rate exceeded". If you have broad `catch (Exception)` handlers around cap calls you may want to handle it explicitly:
+
+```csharp
+try
+{
+    await client.Objects.RequestMaterialsAsync(sim, ct);
+}
+catch (CapRateLimitException ex)
+{
+    Logger.Log($"Rate limited: {ex.Message} — backing off", Helpers.LogLevel.Warning);
+}
+```
+
 ---
 
 ## 4. Removed caches and application-layer state
@@ -321,6 +336,7 @@ The following were sync-over-async wrappers or dead code with no callers; they h
 | `InventoryManager.GetInventoryRecursive(...)` | Use `FetchInventoryDescendants(...)` |
 | `EstateTools.SetRegionInfo()` | Use the async variant |
 | `ParcelManager.RequestRemoteParcelID(...)` | Use the async cap directly |
+| `Utils.GetRunningRuntime()` | Use `System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription` directly |
 
 ---
 
@@ -557,6 +573,6 @@ public class MyBot(IGridClient client) { ... }
 - [ ] Update `PlayGesture(id)` → `await PlayGestureAsync(id)`
 - [ ] Audit Vector3/Quaternion mutation calls (`.Normalize()` etc.) and update to static value-returning forms
 - [ ] Replace `LibreMetaverse.Rendering.Meshmerizer` NuGet reference with `LibreMetaverse.Rendering.MeshFoundry`
-- [ ] Remove any use of `AsyncHelper.Sync`, `FindObjectByPath`, `GetInventoryRecursive`
+- [ ] Remove any use of `AsyncHelper.Sync`, `FindObjectByPath`, `GetInventoryRecursive`, `Utils.GetRunningRuntime()`
 - [ ] Rewrite any `ref client.<Manager>` expressions — manager fields are now properties and cannot be passed by `ref`
 - [ ] Optionally update constructor parameters from `GridClient` to `IGridClient` to take advantage of the new interface
