@@ -330,7 +330,7 @@ namespace LibreMetaverse
                     OnCapabilitiesReceived(Simulator);
                 }
             }
-            catch (LitJson.JsonException)
+            catch (System.Text.Json.JsonException)
             {
                 var respText = responseData != null ? System.Text.Encoding.UTF8.GetString(responseData) : string.Empty;
                 Logger.Warn($"Invalid caps response; '{respText}' for seed request.", Simulator.Client);

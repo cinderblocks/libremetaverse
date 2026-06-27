@@ -25,11 +25,12 @@
  */
 
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using LitJson;
+using System.Text;
+using System.Text.Json;
 using LibreMetaverse.StructuredData;
 
 namespace LibreMetaverse.Voice.WebRTC
@@ -114,71 +115,104 @@ namespace LibreMetaverse.Voice.WebRTC
             catch { }
         }
 
-        private int? ToInt(JsonData? d)
+        private static int? GetInt(JsonElement el)
         {
             try
             {
-                if (d == null) return null;
-                if (d.IsInt) return (int)d;
-                if (d.IsLong) return (int)(long)d;
-                if (d.IsDouble) return (int)(double)d;
-                var s = d.ToString();
-                if (int.TryParse(s, out var v)) return v;
-            }
-            catch { }
-            return null;
-        }
-        private bool? ToBool(JsonData? d)
-        {
-            try
-            {
-                if (d == null) return null;
-                if (d.IsBoolean) return (bool)d;
-                var s = d.ToString().Trim('"');
-                if (bool.TryParse(s, out var b)) return b;
-                if (int.TryParse(s, out var i)) return i != 0;
+                switch (el.ValueKind)
+                {
+                    case JsonValueKind.Number:
+                        if (el.TryGetInt32(out var i)) return i;
+                        if (el.TryGetInt64(out var l)) return (int)l;
+                        return (int)el.GetDouble();
+                    case JsonValueKind.String:
+                        if (int.TryParse(el.GetString(), out var s)) return s;
+                        break;
+                }
             }
             catch { }
             return null;
         }
 
-        // Process LitJson-formatted data channel messages (preferred path)
-        public void ProcessLitJson(JsonData root, Func<string, bool> sendString, UUID sessionId)
+        private static bool? GetBool(JsonElement el)
         {
-            if (root == null || !root.IsObject) return;
-            var jd = root;
-            IDictionary jdDict = jd;
+            try
+            {
+                switch (el.ValueKind)
+                {
+                    case JsonValueKind.True: return true;
+                    case JsonValueKind.False: return false;
+                    case JsonValueKind.Number:
+                        if (el.TryGetInt32(out var i)) return i != 0;
+                        break;
+                    case JsonValueKind.String:
+                        var s = el.GetString()?.Trim('"');
+                        if (bool.TryParse(s, out var b)) return b;
+                        if (int.TryParse(s, out var n)) return n != 0;
+                        break;
+                }
+            }
+            catch { }
+            return null;
+        }
 
-            // Detect per-peer map (keys are UUIDs)
-            bool allKeysAreUuid = (from object kObj in jdDict.Keys select kObj as string)
-                .All(k => { return !string.IsNullOrEmpty(k) && UUID.TryParse(k!, out _); });
+        private static string? GetString(JsonElement el)
+        {
+            try { return el.ValueKind == JsonValueKind.String ? el.GetString() : el.ToString(); }
+            catch { return null; }
+        }
+
+        private static string BuildJson(Action<Utf8JsonWriter> build)
+        {
+            var ms = new MemoryStream();
+            using var w = new Utf8JsonWriter(ms, new JsonWriterOptions { SkipValidation = true });
+            build(w);
+            w.Flush();
+            return Encoding.UTF8.GetString(ms.GetBuffer(), 0, (int)ms.Length);
+        }
+
+        // Process System.Text.Json-based data channel messages
+        public void ProcessJsonElement(JsonElement root, Func<string, bool> sendString, UUID sessionId)
+        {
+            if (root.ValueKind != JsonValueKind.Object) return;
+
+            // Detect per-peer map (all keys are UUIDs)
+            bool allKeysAreUuid = true;
+            foreach (var prop in root.EnumerateObject())
+            {
+                if (string.IsNullOrEmpty(prop.Name) || !UUID.TryParse(prop.Name, out _))
+                {
+                    allKeysAreUuid = false;
+                    break;
+                }
+            }
 
             if (allKeysAreUuid)
             {
-                foreach (var kObj in jdDict.Keys)
+                foreach (var prop in root.EnumerateObject())
                 {
-                    var key = kObj as string;
-                    if (string.IsNullOrEmpty(key) || !UUID.TryParse(key!, out var peerId)) continue;
-                    var val = jd[key!];
-                    if (val == null || !val.IsObject)
+                    if (!UUID.TryParse(prop.Name, out var peerId)) continue;
+                    var val = prop.Value;
+                    if (val.ValueKind != JsonValueKind.Object)
                     {
                         RemovePeer(peerId);
                         continue;
                     }
+
                     var peerMap = val;
-                    IDictionary peerDict = peerMap;
                     var state = new VoiceSession.PeerAudioState();
                     Peers.AddOrUpdate(peerId, new OSDMap(), (k, v) => v);
-                    if (peerDict != null && peerDict.Contains("p")) state.Power = ToInt(peerMap["p"]);
-                    if (peerDict != null && peerDict.Contains("V")) state.VoiceActive = ToBool(peerMap["V"]);
-                    else if (peerDict != null && peerDict.Contains("v")) state.VoiceActive = ToBool(peerMap["v"]);
-                    if (peerDict != null && peerDict.Contains("m")) state.ModeratorMuted = ToBool(peerMap["m"]);
+
+                    if (peerMap.TryGetProperty("p", out var pProp)) state.Power = GetInt(pProp);
+                    if (peerMap.TryGetProperty("V", out var vProp)) state.VoiceActive = GetBool(vProp);
+                    else if (peerMap.TryGetProperty("v", out var v2Prop)) state.VoiceActive = GetBool(v2Prop);
+                    if (peerMap.TryGetProperty("m", out var mProp)) state.ModeratorMuted = GetBool(mProp);
 
                     try
                     {
                         int? sInt = null;
-                        if (peerDict != null && peerDict.Contains("s")) sInt = ToInt(peerMap["s"]);
-                        else if (peerDict != null && peerDict.Contains("ssrc")) sInt = ToInt(peerMap["ssrc"]);
+                        if (peerMap.TryGetProperty("s", out var sProp)) sInt = GetInt(sProp);
+                        else if (peerMap.TryGetProperty("ssrc", out var ssrcProp)) sInt = GetInt(ssrcProp);
                         if (sInt.HasValue)
                         {
                             var ssrc = (uint)sInt.Value;
@@ -190,9 +224,7 @@ namespace LibreMetaverse.Voice.WebRTC
                             }
 
                             if (SsrcToPeer.TryGetValue(ssrc, out var mappedPeer) && mappedPeer != peerId)
-                            {
                                 PeerToSsrc.TryRemove(mappedPeer, out _);
-                            }
 
                             SsrcToPeer.AddOrUpdate(ssrc, peerId, (k, v) => peerId);
                             PeerToSsrc.AddOrUpdate(peerId, ssrc, (k, v) => ssrc);
@@ -200,17 +232,15 @@ namespace LibreMetaverse.Voice.WebRTC
                     }
                     catch { }
 
-                    if (peerDict != null && peerDict.Contains("j") && peerMap["j"].IsObject)
+                    if (peerMap.TryGetProperty("j", out var jProp) && jProp.ValueKind == JsonValueKind.Object)
                     {
-                        var jmap = peerMap["j"];
-                        if (jmap is IDictionary jdict && jdict.Contains("p")) state.JoinedPrimary = ToBool(jmap["p"]);
+                        if (jProp.TryGetProperty("p", out var jpProp)) state.JoinedPrimary = GetBool(jpProp);
                         try { PeerJoined?.Invoke(peerId); } catch { }
 
-                        // Mirror SL's OnDataReceivedImpl: when a peer joins, immediately send back
-                        // mute and gain info so the server applies them for this participant.
+                        // Mirror SL's OnDataReceivedImpl: when a peer joins, send back mute/gain so server applies them.
                         var muteResponse = new Dictionary<UUID, bool>();
                         var gainResponse = new Dictionary<UUID, int>();
-                        var muteKey = $"2 {peerId}"; // MuteType.Resident = 2
+                        var muteKey = $"2 {peerId}";
                         if (_client?.Self?.MuteList?.ContainsKey(muteKey) == true &&
                             (_client.Self.MuteList[muteKey].Flags & MuteFlags.VoiceChat) != 0)
                         {
@@ -220,28 +250,28 @@ namespace LibreMetaverse.Voice.WebRTC
                         {
                             try
                             {
-                                var jw2 = new JsonWriter();
-                                jw2.WriteObjectStart();
-                                if (muteResponse.Count > 0)
-                                {
-                                    jw2.WritePropertyName("m"); jw2.WriteObjectStart();
-                                    foreach (var kv in muteResponse) { jw2.WritePropertyName(kv.Key.ToString()); jw2.Write(kv.Value); }
-                                    jw2.WriteObjectEnd();
-                                }
-                                if (gainResponse.Count > 0)
-                                {
-                                    jw2.WritePropertyName("ug"); jw2.WriteObjectStart();
-                                    foreach (var kv in gainResponse) { jw2.WritePropertyName(kv.Key.ToString()); jw2.Write(kv.Value); }
-                                    jw2.WriteObjectEnd();
-                                }
-                                jw2.WriteObjectEnd();
-                                sendString?.Invoke(jw2.ToString());
+                                sendString?.Invoke(BuildJson(jw => {
+                                    jw.WriteStartObject();
+                                    if (muteResponse.Count > 0)
+                                    {
+                                        jw.WriteStartObject("m");
+                                        foreach (var kv in muteResponse) jw.WriteBoolean(kv.Key.ToString(), kv.Value);
+                                        jw.WriteEndObject();
+                                    }
+                                    if (gainResponse.Count > 0)
+                                    {
+                                        jw.WriteStartObject("ug");
+                                        foreach (var kv in gainResponse) jw.WriteNumber(kv.Key.ToString(), kv.Value);
+                                        jw.WriteEndObject();
+                                    }
+                                    jw.WriteEndObject();
+                                }));
                             }
                             catch { }
                         }
                     }
 
-                    if (peerDict != null && peerDict.Contains("l") && ToBool(peerMap["l"]) == true)
+                    if (peerMap.TryGetProperty("l", out var lProp) && GetBool(lProp) == true)
                     {
                         state.Left = true;
                         RemovePeer(peerId);
@@ -254,47 +284,32 @@ namespace LibreMetaverse.Voice.WebRTC
             }
 
             // Non per-peer messages: handle generic keys
-            int? JInt(JsonData? d) => ToInt(d);
-            bool? JBool(JsonData? d) => ToBool(d);
-            string? JStr(JsonData? d) { try { return d?.ToString().Trim('"'); } catch { return null; } }
-            var contains = new Func<IDictionary?, string, bool?>((dict, key) => dict != null && dict.Contains(key));
-            // wrapper to keep previous semantics returning bool
-            Func<IDictionary?, string, bool> containsWrapper = (dict, key) => contains(dict, key) ?? false;
-            // Use containsWrapper in place of contains below
-            
-            var jdContains = jdDict;
 
             // Ping/pong
             try
             {
-                if (jdContains != null && containsWrapper(jdContains, "ping") && JBool(jd["ping"]) == true)
-                {
+                if (root.TryGetProperty("ping", out var pingEl) && GetBool(pingEl) == true)
                     try { sendString?.Invoke("{\"pong\":true}"); } catch { }
-                }
-                if (jdContains != null && containsWrapper(jdContains, "pong") && JBool(jd["pong"]) == true)
-                {
+                if (root.TryGetProperty("pong", out var pongEl) && GetBool(pongEl) == true)
                     try { PongReceived?.Invoke(); } catch { }
-                }
             }
             catch { }
 
             // Join
-            if (containsWrapper(jdContains, "j") && jd["j"].IsObject)
+            if (root.TryGetProperty("j", out var joinEl) && joinEl.ValueKind == JsonValueKind.Object)
             {
                 UUID peerId = sessionId;
-                var joinMap = jd["j"];
-                IDictionary joinDict = joinMap;
-                var idStr = JStr(joinDict != null && joinDict.Contains("id") ? joinMap["id"] : null);
+                var idStr = joinEl.TryGetProperty("id", out var joinIdEl) ? GetString(joinIdEl) : null;
                 if (!string.IsNullOrEmpty(idStr)) UUID.TryParse(idStr!, out peerId);
                 Peers.TryAdd(peerId, new OSDMap());
                 try { PeerJoined?.Invoke(peerId); } catch { }
             }
 
             // Leave
-            if (containsWrapper(jdContains, "l") && JBool(jd["l"]) == true)
+            if (root.TryGetProperty("l", out var leaveEl) && GetBool(leaveEl) == true)
             {
                 UUID peerId = sessionId;
-                var idStr = JStr(containsWrapper(jdContains, "id") ? jd["id"] : null);
+                var idStr = root.TryGetProperty("id", out var leaveIdEl) ? GetString(leaveIdEl) : null;
                 if (!string.IsNullOrEmpty(idStr)) UUID.TryParse(idStr!, out peerId);
                 RemovePeer(peerId);
             }
@@ -303,56 +318,63 @@ namespace LibreMetaverse.Voice.WebRTC
             var avatarPos = new VoiceSession.AvatarPosition { AgentId = sessionId };
             bool posChanged = false;
 
-            if (containsWrapper(jdContains, "sp") && jd["sp"].IsObject)
+            if (root.TryGetProperty("sp", out var spEl) && spEl.ValueKind == JsonValueKind.Object)
             {
-                var sp = jd["sp"];
-                IDictionary spDict = sp;
-                var x = JInt(spDict != null && spDict.Contains("x") ? sp["x"] : null);
-                var y = JInt(spDict != null && spDict.Contains("y") ? sp["y"] : null);
-                var z = JInt(spDict != null && spDict.Contains("z") ? sp["z"] : null);
-                if (x.HasValue && y.HasValue && z.HasValue) { avatarPos.SenderPosition = new VoiceSession.Int3 { X = x.Value, Y = y.Value, Z = z.Value }; posChanged = true; }
+                var x = spEl.TryGetProperty("x", out var spx) ? GetInt(spx) : null;
+                var y = spEl.TryGetProperty("y", out var spy) ? GetInt(spy) : null;
+                var z = spEl.TryGetProperty("z", out var spz) ? GetInt(spz) : null;
+                if (x.HasValue && y.HasValue && z.HasValue)
+                {
+                    avatarPos.SenderPosition = new VoiceSession.Int3 { X = x.Value, Y = y.Value, Z = z.Value };
+                    posChanged = true;
+                }
             }
 
-            if (jdContains != null && containsWrapper(jdContains, "sh") && jd["sh"].IsObject)
+            if (root.TryGetProperty("sh", out var shEl) && shEl.ValueKind == JsonValueKind.Object)
             {
-                var sh = jd["sh"];
-                IDictionary shDict = sh;
-                var x = JInt(shDict != null && shDict.Contains("x") ? sh["x"] : null);
-                var y = JInt(shDict != null && shDict.Contains("y") ? sh["y"] : null);
-                var z = JInt(shDict != null && shDict.Contains("z") ? sh["z"] : null);
-                var w = JInt(shDict != null && shDict.Contains("w") ? sh["w"] : null);
-                if (x.HasValue && y.HasValue && z.HasValue && w.HasValue) { avatarPos.SenderHeading = new VoiceSession.Int4 { X = x.Value, Y = y.Value, Z = z.Value, W = w.Value }; posChanged = true; }
+                var x = shEl.TryGetProperty("x", out var shx) ? GetInt(shx) : null;
+                var y = shEl.TryGetProperty("y", out var shy) ? GetInt(shy) : null;
+                var z = shEl.TryGetProperty("z", out var shz) ? GetInt(shz) : null;
+                var w = shEl.TryGetProperty("w", out var shw) ? GetInt(shw) : null;
+                if (x.HasValue && y.HasValue && z.HasValue && w.HasValue)
+                {
+                    avatarPos.SenderHeading = new VoiceSession.Int4 { X = x.Value, Y = y.Value, Z = z.Value, W = w.Value };
+                    posChanged = true;
+                }
             }
 
-            if (jdContains != null && containsWrapper(jdContains, "lp") && jd["lp"].IsObject)
+            if (root.TryGetProperty("lp", out var lpEl) && lpEl.ValueKind == JsonValueKind.Object)
             {
-                var lp = jd["lp"];
-                IDictionary lpDict = lp;
-                var x = JInt(lpDict != null && lpDict.Contains("x") ? lp["x"] : null);
-                var y = JInt(lpDict != null && lpDict.Contains("y") ? lp["y"] : null);
-                var z = JInt(lpDict != null && lpDict.Contains("z") ? lp["z"] : null);
-                if (x.HasValue && y.HasValue && z.HasValue) { avatarPos.ListenerPosition = new VoiceSession.Int3 { X = x.Value, Y = y.Value, Z = z.Value }; posChanged = true; }
+                var x = lpEl.TryGetProperty("x", out var lpx) ? GetInt(lpx) : null;
+                var y = lpEl.TryGetProperty("y", out var lpy) ? GetInt(lpy) : null;
+                var z = lpEl.TryGetProperty("z", out var lpz) ? GetInt(lpz) : null;
+                if (x.HasValue && y.HasValue && z.HasValue)
+                {
+                    avatarPos.ListenerPosition = new VoiceSession.Int3 { X = x.Value, Y = y.Value, Z = z.Value };
+                    posChanged = true;
+                }
             }
 
-            if (jdContains != null && containsWrapper(jdContains, "lh") && jd["lh"].IsObject)
+            if (root.TryGetProperty("lh", out var lhEl) && lhEl.ValueKind == JsonValueKind.Object)
             {
-                var lh = jd["lh"];
-                IDictionary lhDict = lh;
-                var x = JInt(lhDict != null && lhDict.Contains("x") ? lh["x"] : null);
-                var y = JInt(lhDict != null && lhDict.Contains("y") ? lh["y"] : null);
-                var z = JInt(lhDict != null && lhDict.Contains("z") ? lh["z"] : null);
-                var w = JInt(lhDict != null && lhDict.Contains("w") ? lh["w"] : null);
-                if (x.HasValue && y.HasValue && z.HasValue && w.HasValue) { avatarPos.ListenerHeading = new VoiceSession.Int4 { X = x.Value, Y = y.Value, Z = z.Value, W = w.Value }; posChanged = true; }
+                var x = lhEl.TryGetProperty("x", out var lhx) ? GetInt(lhx) : null;
+                var y = lhEl.TryGetProperty("y", out var lhy) ? GetInt(lhy) : null;
+                var z = lhEl.TryGetProperty("z", out var lhz) ? GetInt(lhz) : null;
+                var w = lhEl.TryGetProperty("w", out var lhw) ? GetInt(lhw) : null;
+                if (x.HasValue && y.HasValue && z.HasValue && w.HasValue)
+                {
+                    avatarPos.ListenerHeading = new VoiceSession.Int4 { X = x.Value, Y = y.Value, Z = z.Value, W = w.Value };
+                    posChanged = true;
+                }
             }
 
             if (posChanged)
             {
                 UUID peerId = sessionId;
-                var idStr = JStr(jdContains != null && containsWrapper(jdContains, "id") ? jd["id"] : null);
+                var idStr = root.TryGetProperty("id", out var posIdEl) ? GetString(posIdEl) : null;
                 if (!string.IsNullOrEmpty(idStr)) UUID.TryParse(idStr!, out peerId);
                 avatarPos.AgentId = peerId;
 
-                // Convert to OSDMap for legacy handlers
                 var osdMap = new OSDMap();
                 if (avatarPos.SenderPosition.HasValue)
                 {
@@ -380,21 +402,15 @@ namespace LibreMetaverse.Voice.WebRTC
             }
 
             // Mute map
-            if (jdContains != null && containsWrapper(jdContains, "m") && jd["m"].IsObject)
+            if (root.TryGetProperty("m", out var muteMapEl) && muteMapEl.ValueKind == JsonValueKind.Object)
             {
-                var muteMap = jd["m"];
-                IDictionary muteDict = muteMap;
                 var dict = new Dictionary<UUID, bool>();
-                if (muteDict != null)
+                foreach (var kv in muteMapEl.EnumerateObject())
                 {
-                    foreach (var keyObj in muteDict.Keys)
+                    if (UUID.TryParse(kv.Name, out var id))
                     {
-                        var key = keyObj as string;
-                        if (!string.IsNullOrEmpty(key) && UUID.TryParse(key!, out var id))
-                        {
-                            var b = JBool(muteMap[key!]);
-                            if (b.HasValue) dict[id] = b.Value;
-                        }
+                        var b = GetBool(kv.Value);
+                        if (b.HasValue) dict[id] = b.Value;
                     }
                 }
 
@@ -403,9 +419,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     foreach (var kv in dict)
                     {
                         if (PeerToSsrc.TryGetValue(kv.Key, out var ssrc))
-                        {
                             try { _audioDevice?.SetSsrcMute(ssrc, kv.Value); } catch { }
-                        }
                     }
                 }
                 catch { }
@@ -414,21 +428,15 @@ namespace LibreMetaverse.Voice.WebRTC
             }
 
             // Gain map
-            if (jdContains != null && containsWrapper(jdContains, "ug") && jd["ug"].IsObject)
+            if (root.TryGetProperty("ug", out var gainMapEl) && gainMapEl.ValueKind == JsonValueKind.Object)
             {
-                var gainMap = jd["ug"];
-                IDictionary gainDict = gainMap;
                 var dict = new Dictionary<UUID, int>();
-                if (gainDict != null)
+                foreach (var kv in gainMapEl.EnumerateObject())
                 {
-                    foreach (var keyObj in gainDict.Keys)
+                    if (UUID.TryParse(kv.Name, out var id))
                     {
-                        var key = keyObj as string;
-                        if (!string.IsNullOrEmpty(key) && UUID.TryParse(key!, out var id))
-                        {
-                            var gi = JInt(gainMap[key!]);
-                            if (gi.HasValue) dict[id] = gi.Value;
-                        }
+                        var gi = GetInt(kv.Value);
+                        if (gi.HasValue) dict[id] = gi.Value;
                     }
                 }
 
@@ -437,9 +445,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     foreach (var kv in dict)
                     {
                         if (PeerToSsrc.TryGetValue(kv.Key, out var ssrc))
-                        {
                             try { _audioDevice?.SetSsrcGainPercent(ssrc, kv.Value); } catch { }
-                        }
                     }
                 }
                 catch { }
@@ -447,15 +453,13 @@ namespace LibreMetaverse.Voice.WebRTC
                 if (dict.Count > 0) try { GainMapReceived?.Invoke(dict); } catch { }
             }
 
-            // Avatar list handling (av or a)
-            if (jdContains != null && containsWrapper(jdContains, "av") && jd["av"].IsArray)
+            // Avatar list (av array or a object map)
+            if (root.TryGetProperty("av", out var avEl) && avEl.ValueKind == JsonValueKind.Array)
             {
-                var arr = jd["av"];
                 var list = new List<UUID>();
-                for (int i = 0; i < arr.Count; i++)
+                foreach (var item in avEl.EnumerateArray())
                 {
-                    var item = arr[i];
-                    var s = JStr(item);
+                    var s = GetString(item);
                     if (!string.IsNullOrEmpty(s) && UUID.TryParse(s!, out var id)) list.Add(id);
                 }
 
@@ -464,36 +468,21 @@ namespace LibreMetaverse.Voice.WebRTC
                 foreach (var r in toRemove) RemovePeer(r);
                 try { PeerListUpdated?.Invoke(list); } catch { }
             }
-            else if (jdContains != null && containsWrapper(jdContains, "a") && jd["a"].IsObject)
+            else if (root.TryGetProperty("a", out var aEl) && aEl.ValueKind == JsonValueKind.Object)
             {
-                var amap = jd["a"];
-                IDictionary amapDict = amap;
                 var list = new List<UUID>();
-                if (amapDict != null)
+                foreach (var kv in aEl.EnumerateObject())
                 {
-                    foreach (var keyObj in amapDict.Keys)
+                    if (!UUID.TryParse(kv.Name, out var id)) continue;
+                    var val = kv.Value;
+                    if (val.ValueKind == JsonValueKind.Null || val.ValueKind == JsonValueKind.Undefined ||
+                        (val.ValueKind == JsonValueKind.String && string.IsNullOrEmpty(val.GetString())) ||
+                        (val.ValueKind == JsonValueKind.Object && !val.EnumerateObject().GetEnumerator().MoveNext()))
                     {
-                        var key = keyObj as string;
-                        if (!string.IsNullOrEmpty(key) && UUID.TryParse(key!, out var id))
-                        {
-                            try
-                            {
-                                var val = amap[key!];
-                                if (val == null) { RemovePeer(id); continue; }
-                                if (val is JsonData jv)
-                                {
-                                    if ((jv.IsObject && ((IDictionary)jv).Count == 0) || (jv.IsString && string.IsNullOrEmpty(JStr(jv))))
-                                    {
-                                        RemovePeer(id);
-                                        continue;
-                                    }
-                                }
-                            }
-                            catch { }
-
-                            list.Add(id);
-                        }
+                        RemovePeer(id);
+                        continue;
                     }
+                    list.Add(id);
                 }
 
                 foreach (var id in list) Peers.AddOrUpdate(id, new OSDMap(), (k, v) => v);

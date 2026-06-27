@@ -20,6 +20,9 @@
     <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="System.Text.Json" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
   </ItemGroup>
 </Project>

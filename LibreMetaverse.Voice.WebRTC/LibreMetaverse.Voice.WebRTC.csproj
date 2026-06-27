@@ -22,6 +22,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="SIPSorcery" />
+    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
     <Reference Include="System.Net.Http" />

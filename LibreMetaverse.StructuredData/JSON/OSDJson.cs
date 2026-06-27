@@ -25,11 +25,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.IO;
-using LitJson;
+using System.Text;
+using System.Text.Json;
 
 namespace LibreMetaverse.StructuredData
 {
@@ -37,121 +36,43 @@ namespace LibreMetaverse.StructuredData
     {
         public static OSD DeserializeJson(Stream json)
         {
-            using (StreamReader streamReader = new StreamReader(json))
-            {
-                JsonReader reader = new JsonReader(streamReader);
-                return DeserializeJson(reader);
-            }
+            using var doc = JsonDocument.Parse(json);
+            return ConvertElement(doc.RootElement);
         }
 
         public static OSD DeserializeJson(string json)
         {
-            JsonReader reader = new JsonReader(json);
-            return DeserializeJson(reader);
+            using var doc = JsonDocument.Parse(json);
+            return ConvertElement(doc.RootElement);
         }
 
-        // Streaming reader-based deserialize to avoid creating JsonData trees
-        private static OSD DeserializeJson(JsonReader reader)
+        private static OSD ConvertElement(JsonElement element)
         {
-            if (reader == null) { throw new OSDException("Json reader is null"); }
-
-            return !reader.Read() ? new OSD() : ReadJsonValue(reader);
-        }
-
-        private static OSD ReadJsonValue(JsonReader reader)
-        {
-            switch (reader.Token)
+            switch (element.ValueKind)
             {
-                case JsonToken.ArrayStart:
-                    {
-                        OSDArray array = new OSDArray();
-                        while (reader.Read())
-                        {
-                            if (reader.Token == JsonToken.ArrayEnd) { break; }
-                            array.Add(ReadJsonValue(reader));
-                        }
-                        return array;
-                    }
-                case JsonToken.ObjectStart:
-                    {
-                        OSDMap map = new OSDMap();
-
-                        while (reader.Read())
-                        {
-                            if (reader.Token == JsonToken.ObjectEnd) { break; }
-
-                            if (!(reader.Value is string propName))
-                            {
-                                throw new OSDException("Expected property name in JSON object");
-                            }
-
-                            // Read the value token for this property
-                            if (!reader.Read())
-                            {
-                                throw new OSDException("Unexpected end of JSON while reading object property value");
-                            }
-                            map.Add(propName, ReadJsonValue(reader));
-                        }
-
-                        return map;
-                    }
-                case JsonToken.String:
-                    {
-                        string? s = reader.Value as string;
-                        return string.IsNullOrEmpty(s) ? new OSD() : OSD.FromString(s!);
-                    }
-                case JsonToken.Double:
-                    return reader.Value != null ? OSD.FromReal((double)reader.Value) : new OSD();
-                case JsonToken.Int:
-                    return reader.Value != null ? OSD.FromInteger((int)reader.Value) : new OSD();
-                case JsonToken.Long:
-                    return reader.Value != null ? OSD.FromLong((long)reader.Value) : new OSD();
-                case JsonToken.Boolean:
-                    return reader.Value != null ? OSD.FromBoolean((bool)reader.Value) : new OSD();
-                case JsonToken.Null:
-                case JsonToken.None:
-                    return new OSD();
-                default:
-                    // For any other token types return empty OSD
-                    return new OSD();
-            }
-        }
-
-        public static OSD DeserializeJson(JsonData json)
-        {
-            if (json == null) { return new OSD(); }
-
-            switch (json.GetJsonType())
-            {
-                case JsonType.Boolean:
-                    return OSD.FromBoolean((bool)json);
-                case JsonType.Int:
-                    return OSD.FromInteger((int)json);
-                case JsonType.Long:
-                    return OSD.FromLong((long)json);
-                case JsonType.Double:
-                    return OSD.FromReal((double)json);
-                case JsonType.String:
-                    string? str = (string?)json;
-                    return string.IsNullOrEmpty(str) ? new OSD() : OSD.FromString(str!);
-                case JsonType.Array:
-                    OSDArray array = new OSDArray(json.Count);
-                    foreach (JsonData e in json as IList)
-                    {
-                        array.Add(DeserializeJson(e));
-                    }
-                    return array;
-                case JsonType.Object:
-                    OSDMap map = new OSDMap(json.Count);
-                    var ordered = json as IOrderedDictionary;
-                    foreach (DictionaryEntry de in ordered)
-                    {
-                        string key = (de.Key as string) ?? string.Empty;
-                        JsonData? val = de.Value as JsonData;
-                        map.Add(key, DeserializeJson(val ?? new JsonData()));
-                    }
+                case JsonValueKind.True:
+                    return OSD.FromBoolean(true);
+                case JsonValueKind.False:
+                    return OSD.FromBoolean(false);
+                case JsonValueKind.Number:
+                    if (element.TryGetInt32(out var i)) return OSD.FromInteger(i);
+                    if (element.TryGetInt64(out var l)) return OSD.FromLong(l);
+                    return OSD.FromReal(element.GetDouble());
+                case JsonValueKind.String:
+                    string? s = element.GetString();
+                    return string.IsNullOrEmpty(s) ? new OSD() : OSD.FromString(s!);
+                case JsonValueKind.Array:
+                    var arr = new OSDArray(element.GetArrayLength());
+                    foreach (var child in element.EnumerateArray())
+                        arr.Add(ConvertElement(child));
+                    return arr;
+                case JsonValueKind.Object:
+                    var map = new OSDMap();
+                    foreach (var prop in element.EnumerateObject())
+                        map.Add(prop.Name, ConvertElement(prop.Value));
                     return map;
-                case JsonType.None:
+                case JsonValueKind.Null:
+                case JsonValueKind.Undefined:
                 default:
                     return new OSD();
             }
@@ -159,139 +80,119 @@ namespace LibreMetaverse.StructuredData
 
         public static string SerializeJsonString(OSD osd, bool preserveDefaults = false)
         {
-            var writer = new JsonWriter
-            {
-                PrettyPrint = false,
-                Validate = false
-            };
-
-            if (preserveDefaults)
-            {
-                WriteJsonWithDefaults(osd, writer);
-            }
-            else
-            {
-                WriteJsonNoDefaultsRoot(osd, writer);
-            }
-
-            return writer.ToString();
-        }
-
-        public static void SerializeJsonString(OSD osd, bool preserveDefaults, ref JsonWriter writer)
-        {
+            var ms = new MemoryStream();
+            var writer = new Utf8JsonWriter(ms, new JsonWriterOptions { SkipValidation = true });
             if (preserveDefaults)
                 WriteJsonWithDefaults(osd, writer);
             else
                 WriteJsonNoDefaultsRoot(osd, writer);
+            writer.Flush();
+            return Encoding.UTF8.GetString(ms.GetBuffer(), 0, (int)ms.Length);
         }
 
-        // Write routines
-        private static void WriteJsonWithDefaults(OSD osd, JsonWriter writer)
+        private static void WriteJsonWithDefaults(OSD osd, Utf8JsonWriter writer)
         {
             switch (osd.Type)
             {
                 case OSDType.Boolean:
-                    writer.Write(osd.AsBoolean());
+                    writer.WriteBooleanValue(osd.AsBoolean());
                     break;
                 case OSDType.Integer:
-                    writer.Write(osd.AsInteger());
+                    writer.WriteNumberValue(osd.AsInteger());
                     break;
                 case OSDType.Real:
-                    writer.Write(osd.AsReal());
+                    writer.WriteNumberValue(osd.AsReal());
                     break;
                 case OSDType.String:
                 case OSDType.Date:
                 case OSDType.URI:
                 case OSDType.UUID:
-                    writer.Write(osd.AsString());
+                    writer.WriteStringValue(osd.AsString());
                     break;
                 case OSDType.Binary:
                     {
                         byte[] binary = osd.AsBinary();
-                        writer.WriteArrayStart();
+                        writer.WriteStartArray();
                         foreach (byte b in binary)
-                            writer.Write(b);
-                        writer.WriteArrayEnd();
+                            writer.WriteNumberValue(b);
+                        writer.WriteEndArray();
                     }
                     break;
                 case OSDType.Array:
-                    writer.WriteArrayStart();
+                    writer.WriteStartArray();
                     OSDArray array = (OSDArray)osd;
                     foreach (OSD t in array)
                         WriteJsonWithDefaults(t, writer);
-                    writer.WriteArrayEnd();
+                    writer.WriteEndArray();
                     break;
                 case OSDType.Map:
-                    writer.WriteObjectStart();
+                    writer.WriteStartObject();
                     OSDMap map = (OSDMap)osd;
                     foreach (KeyValuePair<string, OSD> kvp in map)
                     {
                         writer.WritePropertyName(kvp.Key);
                         WriteJsonWithDefaults(kvp.Value, writer);
                     }
-                    writer.WriteObjectEnd();
+                    writer.WriteEndObject();
                     break;
                 case OSDType.Unknown:
                 default:
-                    writer.Write(null);
+                    writer.WriteNullValue();
                     break;
             }
         }
 
-        private static void WriteJsonNoDefaultsRoot(OSD osd, JsonWriter writer)
+        private static void WriteJsonNoDefaultsRoot(OSD osd, Utf8JsonWriter writer)
         {
             if (osd == null)
             {
-                writer.Write(null);
+                writer.WriteNullValue();
                 return;
             }
 
             switch (osd.Type)
             {
                 case OSDType.Boolean:
-                    if (!osd.AsBoolean()) writer.Write(null); else writer.Write(true);
+                    if (!osd.AsBoolean()) writer.WriteNullValue(); else writer.WriteBooleanValue(true);
                     break;
                 case OSDType.Integer:
-                    if (osd.AsInteger() == 0) writer.Write(null); else writer.Write(osd.AsInteger());
+                    if (osd.AsInteger() == 0) writer.WriteNullValue(); else writer.WriteNumberValue(osd.AsInteger());
                     break;
                 case OSDType.Real:
-                    if (osd.AsReal() == 0.0d) writer.Write(null); else writer.Write(osd.AsReal());
+                    if (osd.AsReal() == 0.0d) writer.WriteNullValue(); else writer.WriteNumberValue(osd.AsReal());
                     break;
                 case OSDType.String:
                 case OSDType.Date:
                 case OSDType.URI:
                     string s = osd.AsString();
-                    if (string.IsNullOrEmpty(s)) writer.Write(null); else writer.Write(s);
+                    if (string.IsNullOrEmpty(s)) writer.WriteNullValue(); else writer.WriteStringValue(s);
                     break;
                 case OSDType.UUID:
                     UUID uuid = osd.AsUUID();
-                    if (uuid == UUID.Zero) writer.Write(null); else writer.Write(uuid.ToString());
+                    if (uuid == UUID.Zero) writer.WriteNullValue(); else writer.WriteStringValue(uuid.ToString());
                     break;
                 case OSDType.Binary:
                     byte[] binary = osd.AsBinary();
-                    if (binary == Utils.EmptyBytes) writer.Write(null);
+                    if (binary == Utils.EmptyBytes) writer.WriteNullValue();
                     else
                     {
-                        writer.WriteArrayStart();
-                        foreach (byte b in binary) writer.Write(b);
-                        writer.WriteArrayEnd();
+                        writer.WriteStartArray();
+                        foreach (byte b in binary) writer.WriteNumberValue(b);
+                        writer.WriteEndArray();
                     }
                     break;
                 case OSDType.Array:
-                    // Arrays are always serialized; elements may be null
-                    writer.WriteArrayStart();
+                    writer.WriteStartArray();
                     OSDArray array = (OSDArray)osd;
                     foreach (OSD t in array)
                     {
                         if (!WriteJsonNoDefaultsElement(t, writer))
-                            writer.Write(null);
+                            writer.WriteNullValue();
                     }
-                    writer.WriteArrayEnd();
+                    writer.WriteEndArray();
                     break;
                 case OSDType.Map:
-                    // Maps are serialized as objects. Only include properties whose
-                    // values would not be represented as null by the no-default rules.
-                    writer.WriteObjectStart();
+                    writer.WriteStartObject();
                     OSDMap map = (OSDMap)osd;
                     foreach (KeyValuePair<string, OSD> kvp in map)
                     {
@@ -301,62 +202,62 @@ namespace LibreMetaverse.StructuredData
                             WriteJsonNoDefaultsRoot(kvp.Value, writer);
                         }
                     }
-                    writer.WriteObjectEnd();
+                    writer.WriteEndObject();
                     break;
                 case OSDType.Unknown:
                 default:
-                    writer.Write(null);
+                    writer.WriteNullValue();
                     break;
             }
         }
 
-        private static bool WriteJsonNoDefaultsElement(OSD osd, JsonWriter writer)
+        private static bool WriteJsonNoDefaultsElement(OSD osd, Utf8JsonWriter writer)
         {
             switch (osd.Type)
             {
                 case OSDType.Boolean:
                     if (!osd.AsBoolean()) return false;
-                    writer.Write(true);
+                    writer.WriteBooleanValue(true);
                     return true;
                 case OSDType.Integer:
                     if (osd.AsInteger() == 0) return false;
-                    writer.Write(osd.AsInteger());
+                    writer.WriteNumberValue(osd.AsInteger());
                     return true;
                 case OSDType.Real:
                     if (osd.AsReal() == 0.0d) return false;
-                    writer.Write(osd.AsReal());
+                    writer.WriteNumberValue(osd.AsReal());
                     return true;
                 case OSDType.String:
                 case OSDType.Date:
                 case OSDType.URI:
                     string s = osd.AsString();
                     if (string.IsNullOrEmpty(s)) return false;
-                    writer.Write(s);
+                    writer.WriteStringValue(s);
                     return true;
                 case OSDType.UUID:
                     UUID uuid = osd.AsUUID();
                     if (uuid == UUID.Zero) return false;
-                    writer.Write(uuid.ToString());
+                    writer.WriteStringValue(uuid.ToString());
                     return true;
                 case OSDType.Binary:
                     byte[] binary = osd.AsBinary();
                     if (binary == Utils.EmptyBytes) return false;
-                    writer.WriteArrayStart();
-                    foreach (byte b in binary) writer.Write(b);
-                    writer.WriteArrayEnd();
+                    writer.WriteStartArray();
+                    foreach (byte b in binary) writer.WriteNumberValue(b);
+                    writer.WriteEndArray();
                     return true;
                 case OSDType.Array:
-                    writer.WriteArrayStart();
+                    writer.WriteStartArray();
                     OSDArray arr = (OSDArray)osd;
                     foreach (OSD t in arr)
                     {
                         if (!WriteJsonNoDefaultsElement(t, writer))
-                            writer.Write(null);
+                            writer.WriteNullValue();
                     }
-                    writer.WriteArrayEnd();
+                    writer.WriteEndArray();
                     return true;
                 case OSDType.Map:
-                    writer.WriteObjectStart();
+                    writer.WriteStartObject();
                     OSDMap m = (OSDMap)osd;
                     foreach (KeyValuePair<string, OSD> kvp in m)
                     {
@@ -366,7 +267,7 @@ namespace LibreMetaverse.StructuredData
                             WriteJsonNoDefaultsRoot(kvp.Value, writer);
                         }
                     }
-                    writer.WriteObjectEnd();
+                    writer.WriteEndObject();
                     return true;
                 case OSDType.Unknown:
                 default:
@@ -395,9 +296,9 @@ namespace LibreMetaverse.StructuredData
                 case OSDType.Binary:
                     return osd.AsBinary() != Utils.EmptyBytes;
                 case OSDType.Array:
-                    return true; // arrays are always serialized
+                    return true;
                 case OSDType.Map:
-                    return true; // maps are always serialized (might be empty)
+                    return true;
                 case OSDType.Unknown:
                 default:
                     return false;

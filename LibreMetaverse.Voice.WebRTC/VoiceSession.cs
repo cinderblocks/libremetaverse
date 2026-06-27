@@ -24,13 +24,14 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-using LitJson;
 using LibreMetaverse.StructuredData;
 using SIPSorcery.Net;
 using SIPSorcery.SIP.App;
 using SIPSorcery.Sys;
 using System;
 using System.Collections.Concurrent;
+using System.IO;
+using System.Text.Json;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -1502,43 +1503,30 @@ namespace LibreMetaverse.Voice.WebRTC
                 int lhZ = (int)Math.Round(cameraHeading.Z * 100);
                 int lhW = (int)Math.Round(cameraHeading.W * 100);
 
-                // Build JSON using JsonWriter to avoid manual concatenation issues
-                var jw = new JsonWriter();
-                jw.WriteObjectStart();
+                var ms = new MemoryStream();
+                using var jw = new Utf8JsonWriter(ms, new JsonWriterOptions { SkipValidation = true });
+                jw.WriteStartObject();
 
-                jw.WritePropertyName("sp");
-                jw.WriteObjectStart();
-                jw.WritePropertyName("x"); jw.Write(spX);
-                jw.WritePropertyName("y"); jw.Write(spY);
-                jw.WritePropertyName("z"); jw.Write(spZ);
-                jw.WriteObjectEnd();
+                jw.WriteStartObject("sp");
+                jw.WriteNumber("x", spX); jw.WriteNumber("y", spY); jw.WriteNumber("z", spZ);
+                jw.WriteEndObject();
 
-                jw.WritePropertyName("sh");
-                jw.WriteObjectStart();
-                jw.WritePropertyName("x"); jw.Write(shX);
-                jw.WritePropertyName("y"); jw.Write(shY);
-                jw.WritePropertyName("z"); jw.Write(shZ);
-                jw.WritePropertyName("w"); jw.Write(shW);
-                jw.WriteObjectEnd();
+                jw.WriteStartObject("sh");
+                jw.WriteNumber("x", shX); jw.WriteNumber("y", shY); jw.WriteNumber("z", shZ); jw.WriteNumber("w", shW);
+                jw.WriteEndObject();
 
-                jw.WritePropertyName("lp");
-                jw.WriteObjectStart();
-                jw.WritePropertyName("x"); jw.Write(lpX);
-                jw.WritePropertyName("y"); jw.Write(lpY);
-                jw.WritePropertyName("z"); jw.Write(lpZ);
-                jw.WriteObjectEnd();
+                jw.WriteStartObject("lp");
+                jw.WriteNumber("x", lpX); jw.WriteNumber("y", lpY); jw.WriteNumber("z", lpZ);
+                jw.WriteEndObject();
 
-                jw.WritePropertyName("lh");
-                jw.WriteObjectStart();
-                jw.WritePropertyName("x"); jw.Write(lhX);
-                jw.WritePropertyName("y"); jw.Write(lhY);
-                jw.WritePropertyName("z"); jw.Write(lhZ);
-                jw.WritePropertyName("w"); jw.Write(lhW);
-                jw.WriteObjectEnd();
+                jw.WriteStartObject("lh");
+                jw.WriteNumber("x", lhX); jw.WriteNumber("y", lhY); jw.WriteNumber("z", lhZ); jw.WriteNumber("w", lhW);
+                jw.WriteEndObject();
 
-                jw.WriteObjectEnd();
+                jw.WriteEndObject();
+                jw.Flush();
 
-                var json = jw.ToString();
+                var json = Encoding.UTF8.GetString(ms.GetBuffer(), 0, (int)ms.Length);
 
                 //_log.Debug($"Sending Position: {json}", _client);
                 TrySendDataChannelString(json);
