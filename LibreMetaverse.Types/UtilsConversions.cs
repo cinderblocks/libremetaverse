@@ -25,6 +25,7 @@
  */
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -972,6 +973,7 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="value">Enum value</param>
         /// <returns>Text representation of the enum</returns>
+        [RequiresUnreferencedCode("Looks up enum field custom attributes via runtime reflection. Not AOT-safe.")]
         public static string EnumToText(Enum value)
         {
             // Get the type

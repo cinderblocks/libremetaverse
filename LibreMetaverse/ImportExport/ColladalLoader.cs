@@ -28,6 +28,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using System.IO;
 using System.Xml;
@@ -66,6 +67,7 @@ namespace LibreMetaverse.ImportExport
         /// <param name="filename">Load .dae model from this file</param>
         /// <param name="loadImages">Load and decode images for uploading with model</param>
         /// <returns>A list of mesh prims that were parsed from the collada file</returns>
+        [RequiresUnreferencedCode("Uses XmlSerializer with runtime-reflected COLLADA types. Not AOT-safe.")]
         public List<ModelPrim> Load(string filename, bool loadImages)
         {
             try

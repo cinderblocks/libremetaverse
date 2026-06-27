@@ -12,6 +12,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
@@ -742,6 +743,7 @@ namespace LitJson
         #endregion
 
 
+        [RequiresUnreferencedCode("Serializes arbitrary object graphs using runtime reflection. Not AOT-safe; use a source-generated serializer instead.")]
         public static string ToJson (object obj)
         {
             lock (static_writer_lock) {
@@ -753,6 +755,7 @@ namespace LitJson
             }
         }
 
+        [RequiresUnreferencedCode("Serializes arbitrary object graphs using runtime reflection. Not AOT-safe; use a source-generated serializer instead.")]
         public static void ToJson (object obj, JsonWriter writer)
         {
             WriteValue (obj, writer, false, 0);
@@ -778,11 +781,13 @@ namespace LitJson
                 () => new JsonData(), json);
         }
 
+        [RequiresUnreferencedCode("Deserializes JSON into a typed object using runtime reflection. Not AOT-safe; use a source-generated deserializer instead.")]
         public static T ToObject<T> (JsonReader reader)
         {
             return (T) ReadValue (typeof (T), reader)!;
         }
 
+        [RequiresUnreferencedCode("Deserializes JSON into a typed object using runtime reflection. Not AOT-safe; use a source-generated deserializer instead.")]
         public static T ToObject<T> (TextReader reader)
         {
             JsonReader json_reader = new JsonReader (reader);
@@ -790,6 +795,7 @@ namespace LitJson
             return (T) ReadValue (typeof (T), json_reader)!;
         }
 
+        [RequiresUnreferencedCode("Deserializes JSON into a typed object using runtime reflection. Not AOT-safe; use a source-generated deserializer instead.")]
         public static T ToObject<T> (string json)
         {
             JsonReader reader = new JsonReader (json);

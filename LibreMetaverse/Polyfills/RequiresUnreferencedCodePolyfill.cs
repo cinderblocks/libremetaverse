@@ -1,6 +1,6 @@
-// Polyfill for System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute,
-// which is only available natively on net5.0+. For older TFMs this provides a
-// no-op stub so annotation code compiles without runtime effect.
+// Polyfills for System.Diagnostics.CodeAnalysis AOT/trimmer attributes that are
+// only available natively on net5.0+/net6.0+. For older TFMs these are no-op
+// stubs so annotation code compiles without runtime effect.
 #if !NET5_0_OR_GREATER
 namespace System.Diagnostics.CodeAnalysis
 {
@@ -9,6 +9,20 @@ namespace System.Diagnostics.CodeAnalysis
     {
         public RequiresUnreferencedCodeAttribute(string message) { Message = message; }
         public string Message { get; }
+        public string? Url { get; set; }
+    }
+}
+#endif
+
+#if !NET6_0_OR_GREATER
+namespace System.Diagnostics.CodeAnalysis
+{
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Property, Inherited = false)]
+    internal sealed class RequiresAssemblyFilesAttribute : Attribute
+    {
+        public RequiresAssemblyFilesAttribute() { }
+        public RequiresAssemblyFilesAttribute(string message) { Message = message; }
+        public string? Message { get; }
         public string? Url { get; set; }
     }
 }

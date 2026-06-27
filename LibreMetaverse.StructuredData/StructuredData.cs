@@ -27,6 +27,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text;
 
@@ -373,6 +374,7 @@ namespace LibreMetaverse.StructuredData
         /// <param name="obj">Class or struct containing serializable types</param>
         /// <returns>An SDMap holding the serialized values from the
         /// container object</returns>
+        [RequiresUnreferencedCode("Enumerates public fields via reflection. Not AOT-safe; consider an explicit serialization method instead.")]
         public static OSDMap SerializeMembers(object obj)
         {
             Type t = obj.GetType();
@@ -406,6 +408,7 @@ namespace LibreMetaverse.StructuredData
         /// values</param>
         /// <param name="serialized">Serialized values to put in the target
         /// object</param>
+        [RequiresUnreferencedCode("Enumerates public fields via reflection. Not AOT-safe; consider an explicit deserialization method instead.")]
         public static void DeserializeMembers(ref object obj, OSDMap serialized)
         {
             Type t = obj.GetType();

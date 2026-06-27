@@ -26,6 +26,7 @@
  */
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Collections.Generic;
 using System.Reflection;
@@ -785,6 +786,8 @@ namespace LibreMetaverse.Rendering
 
     public static class RenderingLoader
     {
+        [RequiresAssemblyFiles("Discovers rendering plugins by loading assemblies from disk at runtime.")]
+        [RequiresUnreferencedCode("Inspects loaded assembly types using runtime reflection. Not AOT-safe.")]
         public static List<string> ListRenderers(string path)
         {
             List<string> plugins = new List<string>();
@@ -822,6 +825,8 @@ namespace LibreMetaverse.Rendering
             return plugins;
         }
 
+        [RequiresAssemblyFiles("Loads a rendering plugin assembly from disk at runtime.")]
+        [RequiresUnreferencedCode("Instantiates types from loaded assemblies using runtime reflection. Not AOT-safe.")]
         public static IRendering LoadRenderer(string filename)
         {
             try

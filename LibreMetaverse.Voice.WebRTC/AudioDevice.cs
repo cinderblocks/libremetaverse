@@ -454,9 +454,7 @@ namespace LibreMetaverse
         private void StopSourceSafely(object? source)
         {
             if (source == null) return;
-            var t = source.GetType();
-            var mi = t.GetMethod("StopAudio", Type.EmptyTypes) ?? t.GetMethod("Stop", Type.EmptyTypes) ?? t.GetMethod("Close", Type.EmptyTypes);
-            if (mi != null) { mi.Invoke(source, null); return; }
+            if (source is IAudioSource audioSource) { try { audioSource.CloseAudio(); } catch { } return; }
             if (source is IDisposable d) d.Dispose();
         }
 

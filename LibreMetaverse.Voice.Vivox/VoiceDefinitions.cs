@@ -27,6 +27,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Xml.Serialization;
 
 namespace LibreMetaverse.Voice.Vivox
@@ -554,7 +555,11 @@ namespace LibreMetaverse.Voice.Vivox
 
         #region XML Serialization Classes
 
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
+            Justification = "VoiceEvent is a known type defined in this assembly with fixed XML attributes.")]
         private XmlSerializer EventSerializer = new XmlSerializer(typeof(VoiceEvent));
+        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026:RequiresUnreferencedCode",
+            Justification = "VoiceResponse is a known type defined in this assembly with fixed XML attributes.")]
         private XmlSerializer ResponseSerializer = new XmlSerializer(typeof(VoiceResponse));
 
         [XmlRoot("Event")]

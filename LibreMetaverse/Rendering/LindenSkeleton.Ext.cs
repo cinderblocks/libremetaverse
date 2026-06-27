@@ -26,6 +26,7 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Xml;
@@ -98,6 +99,7 @@ namespace LibreMetaverse.Rendering
         /// Pass an explicit path to load a custom skeleton (e.g. for OpenSim grids).
         /// </param>
         /// <returns>A valid recursive skeleton.</returns>
+        [RequiresUnreferencedCode("Uses XmlSerializer with runtime-reflected LindenSkeleton types. Not AOT-safe.")]
         public static LindenSkeleton Load(string? fileName)
         {
             if (fileName == null)
