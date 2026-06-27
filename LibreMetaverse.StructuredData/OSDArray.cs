@@ -165,6 +165,7 @@ namespace LibreMetaverse.StructuredData
             return OSDParser.SerializeJsonString(this, true);
         }
 
+        [Obsolete("Iterate the OSDArray directly or use LINQ; ArrayList is a non-generic collection.")]
         public ArrayList ToArrayList()
         {
             return new ArrayList(_mArray);

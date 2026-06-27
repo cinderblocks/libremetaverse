@@ -136,8 +136,6 @@ internal delegate void TextureDownloadCallback(TextureRequestState state, AssetT
         private CancellationTokenSource? downloadTokenSource;
         /// <summary>true if the TexturePipeline is currently running</summary>
         bool _Running;
-        /// <summary>A refresh timer used to increase the priority of stalled requests</summary>
-        private System.Timers.Timer? RefreshDownloadsTimer;
 
         /// <summary>Current number of pending and in-process transfers</summary>
         public int TransferCount
@@ -206,9 +204,6 @@ internal delegate void TextureDownloadCallback(TextureRequestState state, AssetT
             Logger.Debug(String.Format("Combined Execution Time: {0}, Network Execution Time {1}, Network {2}K/sec, Image Size {3}",
                         TotalTime, NetworkTime, Math.Round(TotalBytes / NetworkTime.TotalSeconds / 60, 2), TotalBytes));
 #endif
-            RefreshDownloadsTimer?.Dispose();
-            RefreshDownloadsTimer = null;
-            
             if (downloadTokenSource != null && !downloadTokenSource.IsCancellationRequested)
                 downloadTokenSource.Cancel();
 
@@ -221,37 +216,6 @@ internal delegate void TextureDownloadCallback(TextureRequestState state, AssetT
             _Transfers.Clear();
 
             _Running = false;
-        }
-
-        private void RefreshDownloadsTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
-        {
-            foreach (TaskInfo transfer in _Transfers.Values)
-            {
-                if (transfer.State != TextureRequestState.Progress) continue;
-                ImageDownload download = transfer.Transfer;
-
-                // Find the first missing packet in the download
-                ushort packet = 0;
-                lock (download)
-                {
-                    if (download.PacketsSeen != null && download.PacketsSeen.Count > 0)
-                        packet = GetFirstMissingPacket(download.PacketsSeen);
-                }
-
-                if (download.TimeSinceLastPacket > 5000)
-                {
-                    // We're not receiving data for this texture fast enough, bump up the priority by 5%
-                    download.Priority *= 1.05f;
-
-                    download.TimeSinceLastPacket = 0;
-                    RequestImage(download.ID, download.ImageType, download.Priority, download.DiscardLevel, packet);
-                }
-
-                if (download.TimeSinceLastPacket > _Client.Settings.TexturePipeline.RequestTimeout)
-                {
-                    transfer.TokenSource.Cancel();
-                }
-            }
         }
 
         /// <summary>
@@ -492,6 +456,30 @@ internal delegate void TextureDownloadCallback(TextureRequestState state, AssetT
 
                     // Start worker that will respect semaphore slots
                     _ = RunWorkerAsync(nextTask);
+                }
+
+                // Bump priority of stalled in-progress transfers and cancel timed-out ones.
+                foreach (TaskInfo transfer in _Transfers.Values)
+                {
+                    if (transfer.State != TextureRequestState.Progress) continue;
+                    ImageDownload download = transfer.Transfer;
+
+                    ushort packet = 0;
+                    lock (download)
+                    {
+                        if (download.PacketsSeen != null && download.PacketsSeen.Count > 0)
+                            packet = GetFirstMissingPacket(download.PacketsSeen);
+                    }
+
+                    if (download.TimeSinceLastPacket > 5000)
+                    {
+                        download.Priority *= 1.05f;
+                        download.TimeSinceLastPacket = 0;
+                        RequestImage(download.ID, download.ImageType, download.Priority, download.DiscardLevel, packet);
+                    }
+
+                    if (download.TimeSinceLastPacket > _Client.Settings.TexturePipeline.RequestTimeout)
+                        transfer.TokenSource.Cancel();
                 }
 
                 // Give up some CPU time

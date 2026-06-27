@@ -693,7 +693,7 @@ namespace LibreMetaverse
             if (adapter.IsOSD)
             {
                 var al = adapter.GetOSDArray(Keys.ClassifiedCategories);
-                if (al != null) ClassifiedCategories = al.ToArrayList().Cast<object>().ToList();
+                if (al != null) ClassifiedCategories = al.Cast<object>().ToList();
             }
             else
             {
@@ -705,7 +705,7 @@ namespace LibreMetaverse
             if (adapter.IsOSD)
             {
                 var al = adapter.GetOSDArray(Keys.EventCategories);
-                if (al != null) EventCategories = al.ToArrayList().Cast<object>().ToList();
+                if (al != null) EventCategories = al.Cast<object>().ToList();
             }
             else
             {
@@ -717,7 +717,7 @@ namespace LibreMetaverse
             if (adapter.IsOSD)
             {
                 var al = adapter.GetOSDArray(Keys.GlobalTextures);
-                if (al != null) GlobalTextures = al.ToArrayList().Cast<object>().ToList();
+                if (al != null) GlobalTextures = al.Cast<object>().ToList();
             }
             else
             {
@@ -731,15 +731,9 @@ namespace LibreMetaverse
                 var map = adapter.GetOSDMap(Keys.PremiumPackages);
                 if (map != null)
                 {
-                    var ht = map.ToHashtable();
-                    var dict = new Dictionary<string, object?>(ht.Count);
-                    foreach (DictionaryEntry de in ht)
-                    {
-                        if (de.Key is string keyStr)
-                        {
-                            dict[keyStr] = de.Value;
-                        }
-                    }
+                    var dict = new Dictionary<string, object?>(map.Count);
+                    foreach (var kvp in (IDictionary<string, OSD>)map)
+                        dict[kvp.Key] = kvp.Value;
                     PremiumPackages = dict;
                 }
             }
@@ -764,7 +758,7 @@ namespace LibreMetaverse
             if (adapter.IsOSD)
             {
                 var al = adapter.GetOSDArray(Keys.UiConfig);
-                if (al != null) UiConfig = al.ToArrayList().Cast<object>().ToList();
+                if (al != null) UiConfig = al.Cast<object>().ToList();
             }
             else
             {

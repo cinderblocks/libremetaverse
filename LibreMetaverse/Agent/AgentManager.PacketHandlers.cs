@@ -820,8 +820,7 @@ namespace LibreMetaverse
             try
             {
                 OSDArray respMap = (OSDArray)result;
-                ArrayList listEntrys = respMap.ToArrayList();
-                foreach (OSDArray listEntry in listEntrys)
+                foreach (OSDArray listEntry in respMap)
                 {
                     foreach (var osd in listEntry)
                     {

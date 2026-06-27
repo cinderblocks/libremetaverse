@@ -68,6 +68,7 @@ namespace LibreMetaverse.StructuredData
             return new OSDMap(new Dictionary<string, OSD>(_mMap));
         }
 
+        [Obsolete("Iterate the OSDMap directly as IDictionary<string, OSD>; Hashtable is a non-generic collection.")]
         public Hashtable ToHashtable()
         {
             return new Hashtable(_mMap);

@@ -46,7 +46,13 @@ namespace LibreMetaverse
 
         private readonly GridClient Client;
         private readonly ManualResetEventSlim cleanerEvent = new ManualResetEventSlim();
+#if NET6_0_OR_GREATER
+        private PeriodicTimer? _cleanerPeriodicTimer;
+        private Task? _cleanerTask;
+        private CancellationTokenSource? _cleanerCts;
+#else
         private System.Timers.Timer? cleanerTimer;
+#endif
         private double pruneInterval = 1000 * 60 * 5;
         private bool autoPruneEnabled = true;
 
@@ -141,34 +147,59 @@ namespace LibreMetaverse
             }
         }
 
-        /// <summary>
-        /// Disposes cleanup timer
-        /// </summary>
         private void DestroyTimer()
         {
+#if NET6_0_OR_GREATER
+            _cleanerCts?.Cancel();
+            _cleanerCts?.Dispose();
+            _cleanerCts = null;
+            _cleanerPeriodicTimer?.Dispose();
+            _cleanerPeriodicTimer = null;
+            _cleanerTask = null;
+#else
             if (cleanerTimer != null)
             {
                 cleanerTimer.Dispose();
                 cleanerTimer = null;
             }
+#endif
         }
 
-        /// <summary>
-        /// Only create timer when needed
-        /// </summary>
         private void SetupTimer()
         {
-            if (Operational() && autoPruneEnabled && Client.Network.Connected)
+            if (!Operational() || !autoPruneEnabled || !Client.Network.Connected) return;
+#if NET6_0_OR_GREATER
+            DestroyTimer();
+            _cleanerCts = new CancellationTokenSource();
+            _cleanerPeriodicTimer = new PeriodicTimer(TimeSpan.FromMilliseconds(pruneInterval));
+            var timer = _cleanerPeriodicTimer;
+            var cts = _cleanerCts;
+            _cleanerTask = Task.Run(async () =>
             {
-                if (cleanerTimer == null)
+                try
                 {
-                    cleanerTimer = new System.Timers.Timer(pruneInterval);
-                    cleanerTimer.Elapsed += cleanerTimer_Elapsed;
+                    while (await timer.WaitForNextTickAsync(cts.Token).ConfigureAwait(false))
+                        BeginPrune();
                 }
-                cleanerTimer.Interval = pruneInterval;
-                cleanerTimer.Enabled = true;
+                catch (OperationCanceledException) { }
+            });
+#else
+            if (cleanerTimer == null)
+            {
+                cleanerTimer = new System.Timers.Timer(pruneInterval);
+                cleanerTimer.Elapsed += cleanerTimer_Elapsed;
             }
+            cleanerTimer.Interval = pruneInterval;
+            cleanerTimer.Enabled = true;
+#endif
         }
+
+#if !NET6_0_OR_GREATER
+        private void cleanerTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            BeginPrune();
+        }
+#endif
 
         /// <summary>
         /// Return bytes read from the local asset cache, null if it does not exist
@@ -649,14 +680,6 @@ namespace LibreMetaverse
         private bool Operational()
         {
             return Client.Settings.AssetCache.Enabled;
-        }
-
-        /// <summary>
-        /// Periodically prune the cache
-        /// </summary>
-        private void cleanerTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
-        {
-            BeginPrune();
         }
 
         /// <summary>
