@@ -764,13 +764,16 @@ namespace LibreMetaverse
                 {
                     try { previousCts?.Dispose(); } catch (Exception ex) { Logger.Debug($"Disposing previous CTS failed: {ex}", Client); }
 
-                    // Cancel and dispose any pending rebake timer so we start fresh.
-                    // Capture the reference first — the finally block in DelayedRequestSetAppearance
-                    // checks RebakeScheduleCts under _appearanceLock after Cancel() propagates, and
-                    // if we null the field first it will skip Dispose, leaking the CTS.
-                    var rebakeCts = RebakeScheduleCts;
-                    RebakeScheduleTask = null!;
-                    RebakeScheduleCts = null!;
+                    // Cancel and dispose any pending rebake timer inside the lock so that a
+                    // concurrent DelayedRequestSetAppearance cannot race and leave an escaped
+                    // timer that would cancel the new pipeline 5 seconds later.
+                    CancellationTokenSource? rebakeCts;
+                    lock (_appearanceLock)
+                    {
+                        rebakeCts = RebakeScheduleCts;
+                        RebakeScheduleTask = null!;
+                        RebakeScheduleCts = null!;
+                    }
                     if (rebakeCts != null)
                     {
                         try { rebakeCts.Cancel(); } catch (Exception ex) { Logger.Debug($"RebakeScheduleCts.Cancel failed: {ex}", Client); }
@@ -784,10 +787,17 @@ namespace LibreMetaverse
             }
 
             // No previous running task - start immediately.
-            // Capture and own the reference before nulling so the CTS gets properly disposed.
-            var pendingRebakeCts = RebakeScheduleCts;
-            RebakeScheduleTask = null!;
-            RebakeScheduleCts = null!;
+            // Capture and own the rebake-schedule reference inside the lock so that a
+            // concurrent AgentWearablesUpdateHandler → DelayedRequestSetAppearance cannot
+            // write a new RebakeScheduleCts between our read and our null-out, leaving an
+            // escaped timer that would cancel the pipeline 5 seconds later.
+            CancellationTokenSource? pendingRebakeCts;
+            lock (_appearanceLock)
+            {
+                pendingRebakeCts = RebakeScheduleCts;
+                RebakeScheduleTask = null!;
+                RebakeScheduleCts = null!;
+            }
             if (pendingRebakeCts != null)
             {
                 try { pendingRebakeCts.Cancel(); } catch (Exception ex) { Logger.Debug($"RebakeScheduleCts.Cancel failed: {ex}", Client); }
@@ -1835,7 +1845,18 @@ namespace LibreMetaverse
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
             {
                 cts.CancelAfter(WEARABLE_TIMEOUT);
-                await RequestAgentWornAsync(cts.Token).ConfigureAwait(false);
+                try
+                {
+                    await RequestAgentWornAsync(cts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                {
+                    // Internal 30-second timeout fired (not a caller cancellation).
+                    // Return false so the caller can fall through to the LLUDP fallback
+                    // instead of propagating an OCE that looks like a pipeline cancellation.
+                    Logger.Info("COF wearables fetch timed out; will fall back to LLUDP AgentWearablesRequest", Client);
+                    return false;
+                }
                 return Wearables.Any();
             }
         }
@@ -3169,6 +3190,7 @@ namespace LibreMetaverse
     private async Task RequestSetAppearanceAsync(bool forceRebake, CancellationToken cancellationToken)
     {
         var success = true;
+        var startSim = Client.Network.CurrentSim;
         try
         {
             if (forceRebake)
@@ -3267,6 +3289,7 @@ namespace LibreMetaverse
 
                 cancellationToken.ThrowIfCancellationRequested();
 
+                Logger.Info($"CSB: starting wearable download with {Wearables.Count} wearable type(s)", Client);
                 ServerBakingDone = false;
 
                 if (!await DownloadWearablesAsync(cancellationToken).ConfigureAwait(false))
@@ -3293,9 +3316,19 @@ namespace LibreMetaverse
                     Logger.Warn("Failed to create or upload one or more bakes, appearance will be incomplete", Client);
                 }
 
-                cancellationToken.ThrowIfCancellationRequested();
-
-                RequestAgentSetAppearance();
+                // Do NOT check cancellationToken here. Once baking is complete the packet
+                // must be sent — a superseding pipeline will re-bake with its own token.
+                // Only skip if the sim has changed underneath us (teleport/region crossing),
+                // in which case sending to the new sim with old bake data would be wrong.
+                if (Client.Network.CurrentSim != startSim)
+                {
+                    Logger.Info("Sim changed during CSB pipeline; skipping AgentSetAppearance for old sim", Client);
+                }
+                else
+                {
+                    Logger.Info("Sending AgentSetAppearance (CSB)", Client);
+                    RequestAgentSetAppearance();
+                }
             }
         }
         catch (Exception e)
