@@ -557,6 +557,8 @@ namespace LibreMetaverse
         internal IncomingPacketIDCollection PacketArchive;
         /// <summary>Packets we sent out that need ACKs from the simulator</summary>
         internal SortedDictionary<uint, NetworkManager.OutgoingPacket> NeedAck = new SortedDictionary<uint, NetworkManager.OutgoingPacket>();
+        /// <summary>Cached oldest unacked sequence number; updated inline to avoid per-ping enumeration.</summary>
+        private volatile uint _oldestUnackedCache = 0;
         /// <summary>Sequence number for pause/resume</summary>
         internal int pauseSerial;
         /// <summary>Indicates if UDP connection to the sim is fully established</summary>
@@ -1323,7 +1325,12 @@ namespace LibreMetaverse
                     if (isReliable)
                     {
                         // Add this packet to the list of ACK responses we are waiting on from the server
-                        lock (NeedAck) NeedAck[sequenceNumber] = outgoingPacket;
+                        lock (NeedAck)
+                        {
+                            NeedAck[sequenceNumber] = outgoingPacket;
+                            if (NeedAck.Count == 1)
+                                _oldestUnackedCache = sequenceNumber;
+                        }
                     }
                 }
 
@@ -1333,34 +1340,37 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// 
+        /// Remove a sequence number from NeedAck and update the cached oldest-unacked value.
+        /// Must be called while holding lock(NeedAck).
+        /// </summary>
+        private void NeedAckRemove(uint sequenceNumber)
+        {
+            NeedAck.Remove(sequenceNumber);
+            if (NeedAck.Count == 0)
+            {
+                _oldestUnackedCache = 0;
+            }
+            else if (sequenceNumber == _oldestUnackedCache)
+            {
+                // The oldest packet was just acked; find the new oldest by reading the first key.
+                using var en = NeedAck.Keys.GetEnumerator();
+                en.MoveNext();
+                _oldestUnackedCache = en.Current;
+            }
+        }
+
+        /// <summary>
+        ///
         /// </summary>
         public void SendPing()
         {
-            uint oldestUnacked = 0;
-
-            // Get the oldest NeedAck value, the first entry in the sorted dictionary
-            lock (NeedAck)
-            {
-                if (NeedAck.Count > 0)
-                {
-                    using (var en = NeedAck.Keys.GetEnumerator())
-                    {
-                        en.MoveNext();
-                        oldestUnacked = en.Current;
-                    }
-                }
-            }
-
-            //if (oldestUnacked != 0)
-            //    Logger.DebugLog("Sending ping with oldestUnacked=" + oldestUnacked);
-
+            // Use cached value to avoid allocating an enumerator on every ping.
             StartPingCheckPacket ping = new StartPingCheckPacket
             {
                 PingID =
                 {
                     PingID = (byte)Stats.GetAndIncrementLastPingID(),
-                    OldestUnacked = oldestUnacked
+                    OldestUnacked = _oldestUnackedCache
                 },
                 Header = {Reliable = false}
             };
@@ -1486,7 +1496,7 @@ namespace LibreMetaverse
                             {
                                 GotUseCircuitCodeAck.Set();
                             }
-                            NeedAck.Remove(t);
+                            NeedAckRemove(t);
                         }
                     }
                 }
@@ -1504,7 +1514,7 @@ namespace LibreMetaverse
                             {
                                 GotUseCircuitCodeAck.Set();
                             }
-                            NeedAck.Remove(t.ID);
+                            NeedAckRemove(t.ID);
                         }
                     }
                 }
@@ -1575,7 +1585,7 @@ namespace LibreMetaverse
         /// Sends out pending acknowledgments
         /// </summary>
         /// <returns>Number of ACKs sent</returns>
-        private int SendAcks()
+        internal int SendAcks()
         {
             int ackCount = 0;
 
@@ -1651,7 +1661,7 @@ namespace LibreMetaverse
                 {
                     Logger.Debug($"Dropping packet #{outgoing.SequenceNumber} after {outgoing.ResendCount} failed attempts");
 
-                    lock (NeedAck) NeedAck.Remove(outgoing.SequenceNumber);
+                    lock (NeedAck) NeedAckRemove(outgoing.SequenceNumber);
                 }
             }
         }

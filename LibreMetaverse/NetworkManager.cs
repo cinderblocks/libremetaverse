@@ -46,9 +46,6 @@ namespace LibreMetaverse
     /// </summary>
     public partial class NetworkManager
     {
-        // TODO: Implement throttle class for incoming and outgoing packets
-        
-        
         #region Enums
 
         /// <summary>
@@ -367,6 +364,9 @@ namespace LibreMetaverse
         private Task? _incomingProcessorTask;
         private Task? _outgoingProcessorTask;
 
+        // Per-category token-bucket throttle for outgoing UDP packets.
+        private UdpThrottle? _udpThrottle;
+
         private readonly GridClient Client;
         private Timer? DisconnectTimer;
 
@@ -571,6 +571,15 @@ namespace LibreMetaverse
         }
 
         /// <summary>
+        /// Update the outgoing UDP throttle rates to match the supplied AgentThrottle values.
+        /// Called automatically by AgentThrottle.Set().
+        /// </summary>
+        internal void UpdateUdpThrottle(AgentThrottle throttle)
+        {
+            _udpThrottle?.Update(throttle);
+        }
+
+        /// <summary>
         /// Connect to simulator assuming legacy region size
         /// </summary>
         /// <param name="ip">IP address to connect to</param>
@@ -646,9 +655,11 @@ namespace LibreMetaverse
             if (_packetInbox == null || _packetOutbox == null)
             {
                 var options = new UnboundedChannelOptions() {SingleReader = true};
-                
+
                 _packetInbox = Channel.CreateUnbounded<IncomingPacket>(options);
                 _packetOutbox = Channel.CreateUnbounded<OutgoingPacket>(options);
+
+                _udpThrottle = new UdpThrottle(Client.Throttle);
 
                 // Create a CancellationTokenSource for background processors and track tasks
                 _cts = new CancellationTokenSource();
@@ -995,6 +1006,9 @@ namespace LibreMetaverse
             _incomingProcessorTask = null;
             _outgoingProcessorTask = null;
 
+            _udpThrottle?.Dispose();
+            _udpThrottle = null;
+
             Connected = false;
 
             // Fire the disconnected callback
@@ -1069,11 +1083,8 @@ namespace LibreMetaverse
                 return;
             }
 
-            // FIXME: This is kind of ridiculous. Port the HTB code from Simian over ASAP!
             var reader = _packetOutbox.Reader;
-            var stopwatch = new System.Diagnostics.Stopwatch();
-            stopwatch.Start();
-            
+
             try
             {
                 while (await reader.WaitToReadAsync(ct).ConfigureAwait(false) && Connected && !ct.IsCancellationRequested)
@@ -1082,23 +1093,22 @@ namespace LibreMetaverse
                     {
                         Interlocked.Decrement(ref _packetOutboxCount);
 
-                        var simulator = outgoingPacket.Simulator;
-
-                        var elapsed = stopwatch.ElapsedMilliseconds;
-                        if (elapsed < 10)
+                        var throttle = _udpThrottle;
+                        if (throttle != null)
                         {
-                            await Task.Delay(10 - (int)elapsed, ct).ConfigureAwait(false);
+                            var category = UdpThrottle.Classify(outgoingPacket.Type);
+                            await throttle.AcquireAsync(category, outgoingPacket.Buffer.DataLength, ct).ConfigureAwait(false);
                         }
+
                         try
                         {
-                            simulator.SendPacketFinal(outgoingPacket);
+                            outgoingPacket.Simulator.SendPacketFinal(outgoingPacket);
                         }
                         catch (OperationCanceledException) { throw; }
                         catch (Exception ex)
                         {
                             Logger.Error("OutgoingPacketHandler exception: " + ex, ex, Client);
                         }
-                        stopwatch.Restart();
                     }
                 }
             }
@@ -1266,9 +1276,12 @@ namespace LibreMetaverse
                 PingID = {PingID = incomingPing.PingID.PingID},
                 Header = {Reliable = false}
             };
-            // TODO: We can use OldestUnacked to correct transmission errors
-            //   I don't think that's right.  As far as I can tell, the Viewer
-            //   only uses this to prune its duplicate-checking buffer. -bushing
+
+            // OldestUnacked is the oldest sequence number the sim sent us but hasn't received
+            // our ACK for yet. If it's non-zero, flush our pending ACK queue immediately so
+            // the sim knows we received its packets without waiting for the next ACK interval.
+            if (incomingPing.PingID.OldestUnacked > 0)
+                e.Simulator?.SendAcks();
 
             SendPacket(ping, e.Simulator);
         }

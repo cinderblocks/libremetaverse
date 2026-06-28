@@ -183,7 +183,7 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Send an AgentThrottle packet to the specified server using the 
+        /// Send an AgentThrottle packet to the specified server using the
         /// current values
         /// </summary>
         public void Set(Simulator? simulator)
@@ -206,6 +206,9 @@ namespace LibreMetaverse
             };
 
             Client.Network.SendPacket(throttle, simulator);
+
+            // Synchronise the outgoing UDP throttle with the new rates.
+            Client.Network.UpdateUdpThrottle(this);
         }
 
         /// <summary>

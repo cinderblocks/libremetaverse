@@ -197,9 +197,11 @@ namespace LibreMetaverse
                                     rotation *= dQ;
                                 }
 
-                                // Only do movement interpolation (extrapolation) when there is non-zero velocity
-                                // but no acceleration
-                                if (velocity != Vector3.Zero && acceleration == Vector3.Zero)
+                                // Extrapolate position using standard kinematic integration.
+                                // Previously this was gated on acceleration == Zero, which meant
+                                // accelerating objects were never extrapolated. Now we extrapolate
+                                // whenever there is any motion.
+                                if (velocity != Vector3.Zero || acceleration != Vector3.Zero)
                                 {
                                     position += (velocity + acceleration *
                                         (0.5f * (adjSeconds - ObjectManager.HAVOK_TIMESTEP))) * adjSeconds;
@@ -216,11 +218,41 @@ namespace LibreMetaverse
                                 break;
                             }
                             case JointType.Hinge:
-                                //FIXME: Hinge movement extrapolation
+                            {
+                                // A hinge joint allows rotation only around a single axis (JointAxisOrAnchor).
+                                // Position is constrained by the parent; only the rotational component along
+                                // the hinge axis is integrated.
+                                Vector3 hingeAxis;
+                                lock (pv) { hingeAxis = pv.JointAxisOrAnchor; }
+
+                                float axisLen = hingeAxis.Length();
+                                if (axisLen > 0.0001f && angVel != Vector3.Zero)
+                                {
+                                    Vector3 normalizedAxis = hingeAxis * (1.0f / axisLen);
+                                    float angularRate = Vector3.Dot(angVel, normalizedAxis);
+                                    float angle = angularRate * adjSeconds;
+                                    Quaternion dQ = Quaternion.CreateFromAxisAngle(normalizedAxis, angle);
+                                    lock (pv) { pv.Rotation = rotation * dQ; }
+                                }
                                 break;
+                            }
                             case JointType.Point:
-                                //FIXME: Point movement extrapolation
+                            {
+                                // A point joint allows free rotation around a fixed pivot (JointPivot).
+                                // Apply full angular velocity; linear position does not change.
+                                const float omegaThresholdSquared = 0.00001f;
+                                float omegaSquared = angVel.LengthSquared();
+
+                                if (omegaSquared > omegaThresholdSquared)
+                                {
+                                    float omega = (float)Math.Sqrt(omegaSquared);
+                                    float angle = omega * adjSeconds;
+                                    Vector3 normalizedAngVel = angVel * (1.0f / omega);
+                                    Quaternion dQ = Quaternion.CreateFromAxisAngle(normalizedAngVel, angle);
+                                    lock (pv) { pv.Rotation = rotation * dQ; }
+                                }
                                 break;
+                            }
                             default:
                                 Logger.Warn($"Unhandled joint type {joint}", _client);
                                 break;

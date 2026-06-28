@@ -25,9 +25,9 @@
  */
 
 using System;
-using System.Threading;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace LibreMetaverse
 {
@@ -69,22 +69,27 @@ namespace LibreMetaverse
 
     #endregion
 
-    public sealed class ExpiringCache<TKey, TValue>
+    public sealed class ExpiringCache<TKey, TValue> : IDisposable
         where TKey : notnull
     {
-        const double CACHE_PURGE_HZ = 1.0;
         const int MAX_LOCK_WAIT = 5000; // milliseconds
 
         #region Private fields
 
         /// <summary>For thread safety</summary>
-        object syncRoot = new object();
-        /// <summary>For thread safety</summary>
-        object isPurging = new object();
+        private readonly object syncRoot = new object();
 
-        readonly Dictionary<TimedCacheKey<TKey>, TValue> timedStorage = new Dictionary<TimedCacheKey<TKey>, TValue>();
-        readonly Dictionary<TKey, TimedCacheKey<TKey>> timedStorageIndex = new Dictionary<TKey, TimedCacheKey<TKey>>();
-        private System.Timers.Timer timer = new System.Timers.Timer(TimeSpan.FromSeconds(CACHE_PURGE_HZ).TotalMilliseconds);
+        private readonly Dictionary<TimedCacheKey<TKey>, TValue> timedStorage = new Dictionary<TimedCacheKey<TKey>, TValue>();
+        private readonly Dictionary<TKey, TimedCacheKey<TKey>> timedStorageIndex = new Dictionary<TKey, TimedCacheKey<TKey>>();
+
+#if NET6_0_OR_GREATER
+        private PeriodicTimer? _purgeTimer;
+        private CancellationTokenSource? _purgeCts;
+        private Task? _purgeTask;
+#else
+        private readonly System.Timers.Timer _timer;
+#endif
+        private bool _disposed;
 
         #endregion
 
@@ -92,8 +97,15 @@ namespace LibreMetaverse
 
         public ExpiringCache()
         {
-            timer.Elapsed += PurgeCache;
-            timer.Start();
+#if NET6_0_OR_GREATER
+            _purgeCts = new CancellationTokenSource();
+            _purgeTimer = new PeriodicTimer(TimeSpan.FromSeconds(1.0));
+            _purgeTask = Task.Run(PurgeLoopAsync);
+#else
+            _timer = new System.Timers.Timer(1000.0);
+            _timer.Elapsed += PurgeCache;
+            _timer.Start();
+#endif
         }
 
         #endregion
@@ -106,7 +118,6 @@ namespace LibreMetaverse
                 throw new ApplicationException("Lock could not be acquired after " + MAX_LOCK_WAIT + "ms");
             try
             {
-                // This is the actual adding of the key
                 if (timedStorageIndex.ContainsKey(key))
                 {
                     return false;
@@ -128,7 +139,6 @@ namespace LibreMetaverse
                 throw new ApplicationException("Lock could not be acquired after " + MAX_LOCK_WAIT + "ms");
             try
             {
-                // This is the actual adding of the key
                 if (timedStorageIndex.ContainsKey(key))
                 {
                     return false;
@@ -349,16 +359,12 @@ namespace LibreMetaverse
 
         public void CopyTo(Array array, int startIndex)
         {
-            // Error checking
             if (array == null) { throw new ArgumentNullException(nameof(array)); }
-
             if (startIndex < 0) { throw new ArgumentOutOfRangeException(nameof(startIndex), "startIndex must be >= 0."); }
-
             if (array.Rank > 1) { throw new ArgumentException("array must be of Rank 1 (one-dimensional)", nameof(array)); }
             if (startIndex >= array.Length) { throw new ArgumentException("startIndex must be less than the length of the array.", nameof(startIndex)); }
             if (Count > array.Length - startIndex) { throw new ArgumentException("There is not enough space from startIndex to the end of the array to accomodate all items in the cache."); }
 
-            // Copy the data to the array (in a thread-safe manner)
             if (!Monitor.TryEnter(syncRoot, MAX_LOCK_WAIT))
                 throw new ApplicationException("Lock could not be acquired after " + MAX_LOCK_WAIT + "ms");
             try
@@ -374,56 +380,102 @@ namespace LibreMetaverse
 
         #endregion
 
+        #region Dispose
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+
+#if NET6_0_OR_GREATER
+            _purgeCts?.Cancel();
+            _purgeTimer?.Dispose();
+            _purgeTimer = null;
+            _purgeCts?.Dispose();
+            _purgeCts = null;
+            // _purgeTask completes on cancellation; don't await here to avoid sync deadlock
+            _purgeTask = null;
+#else
+            _timer.Stop();
+            _timer.Dispose();
+#endif
+        }
+
+        #endregion
+
         #region Private methods
 
-        /// <summary>
-        /// Purges expired objects from the cache. Called automatically by the purge timer.
-        /// </summary>
-        private void PurgeCache(object? sender, System.Timers.ElapsedEventArgs e)
+#if NET6_0_OR_GREATER
+        private async Task PurgeLoopAsync()
         {
-            // Only let one thread purge at once - a buildup could cause a crash
-            // This could cause the purge to be delayed while there are lots of read/write ops 
-            // happening on the cache
-            if (!Monitor.TryEnter(isPurging))
-                return;
-
-            var signalTime = DateTime.UtcNow;
-
             try
             {
-                // If we fail to acquire a lock on the synchronization root after MAX_LOCK_WAIT, skip this purge cycle
-                if (!Monitor.TryEnter(syncRoot, MAX_LOCK_WAIT))
-                    return;
-                try
+                while (await _purgeTimer!.WaitForNextTickAsync(_purgeCts!.Token).ConfigureAwait(false))
                 {
-                    var expiredItems = new Lazy<List<object>>();
+                    PurgeExpired();
+                }
+            }
+            catch (OperationCanceledException) { }
+        }
 
-                    foreach (var timedKey in timedStorage.Keys)
-                    {
-                        if (timedKey.ExpirationDate < signalTime)
-                        {
-                            // Mark the object for purge
-                            expiredItems.Value.Add(timedKey.Key);
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
+        private void PurgeExpired()
+        {
+            var now = DateTime.UtcNow;
+            List<TimedCacheKey<TKey>>? toRemove = null;
 
-                    if (expiredItems.IsValueCreated)
+            lock (syncRoot)
+            {
+                foreach (var timedKey in timedStorage.Keys)
+                {
+                    if (timedKey.ExpirationDate < now)
                     {
-                        foreach (TimedCacheKey<TKey> timedKey in from TKey key in expiredItems.Value select timedStorageIndex[key])
-                        {
-                            timedStorageIndex.Remove(timedKey.Key);
-                            timedStorage.Remove(timedKey);
-                        }
+                        toRemove ??= new List<TimedCacheKey<TKey>>();
+                        toRemove.Add(timedKey);
                     }
                 }
-                finally { Monitor.Exit(syncRoot); }
+
+                if (toRemove != null)
+                {
+                    foreach (var timedKey in toRemove)
+                    {
+                        timedStorageIndex.Remove(timedKey.Key);
+                        timedStorage.Remove(timedKey);
+                    }
+                }
             }
-            finally { Monitor.Exit(isPurging); }
         }
+#else
+        private void PurgeCache(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            var now = DateTime.UtcNow;
+
+            if (!Monitor.TryEnter(syncRoot, MAX_LOCK_WAIT))
+                return;
+            try
+            {
+                List<TimedCacheKey<TKey>>? toRemove = null;
+
+                foreach (var timedKey in timedStorage.Keys)
+                {
+                    if (timedKey.ExpirationDate < now)
+                    {
+                        toRemove ??= new List<TimedCacheKey<TKey>>();
+                        toRemove.Add(timedKey);
+                    }
+                }
+
+                if (toRemove != null)
+                {
+                    foreach (var timedKey in toRemove)
+                    {
+                        timedStorageIndex.Remove(timedKey.Key);
+                        timedStorage.Remove(timedKey);
+                    }
+                }
+            }
+            finally { Monitor.Exit(syncRoot); }
+        }
+#endif
 
         #endregion
     }
