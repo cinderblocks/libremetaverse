@@ -42,6 +42,15 @@ namespace LibreMetaverse.Http
         private const string PROXY_TIMEOUT_RESPONSE = "502 Proxy Error";
         private const string MALFORMED_EMPTY_RESPONSE = "<llsd><undef /></llsd>";
 
+        // Exponential backoff bounds for transient HTTP/network errors.
+        private const int InitialEqRetryDelayMs = 1_000;
+        private const int MaxEqRetryDelayMs = 30_000;
+
+        // Milliseconds to wait before the next request; written by RequestCompletedHandler,
+        // read and reset by the polling loop.  Accessed only from the single EQ task so no
+        // Interlocked is needed, but volatile prevents stale reads across the await boundary.
+        private volatile int _pendingRetryDelayMs;
+
         public delegate void ConnectedCallback();
         public delegate void EventCallback(string eventName, OSDMap body);
 
@@ -108,6 +117,20 @@ namespace LibreMetaverse.Http
             }
         }
 
+        /// <summary>
+        /// Returns the next backoff delay using binary exponential back-off with a small
+        /// jitter derived from Environment.TickCount so multiple clients don't thunderbird
+        /// at the same moment.
+        /// </summary>
+        private static int NextRetryDelay(int currentMs)
+        {
+            int next = currentMs == 0 ? InitialEqRetryDelayMs
+                                      : Math.Min(MaxEqRetryDelayMs, currentMs * 2);
+            // Add 0–12.5% jitter using TickCount as a cheap pseudo-random source.
+            next += Math.Abs(Environment.TickCount) % (next / 8 + 1);
+            return next;
+        }
+
         private void Create()
         {
             // Create an EventQueueGet request
@@ -125,7 +148,30 @@ namespace LibreMetaverse.Http
             var prev = Interlocked.Exchange(ref _queueCts, newCts);
             DisposalHelper.SafeCancelAndDispose(prev);
 
-            _eqTask = Repeat.IntervalAsync(TimeSpan.FromSeconds(1), ack, newCts.Token, true);
+            _pendingRetryDelayMs = 0;
+
+            _eqTask = Task.Run(async () =>
+            {
+                try
+                {
+                    // First request is immediate.
+                    await ack().ConfigureAwait(false);
+
+                    while (!newCts.Token.IsCancellationRequested)
+                    {
+                        int delayMs = _pendingRetryDelayMs;
+                        _pendingRetryDelayMs = 0;
+
+                        if (delayMs > 0)
+                            await Task.Delay(delayMs, newCts.Token).ConfigureAwait(false);
+
+                        if (newCts.Token.IsCancellationRequested) break;
+
+                        await ack().ConfigureAwait(false);
+                    }
+                }
+                catch (OperationCanceledException) { }
+            }, newCts.Token);
 
             async Task ack()
             {
@@ -287,22 +333,25 @@ namespace LibreMetaverse.Http
                     {
                         if (error is HttpRequestException exception)
                         {
+                            bool isNormalTimeout;
 #if NET5_0_OR_GREATER
-                            if (exception.HttpRequestError != HttpRequestError.ResponseEnded)
-
+                            isNormalTimeout = exception.HttpRequestError == HttpRequestError.ResponseEnded;
 #else
-                            // ugly, but we can't get a status code
-                            if (exception.Message.Equals("The response ended prematurely. (ResponseEnded)"))
+                            // On older runtimes, identify the normal long-poll expiry by message text.
+                            isNormalTimeout = exception.Message.Equals("The response ended prematurely. (ResponseEnded)");
 #endif
+                            if (!isNormalTimeout)
                             {
                                 Logger.Error($"Unable to parse response from {Simulator} event queue: " +
                                            error.Message);
+                                _pendingRetryDelayMs = NextRetryDelay(_pendingRetryDelayMs);
                             }
                         }
                         else
                         {
                             Logger.Error($"Unable to parse response from {Simulator} event queue: " +
                                        error.Message);
+                            _pendingRetryDelayMs = NextRetryDelay(_pendingRetryDelayMs);
                         }
 
                         return;
@@ -358,6 +407,11 @@ namespace LibreMetaverse.Http
                                         try { ctsSnapshot3.Cancel(); } catch (ObjectDisposedException) { }
                                     }
                                 }
+                                else
+                                {
+                                    // Proxy timeout wrapped in a 500 — server is stressed, back off.
+                                    _pendingRetryDelayMs = NextRetryDelay(_pendingRetryDelayMs);
+                                }
                             }
                             else
                             {
@@ -370,6 +424,11 @@ namespace LibreMetaverse.Http
                                     {
                                         try { ctsSnapshot4.Cancel(); } catch (ObjectDisposedException) { }
                                     }
+                                }
+                                else
+                                {
+                                    // Ignoring spec's "stop on 500" — back off before retrying.
+                                    _pendingRetryDelayMs = NextRetryDelay(_pendingRetryDelayMs);
                                 }
                             }
                         }
@@ -392,6 +451,7 @@ namespace LibreMetaverse.Http
                             if (response.StatusCode != HttpStatusCode.OK)
                             {
                                 Logger.Warn($"Unrecognized caps connection problem from {Simulator}: {response.StatusCode} {response.ReasonPhrase}");
+                                _pendingRetryDelayMs = NextRetryDelay(_pendingRetryDelayMs);
                             }
                             else if (error.InnerException != null)
                             {
@@ -418,6 +478,10 @@ namespace LibreMetaverse.Http
                 #endregion Error handling
                 else if (responseData != null)
                 {
+                    // Got a proper HTTP response — clear any pending backoff regardless of whether
+                    // the body parses cleanly.  The server is reachable and answering.
+                    _pendingRetryDelayMs = 0;
+
                     // Got a response. Validate that the payload is likely LLSD/XML before attempting to parse.
                     if (!IsLikelyLLSD(response, responseData))
                     {

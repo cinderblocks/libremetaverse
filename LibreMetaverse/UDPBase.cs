@@ -47,6 +47,12 @@ namespace LibreMetaverse
         protected abstract void PacketReceived(UDPPacketBuffer buffer);
         protected abstract void PacketSent(UDPPacketBuffer buffer, int bytesSent);
 
+        /// <summary>
+        /// Called when an incoming UDP packet is dropped because the receive queue is full.
+        /// Override in a derived class to collect backpressure statistics.
+        /// </summary>
+        protected virtual void OnPacketDropped() { }
+
         // the port to listen on
         protected int udpPort;
 
@@ -128,10 +134,16 @@ namespace LibreMetaverse
             // we're not shutting down, we're starting up
             shutdownFlag = false;
 
-            // Unbounded, single-writer single-reader: the receive loop is the sole writer,
-            // the decode loop is the sole reader — no lock contention inside the channel.
-            _rawChannel = Channel.CreateUnbounded<UDPPacketBuffer>(
-                new UnboundedChannelOptions { SingleWriter = true, SingleReader = true });
+            // Bounded, drop-write: when the decode loop falls behind the receive loop drops
+            // the newest packet rather than blocking the socket receive loop or growing memory
+            // without bound.  Capacity is configurable via Settings.UdpReceiveQueueCapacity.
+            _rawChannel = Channel.CreateBounded<UDPPacketBuffer>(
+                new BoundedChannelOptions(Settings.UdpReceiveQueueCapacity)
+                {
+                    FullMode = BoundedChannelFullMode.DropWrite,
+                    SingleWriter = true,
+                    SingleReader = true,
+                });
 
             _udpCts = new CancellationTokenSource();
             _receiveTask = Task.Run(() => ReceiveLoopAsync(_udpCts.Token));
@@ -184,10 +196,13 @@ namespace LibreMetaverse
                         buf.DataLength = result.ReceivedBytes;
                         buf.RemoteEndPoint = result.RemoteEndPoint;
 
-                        // TryWrite never blocks on an unbounded channel; it can only return
-                        // false if the writer has been completed, which only happens in Stop().
+                        // TryWrite returns false when the channel is full (DropWrite) or has
+                        // been completed (Stop()).  Either way the buffer goes back to the pool.
                         if (!writer.TryWrite(buf))
+                        {
                             _packetPool.Return(buf);
+                            OnPacketDropped();
+                        }
                     }
                     catch (OperationCanceledException)
                     {

@@ -82,6 +82,9 @@ namespace LibreMetaverse
         /// <summary>The maximum size of the sequence number archive, used to check for resent and/or duplicate packets</summary>
         public static int PacketArchiveSize = 1000;
 
+        /// <summary>Capacity of the incoming UDP receive queue; packets received when the queue is full are dropped and counted in SimStats.DroppedPackets</summary>
+        public static int UdpReceiveQueueCapacity = 512;
+
         /// <summary>Timer interval in milliseconds between checks for stalled texture downloads</summary>
         public static float TexturePipelineRefreshInterval = 500.0f;
 

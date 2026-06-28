@@ -171,6 +171,7 @@ namespace LibreMetaverse
             private int _connectTime;
             private int _resentPackets;
             private int _receivedResends;
+            private int _droppedPackets;
             private int _sentPings;
             private int _receivedPongs;
             private int _incomingBPS;
@@ -279,6 +280,9 @@ namespace LibreMetaverse
 
             public void IncrementResentPackets() => Interlocked.Increment(ref _resentPackets);
             public int GetResentPackets() => Interlocked.Add(ref _resentPackets, 0);
+
+            public void IncrementDroppedPackets() => Interlocked.Increment(ref _droppedPackets);
+            public int GetDroppedPackets() => Interlocked.Add(ref _droppedPackets, 0);
 
             public void IncrementSentPings() => Interlocked.Increment(ref _sentPings);
             public int GetSentPings() => Interlocked.Add(ref _sentPings, 0);
@@ -1576,11 +1580,13 @@ namespace LibreMetaverse
             // Stats tracking
             Stats.AddSentBytes(bytesSent);
             Stats.IncrementSentPackets();
-            
+
             Client.Network.RaisePacketSentEvent(buffer.Data, bytesSent, this);
         }
 
-        
+        protected override void OnPacketDropped() => Stats.IncrementDroppedPackets();
+
+
         /// <summary>
         /// Sends out pending acknowledgments
         /// </summary>
