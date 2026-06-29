@@ -38,9 +38,15 @@ namespace LibreMetaverse.Packets
             return OSDParser.SerializeLLSDXmlString(GetLLSD(packet));
         }
 
+        /// <summary>
+        /// Serializes a packet to OSD. The returned map has the packet type name as its single
+        /// key and the block data map as its value, matching the LL caps event envelope format.
+        /// </summary>
         public static OSD GetLLSD(Packet packet)
         {
-            return packet.PacketToOSD();
+            var wrapper = new OSDMap(1);
+            wrapper[packet.Type.ToString()] = packet.PacketToOSD();
+            return wrapper;
         }
 
         public static byte[] ToBinary(Packet packet)
@@ -56,10 +62,27 @@ namespace LibreMetaverse.Packets
             return FromLLSD(OSDParser.DeserializeLLSDXml(reader));
         }
 
+        public static Packet? FromBinary(byte[] binary)
+        {
+            return FromLLSD(OSDParser.DeserializeLLSDBinary(binary));
+        }
+
+        /// <summary>
+        /// Reconstructs a <see cref="Packet"/> from OSD produced by <see cref="GetLLSD"/>.
+        /// The OSD must be a map whose single key is the packet type name and whose value is
+        /// the block data map.
+        /// </summary>
         public static Packet? FromLLSD(OSD osd)
         {
-            // FIXME: Need the inverse of the reflection magic above done here
-            throw new NotImplementedException();
+            if (osd is not OSDMap wrapper) return null;
+
+            foreach (var key in wrapper.Keys)
+            {
+                if (wrapper[key] is OSDMap body)
+                    return BuildPacketFromOSD(key, body);
+            }
+
+            return null;
         }
 
         #endregion Serialization/Deserialization
