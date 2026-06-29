@@ -26,6 +26,7 @@
  */
 
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -1214,6 +1215,19 @@ namespace LibreMetaverse
                     SendPacketData(data, data.Length, packet.Type, packet.Header.Zerocoded);
                 }
             }
+            else if (packet.UsesBufferPooling)
+            {
+                int size = 0;
+                byte[] data = packet.ToBytes(ArrayPoolByteBufferPool.Shared, ref size);
+                try
+                {
+                    SendPacketData(data, size, packet.Type, packet.Header.Zerocoded);
+                }
+                finally
+                {
+                    ArrayPoolByteBufferPool.Shared.ReturnBytes(data);
+                }
+            }
             else
             {
                 byte[] data = packet.ToBytes();
@@ -1461,15 +1475,19 @@ namespace LibreMetaverse
 
                 int packetEnd = buffer.DataLength - 1;
 
+                bool isZerocoded = (buffer.Data[0] & Helpers.MSG_ZEROCODED) != 0;
+                byte[]? zeroBuffer = isZerocoded ? ArrayPool<byte>.Shared.Rent(8192) : null;
                 try
                 {
-                    packet = Packet.BuildPacket(buffer.Data, ref packetEnd,
-                        // Only allocate a buffer for zerodecoding if the packet is zerocoded
-                        ((buffer.Data[0] & Helpers.MSG_ZEROCODED) != 0) ? new byte[8192] : null);
+                    packet = Packet.BuildPacket(buffer.Data, ref packetEnd, zeroBuffer);
                 }
                 catch (MalformedDataException)
                 {
                     Logger.Error($"Malformed data, cannot parse packet:\n{Utils.BytesToHexString(buffer.Data, buffer.DataLength, null)}");
+                }
+                finally
+                {
+                    if (zeroBuffer != null) ArrayPool<byte>.Shared.Return(zeroBuffer);
                 }
 
                 // Fail-safe check

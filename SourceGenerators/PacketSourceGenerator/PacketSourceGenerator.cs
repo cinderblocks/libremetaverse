@@ -739,8 +739,45 @@ namespace PacketSourceGenerator
                 }
             }
 
-            Append(sb, 2, "public override bool UsesBufferPooling => false;");
-            Append(sb, 2, "public override byte[] ToBytes(IByteBufferPool pool, ref int size) => ToBytes();");
+            // Pool-based serialisation: emit full body for fixed-size packets so the caller
+            // can lease from ArrayPool and return after send, avoiding per-packet allocation.
+            bool hasVariableForPool = packet.Blocks.Any(b => b.Count == -1);
+            if (!hasVariableForPool)
+            {
+                Append(sb, 2, "public override bool UsesBufferPooling => true;");
+                Append(sb, 2, "public override byte[] ToBytes(IByteBufferPool pool, ref int size)");
+                Append(sb, 2, "{");
+                Append(sb, 3, $"int length = {(packet.Frequency == PacketFrequency.Low ? 10 : packet.Frequency == PacketFrequency.Medium ? 8 : 7)};");
+                foreach (var block in packet.Blocks)
+                {
+                    var n = block.Name == "Header" ? "_" + block.Name : block.Name;
+                    if (block.Count == 1)
+                        Append(sb, 3, $"if ({n} != null) length += {n}.Length;");
+                    else
+                        Append(sb, 3, $"if ({n} != null) for (int j = 0; j < {n}.Length; j++) if ({n}[j] != null) length += {n}[j].Length;");
+                }
+                Append(sb, 3, "if (Header.AckList != null && Header.AckList.Length > 0) length += Header.AckList.Length * 4 + 1;");
+                Append(sb, 3, "size = length;");
+                Append(sb, 3, "byte[] bytes = pool.LeaseBytes(length);");
+                Append(sb, 3, "int i = 0;");
+                Append(sb, 3, "Header.ToBytes(bytes, ref i);");
+                foreach (var block in packet.Blocks)
+                {
+                    var n = block.Name == "Header" ? "_" + block.Name : block.Name;
+                    if (block.Count == 1)
+                        Append(sb, 3, $"if ({n} != null) {n}.ToBytes(bytes, ref i);");
+                    else
+                        Append(sb, 3, $"if ({n} != null) {{ for (int j = 0; j < {n}.Length; j++) if ({n}[j] != null) {n}[j].ToBytes(bytes, ref i); }}");
+                }
+                Append(sb, 3, "if (Header.AckList != null && Header.AckList.Length > 0) Header.AcksToBytes(bytes, ref i);");
+                Append(sb, 3, "return bytes;");
+                Append(sb, 2, "}");
+            }
+            else
+            {
+                Append(sb, 2, "public override bool UsesBufferPooling => false;");
+                Append(sb, 2, "public override byte[] ToBytes(IByteBufferPool pool, ref int size) => ToBytes();");
+            }
             Append(sb, 2, "public override byte[][] ToBytesMultiple(IByteBufferPool pool, out int[] sizes)");
             Append(sb, 2, "{");
             Append(sb, 3, "var packets = ToBytesMultiple();");
