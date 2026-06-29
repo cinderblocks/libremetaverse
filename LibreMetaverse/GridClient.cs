@@ -130,6 +130,8 @@ namespace LibreMetaverse
         public EnvironmentManager Environment { get; private set; }
         /// <summary>Interest list mode subsystem (controls simulator object update culling)</summary>
         public InterestListManager InterestList { get; private set; }
+        /// <summary>Animesh animation runtime (tracks BVH animations playing on rigged mesh objects)</summary>
+        public Animesh.AnimeshManager Animesh { get; private set; }
 
         /// <summary>
         /// Time provider used for all time-dependent operations (throttling, timeouts, retry back-off).
@@ -170,6 +172,7 @@ namespace LibreMetaverse
             Marketplace = new Marketplace.MarketplaceManager(this);
             Environment = new EnvironmentManager(this);
             InterestList = new InterestListManager(this);
+            Animesh = new Animesh.AnimeshManager(this);
         }
 
         private HttpCapsClient SetupHttpCapsClient()
