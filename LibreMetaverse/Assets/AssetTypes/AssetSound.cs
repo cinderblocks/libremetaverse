@@ -74,6 +74,20 @@ namespace LibreMetaverse.Assets
         public sealed override bool Decode() { return true; }
 
 
+        /// <summary>
+        /// Converts raw PCM audio to OGG Vorbis bytes suitable for uploading to Second Life.
+        /// Output is always mono 44100 Hz.
+        /// </summary>
+        /// <param name="pcmData">Raw PCM sample bytes (little-endian).</param>
+        /// <param name="sampleRate">Input sample rate in Hz.</param>
+        /// <param name="channels">Number of input channels (1=mono, 2=stereo).</param>
+        /// <param name="bitsPerSample">Bit depth of each sample (8 or 16).</param>
+        public static byte[] PcmToOgg(byte[] pcmData, int sampleRate, int channels, int bitsPerSample = 16)
+        {
+            var sampleSize = bitsPerSample == 8 ? PcmSample.EightBit : PcmSample.SixteenBit;
+            return ConvertRawPCMFile(44100, 1, pcmData, sampleSize, sampleRate, channels);
+        }
+
         private static byte[] ConvertRawPCMFile(int outputSampleRate, int outputChannels, byte[] pcmSamples, PcmSample pcmSampleSize, int pcmSampleRate, int pcmChannels)
         {
             int numPcmSamples = (pcmSamples.Length / (int)pcmSampleSize / pcmChannels);
