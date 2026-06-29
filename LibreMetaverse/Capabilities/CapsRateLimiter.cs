@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.RateLimiting;
@@ -99,7 +100,7 @@ namespace LibreMetaverse
     {
         // Maps well-known cap names to their rate limit category.
         // Derived from SL viewer HTTP policy class assignments; extend as needed.
-        private static readonly IReadOnlyDictionary<string, CapsCategory> CapNameToCategory =
+        private static readonly FrozenDictionary<string, CapsCategory> CapNameToCategory =
             new Dictionary<string, CapsCategory>(StringComparer.OrdinalIgnoreCase)
             {
                 // AP_MATERIALS
@@ -135,7 +136,7 @@ namespace LibreMetaverse
                 ["SetDisplayName"]                     = CapsCategory.DisplayName,
                 ["AvatarPickerSearch"]                 = CapsCategory.DisplayName,
                 ["AgentProfile"]                       = CapsCategory.DisplayName,
-            };
+            }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
         private readonly IReadOnlyDictionary<CapsCategory, RateLimiter> _limiters;
 

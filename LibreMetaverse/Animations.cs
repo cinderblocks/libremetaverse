@@ -26,8 +26,8 @@
  */
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 
 namespace LibreMetaverse
 {
@@ -308,15 +308,15 @@ namespace LibreMetaverse
         public static readonly UUID YOGA_FLOAT = new UUID("42ecd00b-9947-a97c-400a-bbc9174c7aeb");
 
         /// <summary>
-        /// An immutable dictionary containing all pre-defined animations
+        /// A frozen dictionary containing all pre-defined animations
         /// </summary>
-        /// <returns>An immutable dictionary containing the pre-defined animations, 
+        /// <returns>A frozen dictionary containing the pre-defined animations,
         /// where the key is the animations ID, and the value is a string
         /// containing a name to identify the purpose of the animation</returns>
-        public static ImmutableDictionary<UUID, string> ToDictionary() => _dictionary;
+        public static FrozenDictionary<UUID, string> ToDictionary() => _dictionary;
 
-        private static readonly ImmutableDictionary<UUID, string> _dictionary =
-            ImmutableDictionary.CreateRange(new[]
+        private static readonly FrozenDictionary<UUID, string> _dictionary =
+            new[]
             {
                 new KeyValuePair<UUID, string>(AFRAID, nameof(AFRAID)),
                 new KeyValuePair<UUID, string>(AIM_BAZOOKA_R, nameof(AIM_BAZOOKA_R)),
@@ -453,6 +453,6 @@ namespace LibreMetaverse
                 new KeyValuePair<UUID, string>(YES, nameof(YES)),
                 new KeyValuePair<UUID, string>(YES_HAPPY, nameof(YES_HAPPY)),
                 new KeyValuePair<UUID, string>(YOGA_FLOAT, nameof(YOGA_FLOAT)),
-            });
+            }.ToFrozenDictionary(p => p.Key, p => p.Value);
     }
 }

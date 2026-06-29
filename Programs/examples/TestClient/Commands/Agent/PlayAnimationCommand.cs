@@ -1,4 +1,5 @@
-using System.Collections.Immutable;
+using System.Collections.Frozen;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using LibreMetaverse;
@@ -7,7 +8,7 @@ namespace TestClient.Commands.Agent
 {
     public class PlayAnimationCommand : Command
     {
-        private readonly ImmutableDictionary<UUID, string> m_BuiltInAnimations = Animations.ToDictionary();
+        private readonly FrozenDictionary<UUID, string> m_BuiltInAnimations = Animations.ToDictionary();
         public PlayAnimationCommand(TestClient testClient)
         {
             Name = "play";
@@ -64,7 +65,7 @@ namespace TestClient.Commands.Agent
                     }
                 }
             }
-            else if (m_BuiltInAnimations.ContainsValue(args[0].Trim().ToUpper()))
+            else if (m_BuiltInAnimations.Values.Contains(args[0].Trim().ToUpper()))
             {
                 foreach (var kvp in m_BuiltInAnimations)
                 {

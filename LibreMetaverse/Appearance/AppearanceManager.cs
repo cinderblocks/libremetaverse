@@ -27,6 +27,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Threading;
 using System.Linq;
@@ -231,7 +232,7 @@ namespace LibreMetaverse
         /// Maps each IMG_USE_BAKED_* sentinel UUID to the corresponding
         /// <see cref="AvatarTextureIndex"/> baked slot on the avatar's TextureEntry.
         /// </summary>
-        public static readonly IReadOnlyDictionary<UUID, AvatarTextureIndex> IMG_USE_BAKED_INDICES =
+        public static readonly FrozenDictionary<UUID, AvatarTextureIndex> IMG_USE_BAKED_INDICES =
             new Dictionary<UUID, AvatarTextureIndex>
             {
                 { IMG_USE_BAKED_HEAD,    AvatarTextureIndex.HeadBaked    },
@@ -245,7 +246,7 @@ namespace LibreMetaverse
                 { IMG_USE_BAKED_AUX1,    AvatarTextureIndex.Aux1Baked    },
                 { IMG_USE_BAKED_AUX2,    AvatarTextureIndex.Aux2Baked    },
                 { IMG_USE_BAKED_AUX3,    AvatarTextureIndex.Aux3Baked    },
-            };
+            }.ToFrozenDictionary();
 
         #endregion Constants
 

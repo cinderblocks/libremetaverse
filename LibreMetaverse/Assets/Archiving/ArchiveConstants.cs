@@ -24,6 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using System.Collections.Frozen;
 using System.Collections.Generic;
 
 namespace LibreMetaverse.Assets
@@ -71,48 +72,54 @@ namespace LibreMetaverse.Assets
         /// <summary>
         /// Extensions used for asset types in the archive
         /// </summary>
-        public static readonly IDictionary<AssetType, string> ASSET_TYPE_TO_EXTENSION = new Dictionary<AssetType, string>();
-        public static readonly IDictionary<string, AssetType> EXTENSION_TO_ASSET_TYPE = new Dictionary<string, AssetType>();
+        public static readonly FrozenDictionary<AssetType, string> ASSET_TYPE_TO_EXTENSION;
+        public static readonly FrozenDictionary<string, AssetType> EXTENSION_TO_ASSET_TYPE;
 
         static ArchiveConstants()
         {
-            ASSET_TYPE_TO_EXTENSION[AssetType.Animation] = ASSET_EXTENSION_SEPARATOR + "animation.bvh";
-            ASSET_TYPE_TO_EXTENSION[AssetType.Bodypart] = ASSET_EXTENSION_SEPARATOR + "bodypart.txt";
-            ASSET_TYPE_TO_EXTENSION[AssetType.CallingCard] = ASSET_EXTENSION_SEPARATOR + "callingcard.txt";
-            ASSET_TYPE_TO_EXTENSION[AssetType.Clothing] = ASSET_EXTENSION_SEPARATOR + "clothing.txt";
-            ASSET_TYPE_TO_EXTENSION[AssetType.Folder] = ASSET_EXTENSION_SEPARATOR + "folder.txt";   // Not sure if we'll ever see this
-            ASSET_TYPE_TO_EXTENSION[AssetType.Gesture] = ASSET_EXTENSION_SEPARATOR + "gesture.txt";
-            ASSET_TYPE_TO_EXTENSION[AssetType.ImageJPEG] = ASSET_EXTENSION_SEPARATOR + "image.jpg";
-            ASSET_TYPE_TO_EXTENSION[AssetType.ImageTGA] = ASSET_EXTENSION_SEPARATOR + "image.tga";
-            ASSET_TYPE_TO_EXTENSION[AssetType.Landmark] = ASSET_EXTENSION_SEPARATOR + "landmark.txt";
-            ASSET_TYPE_TO_EXTENSION[AssetType.LSLBytecode] = ASSET_EXTENSION_SEPARATOR + "bytecode.lso";
-            ASSET_TYPE_TO_EXTENSION[AssetType.LSLText] = ASSET_EXTENSION_SEPARATOR + "script.lsl";
-            ASSET_TYPE_TO_EXTENSION[AssetType.Notecard] = ASSET_EXTENSION_SEPARATOR + "notecard.txt";
-            ASSET_TYPE_TO_EXTENSION[AssetType.Object] = ASSET_EXTENSION_SEPARATOR + "object.xml";
-            ASSET_TYPE_TO_EXTENSION[AssetType.Simstate] = ASSET_EXTENSION_SEPARATOR + "simstate.bin";   // Not sure if we'll ever see this
-            ASSET_TYPE_TO_EXTENSION[AssetType.Sound] = ASSET_EXTENSION_SEPARATOR + "sound.ogg";
-            ASSET_TYPE_TO_EXTENSION[AssetType.SoundWAV] = ASSET_EXTENSION_SEPARATOR + "sound.wav";
-            ASSET_TYPE_TO_EXTENSION[AssetType.Texture] = ASSET_EXTENSION_SEPARATOR + "texture.jp2";
-            ASSET_TYPE_TO_EXTENSION[AssetType.TextureTGA] = ASSET_EXTENSION_SEPARATOR + "texture.tga";
+            ASSET_TYPE_TO_EXTENSION = new Dictionary<AssetType, string>
+            {
+                [AssetType.Animation]  = ASSET_EXTENSION_SEPARATOR + "animation.bvh",
+                [AssetType.Bodypart]   = ASSET_EXTENSION_SEPARATOR + "bodypart.txt",
+                [AssetType.CallingCard] = ASSET_EXTENSION_SEPARATOR + "callingcard.txt",
+                [AssetType.Clothing]   = ASSET_EXTENSION_SEPARATOR + "clothing.txt",
+                [AssetType.Folder]     = ASSET_EXTENSION_SEPARATOR + "folder.txt",
+                [AssetType.Gesture]    = ASSET_EXTENSION_SEPARATOR + "gesture.txt",
+                [AssetType.ImageJPEG]  = ASSET_EXTENSION_SEPARATOR + "image.jpg",
+                [AssetType.ImageTGA]   = ASSET_EXTENSION_SEPARATOR + "image.tga",
+                [AssetType.Landmark]   = ASSET_EXTENSION_SEPARATOR + "landmark.txt",
+                [AssetType.LSLBytecode] = ASSET_EXTENSION_SEPARATOR + "bytecode.lso",
+                [AssetType.LSLText]    = ASSET_EXTENSION_SEPARATOR + "script.lsl",
+                [AssetType.Notecard]   = ASSET_EXTENSION_SEPARATOR + "notecard.txt",
+                [AssetType.Object]     = ASSET_EXTENSION_SEPARATOR + "object.xml",
+                [AssetType.Simstate]   = ASSET_EXTENSION_SEPARATOR + "simstate.bin",
+                [AssetType.Sound]      = ASSET_EXTENSION_SEPARATOR + "sound.ogg",
+                [AssetType.SoundWAV]   = ASSET_EXTENSION_SEPARATOR + "sound.wav",
+                [AssetType.Texture]    = ASSET_EXTENSION_SEPARATOR + "texture.jp2",
+                [AssetType.TextureTGA] = ASSET_EXTENSION_SEPARATOR + "texture.tga",
+            }.ToFrozenDictionary();
 
-            EXTENSION_TO_ASSET_TYPE[ASSET_EXTENSION_SEPARATOR + "animation.bvh"] = AssetType.Animation;
-            EXTENSION_TO_ASSET_TYPE[ASSET_EXTENSION_SEPARATOR + "bodypart.txt"] = AssetType.Bodypart;
-            EXTENSION_TO_ASSET_TYPE[ASSET_EXTENSION_SEPARATOR + "callingcard.txt"] = AssetType.CallingCard;
-            EXTENSION_TO_ASSET_TYPE[ASSET_EXTENSION_SEPARATOR + "clothing.txt"] = AssetType.Clothing;
-            EXTENSION_TO_ASSET_TYPE[ASSET_EXTENSION_SEPARATOR + "folder.txt"] = AssetType.Folder;
-            EXTENSION_TO_ASSET_TYPE[ASSET_EXTENSION_SEPARATOR + "gesture.txt"] = AssetType.Gesture;
-            EXTENSION_TO_ASSET_TYPE[ASSET_EXTENSION_SEPARATOR + "image.jpg"] = AssetType.ImageJPEG;
-            EXTENSION_TO_ASSET_TYPE[ASSET_EXTENSION_SEPARATOR + "image.tga"] = AssetType.ImageTGA;
-            EXTENSION_TO_ASSET_TYPE[ASSET_EXTENSION_SEPARATOR + "landmark.txt"] = AssetType.Landmark;
-            EXTENSION_TO_ASSET_TYPE[ASSET_EXTENSION_SEPARATOR + "bytecode.lso"] = AssetType.LSLBytecode;
-            EXTENSION_TO_ASSET_TYPE[ASSET_EXTENSION_SEPARATOR + "script.lsl"] = AssetType.LSLText;
-            EXTENSION_TO_ASSET_TYPE[ASSET_EXTENSION_SEPARATOR + "notecard.txt"] = AssetType.Notecard;
-            EXTENSION_TO_ASSET_TYPE[ASSET_EXTENSION_SEPARATOR + "object.xml"] = AssetType.Object;
-            EXTENSION_TO_ASSET_TYPE[ASSET_EXTENSION_SEPARATOR + "simstate.bin"] = AssetType.Simstate;
-            EXTENSION_TO_ASSET_TYPE[ASSET_EXTENSION_SEPARATOR + "sound.ogg"] = AssetType.Sound;
-            EXTENSION_TO_ASSET_TYPE[ASSET_EXTENSION_SEPARATOR + "sound.wav"] = AssetType.SoundWAV;
-            EXTENSION_TO_ASSET_TYPE[ASSET_EXTENSION_SEPARATOR + "texture.jp2"] = AssetType.Texture;
-            EXTENSION_TO_ASSET_TYPE[ASSET_EXTENSION_SEPARATOR + "texture.tga"] = AssetType.TextureTGA;
+            EXTENSION_TO_ASSET_TYPE = new Dictionary<string, AssetType>
+            {
+                [ASSET_EXTENSION_SEPARATOR + "animation.bvh"]   = AssetType.Animation,
+                [ASSET_EXTENSION_SEPARATOR + "bodypart.txt"]    = AssetType.Bodypart,
+                [ASSET_EXTENSION_SEPARATOR + "callingcard.txt"] = AssetType.CallingCard,
+                [ASSET_EXTENSION_SEPARATOR + "clothing.txt"]    = AssetType.Clothing,
+                [ASSET_EXTENSION_SEPARATOR + "folder.txt"]      = AssetType.Folder,
+                [ASSET_EXTENSION_SEPARATOR + "gesture.txt"]     = AssetType.Gesture,
+                [ASSET_EXTENSION_SEPARATOR + "image.jpg"]       = AssetType.ImageJPEG,
+                [ASSET_EXTENSION_SEPARATOR + "image.tga"]       = AssetType.ImageTGA,
+                [ASSET_EXTENSION_SEPARATOR + "landmark.txt"]    = AssetType.Landmark,
+                [ASSET_EXTENSION_SEPARATOR + "bytecode.lso"]    = AssetType.LSLBytecode,
+                [ASSET_EXTENSION_SEPARATOR + "script.lsl"]      = AssetType.LSLText,
+                [ASSET_EXTENSION_SEPARATOR + "notecard.txt"]    = AssetType.Notecard,
+                [ASSET_EXTENSION_SEPARATOR + "object.xml"]      = AssetType.Object,
+                [ASSET_EXTENSION_SEPARATOR + "simstate.bin"]    = AssetType.Simstate,
+                [ASSET_EXTENSION_SEPARATOR + "sound.ogg"]       = AssetType.Sound,
+                [ASSET_EXTENSION_SEPARATOR + "sound.wav"]       = AssetType.SoundWAV,
+                [ASSET_EXTENSION_SEPARATOR + "texture.jp2"]     = AssetType.Texture,
+                [ASSET_EXTENSION_SEPARATOR + "texture.tga"]     = AssetType.TextureTGA,
+            }.ToFrozenDictionary();
         }
     }
 }

@@ -63,8 +63,8 @@ namespace LibreMetaverse
         private const string SYNTAX_FEATURE_IDENTIFIER = "LSLSyntaxId";
         private const string SYNTAX_CAPABILITY_IDENTIFIER = "LSLSyntax";
         
-        private static Dictionary<string, LslKeyword> _keywords = new Dictionary<string, LslKeyword>();
-        public static FrozenDictionary<string, LslKeyword> Keywords => _keywords.ToFrozenDictionary();
+        private static volatile FrozenDictionary<string, LslKeyword>? _frozenKeywords;
+        public static FrozenDictionary<string, LslKeyword> Keywords => _frozenKeywords ?? FrozenDictionary<string, LslKeyword>.Empty;
 
         private GridClient? _client;
         private UUID _syntaxId;
@@ -362,7 +362,7 @@ namespace LibreMetaverse
                 Logger.Warn($"Syntax parser exception: {e.Message}");
             }
             Logger.Debug($"Parsed Syntax file, added {added}/{tokens} tokens.");
-            lock(_keywords) { _keywords = keywords; }
+            _frozenKeywords = keywords.ToFrozenDictionary();
             OnSyntaxChanged();
         }
         

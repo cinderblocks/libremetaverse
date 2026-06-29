@@ -27,7 +27,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
+using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text;
@@ -1428,7 +1428,7 @@ namespace LibreMetaverse.Packets
         private static string DecodeAnimToConst(string fieldName, object fieldData)
         {
             string animConst = "UUID";
-            ImmutableDictionary<UUID, string> animsDict = Animations.ToDictionary();
+            var animsDict = Animations.ToDictionary();
             if (animsDict.ContainsKey((UUID) fieldData))
                 animConst = animsDict[(UUID) fieldData];
             return $"{fieldName,30}: {fieldData,-40} [{animConst}]";

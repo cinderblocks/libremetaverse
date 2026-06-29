@@ -25,8 +25,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using System.Collections.Frozen;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 
 namespace LibreMetaverse
 {
@@ -146,15 +146,15 @@ namespace LibreMetaverse
 
 
         /// <summary>
-        /// A dictionary containing all pre-defined sounds
+        /// A frozen dictionary containing all pre-defined sounds
         /// </summary>
-        /// <returns>A dictionary containing the pre-defined sounds, 
+        /// <returns>A frozen dictionary containing the pre-defined sounds,
         /// where the key is the sounds ID, and the value is a string
         /// containing a name to identify the purpose of the sound</returns>
-        public static ImmutableDictionary<UUID, string> ToDictionary() => _dictionary;
+        public static FrozenDictionary<UUID, string> ToDictionary() => _dictionary;
 
-        private static readonly ImmutableDictionary<UUID, string> _dictionary =
-            ImmutableDictionary.CreateRange(new[]
+        private static readonly FrozenDictionary<UUID, string> _dictionary =
+            new[]
             {
                 new KeyValuePair<UUID, string>(BELL_TING, nameof(BELL_TING)),
                 new KeyValuePair<UUID, string>(CLICK, nameof(CLICK)),
@@ -192,6 +192,6 @@ namespace LibreMetaverse
                 new KeyValuePair<UUID, string>(WINDOW_CLOSE, nameof(WINDOW_CLOSE)),
                 new KeyValuePair<UUID, string>(WINDOW_OPEN, nameof(WINDOW_OPEN)),
                 new KeyValuePair<UUID, string>(ZIPPER, nameof(ZIPPER)),
-            });
+            }.ToFrozenDictionary(p => p.Key, p => p.Value);
     }
 }
