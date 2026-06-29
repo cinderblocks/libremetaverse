@@ -258,7 +258,7 @@ namespace LibreMetaverse
                         AssetTexture? assetTexture = null;
                         try
                         {
-                            assetTexture = await Client.Assets.RequestImageAsync(textureId, cancellationToken: texCts.Token)
+                            assetTexture = await TextureProvider.RequestTextureAsync(textureId, texCts.Token)
                                 .ConfigureAwait(false);
                         }
                         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -544,12 +544,14 @@ namespace LibreMetaverse
                 case BakeType.Head:
                     textures.Add(AvatarTextureIndex.HeadBodypaint);
                     textures.Add(AvatarTextureIndex.HeadTattoo);
+                    textures.Add(AvatarTextureIndex.HeadUniversalTattoo);
                     textures.Add(AvatarTextureIndex.Hair);
                     textures.Add(AvatarTextureIndex.HeadAlpha);
                     break;
                 case BakeType.UpperBody:
                     textures.Add(AvatarTextureIndex.UpperBodypaint);
                     textures.Add(AvatarTextureIndex.UpperTattoo);
+                    textures.Add(AvatarTextureIndex.UpperUniversalTattoo);
                     textures.Add(AvatarTextureIndex.UpperGloves);
                     textures.Add(AvatarTextureIndex.UpperUndershirt);
                     textures.Add(AvatarTextureIndex.UpperShirt);
@@ -559,6 +561,7 @@ namespace LibreMetaverse
                 case BakeType.LowerBody:
                     textures.Add(AvatarTextureIndex.LowerBodypaint);
                     textures.Add(AvatarTextureIndex.LowerTattoo);
+                    textures.Add(AvatarTextureIndex.LowerUniversalTattoo);
                     textures.Add(AvatarTextureIndex.LowerUnderpants);
                     textures.Add(AvatarTextureIndex.LowerSocks);
                     textures.Add(AvatarTextureIndex.LowerShoes);
@@ -568,14 +571,32 @@ namespace LibreMetaverse
                     break;
                 case BakeType.Eyes:
                     textures.Add(AvatarTextureIndex.EyesIris);
+                    textures.Add(AvatarTextureIndex.EyesTattoo);
                     textures.Add(AvatarTextureIndex.EyesAlpha);
                     break;
                 case BakeType.Skirt:
                     textures.Add(AvatarTextureIndex.Skirt);
+                    textures.Add(AvatarTextureIndex.SkirtTattoo);
                     break;
                 case BakeType.Hair:
                     textures.Add(AvatarTextureIndex.Hair);
+                    textures.Add(AvatarTextureIndex.HairTattoo);
                     textures.Add(AvatarTextureIndex.HairAlpha);
+                    break;
+                case BakeType.BakedLeftArm:
+                    textures.Add(AvatarTextureIndex.LeftArmTattoo);
+                    break;
+                case BakeType.BakedLeftLeg:
+                    textures.Add(AvatarTextureIndex.LeftLegTattoo);
+                    break;
+                case BakeType.BakedAux1:
+                    textures.Add(AvatarTextureIndex.Aux1Tattoo);
+                    break;
+                case BakeType.BakedAux2:
+                    textures.Add(AvatarTextureIndex.Aux2Tattoo);
+                    break;
+                case BakeType.BakedAux3:
+                    textures.Add(AvatarTextureIndex.Aux3Tattoo);
                     break;
             }
 

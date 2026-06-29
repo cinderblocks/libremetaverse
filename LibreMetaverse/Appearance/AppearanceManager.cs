@@ -136,8 +136,11 @@ namespace LibreMetaverse
         #region Constants
         /// <summary>Mask for multiple attachments</summary>
         public static readonly byte ATTACHMENT_ADD = 0x80;
-        /// <summary>Mapping between BakeType and AvatarTextureIndex</summary>
-        public static readonly byte[] BakeIndexToTextureIndex = new byte[BAKED_TEXTURE_COUNT] { 8, 9, 10, 11, 19, 20 };
+        /// <summary>Mapping between BakeType (index) and AvatarTextureIndex (value) for all 11 bake layers</summary>
+        public static readonly byte[] BakeIndexToTextureIndex = new byte[BAKED_TEXTURE_COUNT]
+            { 8, 9, 10, 11, 19, 20, 40, 41, 42, 43, 44 };
+            // Head=8  Upper=9  Lower=10  Eyes=11  Skirt=19  Hair=20
+            // LeftArm=40  LeftLeg=41  Aux1=42  Aux2=43  Aux3=44
         /// <summary>Maximum number of concurrent downloads for wearable assets and textures</summary>
         private const int MAX_CONCURRENT_DOWNLOADS = 5;
         /// <summary>Maximum number of concurrent uploads for baked textures</summary>
@@ -158,28 +161,44 @@ namespace LibreMetaverse
         public const int WEARABLE_COUNT_MAX = 60;
         /// <summary>Total number of wearables for each avatar</summary>
         public const int WEARABLE_COUNT = 16;
-        /// <summary>Total number of baked textures on each avatar</summary>
-        public const int BAKED_TEXTURE_COUNT = 6;
+        /// <summary>Total number of baked textures on each avatar (6 classic + 5 extended)</summary>
+        public const int BAKED_TEXTURE_COUNT = 11;
         /// <summary>Total number of wearables per bake layer</summary>
         public const int WEARABLES_PER_LAYER = 9;
         /// <summary>Map of what wearables are included in each bake</summary>
         public static readonly WearableType[][] WEARABLE_BAKE_MAP = {
+            // Classic bakes (0-5)
             new[] { WearableType.Shape, WearableType.Skin,    WearableType.Tattoo,  WearableType.Hair,    WearableType.Alpha,   WearableType.Invalid, WearableType.Invalid,    WearableType.Invalid,      WearableType.Invalid },
             new[] { WearableType.Shape, WearableType.Skin,    WearableType.Tattoo,  WearableType.Shirt,   WearableType.Jacket,  WearableType.Gloves,  WearableType.Undershirt, WearableType.Alpha,        WearableType.Invalid },
             new[] { WearableType.Shape, WearableType.Skin,    WearableType.Tattoo,  WearableType.Pants,   WearableType.Shoes,   WearableType.Socks,   WearableType.Jacket,     WearableType.Underpants,   WearableType.Alpha   },
             new[] { WearableType.Eyes,  WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid,    WearableType.Invalid,      WearableType.Invalid },
             new[] { WearableType.Skirt, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid,    WearableType.Invalid,      WearableType.Invalid },
-            new[] { WearableType.Hair,  WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid,    WearableType.Invalid,      WearableType.Invalid }
+            new[] { WearableType.Hair,  WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid,    WearableType.Invalid,      WearableType.Invalid },
+            // Extended bakes (6-10): LeftArm, LeftLeg, Aux1, Aux2, Aux3
+            // These bakes have no fixed wearable-type inputs — cache checks always miss for them.
+            new[] { WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid },
+            new[] { WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid },
+            new[] { WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid },
+            new[] { WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid },
+            new[] { WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid, WearableType.Invalid }
         };
-        /// <summary>Magic values to finalize the cache check hashes for each
-        /// bake</summary>
+        /// <summary>Magic values to finalize the cache check hashes for each bake.
+        /// Classic bake hashes are from the SL viewer source; extended bake hashes
+        /// are from indra/llappearance/llwearabledata.cpp.</summary>
         public static readonly UUID[] BAKED_TEXTURE_HASH = {
-            new UUID("18ded8d6-bcfc-e415-8539-944c0f5ea7a6"),
-            new UUID("338c29e3-3024-4dbb-998d-7c04cf4fa88f"),
-            new UUID("91b4a2c7-1b1a-ba16-9a16-1f8f8dcc1c3f"),
-            new UUID("b2cf28af-b840-1071-3c6a-78085d8128b5"),
-            new UUID("ea800387-ea1a-14e0-56cb-24f2022f969a"),
-            new UUID("0af1ef7c-ad24-11dd-8790-001f5bf833e8")
+            // Classic bakes 0-5
+            new UUID("18ded8d6-bcfc-e415-8539-944c0f5ea7a6"), // Head
+            new UUID("338c29e3-3024-4dbb-998d-7c04cf4fa88f"), // UpperBody
+            new UUID("91b4a2c7-1b1a-ba16-9a16-1f8f8dcc1c3f"), // LowerBody
+            new UUID("b2cf28af-b840-1071-3c6a-78085d8128b5"), // Eyes
+            new UUID("ea800387-ea1a-14e0-56cb-24f2022f969a"), // Skirt
+            new UUID("0af1ef7c-ad24-11dd-8790-001f5bf833e8"), // Hair
+            // Extended bakes 6-10
+            new UUID("9d762b57-ffe3-2e34-d897-0c44c8e07c72"), // BakedLeftArm
+            new UUID("e12f6f01-8b0e-e00a-03c7-bc7e56a6cbdc"), // BakedLeftLeg
+            new UUID("3e2984a2-f03c-71d5-3e97-75fb8c7e1e2f"), // BakedAux1
+            new UUID("29bbb16c-4b0c-4809-8de5-4b4df7cca8ef"), // BakedAux2
+            new UUID("e0f8b768-e68d-a0cc-d1d8-c2e7f3b51b6e")  // BakedAux3
         };
         /// <summary>Default avatar texture, used to detect when a custom
         /// texture is not set for a face</summary>
@@ -399,6 +418,14 @@ namespace LibreMetaverse
         #endregion
 
         #region Properties and public fields
+
+        /// <summary>
+        /// Texture provider used by the baking pipeline to download avatar textures.
+        /// Swap this out with a custom <see cref="IBakingTextureProvider"/> implementation
+        /// to supply textures from a non-standard source (e.g. an OpenSimulator
+        /// server-side baking service that reads from a local asset database).
+        /// </summary>
+        public IBakingTextureProvider TextureProvider { get; set; }
 
         /// <summary>
         /// Returns true if an appearance workflow task is currently running
@@ -736,6 +763,8 @@ namespace LibreMetaverse
             {
                 Textures[i] = new TextureData();
             }
+
+            TextureProvider = new GridClientBakingTextureProvider(client);
         }
 
 #region Publics Methods
@@ -2099,7 +2128,6 @@ namespace LibreMetaverse
                 Logger.Warn("Could not retrieve Current Outfit folder", Client);
                 return false;
             }
-            // TODO: create Current Outfit Folder if null
 
             // SL viewer constants for SSB retry backoff.
             // delay = pow(BAKE_RETRY_TIMEOUT=2.0, retryCount) - 1.0 seconds, max BAKE_RETRY_MAX_COUNT=5 retries.
@@ -2412,6 +2440,19 @@ namespace LibreMetaverse
                 {
                     _cachedCofUUID = folder.UUID; // box the UUID into the volatile object field
                     return folder;
+                }
+            }
+
+            // COF does not exist — create it so appearance operations don't silently fail
+            // on accounts that have never logged in with a full viewer.
+            var newCofID = clientLocal.Inventory.CreateFolder(rootFolder.UUID, "Current Outfit", FolderType.CurrentOutfit);
+            if (newCofID != UUID.Zero)
+            {
+                // Fetch the freshly-created folder from the store so we return the real object.
+                if (clientLocal.Inventory.Store[newCofID] is InventoryFolder newCof)
+                {
+                    _cachedCofUUID = newCofID;
+                    return newCof;
                 }
             }
             return null;

@@ -144,6 +144,7 @@ namespace LibreMetaverse.Imaging
                         skinTexture = tex;
                         break;
                     case AvatarTextureIndex.HeadTattoo:
+                    case AvatarTextureIndex.HeadUniversalTattoo:
                     case AvatarTextureIndex.UpperTattoo:
                     case AvatarTextureIndex.LowerTattoo:
                         tattooTextures.Add(tex);
@@ -205,7 +206,8 @@ namespace LibreMetaverse.Imaging
                 // For head bake the skin and texture are drawn last, go figure
                 if (bakeType == BakeType.Head &&
                         (textures[i].TextureIndex == AvatarTextureIndex.HeadBodypaint ||
-                        textures[i].TextureIndex == AvatarTextureIndex.HeadTattoo))
+                        textures[i].TextureIndex == AvatarTextureIndex.HeadTattoo ||
+                        textures[i].TextureIndex == AvatarTextureIndex.HeadUniversalTattoo))
                 {
                     continue;
                 }
