@@ -43,9 +43,9 @@ namespace OpenMetaverse
         /// <returns>Returns transaction id</returns>
         /// <remarks>For items with copy permissions a copy of the item is placed in the tasks inventory,
         /// for no-copy items the object is moved to the tasks inventory</remarks>
-        public UUID UpdateTaskInventory(uint objectLocalID, InventoryItem item, Simulator? simulator = null)
+        public UUID UpdateTaskInventory(uint objectLocalID, InventoryItem item, Simulator? simulator = null, bool only_mod_meta = true)
         {
-            var transactionID = UUID.Random();
+            var transactionID = only_mod_meta ? UUID.Zero : UUID.Random();
 
             var update = new UpdateTaskInventoryPacket
             {
