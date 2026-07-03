@@ -173,7 +173,7 @@ namespace LibreMetaverse.ImportExport
                     bitmap = scaledImage;
                 }
 
-                material.TextureData = CompleteConfigurationPresets.Streaming.Encode(bitmap);
+                material.TextureData = CompleteConfigurationPresets.Streaming.WithFileFormat(false).Encode(bitmap);
 
                 Logger.Info($"Successfully encoded {fname}");
             }

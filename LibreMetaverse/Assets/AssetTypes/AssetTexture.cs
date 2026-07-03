@@ -87,7 +87,7 @@ namespace LibreMetaverse.Assets
                 return;
             }
 
-            AssetData = CompleteConfigurationPresets.Streaming.Encode(Image.ExportBitmap());
+            AssetData = CompleteConfigurationPresets.Streaming.WithFileFormat(false).Encode(Image.ExportBitmap());
         }
 
         /// <summary>

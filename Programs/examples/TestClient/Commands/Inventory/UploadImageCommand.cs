@@ -159,7 +159,7 @@ namespace TestClient.Commands.Inventory
                         bitmap.Dispose();
                         bitmap = scaledImage;
                     }
-                    uploadData = CompleteConfigurationPresets.Streaming.Encode(bitmap);
+                    uploadData = CompleteConfigurationPresets.Streaming.WithFileFormat(false).Encode(bitmap);
                 }
             }
             catch (Exception ex)
