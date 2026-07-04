@@ -337,8 +337,14 @@ namespace LibreMetaverse.Http
 #if NET5_0_OR_GREATER
                             isNormalTimeout = exception.HttpRequestError == HttpRequestError.ResponseEnded;
 #else
-                            // On older runtimes, identify the normal long-poll expiry by message text.
-                            isNormalTimeout = exception.Message.Equals("The response ended prematurely. (ResponseEnded)");
+                            // On older runtimes, HttpRequestException.Message is always the generic
+                            // "An error occurred while sending the request." wrapper regardless of cause;
+                            // the real reason lives in InnerException. The normal way a long-poll ends
+                            // when idle is the server closing the held-open connection, which surfaces
+                            // as a WebException with Status ConnectionClosed or KeepAliveFailure.
+                            isNormalTimeout = exception.InnerException is WebException webEx &&
+                                (webEx.Status == WebExceptionStatus.ConnectionClosed ||
+                                 webEx.Status == WebExceptionStatus.KeepAliveFailure);
 #endif
                             if (!isNormalTimeout)
                             {
