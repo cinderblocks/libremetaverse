@@ -812,8 +812,7 @@ namespace LibreMetaverse
                         items.Add(location);
                         break;
                     case GridItemType.Classified:
-                        //FIXME:
-                        Logger.Error("FIXME", Client);
+                        // Deprecated by the viewer; servers no longer populate meaningful fields for this type.
                         break;
                     case GridItemType.LandForSale:
                         MapLandForSale landsale = new MapLandForSale
@@ -848,8 +847,7 @@ namespace LibreMetaverse
                         items.Add(PGEvent);
                         break;
                     case GridItemType.Popular:
-                        //FIXME:
-                        Logger.Error("FIXME", Client);
+                        // Deprecated by the viewer; servers no longer populate meaningful fields for this type.
                         break;
                     case GridItemType.Telehub:
                         MapTelehub teleHubItem = new MapTelehub

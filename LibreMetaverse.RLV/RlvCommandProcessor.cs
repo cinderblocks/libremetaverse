@@ -635,7 +635,9 @@ namespace LibreMetaverse.RLV
         //  * If any links to the targeted item exists in a locked folder (restricted detach), then
         //    the item will be ignored and not removed.
         //
-        // TODO: Add support for Attachment groups (RLVa)
+        // NOTE: Attachment groups (head/torso/arms/legs/hud) are an RLVa concept that only applies to
+        // @detach/@remattach; the reference RLVa implementation's @remoutfit only accepts a wearable
+        // type (or, per this implementation, a folder path) as its option.
         private async Task<bool> HandleRemOutfit(RlvMessage command, CancellationToken cancellationToken)
         {
             var (hasInventoryMap, inventoryMap) = await _queryCallbacks.TryGetInventoryMapAsync(cancellationToken).ConfigureAwait(false);

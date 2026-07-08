@@ -206,21 +206,25 @@ namespace LibreMetaverse.Assets
 
         private static bool LoadTerrain(string filePath, byte[] data, TerrainLoadedCallback terrainCallback, long bytesRead, long totalBytes)
         {
-            // TODO: This needs to be re-written to read data from a saved varregion (sizeX != 256)
-            float[,] terrain = new float[256, 256];
+            float[,]? terrain = null;
             bool loaded = false;
 
             switch (Path.GetExtension(filePath))
             {
                 case ".r32":
                 case ".f32":
-                    // RAW32
-                    if (data.Length == 256 * 256 * 4)
+                    // RAW32. Region is square, so the side length is the square root of the
+                    // number of posts (varregions/megaregions produce sizes other than 256x256).
+                    int floatCount = data.Length / 4;
+                    int side = (int)Math.Sqrt(floatCount);
+
+                    if (data.Length % 4 == 0 && side * side == floatCount && side > 0)
                     {
+                        terrain = new float[side, side];
                         int pos = 0;
-                        for (int y = 0; y < 256; y++)
+                        for (int y = 0; y < side; y++)
                         {
-                            for (int x = 0; x < 256; x++)
+                            for (int x = 0; x < side; x++)
                             {
                                 terrain[y, x] = Utils.Clamp(Utils.BytesToFloat(data, pos), 0.0f, 255.0f);
                                 pos += 4;
@@ -259,7 +263,7 @@ namespace LibreMetaverse.Assets
             }
 
             if (loaded)
-                terrainCallback(terrain, bytesRead, totalBytes);
+                terrainCallback(terrain!, bytesRead, totalBytes);
 
             return loaded;
         }
