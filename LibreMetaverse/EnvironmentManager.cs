@@ -233,7 +233,7 @@ namespace LibreMetaverse
                 var http = Client?.HttpCapsClient;
                 if (http == null) { return null; }
 
-                var requestUri = new Uri($"{cap}?parcel_id={parcelId}");
+                var requestUri = new Uri($"{cap}?parcelid={parcelId}");
 
                 ExtEnvironmentMessage? result = null;
                 var (response, data) = await http.GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
@@ -270,36 +270,40 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Sets the region-level EEP environment via the ExtEnvironment capability (POST, parcel_id=-1).
+        /// Sets the region-level EEP environment via the ExtEnvironment capability (POST, no parcelid).
         /// Requires estate manager or region owner permissions.
         /// Corresponds to LLEnvironment::updateRegion in the SL C++ viewer.
         /// </summary>
-        /// <param name="environment">The environment data to apply. Pass null to reset to the grid default.</param>
+        /// <param name="environment">The environment data to apply</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>The server response (with updated version), or null on failure</returns>
-        public async Task<ExtEnvironmentMessage?> SetRegionEnvironmentAsync(EnvironmentData? environment,
+        public async Task<ExtEnvironmentMessage?> SetRegionEnvironmentAsync(EnvironmentData environment,
             CancellationToken cancellationToken = default)
         {
+            if (environment == null) throw new ArgumentNullException(nameof(environment));
             return await SetEnvironmentInternalAsync(-1, environment, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
-        /// Sets the EEP environment for a specific parcel via the ExtEnvironment capability (POST).
+        /// Sets the EEP environment for a specific parcel via the ExtEnvironment capability (POST,
+        /// with a "parcelid" query parameter).
         /// Requires parcel owner or manager permissions.
         /// Corresponds to LLEnvironment::updateParcel in the SL C++ viewer.
         /// </summary>
         /// <param name="parcelId">The local integer parcel ID to update</param>
-        /// <param name="environment">The environment data to apply. Pass null to reset to the region default.</param>
+        /// <param name="environment">The environment data to apply</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>The server response (with updated version), or null on failure</returns>
         public async Task<ExtEnvironmentMessage?> SetParcelEnvironmentAsync(int parcelId,
-            EnvironmentData? environment, CancellationToken cancellationToken = default)
+            EnvironmentData environment, CancellationToken cancellationToken = default)
         {
+            if (environment == null) throw new ArgumentNullException(nameof(environment));
             return await SetEnvironmentInternalAsync(parcelId, environment, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
-        /// Resets a parcel's EEP environment to the region default by posting an empty environment.
+        /// Resets a parcel's EEP environment to the region default via an HTTP DELETE to the
+        /// ExtEnvironment capability (with a "parcelid" query parameter).
         /// Corresponds to LLEnvironment::resetParcel in the SL C++ viewer.
         /// </summary>
         /// <param name="parcelId">The local integer parcel ID to reset</param>
@@ -308,12 +312,13 @@ namespace LibreMetaverse
         public async Task<bool> ResetParcelEnvironmentAsync(int parcelId,
             CancellationToken cancellationToken = default)
         {
-            var result = await SetEnvironmentInternalAsync(parcelId, null, cancellationToken).ConfigureAwait(false);
+            var result = await ResetEnvironmentInternalAsync(parcelId, cancellationToken).ConfigureAwait(false);
             return result?.Success ?? false;
         }
 
         /// <summary>
-        /// Resets the region EEP environment to the grid default by posting an empty environment.
+        /// Resets the region EEP environment to the grid default via an HTTP DELETE to the
+        /// ExtEnvironment capability (no parcelid).
         /// Requires estate manager or region owner permissions.
         /// Corresponds to LLEnvironment::resetRegion in the SL C++ viewer.
         /// </summary>
@@ -321,12 +326,12 @@ namespace LibreMetaverse
         /// <returns>True if the reset succeeded, false otherwise</returns>
         public async Task<bool> ResetRegionEnvironmentAsync(CancellationToken cancellationToken = default)
         {
-            var result = await SetEnvironmentInternalAsync(-1, null, cancellationToken).ConfigureAwait(false);
+            var result = await ResetEnvironmentInternalAsync(-1, cancellationToken).ConfigureAwait(false);
             return result?.Success ?? false;
         }
 
         private async Task<ExtEnvironmentMessage?> SetEnvironmentInternalAsync(int parcelId,
-            EnvironmentData? environment, CancellationToken cancellationToken)
+            EnvironmentData environment, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             try
@@ -341,12 +346,12 @@ namespace LibreMetaverse
                 var http = Client?.HttpCapsClient;
                 if (http == null) { return null; }
 
-                var body = new OSDMap(2) { ["parcel_id"] = OSD.FromInteger(parcelId) };
-                if (environment != null)
-                    body["environment"] = environment.Serialize();
+                // parcel_id is a query parameter ("parcelid"), never part of the POST body.
+                var requestUri = parcelId == -1 ? cap : new Uri($"{cap}?parcelid={parcelId}");
+                var body = new OSDMap(1) { ["environment"] = environment.Serialize() };
 
                 ExtEnvironmentMessage? result = null;
-                var (response, data) = await http.PostAsync(cap, OSDFormat.Xml, body, cancellationToken).ConfigureAwait(false);
+                var (response, data) = await http.PostAsync(requestUri, OSDFormat.Xml, body, cancellationToken).ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode)
                 {
                     Logger.Warn($"ExtEnvironment POST parcel_id={parcelId} non-success: {response.StatusCode}", Client);
@@ -374,6 +379,60 @@ namespace LibreMetaverse
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
                 Logger.Error($"Failed setting environment for parcel_id={parcelId}", ex, Client);
+                return null;
+            }
+        }
+
+        private async Task<ExtEnvironmentMessage?> ResetEnvironmentInternalAsync(int parcelId,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                Uri? cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("ExtEnvironment");
+                if (cap == null)
+                {
+                    Logger.Warn("ExtEnvironment capability not available.", Client);
+                    return null;
+                }
+
+                var http = Client?.HttpCapsClient;
+                if (http == null) { return null; }
+
+                var requestUri = parcelId == -1 ? cap : new Uri($"{cap}?parcelid={parcelId}");
+
+                ExtEnvironmentMessage? result = null;
+                using var response = await http.DeleteAsync(requestUri, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"ExtEnvironment DELETE parcel_id={parcelId} non-success: {response.StatusCode}", Client);
+                }
+                else
+                {
+                    try
+                    {
+#if NET5_0_OR_GREATER
+                        var data = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+#else
+                        var data = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+#endif
+                        if (OSDParser.Deserialize(data) is OSDMap map)
+                        {
+                            var msg = new ExtEnvironmentMessage();
+                            msg.Deserialize(map);
+                            result = msg;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("Failed to parse ExtEnvironment DELETE response", ex, Client);
+                    }
+                }
+                return result;
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error($"Failed resetting environment for parcel_id={parcelId}", ex, Client);
                 return null;
             }
         }

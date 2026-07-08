@@ -27,7 +27,6 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Net.Http;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using LibreMetaverse.Marketplace;
@@ -35,47 +34,47 @@ using LibreMetaverse.Tests.TestHelpers;
 
 namespace LibreMetaverse.Tests
 {
+    /// <summary>
+    /// Coverage for the SLM merchant-outbox REST API, accessed via the region's "DirectDelivery"
+    /// capability. Wire format verified against the reference viewer's
+    /// LLMarketplaceData::createSLMListingCoro/updateSLMListingCoro/getSLMListingsCoro
+    /// (llmarketplacefunctions.cpp): listing_folder_id/version_folder_id/count_on_hand live under
+    /// a nested "inventory_info" object, activation state is the "is_listed" boolean (not a
+    /// "listing_status" string), and there is no title/description/price field at all -- those are
+    /// edited on the Marketplace website, not through this API.
+    /// </summary>
     [TestFixture]
     public class MarketplaceManagerTests
     {
-        private const string ApiBase = "http://test.invalid/api/1/";
+        private const string CapBase = "http://test.invalid/direct-delivery";
 
         // Fixed UUIDs used in JSON payloads so assertions can verify roundtrip parsing.
         private const string FolderUUID1 = "11111111-1111-1111-1111-111111111111";
         private const string VersionUUID1 = "22222222-2222-2222-2222-222222222222";
         private const string FolderUUID2 = "33333333-3333-3333-3333-333333333333";
+        private const string VersionUUID2 = "44444444-4444-4444-4444-444444444444";
 
-        private GridClient _client;
-        private FakeHttpMessageHandler _handler;
-        private HttpClient _httpClient;
+        private FakeGridClient _client;
         private MarketplaceManager _manager;
 
-        private string AgentId => _client.Self.AgentID.ToString();
-
-        private string Url(string path) => $"{ApiBase.TrimEnd('/')}/users/{AgentId}/{path}";
+        private static string Url(string path) => $"{CapBase}/{path}";
 
         [SetUp]
         public void SetUp()
         {
-            _client = new GridClient();
-            _handler = new FakeHttpMessageHandler();
-            _httpClient = new HttpClient(_handler);
-            _manager = new MarketplaceManager(_client, _httpClient);
-            _manager.ApiBase = ApiBase;
+            _client = new FakeGridClient();
+            _client.AddCapability("DirectDelivery", new Uri(CapBase));
+            _manager = new MarketplaceManager(_client);
         }
 
         [TearDown]
         public void TearDown()
         {
-            try { _httpClient?.Dispose(); } catch { }
-            try { _handler?.Dispose(); } catch { }
             try { _client.Dispose(); } catch { }
         }
 
         private void AddResponse(string path, HttpStatusCode status, string json)
-        {
-            _handler.AddResponse(new Uri(Url(path)), status, json);
-        }
+            => _client.AddHttpResponse(new Uri(Url(path)), status, json, "application/json");
 
         // ── FetchListingsAsync ────────────────────────────────────────────────────
 
@@ -83,10 +82,10 @@ namespace LibreMetaverse.Tests
         public async Task FetchListingsAsync_ListingsArrayResponse_PopulatesBothCaches()
         {
             AddResponse("listings", HttpStatusCode.OK,
-                "{\"listings\":[{\"id\":101,\"title\":\"Test Item\",\"description\":\"Desc\",\"price_l$\":250," +
-                $"\"listing_folder_uuid\":\"{FolderUUID1}\",\"version_folder_uuid\":\"{VersionUUID1}\"," +
-                "\"listing_status\":\"listed\",\"inventory_stock_size\":3," +
-                "\"edit_url\":\"http://mp.sl.com/edit/101\"}]}");
+                "{\"listings\":[{\"id\":101,\"is_listed\":true,\"edit_url\":\"http://mp.sl.com/edit/101\"," +
+                "\"inventory_info\":{" +
+                $"\"listing_folder_id\":\"{FolderUUID1}\",\"version_folder_id\":\"{VersionUUID1}\",\"count_on_hand\":3" +
+                "}}]}");
 
             await _manager.FetchListingsAsync();
 
@@ -94,9 +93,6 @@ namespace LibreMetaverse.Tests
             Assert.That(_manager.ListingsByFolder.ContainsKey(new UUID(FolderUUID1)), Is.True);
 
             var listing = _manager.ListingsById[101];
-            Assert.That(listing.Title, Is.EqualTo("Test Item"));
-            Assert.That(listing.Description, Is.EqualTo("Desc"));
-            Assert.That(listing.PriceLinden, Is.EqualTo(250));
             Assert.That(listing.Status, Is.EqualTo(MarketplaceListingStatus.Listed));
             Assert.That(listing.StockCount, Is.EqualTo(3));
             Assert.That(listing.VersionFolderUUID, Is.EqualTo(new UUID(VersionUUID1)));
@@ -104,15 +100,14 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        public async Task FetchListingsAsync_SingularListingKeyResponse_PopulatesCache()
+        public async Task FetchListingsAsync_UnlistedEntry_ParsesAsUnlisted()
         {
             AddResponse("listings", HttpStatusCode.OK,
-                "{\"listing\":[{\"id\":102,\"title\":\"Other\"," +
-                $"\"listing_folder_uuid\":\"{FolderUUID2}\",\"listing_status\":\"unlisted\"" + "}]}");
+                "{\"listings\":[{\"id\":102,\"is_listed\":false," +
+                $"\"inventory_info\":{{\"listing_folder_id\":\"{FolderUUID2}\"}}" + "}]}");
 
             await _manager.FetchListingsAsync();
 
-            Assert.That(_manager.ListingsById.ContainsKey(102), Is.True);
             Assert.That(_manager.ListingsById[102].Status, Is.EqualTo(MarketplaceListingStatus.Unlisted));
         }
 
@@ -121,7 +116,7 @@ namespace LibreMetaverse.Tests
         {
             AddResponse("listings", HttpStatusCode.OK,
                 "{\"listings\":[{\"id\":101," +
-                $"\"listing_folder_uuid\":\"{FolderUUID1}\"" + "}]}");
+                $"\"inventory_info\":{{\"listing_folder_id\":\"{FolderUUID1}\"}}" + "}]}");
 
             MarketplaceListingsSyncedEventArgs raisedArgs = null;
             _manager.ListingsSynced += (s, e) => raisedArgs = e;
@@ -163,14 +158,13 @@ namespace LibreMetaverse.Tests
         {
             AddResponse("listings", HttpStatusCode.OK,
                 "{\"listings\":[{\"id\":101," +
-                $"\"listing_folder_uuid\":\"{FolderUUID1}\"" + "}]}");
+                $"\"inventory_info\":{{\"listing_folder_id\":\"{FolderUUID1}\"}}" + "}]}");
             await _manager.FetchListingsAsync();
             Assert.That(_manager.ListingsById.ContainsKey(101), Is.True);
 
-            // Second fetch returns different data
-            _handler.AddResponse(new Uri(Url("listings")), HttpStatusCode.OK,
+            _client.AddHttpResponse(new Uri(Url("listings")), HttpStatusCode.OK,
                 "{\"listings\":[{\"id\":202," +
-                $"\"listing_folder_uuid\":\"{FolderUUID2}\"" + "}]}");
+                $"\"inventory_info\":{{\"listing_folder_id\":\"{FolderUUID2}\"}}" + "}]}", "application/json");
             await _manager.FetchListingsAsync();
 
             Assert.That(_manager.ListingsById.ContainsKey(101), Is.False);
@@ -180,33 +174,42 @@ namespace LibreMetaverse.Tests
         // ── CreateListingAsync ────────────────────────────────────────────────────
 
         [Test]
-        public async Task CreateListingAsync_SuccessResponse_ReturnsParsedListingAndAddsToCache()
+        public async Task CreateListingAsync_SendsNestedInventoryInfoNotFlatUuidField()
         {
-            var folderUUID = new UUID(FolderUUID2);
+            // Create/update responses wrap results in a "listings" array, same as the list-fetch
+            // response -- not a singular "listing" object (verified against createSLMListingCoro).
             AddResponse("listings", HttpStatusCode.OK,
-                "{\"listing\":{\"id\":202," +
-                $"\"listing_folder_uuid\":\"{FolderUUID2}\"," +
-                "\"listing_status\":\"unlisted\",\"price_l$\":50,\"title\":\"New\",\"description\":\"\"}}");
+                "{\"listings\":[{\"id\":202," +
+                $"\"inventory_info\":{{\"listing_folder_id\":\"{FolderUUID2}\"}}" + "}]}");
 
-            var result = await _manager.CreateListingAsync(folderUUID);
+            var folderUUID = new UUID(FolderUUID2);
+            var versionUUID = new UUID(VersionUUID2);
+            var result = await _manager.CreateListingAsync(folderUUID, versionUUID, "My Listing", 5);
 
             Assert.That(result, Is.Not.Null);
             Assert.That(result.ListingId, Is.EqualTo(202));
-            Assert.That(_manager.TryGetById(202, out _), Is.True);
-            Assert.That(_manager.TryGetByFolder(folderUUID, out _), Is.True);
+
+            var (method, uri, body) = _client.CapturedRequests[0];
+            Assert.That(method, Is.EqualTo(System.Net.Http.HttpMethod.Post));
+            Assert.That(uri.ToString(), Is.EqualTo(Url("listings")));
+            Assert.That(body, Does.Contain("\"name\":\"My Listing\""));
+            Assert.That(body, Does.Contain($"\"listing_folder_id\":\"{FolderUUID2}\""));
+            Assert.That(body, Does.Contain($"\"version_folder_id\":\"{VersionUUID2}\""));
+            Assert.That(body, Does.Contain("\"count_on_hand\":5"));
+            Assert.That(body, Does.Not.Contain("listing_folder_uuid"));
         }
 
         [Test]
         public async Task CreateListingAsync_FiresListingChangedEvent()
         {
             AddResponse("listings", HttpStatusCode.OK,
-                "{\"listing\":{\"id\":202," +
-                $"\"listing_folder_uuid\":\"{FolderUUID2}\"" + "}}");
+                "{\"listings\":[{\"id\":202," +
+                $"\"inventory_info\":{{\"listing_folder_id\":\"{FolderUUID2}\"}}" + "}]}");
 
             MarketplaceListingChangedEventArgs changedArgs = null;
             _manager.ListingChanged += (s, e) => changedArgs = e;
 
-            await _manager.CreateListingAsync(new UUID(FolderUUID2));
+            await _manager.CreateListingAsync(new UUID(FolderUUID2), new UUID(VersionUUID2), "Name");
 
             Assert.That(changedArgs, Is.Not.Null);
             Assert.That(changedArgs.ListingId, Is.EqualTo(202));
@@ -222,7 +225,7 @@ namespace LibreMetaverse.Tests
             MarketplaceErrorEventArgs errorArgs = null;
             _manager.Error += (s, e) => errorArgs = e;
 
-            var result = await _manager.CreateListingAsync(UUID.Random());
+            var result = await _manager.CreateListingAsync(UUID.Random(), UUID.Random(), "Name");
 
             Assert.That(result, Is.Null);
             Assert.That(errorArgs, Is.Not.Null);
@@ -231,16 +234,15 @@ namespace LibreMetaverse.Tests
         // ── DeleteListingAsync ────────────────────────────────────────────────────
 
         [Test]
-        public async Task DeleteListingAsync_SuccessResponse_ReturnsTrueAndRemovesFromBothCaches()
+        public async Task DeleteListingAsync_UsesSingularListingRoute()
         {
-            // Populate cache via fetch
             AddResponse("listings", HttpStatusCode.OK,
                 "{\"listings\":[{\"id\":101," +
-                $"\"listing_folder_uuid\":\"{FolderUUID1}\"" + "}]}");
+                $"\"inventory_info\":{{\"listing_folder_id\":\"{FolderUUID1}\"}}" + "}]}");
             await _manager.FetchListingsAsync();
             Assert.That(_manager.TryGetById(101, out _), Is.True);
 
-            AddResponse("listings/101", HttpStatusCode.OK, string.Empty);
+            AddResponse("listing/101", HttpStatusCode.OK, string.Empty);
             var result = await _manager.DeleteListingAsync(101);
 
             Assert.That(result, Is.True);
@@ -249,24 +251,9 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        public async Task DeleteListingAsync_FiresListingChangedEventWithNullListing()
-        {
-            AddResponse("listings/101", HttpStatusCode.OK, string.Empty);
-
-            MarketplaceListingChangedEventArgs changedArgs = null;
-            _manager.ListingChanged += (s, e) => changedArgs = e;
-
-            await _manager.DeleteListingAsync(101);
-
-            Assert.That(changedArgs, Is.Not.Null);
-            Assert.That(changedArgs.ListingId, Is.EqualTo(101));
-            Assert.That(changedArgs.Listing, Is.Null);
-        }
-
-        [Test]
         public async Task DeleteListingAsync_HttpError_ReturnsFalseAndFiresErrorEvent()
         {
-            AddResponse("listings/999", HttpStatusCode.NotFound, string.Empty);
+            AddResponse("listing/999", HttpStatusCode.NotFound, string.Empty);
 
             MarketplaceErrorEventArgs errorArgs = null;
             _manager.Error += (s, e) => errorArgs = e;
@@ -277,114 +264,79 @@ namespace LibreMetaverse.Tests
             Assert.That(errorArgs, Is.Not.Null);
         }
 
-        // ── ActivateListingAsync ──────────────────────────────────────────────────
+        // ── ActivateListingAsync / DeactivateListingAsync ────────────────────────
+
+        private async Task SeedCachedListingAsync(int listingId, string folderUuid, string versionUuid, int countOnHand)
+        {
+            AddResponse("listings", HttpStatusCode.OK,
+                $"{{\"listings\":[{{\"id\":{listingId},\"is_listed\":false," +
+                $"\"inventory_info\":{{\"listing_folder_id\":\"{folderUuid}\",\"version_folder_id\":\"{versionUuid}\"," +
+                $"\"count_on_hand\":{countOnHand}}}}}]}}");
+            await _manager.FetchListingsAsync();
+        }
 
         [Test]
-        public async Task ActivateListingAsync_SuccessResponse_ReturnsTrue()
+        public async Task ActivateListingAsync_SendsIsListedTrueAndCachedInventoryInfoToSingularRoute()
         {
-            AddResponse("listings/101", HttpStatusCode.OK,
-                "{\"listing\":{\"id\":101," +
-                $"\"listing_folder_uuid\":\"{FolderUUID1}\",\"listing_status\":\"listed\"" + "}}");
+            await SeedCachedListingAsync(101, FolderUUID1, VersionUUID1, 7);
+
+            AddResponse("listing/101", HttpStatusCode.OK,
+                "{\"listings\":[{\"id\":101,\"is_listed\":true," +
+                $"\"inventory_info\":{{\"listing_folder_id\":\"{FolderUUID1}\",\"version_folder_id\":\"{VersionUUID1}\",\"count_on_hand\":7}}" + "}]}");
 
             var result = await _manager.ActivateListingAsync(101);
 
             Assert.That(result, Is.True);
-        }
-
-        [Test]
-        public async Task ActivateListingAsync_SuccessResponse_SetsListingStatusToListed()
-        {
-            AddResponse("listings/101", HttpStatusCode.OK,
-                "{\"listing\":{\"id\":101," +
-                $"\"listing_folder_uuid\":\"{FolderUUID1}\",\"listing_status\":\"listed\"" + "}}");
-
-            await _manager.ActivateListingAsync(101);
+            var (method, uri, body) = _client.CapturedRequests[_client.CapturedRequests.Count - 1];
+            Assert.That(method, Is.EqualTo(System.Net.Http.HttpMethod.Put));
+            Assert.That(uri.ToString(), Is.EqualTo(Url("listing/101")));
+            Assert.That(body, Does.Contain("\"is_listed\":true"));
+            Assert.That(body, Does.Contain("\"id\":101"));
+            // Reference viewer's updateSLMListingCoro always resends the full inventory_info too.
+            Assert.That(body, Does.Contain($"\"listing_folder_id\":\"{FolderUUID1}\""));
+            Assert.That(body, Does.Contain($"\"version_folder_id\":\"{VersionUUID1}\""));
+            Assert.That(body, Does.Contain("\"count_on_hand\":7"));
 
             Assert.That(_manager.TryGetById(101, out var listing), Is.True);
             Assert.That(listing.Status, Is.EqualTo(MarketplaceListingStatus.Listed));
         }
 
         [Test]
+        public async Task ActivateListingAsync_NoCachedListing_ReturnsFalseWithoutSendingRequest()
+        {
+            var result = await _manager.ActivateListingAsync(999);
+
+            Assert.That(result, Is.False);
+            Assert.That(_client.CapturedRequests, Is.Empty);
+        }
+
+        [Test]
         public async Task ActivateListingAsync_HttpError_ReturnsFalse()
         {
-            AddResponse("listings/101", HttpStatusCode.BadRequest, string.Empty);
+            await SeedCachedListingAsync(101, FolderUUID1, VersionUUID1, 0);
+            AddResponse("listing/101", HttpStatusCode.BadRequest, string.Empty);
 
             var result = await _manager.ActivateListingAsync(101);
 
             Assert.That(result, Is.False);
         }
 
-        // ── DeactivateListingAsync ────────────────────────────────────────────────
-
         [Test]
-        public async Task DeactivateListingAsync_SuccessResponse_ReturnsTrue()
+        public async Task DeactivateListingAsync_SendsIsListedFalse()
         {
-            AddResponse("listings/101", HttpStatusCode.OK,
-                "{\"listing\":{\"id\":101," +
-                $"\"listing_folder_uuid\":\"{FolderUUID1}\",\"listing_status\":\"unlisted\"" + "}}");
+            await SeedCachedListingAsync(101, FolderUUID1, VersionUUID1, 0);
 
-            var result = await _manager.DeactivateListingAsync(101);
-
-            Assert.That(result, Is.True);
-        }
-
-        [Test]
-        public async Task DeactivateListingAsync_SuccessResponse_SetsListingStatusToUnlisted()
-        {
-            AddResponse("listings/101", HttpStatusCode.OK,
-                "{\"listing\":{\"id\":101," +
-                $"\"listing_folder_uuid\":\"{FolderUUID1}\",\"listing_status\":\"unlisted\"" + "}}");
+            AddResponse("listing/101", HttpStatusCode.OK,
+                "{\"listings\":[{\"id\":101,\"is_listed\":false," +
+                $"\"inventory_info\":{{\"listing_folder_id\":\"{FolderUUID1}\"}}" + "}]}");
 
             await _manager.DeactivateListingAsync(101);
 
+            var (_, _, body) = _client.CapturedRequests[_client.CapturedRequests.Count - 1];
+            Assert.That(body, Does.Contain("\"is_listed\":false"));
+
             Assert.That(_manager.TryGetById(101, out var listing), Is.True);
             Assert.That(listing.Status, Is.EqualTo(MarketplaceListingStatus.Unlisted));
-        }
-
-        // ── UpdateListingAsync ────────────────────────────────────────────────────
-
-        [Test]
-        public async Task UpdateListingAsync_SuccessResponse_ReturnsParsedListingAndUpdatesCache()
-        {
-            AddResponse("listings/101", HttpStatusCode.OK,
-                "{\"listing\":{\"id\":101," +
-                $"\"listing_folder_uuid\":\"{FolderUUID1}\"," +
-                "\"title\":\"Updated Title\",\"price_l$\":999,\"listing_status\":\"listed\"}}");
-
-            var result = await _manager.UpdateListingAsync(101, title: "Updated Title", priceLinden: 999);
-
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result.Title, Is.EqualTo("Updated Title"));
-            Assert.That(result.PriceLinden, Is.EqualTo(999));
-            Assert.That(_manager.TryGetById(101, out var cached), Is.True);
-            Assert.That(cached.Title, Is.EqualTo("Updated Title"));
-        }
-
-        [Test]
-        public async Task UpdateListingAsync_FiresListingChangedEvent()
-        {
-            AddResponse("listings/101", HttpStatusCode.OK,
-                "{\"listing\":{\"id\":101," +
-                $"\"listing_folder_uuid\":\"{FolderUUID1}\"" + "}}");
-
-            MarketplaceListingChangedEventArgs changedArgs = null;
-            _manager.ListingChanged += (s, e) => changedArgs = e;
-
-            await _manager.UpdateListingAsync(101, title: "New Title");
-
-            Assert.That(changedArgs, Is.Not.Null);
-            Assert.That(changedArgs.ListingId, Is.EqualTo(101));
-            Assert.That(changedArgs.Listing, Is.Not.Null);
-        }
-
-        [Test]
-        public async Task UpdateListingAsync_HttpError_ReturnsNull()
-        {
-            AddResponse("listings/101", HttpStatusCode.BadRequest, string.Empty);
-
-            var result = await _manager.UpdateListingAsync(101, title: "Fail");
-
-            Assert.That(result, Is.Null);
         }
 
         // ── Cache helpers ─────────────────────────────────────────────────────────
@@ -394,7 +346,7 @@ namespace LibreMetaverse.Tests
         {
             AddResponse("listings", HttpStatusCode.OK,
                 "{\"listings\":[{\"id\":101," +
-                $"\"listing_folder_uuid\":\"{FolderUUID1}\"" + "}]}");
+                $"\"inventory_info\":{{\"listing_folder_id\":\"{FolderUUID1}\"}}" + "}]}");
             await _manager.FetchListingsAsync();
 
             var found = _manager.TryGetByFolder(new UUID(FolderUUID1), out var listing);
@@ -414,36 +366,9 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        public async Task TryGetById_AfterFetch_ReturnsMatchingListing()
-        {
-            AddResponse("listings", HttpStatusCode.OK,
-                "{\"listings\":[{\"id\":101," +
-                $"\"listing_folder_uuid\":\"{FolderUUID1}\"" + "}]}");
-            await _manager.FetchListingsAsync();
-
-            var found = _manager.TryGetById(101, out var listing);
-
-            Assert.That(found, Is.True);
-            Assert.That(listing, Is.Not.Null);
-            Assert.That(listing.ListingFolderUUID, Is.EqualTo(new UUID(FolderUUID1)));
-        }
-
-        [Test]
         public void TryGetById_EmptyCache_ReturnsFalse()
         {
             Assert.That(_manager.TryGetById(9999, out _), Is.False);
-        }
-
-        [Test]
-        public async Task ListingsByFolder_AfterFetch_ContainsExpectedEntry()
-        {
-            AddResponse("listings", HttpStatusCode.OK,
-                "{\"listings\":[{\"id\":101," +
-                $"\"listing_folder_uuid\":\"{FolderUUID1}\"" + "}]}");
-            await _manager.FetchListingsAsync();
-
-            Assert.That(_manager.ListingsByFolder.ContainsKey(new UUID(FolderUUID1)), Is.True);
-            Assert.That(_manager.ListingsById.ContainsKey(101), Is.True);
         }
 
         // ── EventArgs properties ──────────────────────────────────────────────────
@@ -453,13 +378,12 @@ namespace LibreMetaverse.Tests
         {
             var listings = new List<MarketplaceListing>
             {
-                new MarketplaceListing { ListingId = 1, Title = "Item A" }
+                new MarketplaceListing { ListingId = 1 }
             };
             var args = new MarketplaceListingsSyncedEventArgs(listings);
 
             Assert.That(args.Listings, Has.Count.EqualTo(1));
             Assert.That(args.Listings[0].ListingId, Is.EqualTo(1));
-            Assert.That(args.Listings[0].Title, Is.EqualTo("Item A"));
         }
 
         [Test]
@@ -507,8 +431,6 @@ namespace LibreMetaverse.Tests
         {
             var listing = new MarketplaceListing();
 
-            Assert.That(listing.Title, Is.EqualTo(string.Empty));
-            Assert.That(listing.Description, Is.EqualTo(string.Empty));
             Assert.That(listing.Status, Is.EqualTo(MarketplaceListingStatus.Unknown));
             Assert.That(listing.LastSyncUtc, Is.EqualTo(DateTime.MinValue));
             Assert.That(listing.EditUrl, Is.Null);

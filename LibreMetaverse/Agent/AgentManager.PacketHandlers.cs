@@ -811,7 +811,21 @@ namespace LibreMetaverse
                 RetrieveInstantMessagesLegacy();
                 return;
             }
-            if (result.Type != OSDType.Array)
+
+            // The server may respond with either a bare array whose first element is the message
+            // array, or a map with the message array under a "messages" key. Both are currently
+            // valid depending on the grid's rollout state (llimprocessing.cpp requestOfflineMessagesCoro).
+            OSDArray? messages = null;
+            if (result is OSDArray topArray && topArray.Count > 0 && topArray[0] is OSDArray innerArray)
+            {
+                messages = innerArray;
+            }
+            else if (result is OSDMap topMap && topMap.TryGetValue("messages", out var messagesOsd) && messagesOsd is OSDArray namedArray)
+            {
+                messages = namedArray;
+            }
+
+            if (messages == null)
             {
                 Logger.Warn("Failed to decode offline messages from data trying legacy method (Wrong unpack type expected array)");
                 RetrieveInstantMessagesLegacy();
@@ -819,41 +833,37 @@ namespace LibreMetaverse
             }
             try
             {
-                OSDArray respMap = (OSDArray)result;
-                foreach (OSDArray listEntry in respMap)
+                foreach (var osd in messages)
                 {
-                    foreach (var osd in listEntry)
+                    var msg = (OSDMap)osd;
+
+                    InstantMessage message;
+                    message.FromAgentID = msg["from_agent_id"].AsUUID();
+                    message.FromAgentName = msg["from_agent_name"].AsString();
+                    message.ToAgentID = msg["to_agent_id"].AsUUID();
+                    message.RegionID = msg["region_id"].AsUUID();
+                    message.Dialog = (InstantMessageDialog)msg["dialog"].AsInteger();
+                    message.IMSessionID = msg["transaction-id"].AsUUID();
+                    message.Timestamp = new DateTime(msg["timestamp"].AsInteger());
+                    message.Message = msg["message"].AsString();
+                    message.Offline = msg.ContainsKey("offline")
+                        ? (InstantMessageOnline)msg["offline"].AsInteger()
+                        : InstantMessageOnline.Offline;
+                    message.ParentEstateID = msg.ContainsKey("parent_estate_id")
+                        ? msg["parent_estate_id"].AsUInteger() : 1;
+                    message.Position = msg.ContainsKey("position")
+                        ? msg["position"].AsVector3()
+                        : new Vector3(msg["local_x"], msg["local_y"], msg["local_z"]);
+                    message.BinaryBucket = msg.ContainsKey("binary_bucket")
+                        ? msg["binary_bucket"].AsBinary() : new byte[] { 0 };
+                    message.GroupIM = msg.ContainsKey("from_group") && msg["from_group"].AsBoolean();
+
+                    if (message.GroupIM)
                     {
-                        var msg = (OSDMap)osd;
-
-                        InstantMessage message;
-                        message.FromAgentID = msg["from_agent_id"].AsUUID();
-                        message.FromAgentName = msg["from_agent_name"].AsString();
-                        message.ToAgentID = msg["to_agent_id"].AsUUID();
-                        message.RegionID = msg["region_id"].AsUUID();
-                        message.Dialog = (InstantMessageDialog)msg["dialog"].AsInteger();
-                        message.IMSessionID = msg["transaction-id"].AsUUID();
-                        message.Timestamp = new DateTime(msg["timestamp"].AsInteger());
-                        message.Message = msg["message"].AsString();
-                        message.Offline = msg.ContainsKey("offline")
-                            ? (InstantMessageOnline)msg["offline"].AsInteger()
-                            : InstantMessageOnline.Offline;
-                        message.ParentEstateID = msg.ContainsKey("parent_estate_id")
-                            ? msg["parent_estate_id"].AsUInteger() : 1;
-                        message.Position = msg.ContainsKey("position")
-                            ? msg["position"].AsVector3()
-                            : new Vector3(msg["local_x"], msg["local_y"], msg["local_z"]);
-                        message.BinaryBucket = msg.ContainsKey("binary_bucket")
-                            ? msg["binary_bucket"].AsBinary() : new byte[] { 0 };
-                        message.GroupIM = msg.ContainsKey("from_group") && msg["from_group"].AsBoolean();
-
-                        if (message.GroupIM)
-                        {
-                            GroupChatSessions.TryAdd(message.IMSessionID, new List<ChatSessionMember>());
-                        }
-                        
-                        OnInstantMessage(new InstantMessageEventArgs(message, null));
+                        GroupChatSessions.TryAdd(message.IMSessionID, new List<ChatSessionMember>());
                     }
+
+                    OnInstantMessage(new InstantMessageEventArgs(message, null));
                 }
             }
             catch

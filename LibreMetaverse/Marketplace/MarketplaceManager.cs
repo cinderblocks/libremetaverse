@@ -37,22 +37,19 @@ using LibreMetaverse.StructuredData;
 namespace LibreMetaverse.Marketplace
 {
     /// <summary>
-    /// Manages communication with the Second Life Marketplace REST API.
+    /// Manages communication with the Second Life Marketplace (SLM) merchant-outbox REST API.
     /// Provides listing fetch, create, delete, activate, and deactivate operations,
     /// and fires events when the local listing cache changes.
     /// </summary>
     /// <remarks>
-    /// Authentication uses the viewer agent UUID and session ID, sent as
-    /// <c>X-SLi-AgentId</c> and <c>X-SLi-Auth</c> HTTP headers — the same
-    /// credential pair used by the SL C++ viewer for marketplace API calls.
+    /// Accessed via the region's "DirectDelivery" capability (see
+    /// LLMarketplaceData::getSLMConnectURL in the SL C++ viewer) -- there is no standalone,
+    /// session-independent REST endpoint. Routes are appended directly to the capability URL:
+    /// "/listings" (list/create), "/listing/{id}" (update/delete), "/associate_inventory/{id}".
     /// </remarks>
     public class MarketplaceManager
     {
-        // SLM REST API base path.  Append "users/{agentUUID}/listings[/{listingId}]".
-        private const string DefaultApiBase = "https://marketplace.secondlife.com/api/1/";
-
         private readonly GridClient _client;
-        private readonly HttpClient _http;
 
         // Cache: listing-folder UUID → listing data
         private readonly ConcurrentDictionary<UUID, MarketplaceListing> _byFolderUUID = new();
@@ -99,21 +96,9 @@ namespace LibreMetaverse.Marketplace
         /// <summary>Read-only snapshot of all cached listings, keyed by listing ID.</summary>
         public IReadOnlyDictionary<int, MarketplaceListing> ListingsById => _byListingId;
 
-        /// <summary>
-        /// Base URL of the SLM REST API.  Defaults to <c>https://marketplace.secondlife.com/api/1/</c>.
-        /// Can be overridden for OpenSim grids or testing.
-        /// </summary>
-        public string ApiBase { get; set; } = DefaultApiBase;
-
         public MarketplaceManager(GridClient client)
-            : this(client, new HttpClient()) { }
-
-        internal MarketplaceManager(GridClient client, HttpClient httpClient)
         {
             _client = client ?? throw new ArgumentNullException(nameof(client));
-            _http = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-            _http.DefaultRequestHeaders.Accept.Add(
-                new MediaTypeWithQualityHeaderValue("application/json"));
         }
 
         // ── Public API ────────────────────────────────────────────────────────────
@@ -126,9 +111,11 @@ namespace LibreMetaverse.Marketplace
         {
             try
             {
-                var url = BuildUserUrl("listings");
-                using var request = BuildRequest(HttpMethod.Get, url);
-                using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
+                var cap = GetCapabilityUrl();
+                if (cap == null) { return; }
+
+                using var request = BuildRequest(HttpMethod.Get, $"{cap}/listings");
+                using var response = await _client.HttpCapsClient.SendAsync(request, ct).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
                 var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var listings = ParseListingsArray(json);
@@ -144,14 +131,34 @@ namespace LibreMetaverse.Marketplace
         /// <summary>
         /// Creates a new Marketplace listing associated with <paramref name="listingFolderUUID"/>.
         /// </summary>
-        public async Task<MarketplaceListing?> CreateListingAsync(UUID listingFolderUUID, CancellationToken ct = default)
+        /// <param name="listingFolderUUID">UUID of the inventory listing folder</param>
+        /// <param name="versionFolderUUID">UUID of the version folder inside the listing folder</param>
+        /// <param name="name">Listing name (typically the listing folder's inventory name)</param>
+        /// <param name="countOnHand">Number of deliverable copies currently in stock</param>
+        /// <param name="ct">Cancellation token</param>
+        public async Task<MarketplaceListing?> CreateListingAsync(UUID listingFolderUUID, UUID versionFolderUUID,
+            string name, int countOnHand = 0, CancellationToken ct = default)
         {
             try
             {
-                var body = new OSDMap { ["listing"] = new OSDMap { ["listing_folder_uuid"] = listingFolderUUID } };
-                var url = BuildUserUrl("listings");
-                using var request = BuildRequest(HttpMethod.Post, url, body);
-                using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
+                var cap = GetCapabilityUrl();
+                if (cap == null) { return null; }
+
+                var body = new OSDMap
+                {
+                    ["listing"] = new OSDMap
+                    {
+                        ["name"] = name,
+                        ["inventory_info"] = new OSDMap
+                        {
+                            ["listing_folder_id"] = listingFolderUUID,
+                            ["version_folder_id"] = versionFolderUUID,
+                            ["count_on_hand"] = countOnHand
+                        }
+                    }
+                };
+                using var request = BuildRequest(HttpMethod.Post, $"{cap}/listings", body);
+                using var response = await _client.HttpCapsClient.SendAsync(request, ct).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
                 var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var listing = ParseSingleListing(json);
@@ -176,9 +183,11 @@ namespace LibreMetaverse.Marketplace
         {
             try
             {
-                var url = BuildUserUrl($"listings/{listingId}");
-                using var request = BuildRequest(HttpMethod.Delete, url);
-                using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
+                var cap = GetCapabilityUrl();
+                if (cap == null) { return false; }
+
+                using var request = BuildRequest(HttpMethod.Delete, $"{cap}/listing/{listingId}");
+                using var response = await _client.HttpCapsClient.SendAsync(request, ct).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
                 RemoveFromCache(listingId);
                 _listingChanged?.Invoke(this, new MarketplaceListingChangedEventArgs(listingId, null));
@@ -195,48 +204,13 @@ namespace LibreMetaverse.Marketplace
         /// Activates (lists) a Marketplace listing, making it visible to buyers.
         /// </summary>
         public Task<bool> ActivateListingAsync(int listingId, CancellationToken ct = default)
-            => SetListingStatusAsync(listingId, "listed", ct);
+            => SetListingStatusAsync(listingId, true, ct);
 
         /// <summary>
         /// Deactivates (unlists) a Marketplace listing, hiding it from buyers.
         /// </summary>
         public Task<bool> DeactivateListingAsync(int listingId, CancellationToken ct = default)
-            => SetListingStatusAsync(listingId, "unlisted", ct);
-
-        /// <summary>
-        /// Updates the title, description, and price of a listing.
-        /// </summary>
-        public async Task<MarketplaceListing?> UpdateListingAsync(int listingId,
-            string? title = null, string? description = null, int? priceLinden = null,
-            CancellationToken ct = default)
-        {
-            try
-            {
-                var inner = new OSDMap();
-                if (title != null) inner["title"] = title;
-                if (description != null) inner["description"] = description;
-                if (priceLinden.HasValue) inner["price_l$"] = priceLinden.Value;
-
-                var body = new OSDMap { ["listing"] = inner };
-                var url = BuildUserUrl($"listings/{listingId}");
-                using var request = BuildRequest(HttpMethod.Put, url, body);
-                using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
-                response.EnsureSuccessStatusCode();
-                var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                var listing = ParseSingleListing(json);
-                if (listing != null)
-                {
-                    AddOrUpdateCache(listing);
-                    _listingChanged?.Invoke(this, new MarketplaceListingChangedEventArgs(listing.ListingId, listing));
-                }
-                return listing;
-            }
-            catch (Exception ex) when (!(ex is OperationCanceledException))
-            {
-                _error?.Invoke(this, new MarketplaceErrorEventArgs($"Failed to update listing {listingId}.", ex));
-                return null;
-            }
-        }
+            => SetListingStatusAsync(listingId, false, ct);
 
         // ── Cache helpers ──────────────────────────────────────────────────────────
 
@@ -254,17 +228,49 @@ namespace LibreMetaverse.Marketplace
 
         // ── Private helpers ────────────────────────────────────────────────────────
 
-        private async Task<bool> SetListingStatusAsync(int listingId, string status, CancellationToken ct)
+        private Uri? GetCapabilityUrl()
+        {
+            var cap = _client.Network?.CurrentSim?.Caps?.CapabilityURI("DirectDelivery");
+            if (cap == null)
+            {
+                _error?.Invoke(this, new MarketplaceErrorEventArgs("DirectDelivery capability not available."));
+            }
+            return cap;
+        }
+
+        private async Task<bool> SetListingStatusAsync(int listingId, bool isListed, CancellationToken ct)
         {
             try
             {
+                var cap = GetCapabilityUrl();
+                if (cap == null) { return false; }
+
+                // The reference viewer's updateSLMListingCoro always resends the full inventory_info
+                // (listing_folder_id/version_folder_id/count_on_hand) alongside id/is_listed on every
+                // PUT, not is_listed alone -- so we need the current cached values here too.
+                if (!TryGetById(listingId, out var existing) || existing == null)
+                {
+                    _error?.Invoke(this, new MarketplaceErrorEventArgs(
+                        $"Cannot set listing {listingId} status: no cached listing data. Call FetchListingsAsync first."));
+                    return false;
+                }
+
                 var body = new OSDMap
                 {
-                    ["listing"] = new OSDMap { ["listing_status"] = status }
+                    ["listing"] = new OSDMap
+                    {
+                        ["id"] = listingId,
+                        ["is_listed"] = isListed,
+                        ["inventory_info"] = new OSDMap
+                        {
+                            ["listing_folder_id"] = existing.ListingFolderUUID,
+                            ["version_folder_id"] = existing.VersionFolderUUID,
+                            ["count_on_hand"] = existing.StockCount
+                        }
+                    }
                 };
-                var url = BuildUserUrl($"listings/{listingId}");
-                using var request = BuildRequest(HttpMethod.Put, url, body);
-                using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
+                using var request = BuildRequest(HttpMethod.Put, $"{cap}/listing/{listingId}", body);
+                using var response = await _client.HttpCapsClient.SendAsync(request, ct).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
                 var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var listing = ParseSingleListing(json);
@@ -278,30 +284,26 @@ namespace LibreMetaverse.Marketplace
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
                 _error?.Invoke(this,
-                    new MarketplaceErrorEventArgs($"Failed to set listing {listingId} status to {status}.", ex));
+                    new MarketplaceErrorEventArgs($"Failed to set listing {listingId} status to is_listed={isListed}.", ex));
                 return false;
             }
         }
 
-        private HttpRequestMessage BuildRequest(HttpMethod method, string url, OSDMap? body = null)
+        private static HttpRequestMessage BuildRequest(HttpMethod method, string url, OSDMap? body = null)
         {
             var request = new HttpRequestMessage(method, url);
-
-            // Auth headers — same approach as the SL C++ viewer for web service calls
-            request.Headers.TryAddWithoutValidation("X-SLi-AgentId", _client.Self.AgentID.ToString());
-            request.Headers.TryAddWithoutValidation("X-SLi-Auth", _client.Self.SessionID.ToString());
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
             if (body != null)
             {
-                var json = OSDParser.SerializeJsonString(body);
+                // preserveDefaults: SerializeJsonString omits "false"/0/empty-string values by default,
+                // which would silently drop is_listed=false from a deactivate request.
+                var json = OSDParser.SerializeJsonString(body, true);
                 request.Content = new StringContent(json, Encoding.UTF8, "application/json");
             }
 
             return request;
         }
-
-        private string BuildUserUrl(string path)
-            => $"{ApiBase.TrimEnd('/')}/users/{_client.Self.AgentID}/{path}";
 
         private void ReplaceCache(IReadOnlyList<MarketplaceListing> listings)
         {
@@ -332,12 +334,7 @@ namespace LibreMetaverse.Marketplace
             var root = OSDParser.DeserializeJson(json) as OSDMap;
             if (root == null) return result;
 
-            // Response may use "listing" (singular array) or "listings"
-            OSD? arrayNode = null;
-            if (root.ContainsKey("listings")) arrayNode = root["listings"];
-            else if (root.ContainsKey("listing")) arrayNode = root["listing"];
-
-            if (arrayNode is OSDArray array)
+            if (root["listings"] is OSDArray array)
             {
                 foreach (var item in array)
                 {
@@ -348,22 +345,19 @@ namespace LibreMetaverse.Marketplace
                     }
                 }
             }
-            else if (arrayNode is OSDMap singleMap)
-            {
-                var l = ParseListingMap(singleMap);
-                if (l != null) result.Add(l);
-            }
 
             return result;
         }
 
+        /// <summary>
+        /// Parses the response to a create (POST /listings) or update (PUT /listing/{id}) call.
+        /// Both wrap their result in a "listings" array (see createSLMListingCoro /
+        /// updateSLMListingCoro in the reference viewer) -- not a singular "listing" object.
+        /// </summary>
         private static MarketplaceListing? ParseSingleListing(string json)
         {
-            if (string.IsNullOrWhiteSpace(json)) return null;
-            var root = OSDParser.DeserializeJson(json) as OSDMap;
-            if (root == null) return null;
-            var inner = root.ContainsKey("listing") ? root["listing"] as OSDMap : root;
-            return inner == null ? null : ParseListingMap(inner);
+            var listings = ParseListingsArray(json);
+            return listings.Count > 0 ? listings[0] : null;
         }
 
         private static MarketplaceListing? ParseListingMap(OSDMap map)
@@ -373,25 +367,21 @@ namespace LibreMetaverse.Marketplace
             var listing = new MarketplaceListing
             {
                 ListingId = map["id"].AsInteger(),
-                Title = map.ContainsKey("title") ? map["title"].AsString() : string.Empty,
-                Description = map.ContainsKey("description") ? map["description"].AsString() : string.Empty,
-                PriceLinden = map.ContainsKey("price_l$") ? map["price_l$"].AsInteger() : 0,
-                StockCount = map.ContainsKey("inventory_stock_size") ? map["inventory_stock_size"].AsInteger() : 0,
+                Status = map.ContainsKey("is_listed") && map["is_listed"].AsBoolean()
+                    ? MarketplaceListingStatus.Listed
+                    : MarketplaceListingStatus.Unlisted,
                 EditUrl = map.ContainsKey("edit_url") ? map["edit_url"].AsString() : null,
                 LastSyncUtc = DateTime.UtcNow
             };
 
-            if (map.ContainsKey("listing_folder_uuid"))
-                listing.ListingFolderUUID = map["listing_folder_uuid"].AsUUID();
-
-            if (map.ContainsKey("version_folder_uuid"))
-                listing.VersionFolderUUID = map["version_folder_uuid"].AsUUID();
-
-            if (map.ContainsKey("listing_status"))
+            if (map["inventory_info"] is OSDMap invInfo)
             {
-                listing.Status = map["listing_status"].AsString().ToLowerInvariant() == "listed"
-                    ? MarketplaceListingStatus.Listed
-                    : MarketplaceListingStatus.Unlisted;
+                if (invInfo.ContainsKey("listing_folder_id"))
+                    listing.ListingFolderUUID = invInfo["listing_folder_id"].AsUUID();
+                if (invInfo.ContainsKey("version_folder_id"))
+                    listing.VersionFolderUUID = invInfo["version_folder_id"].AsUUID();
+                if (invInfo.ContainsKey("count_on_hand"))
+                    listing.StockCount = invInfo["count_on_hand"].AsInteger();
             }
 
             return listing;

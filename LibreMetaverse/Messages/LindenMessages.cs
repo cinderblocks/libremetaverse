@@ -2737,9 +2737,13 @@ namespace LibreMetaverse.Messages.Linden
     }
 
 
+    /// <summary>
+    /// Metadata POSTed to the SendPostcard capability. This is the first step of a two-phase
+    /// upload: the response contains an "uploader" URL that the postcard's JPEG image bytes
+    /// must be POSTed to in order to complete the send.
+    /// </summary>
     public class SendPostcardMessage : IMessage
     {
-        public string FromEmail;
         public string Message;
         public string FromName;
         public Vector3 GlobalPosition;
@@ -2752,9 +2756,8 @@ namespace LibreMetaverse.Messages.Linden
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
         public OSDMap Serialize()
         {
-            OSDMap map = new OSDMap(6)
+            OSDMap map = new OSDMap(5)
             {
-                ["from"] = OSD.FromString(FromEmail),
                 ["msg"] = OSD.FromString(Message),
                 ["name"] = OSD.FromString(FromName),
                 ["pos-global"] = OSD.FromVector3(GlobalPosition),
@@ -2770,7 +2773,6 @@ namespace LibreMetaverse.Messages.Linden
         /// <param name="map">An <see cref="OSDMap"/> containing the data</param>
         public void Deserialize(OSDMap map)
         {
-            FromEmail = map["from"].AsString();
             Message = map["msg"].AsString();
             FromName = map["name"].AsString();
             GlobalPosition = map["pos-global"].AsVector3();
@@ -2943,25 +2945,26 @@ namespace LibreMetaverse.Messages.Linden
 
     /// <summary>
     /// Message for the ProductInfoRequest capability.
-    /// HTTP GET returns a list of available products/SKUs from the grid.
-    /// Corresponds to llproductinforequest.cpp in the SL viewer.
+    /// HTTP GET returns a bare LLSD array translating region-type SKUs to human-readable
+    /// descriptions (e.g. "Homestead", "Full Region"). Verified against the reference viewer's
+    /// LLProductInfoRequestManager::getLandDescriptionsCoro/getDescriptionForSku
+    /// (llproductinforequest.cpp), which reads exactly three fields per entry: sku, name,
+    /// description -- there is no separate sale/renewal description.
     /// </summary>
     public class ProductInfoRequestMessage : IMessage
     {
-        /// <summary>Represents a single grid product/SKU entry</summary>
+        /// <summary>Represents a single region-type SKU-to-description entry</summary>
         public class ProductInfo
         {
-            /// <summary>The internal SKU identifier for this product</summary>
+            /// <summary>The internal SKU identifier for this region type</summary>
             public string Sku;
-            /// <summary>Human-readable product name</summary>
+            /// <summary>Human-readable region type name</summary>
             public string Name;
-            /// <summary>Description shown on the sale/purchase UI</summary>
-            public string DescriptionSale;
-            /// <summary>Description shown on the renewal UI</summary>
-            public string DescriptionRenewal;
+            /// <summary>Human-readable description of the region type</summary>
+            public string Description;
         }
 
-        /// <summary>The list of products returned by the capability</summary>
+        /// <summary>The list of SKU-to-description entries returned by the capability</summary>
         public List<ProductInfo> Products = new List<ProductInfo>();
 
         /// <summary>
@@ -2973,12 +2976,11 @@ namespace LibreMetaverse.Messages.Linden
             OSDArray arr = new OSDArray(Products.Count);
             foreach (ProductInfo p in Products)
             {
-                arr.Add(new OSDMap(4)
+                arr.Add(new OSDMap(3)
                 {
                     ["sku"] = OSD.FromString(p.Sku),
                     ["name"] = OSD.FromString(p.Name),
-                    ["description_sale"] = OSD.FromString(p.DescriptionSale),
-                    ["description_renewal"] = OSD.FromString(p.DescriptionRenewal)
+                    ["description"] = OSD.FromString(p.Description)
                 });
             }
             return new OSDMap(1) { ["products"] = arr };
@@ -3000,8 +3002,7 @@ namespace LibreMetaverse.Messages.Linden
                 {
                     Sku = entry["sku"].AsString(),
                     Name = entry["name"].AsString(),
-                    DescriptionSale = entry["description_sale"].AsString(),
-                    DescriptionRenewal = entry["description_renewal"].AsString()
+                    Description = entry["description"].AsString()
                 });
             }
         }
@@ -6209,68 +6210,6 @@ namespace LibreMetaverse.Messages.Linden
 
     #endregion
 
-    #region Notification and Auction Messages
-
-    /// <summary>
-    /// Message for the UpdateNotificationPreferences capability.
-    /// HTTP GET retrieves the agent's notification preferences; HTTP POST updates them.
-    /// Corresponds to llviewernotificationpreferences.cpp in the SL viewer.
-    /// Each entry maps a notification channel name to an enabled/disabled boolean.
-    /// </summary>
-    public class NotificationPreferencesMessage : IMessage
-    {
-        /// <summary>Represents a single notification channel preference entry</summary>
-        public class NotificationEntry
-        {
-            /// <summary>Name of the notification channel</summary>
-            public string Name;
-            /// <summary>Whether the notification channel is enabled</summary>
-            public bool Value;
-        }
-
-        /// <summary>The list of notification channel preferences</summary>
-        public List<NotificationEntry> Notifications = new List<NotificationEntry>();
-
-        /// <summary>
-        /// Serialize the object (POST body format)
-        /// </summary>
-        /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
-        public OSDMap Serialize()
-        {
-            OSDArray arr = new OSDArray(Notifications.Count);
-            foreach (NotificationEntry entry in Notifications)
-            {
-                arr.Add(new OSDMap(2)
-                {
-                    ["name"] = OSD.FromString(entry.Name),
-                    ["value"] = OSD.FromBoolean(entry.Value)
-                });
-            }
-            return new OSDMap(1) { ["notifications"] = arr };
-        }
-
-        /// <summary>
-        /// Deserialize the message
-        /// </summary>
-        /// <param name="map">An <see cref="OSDMap"/> containing the data</param>
-        public void Deserialize(OSDMap map)
-        {
-            Notifications = new List<NotificationEntry>();
-            if (!(map["notifications"] is OSDArray arr)) return;
-            foreach (OSD item in arr)
-            {
-                if (!(item is OSDMap entry)) continue;
-                Notifications.Add(new NotificationEntry
-                {
-                    Name = entry["name"].AsString(),
-                    Value = entry["value"].AsBoolean()
-                });
-            }
-        }
-    }
-
-    #endregion
-
     #region Experience Messages
 
     /// <summary>Experience property flags (from llexperienceutils.h XP_PROPERTY_* constants)</summary>
@@ -6364,7 +6303,10 @@ namespace LibreMetaverse.Messages.Linden
 
     /// <summary>
     /// Message containing detailed information for one or more experiences.
-    /// Returned by the GetExperienceInfo, FindExperienceByName, and ExperienceQuery capabilities.
+    /// Returned by the GetExperienceInfo and FindExperienceByName capabilities. The ExperienceQuery
+    /// capability is unrelated -- it checks whether specific experiences are permitted to run on a
+    /// parcel and returns a UUID-to-bool map, not a list of experience details; see
+    /// AgentManager.QueryExperiencesOnParcelAsync.
     /// </summary>
     public class ExperienceInfoMessage : IMessage
     {
@@ -6396,7 +6338,11 @@ namespace LibreMetaverse.Messages.Linden
     /// <summary>
     /// Message containing a list of experience UUIDs.
     /// Returned by the AgentExperiences, GetAdminExperiences, GetCreatorExperiences,
-    /// and GroupExperiences capabilities.
+    /// and GroupExperiences capabilities. Verified against the reference viewer's
+    /// LLFloaterExperiences::refreshContents/updateInfo and
+    /// LLExperienceCache::getGroupExperiencesCoro, both of which read the "experience_ids" key --
+    /// not "experience_keys" (that key is instead used by GetExperienceInfo/FindExperienceByName,
+    /// which return full experience detail objects rather than bare UUIDs).
     /// </summary>
     public class ExperienceListMessage : IMessage
     {
@@ -6408,13 +6354,13 @@ namespace LibreMetaverse.Messages.Linden
             OSDArray arr = new OSDArray(ExperienceIDs.Count);
             foreach (var id in ExperienceIDs)
                 arr.Add(OSD.FromUUID(id));
-            return new OSDMap { ["experience_keys"] = arr };
+            return new OSDMap { ["experience_ids"] = arr };
         }
 
         public void Deserialize(OSDMap map)
         {
             ExperienceIDs.Clear();
-            if (map["experience_keys"] is OSDArray arr)
+            if (map["experience_ids"] is OSDArray arr)
             {
                 foreach (OSD entry in arr)
                     ExperienceIDs.Add(entry.AsUUID());
@@ -6469,10 +6415,12 @@ namespace LibreMetaverse.Messages.Linden
     {
         /// <summary>UUIDs of experiences blocked in this region</summary>
         public List<UUID> Blocked = new List<UUID>();
-        /// <summary>UUIDs of experiences trusted (allowed) in this region by the estate/region owner</summary>
+        /// <summary>UUIDs of experiences trusted (keyed) in this region by the estate/region owner</summary>
         public List<UUID> Trusted = new List<UUID>();
-        /// <summary>UUIDs of experiences contributed to (running scripts in) this region</summary>
-        public List<UUID> Contrib = new List<UUID>();
+        /// <summary>UUIDs of experiences explicitly allowed to run in this region</summary>
+        public List<UUID> Allowed = new List<UUID>();
+        /// <summary>The region/parcel's default experience, if any (UUID.Zero if none)</summary>
+        public UUID Default = UUID.Zero;
 
         public OSDMap Serialize()
         {
@@ -6480,27 +6428,30 @@ namespace LibreMetaverse.Messages.Linden
             foreach (var id in Blocked) blocked.Add(OSD.FromUUID(id));
             OSDArray trusted = new OSDArray(Trusted.Count);
             foreach (var id in Trusted) trusted.Add(OSD.FromUUID(id));
-            OSDArray contrib = new OSDArray(Contrib.Count);
-            foreach (var id in Contrib) contrib.Add(OSD.FromUUID(id));
-            return new OSDMap
+            OSDArray allowed = new OSDArray(Allowed.Count);
+            foreach (var id in Allowed) allowed.Add(OSD.FromUUID(id));
+            var result = new OSDMap
             {
                 ["blocked"] = blocked,
                 ["trusted"] = trusted,
-                ["contrib"] = contrib
+                ["allowed"] = allowed
             };
+            if (Default != UUID.Zero) result["default"] = OSD.FromUUID(Default);
+            return result;
         }
 
         public void Deserialize(OSDMap map)
         {
             Blocked.Clear();
             Trusted.Clear();
-            Contrib.Clear();
+            Allowed.Clear();
             if (map["blocked"] is OSDArray blockedArr)
                 foreach (OSD entry in blockedArr) Blocked.Add(entry.AsUUID());
             if (map["trusted"] is OSDArray trustedArr)
                 foreach (OSD entry in trustedArr) Trusted.Add(entry.AsUUID());
-            if (map["contrib"] is OSDArray contribArr)
-                foreach (OSD entry in contribArr) Contrib.Add(entry.AsUUID());
+            if (map["allowed"] is OSDArray allowedArr)
+                foreach (OSD entry in allowedArr) Allowed.Add(entry.AsUUID());
+            Default = map.ContainsKey("default") ? map["default"].AsUUID() : UUID.Zero;
         }
     }
 
@@ -6525,13 +6476,6 @@ namespace LibreMetaverse.Messages.Linden
     /// </summary>
     public class EnvironmentData : IMessage
     {
-        /// <summary>
-        /// Active sky altitude track index.
-        /// 0 = water, 1 = ground-level sky, 2-4 = increasing altitude bands.
-        /// Corresponds to ETrackType in llenvironment.h.
-        /// </summary>
-        public int SkyTrack { get; set; } = 4;
-
         /// <summary>Duration of one full day/night cycle in seconds (default 14400 = 4 hours)</summary>
         public int DayLength { get; set; } = 14400;
 
@@ -6555,9 +6499,8 @@ namespace LibreMetaverse.Messages.Linden
         /// <inheritdoc/>
         public OSDMap Serialize()
         {
-            var map = new OSDMap(5)
+            var map = new OSDMap(4)
             {
-                ["sky_track"] = OSD.FromInteger(SkyTrack),
                 ["day_length"] = OSD.FromInteger(DayLength),
                 ["day_offset"] = OSD.FromInteger(DayOffset),
                 ["flags"] = OSD.FromInteger((int)Flags)
@@ -6570,7 +6513,6 @@ namespace LibreMetaverse.Messages.Linden
         /// <inheritdoc/>
         public void Deserialize(OSDMap map)
         {
-            SkyTrack = map.ContainsKey("sky_track") ? map["sky_track"].AsInteger() : 4;
             DayLength = map.ContainsKey("day_length") ? map["day_length"].AsInteger() : 14400;
             DayOffset = map.ContainsKey("day_offset") ? map["day_offset"].AsInteger() : 57600;
             Flags = (EnvironmentFlags)(uint)(map.ContainsKey("flags") ? map["flags"].AsInteger() : 0);
@@ -6730,33 +6672,46 @@ namespace LibreMetaverse.Messages.Linden
     #region Estate / Sim Console Messages
 
     /// <summary>
-    /// Message for the SimConsoleAsync capability.
-    /// HTTP POST sends a console command to the simulator and returns the text output.
+    /// Request message for the SimConsoleAsync capability.
+    /// HTTP POST sends a console command to the simulator as a bare LLSD string.
     /// Available only to estate owners/managers and Linden Lab staff (god mode).
-    /// Corresponds to LLSimConsole in the SL C++ viewer (llsimconsole.cpp).
+    /// Corresponds to LLFloaterRegionDebugConsole::onInput in the SL C++ viewer
+    /// (llfloaterregiondebugconsole.cpp). The POST response itself carries no output for the
+    /// async capability -- the simulator's text output instead arrives later via the
+    /// SimConsoleResponse event queue message (see <see cref="SimConsoleResponseMessage"/>).
     /// </summary>
     public class SimConsoleAsyncMessage
     {
         /// <summary>The console command to execute on the simulator</summary>
         public string Command = string.Empty;
 
-        /// <summary>
-        /// The simulator's text output in response to the command.
-        /// Empty string when used as a request.
-        /// </summary>
-        public string Output = string.Empty;
-
         /// <summary>Serializes the command as a plain LLSD string (the wire format expected by the simulator).</summary>
         public OSD Serialize()
         {
             return OSD.FromString(Command);
         }
+    }
 
-        /// <summary>Deserializes an LLSD response from the simulator.</summary>
-        public void Deserialize(OSD osd)
+    /// <summary>
+    /// Message delivered via the Event Queue in response to a command sent through the
+    /// SimConsoleAsync capability. Corresponds to the "/message/SimConsoleResponse" HTTP node
+    /// registered by ConsoleResponseNode in the SL C++ viewer (llfloaterregiondebugconsole.cpp).
+    /// </summary>
+    public class SimConsoleResponseMessage : IMessage
+    {
+        /// <summary>The simulator's text output for the most recently sent console command</summary>
+        public string Body = string.Empty;
+
+        /// <inheritdoc/>
+        public OSDMap Serialize()
         {
-            if (osd is OSDMap map)
-                Output = map["Response"].AsString();
+            return new OSDMap(1) { ["body"] = OSD.FromString(Body) };
+        }
+
+        /// <inheritdoc/>
+        public void Deserialize(OSDMap map)
+        {
+            Body = map.ContainsKey("body") ? map["body"].AsString() : string.Empty;
         }
     }
 

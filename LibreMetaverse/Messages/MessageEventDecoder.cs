@@ -77,6 +77,7 @@ namespace LibreMetaverse.Messages
                 case "ViewerStats": message = new ViewerStatsMessage(); break;
                 case "EventQueueGet": message = new EventQueueGetMessage(); break;
                 case "CrossedRegion": message = new CrossedRegionMessage(); break;
+                case "SimConsoleResponse": message = new SimConsoleResponseMessage(); break;
                 case "TeleportFailed": message = new TeleportFailedMessage(); break;
                 case "PlacesReply": message = new PlacesReplyMessage(); break;
                 case "UpdateAgentInformation": message = new UpdateAgentInformationMessage(); break;

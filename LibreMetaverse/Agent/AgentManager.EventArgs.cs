@@ -412,14 +412,6 @@ namespace LibreMetaverse
         }
     }
 
-    /// <summary>Event args for when the UpdateNotificationPreferences capability returns the agent's notification preferences</summary>
-    public class NotificationPreferencesEventArgs : EventArgs
-    {
-        /// <summary>The notification preferences message returned by the capability</summary>
-        public NotificationPreferencesMessage Preferences { get; }
-        public NotificationPreferencesEventArgs(NotificationPreferencesMessage preferences) { Preferences = preferences; }
-    }
-
     /// <summary>Event args for when the ProductInfoRequest capability returns the grid's product/SKU list</summary>
     public class ProductInfoEventArgs : EventArgs
     {
@@ -454,8 +446,8 @@ namespace LibreMetaverse
         public RegionExperiencesEventArgs(RegionExperiencesMessage regionExperiences) { RegionExperiences = regionExperiences; }
     }
 
-    /// <summary>Event args for when experience details are returned by the GetExperienceInfo,
-    /// FindExperienceByName, or ExperienceQuery capability</summary>
+    /// <summary>Event args for when experience details are returned by the GetExperienceInfo
+    /// or FindExperienceByName capability</summary>
     public class ExperienceInfoEventArgs : EventArgs
     {
         /// <summary>The experience info message returned by the capability</summary>

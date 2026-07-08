@@ -618,27 +618,6 @@ namespace LibreMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
-        private EventHandler<NotificationPreferencesEventArgs>? m_NotificationPreferencesUpdated;
-
-        /// <summary>Raises the NotificationPreferencesUpdated event</summary>
-        /// <param name="e">A NotificationPreferencesEventArgs object containing the data returned from the capability</param>
-        protected virtual void OnNotificationPreferencesUpdated(NotificationPreferencesEventArgs e)
-        {
-            EventHandler<NotificationPreferencesEventArgs>? handler = m_NotificationPreferencesUpdated;
-            handler?.Invoke(this, e);
-        }
-
-        /// <summary>Thread sync lock object</summary>
-        private readonly object m_NotificationPreferencesUpdatedLock = new object();
-
-        /// <summary>Raised when notification preferences are refreshed via the UpdateNotificationPreferences capability</summary>
-        public event EventHandler<NotificationPreferencesEventArgs> NotificationPreferencesUpdated
-        {
-            add { lock (m_NotificationPreferencesUpdatedLock) { m_NotificationPreferencesUpdated += value; } }
-            remove { lock (m_NotificationPreferencesUpdatedLock) { m_NotificationPreferencesUpdated -= value; } }
-        }
-
-        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<ProductInfoEventArgs>? m_ProductInfoUpdated;
 
         /// <summary>Raises the ProductInfoUpdated event</summary>
@@ -928,10 +907,6 @@ namespace LibreMetaverse
         /// <summary>The most recent NavMesh status update received from the simulator via the EventQueue.
         /// Null until a NavMeshStatusUpdate event is received.</summary>
         public NavMeshStatusUpdateMessage? LastNavMeshStatus { get; private set; }
-
-        /// <summary>The agent's notification preferences last retrieved via the UpdateNotificationPreferences capability.
-        /// Null until <see cref="GetNotificationPreferencesAsync"/> is called.</summary>
-        public NotificationPreferencesMessage? NotificationPreferences { get; private set; }
 
         /// <summary>The grid's product/SKU list last retrieved via the ProductInfoRequest capability.
         /// Null until <see cref="GetProductInfoAsync"/> is called.</summary>
@@ -2000,16 +1975,18 @@ namespace LibreMetaverse
 
         /// <summary>
         /// Sends a postcard from the agent's current in-world position via the SendPostcard capability.
+        /// This is a two-phase upload: the metadata is POSTed first, then the JPEG image bytes are
+        /// POSTed to the "uploader" URL returned in the metadata response.
         /// </summary>
-        /// <param name="fromEmail">Sender's e-mail address</param>
-        /// <param name="fromName">Sender's display name</param>
+        /// <param name="jpegImageData">JPEG-encoded snapshot image to attach to the postcard</param>
         /// <param name="toEmail">Recipient e-mail address</param>
+        /// <param name="fromName">Sender's display name</param>
         /// <param name="subject">Subject line of the postcard</param>
         /// <param name="message">Body text of the postcard</param>
         /// <param name="globalPosition">In-world global position shown on the postcard</param>
         /// <param name="cancellationToken"></param>
         /// <returns>True if the server accepted the postcard, false otherwise</returns>
-        public async Task<bool> SendPostcardAsync(string fromEmail, string fromName, string toEmail,
+        public async Task<bool> SendPostcardAsync(byte[] jpegImageData, string toEmail, string fromName,
             string subject, string message, Vector3 globalPosition,
             CancellationToken cancellationToken = default)
         {
@@ -2024,7 +2001,6 @@ namespace LibreMetaverse
 
             var msg = new SendPostcardMessage
             {
-                FromEmail = fromEmail,
                 FromName = fromName,
                 ToEmail = toEmail,
                 Subject = subject,
@@ -2032,20 +2008,52 @@ namespace LibreMetaverse
                 GlobalPosition = globalPosition
             };
 
-            bool success = false;
             try
             {
                 var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken).ConfigureAwait(false);
-                success = response.IsSuccessStatusCode;
-                if (!success)
+                if (!response.IsSuccessStatusCode || data == null)
+                {
                     Logger.Warn($"SendPostcard non-success status: {response.StatusCode}", Client);
+                    return false;
+                }
+
+                if (!(OSDParser.Deserialize(data) is OSDMap map))
+                {
+                    Logger.Warn("SendPostcard returned an unexpected response.", Client);
+                    return false;
+                }
+
+                string uploaderUrl = map.ContainsKey("uploader") ? map["uploader"].AsString() : string.Empty;
+                if (string.IsNullOrEmpty(uploaderUrl))
+                {
+                    Logger.Warn("SendPostcard response did not include an uploader URL.", Client);
+                    return false;
+                }
+
+                var (uploadResponse, uploadData) = await Client.HttpCapsClient
+                    .PostAsync(new Uri(uploaderUrl), "application/octet-stream", jpegImageData, cancellationToken)
+                    .ConfigureAwait(false);
+                if (!uploadResponse.IsSuccessStatusCode || uploadData == null)
+                {
+                    Logger.Warn($"SendPostcard image upload non-success status: {uploadResponse.StatusCode}", Client);
+                    return false;
+                }
+
+                string state = OSDParser.Deserialize(uploadData) is OSDMap uploadMap && uploadMap.ContainsKey("state")
+                    ? uploadMap["state"].AsString()
+                    : string.Empty;
+                if (state != "complete")
+                {
+                    Logger.Warn($"SendPostcard upload did not complete, state: {state}", Client);
+                    return false;
+                }
+                return true;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
                 Logger.Warn($"SendPostcard failed: {ex.Message}", Client);
+                return false;
             }
-
-            return success;
         }
 
         public async Task SetHoverHeightAsync(double hoverHeight, CancellationToken cancellationToken = default)
@@ -2372,101 +2380,6 @@ namespace LibreMetaverse
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
                 Logger.Error("Failed sending ViewerStats", ex, Client);
-            }
-        }
-
-        /// <summary>
-        /// Retrieves the agent's notification channel preferences from the UpdateNotificationPreferences capability.
-        /// Updates <see cref="NotificationPreferences"/> and raises <see cref="NotificationPreferencesUpdated"/>.
-        /// Corresponds to llviewernotificationpreferences.cpp in the SL viewer.
-        /// </summary>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>The deserialized message, or null if the capability is unavailable or the request fails</returns>
-        public async Task<NotificationPreferencesMessage?> GetNotificationPreferencesAsync(CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            try
-            {
-                Uri? cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("UpdateNotificationPreferences");
-                if (cap == null)
-                {
-                    Logger.Warn("UpdateNotificationPreferences capability not available.", Client);
-                    return null;
-                }
-
-                var http = Client?.HttpCapsClient;
-                if (http == null) { return null; }
-
-                NotificationPreferencesMessage? result = null;
-                var (response, data) = await http.GetAsync(cap, cancellationToken).ConfigureAwait(false);
-                if (!response.IsSuccessStatusCode)
-                {
-                    Logger.Warn($"UpdateNotificationPreferences non-success status: {response.StatusCode}", Client);
-                }
-                else if (data == null)
-                {
-                    Logger.Warn("UpdateNotificationPreferences returned no data.", Client);
-                }
-                else
-                {
-                    try
-                    {
-                        OSD osd = OSDParser.Deserialize(data);
-                        if (!(osd is OSDMap map)) { }
-                        else
-                        {
-                            NotificationPreferencesMessage msg = new NotificationPreferencesMessage();
-                            msg.Deserialize(map);
-                            result = msg;
-                            NotificationPreferences = msg;
-                            OnNotificationPreferencesUpdated(new NotificationPreferencesEventArgs(msg));
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Error("Failed to parse UpdateNotificationPreferences response", ex, Client);
-                    }
-                }
-                return result;
-            }
-            catch (Exception ex) when (!(ex is OperationCanceledException))
-            {
-                Logger.Error("Failed fetching UpdateNotificationPreferences", ex, Client);
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Updates the agent's notification channel preferences via the UpdateNotificationPreferences capability.
-        /// Corresponds to llviewernotificationpreferences.cpp in the SL viewer.
-        /// </summary>
-        /// <param name="preferences">The preferences to post; each entry sets a channel name and enabled state</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        public async Task SetNotificationPreferencesAsync(NotificationPreferencesMessage preferences, CancellationToken cancellationToken = default)
-        {
-            if (preferences == null) throw new ArgumentNullException(nameof(preferences));
-            cancellationToken.ThrowIfCancellationRequested();
-            try
-            {
-                Uri? cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("UpdateNotificationPreferences");
-                if (cap == null)
-                {
-                    Logger.Warn("UpdateNotificationPreferences capability not available.", Client);
-                    return;
-                }
-
-                var http = Client?.HttpCapsClient;
-                if (http == null) { return; }
-
-                var (response, data) = await http.PostAsync(cap, OSDFormat.Xml, preferences.Serialize(), cancellationToken).ConfigureAwait(false);
-                if (!response.IsSuccessStatusCode)
-                {
-                    Logger.Warn($"UpdateNotificationPreferences POST non-success status: {response.StatusCode}", Client);
-                }
-            }
-            catch (Exception ex) when (!(ex is OperationCanceledException))
-            {
-                Logger.Error("Failed setting UpdateNotificationPreferences", ex, Client);
             }
         }
 

@@ -60,6 +60,7 @@ namespace LibreMetaverse
         private readonly GridClient Client;
         // Stored event callback so it can be unregistered later
         private readonly Caps.EventQueueCallback m_LandStatCapsCallback;
+        private readonly Caps.EventQueueCallback m_SimConsoleResponseCallback;
         private bool disposed = false;
 
         /// <summary>Textures for each of the four terrain height levels</summary>
@@ -85,6 +86,9 @@ namespace LibreMetaverse
             // Store the delegate instance so we can unregister the same instance on dispose
             m_LandStatCapsCallback = new Caps.EventQueueCallback(LandStatCapsReplyHandler);
             Client.Network.RegisterEventCallback("LandStatReply", m_LandStatCapsCallback);
+
+            m_SimConsoleResponseCallback = new Caps.EventQueueCallback(SimConsoleResponseHandler);
+            Client.Network.RegisterEventCallback("SimConsoleResponse", m_SimConsoleResponseCallback);
         }
 
         #region Enums
@@ -1300,16 +1304,28 @@ namespace LibreMetaverse
 
         #region SimConsoleAsync
 
+        // Only one console command can be outstanding at a time: the SimConsoleAsync capability's
+        // POST response carries no output, and the real reply arrives later via the untargeted
+        // SimConsoleResponse event, with no request/response correlation ID (matching the reference
+        // viewer's own single-floater, single-outstanding-command model in llfloaterregiondebugconsole.cpp).
+        private readonly SemaphoreSlim m_SimConsoleLock = new SemaphoreSlim(1, 1);
+        private TaskCompletionSource<string>? m_PendingSimConsoleResponse;
+
         /// <summary>
         /// Sends a console command to the simulator via the SimConsoleAsync capability and
         /// returns the simulator's text output.
         /// Requires estate owner/manager privileges or god mode.
-        /// Corresponds to LLSimConsole::sendInput in the SL C++ viewer (llsimconsole.cpp).
+        /// Corresponds to LLFloaterRegionDebugConsole::onInput in the SL C++ viewer
+        /// (llfloaterregiondebugconsole.cpp). The POST response itself carries no output for this
+        /// capability; the simulator's reply arrives separately via the SimConsoleResponse event.
         /// </summary>
         /// <param name="command">The console command to execute</param>
+        /// <param name="responseTimeout">How long to wait for the SimConsoleResponse event before giving up</param>
         /// <param name="cancellationToken"></param>
-        /// <returns>The simulator's text response, or null if the capability is unavailable or the request fails</returns>
-        public async Task<string?> SendSimConsoleCommandAsync(string command, CancellationToken cancellationToken = default)
+        /// <returns>The simulator's text response, or null if the capability is unavailable, the
+        /// request fails, or no response arrives before <paramref name="responseTimeout"/> elapses</returns>
+        public async Task<string?> SendSimConsoleCommandAsync(string command, TimeSpan responseTimeout = default,
+            CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -1320,35 +1336,58 @@ namespace LibreMetaverse
                 return null;
             }
 
-            var msg = new SimConsoleAsyncMessage { Command = command };
-            string? output = null;
+            if (responseTimeout == default) { responseTimeout = TimeSpan.FromSeconds(10); }
 
+            var msg = new SimConsoleAsyncMessage { Command = command };
+
+            await m_SimConsoleLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken).ConfigureAwait(false);
-                if (response.IsSuccessStatusCode && data != null)
+                var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+                m_PendingSimConsoleResponse = tcs;
+
+                try
                 {
-                    try
+                    var (response, _) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken).ConfigureAwait(false);
+                    if (!response.IsSuccessStatusCode)
                     {
-                        if (OSDParser.Deserialize(data) is OSDMap map)
-                        {
-                            var reply = new SimConsoleAsyncMessage();
-                            reply.Deserialize(map);
-                            output = reply.Output;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Error("Failed to parse SimConsoleAsync response", ex, Client);
+                        Logger.Warn($"SimConsoleAsync POST non-success status: {response.StatusCode}", Client);
+                        return null;
                     }
                 }
-            }
-            catch (Exception ex) when (!(ex is OperationCanceledException))
-            {
-                Logger.Warn($"SimConsoleAsync failed: {ex.Message}", Client);
-            }
+                catch (Exception ex) when (!(ex is OperationCanceledException))
+                {
+                    Logger.Warn($"SimConsoleAsync failed: {ex.Message}", Client);
+                    return null;
+                }
 
-            return output;
+                using var timeoutCts = new CancellationTokenSource(responseTimeout);
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                var delayTask = Task.Delay(Timeout.InfiniteTimeSpan, linkedCts.Token);
+
+                var completed = await Task.WhenAny(tcs.Task, delayTask).ConfigureAwait(false);
+                if (completed == tcs.Task)
+                {
+                    return await tcs.Task.ConfigureAwait(false);
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+                Logger.Warn("SimConsoleAsync timed out waiting for SimConsoleResponse.", Client);
+                return null;
+            }
+            finally
+            {
+                m_PendingSimConsoleResponse = null;
+                m_SimConsoleLock.Release();
+            }
+        }
+
+        /// <summary>Handles the SimConsoleResponse event queue message, completing whichever
+        /// <see cref="SendSimConsoleCommandAsync"/> call is currently awaiting a response.</summary>
+        private void SimConsoleResponseHandler(string capsKey, IMessage message, Simulator simulator)
+        {
+            if (!(message is SimConsoleResponseMessage msg)) { return; }
+            m_PendingSimConsoleResponse?.TrySetResult(msg.Body);
         }
 
         #endregion
@@ -1373,7 +1412,9 @@ namespace LibreMetaverse
                         try { Client.Network.UnregisterCallback(PacketType.EstateOwnerMessage, EstateOwnerMessageHandler); } catch { }
                         try { Client.Network.UnregisterCallback(PacketType.EstateCovenantReply, EstateCovenantReplyHandler); } catch { }
                         try { if (m_LandStatCapsCallback != null) Client.Network.UnregisterEventCallback("LandStatReply", m_LandStatCapsCallback); } catch { }
+                        try { if (m_SimConsoleResponseCallback != null) Client.Network.UnregisterEventCallback("SimConsoleResponse", m_SimConsoleResponseCallback); } catch { }
                     }
+                    try { m_SimConsoleLock.Dispose(); } catch { }
                 }
                 catch (Exception ex)
                 {

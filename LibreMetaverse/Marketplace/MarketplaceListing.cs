@@ -56,15 +56,6 @@ namespace LibreMetaverse.Marketplace
         /// <summary>UUID of the version folder inside the listing folder.</summary>
         public UUID VersionFolderUUID { get; set; }
 
-        /// <summary>Listing title shown on the Marketplace web page.</summary>
-        public string Title { get; set; } = string.Empty;
-
-        /// <summary>Listing description shown on the Marketplace web page.</summary>
-        public string Description { get; set; } = string.Empty;
-
-        /// <summary>Price in Linden Dollars.</summary>
-        public int PriceLinden { get; set; }
-
         /// <summary>Active/inactive status from the SLM backend.</summary>
         public MarketplaceListingStatus Status { get; set; } = MarketplaceListingStatus.Unknown;
 

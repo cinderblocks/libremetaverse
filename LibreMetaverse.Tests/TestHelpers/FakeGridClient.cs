@@ -104,6 +104,27 @@ namespace LibreMetaverse.Tests.TestHelpers
         public List<(HttpMethod Method, Uri Uri, string Body)> CapturedRequests => _fakeHandler.CapturedRequests;
 
         /// <summary>
+        /// Injects an arbitrary named capability URI into CurrentSim's Caps, creating a fake
+        /// CurrentSim/Caps pair first if none exists yet. Use for capabilities not covered by
+        /// <see cref="SetInventoryAndLibraryCaps"/>.
+        /// </summary>
+        public void AddCapability(string name, Uri uri)
+        {
+            if (Network.CurrentSim == null)
+            {
+                var loopback = new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0);
+                Network.CurrentSim = new LibreMetaverse.Simulator(this, loopback, 0);
+            }
+
+            if (Network.CurrentSim.Caps == null)
+            {
+                Network.CurrentSim.SetSeedCaps(new Uri("http://fake/seed"), true);
+            }
+
+            Network.CurrentSim.Caps!._Caps[name] = uri;
+        }
+
+        /// <summary>
         /// Configure the simulated CurrentSim and set Inventory/Library capability URIs
         /// so tests that call capability lookup APIs will find the fake endpoints.
         /// </summary>

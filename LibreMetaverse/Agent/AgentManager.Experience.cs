@@ -119,8 +119,8 @@ namespace LibreMetaverse
         /// <summary>Thread sync lock object</summary>
         private readonly object m_ExperienceInfoReceivedLock = new object();
 
-        /// <summary>Raised when experience details are received via the GetExperienceInfo,
-        /// FindExperienceByName, or ExperienceQuery capability</summary>
+        /// <summary>Raised when experience details are received via the GetExperienceInfo
+        /// or FindExperienceByName capability</summary>
         public event EventHandler<ExperienceInfoEventArgs> ExperienceInfoReceived
         {
             add { lock (m_ExperienceInfoReceivedLock) { m_ExperienceInfoReceived += value; } }
@@ -235,14 +235,16 @@ namespace LibreMetaverse
                 var idList = new List<UUID>(experienceIds);
                 if (idList.Count == 0) { return new ExperienceInfoMessage(); }
 
-                var qs = new StringBuilder();
+                // Reference viewer's LLExperienceCache::requestExperiences appends an "id/" path
+                // segment before the query string (e.g. ".../GetExperienceInfo/id/?public_id=...").
+                var qs = new StringBuilder("page_size=").Append(idList.Count);
                 foreach (var id in idList)
                 {
-                    if (qs.Length > 0) qs.Append('&');
-                    qs.Append("public_id=");
+                    qs.Append("&public_id=");
                     qs.Append(id);
                 }
-                var requestUri = new Uri($"{cap}?{qs}");
+                var baseUri = cap.ToString().TrimEnd('/') + "/id/";
+                var requestUri = new Uri($"{baseUri}?{qs}");
 
                 ExperienceInfoMessage? result = null;
                 var (response, data) = await http.GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
@@ -287,11 +289,12 @@ namespace LibreMetaverse
         /// Raises <see cref="ExperienceInfoReceived"/> with the results.
         /// </summary>
         /// <param name="query">Search string</param>
-        /// <param name="pageSize">Maximum number of results to return (default 30)</param>
+        /// <param name="page">Zero-based page number (default 0)</param>
+        /// <param name="pageSize">Maximum number of results per page (default 30)</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>The deserialized message, or null if the capability is unavailable or the request fails</returns>
-        public async Task<ExperienceInfoMessage?> FindExperienceByNameAsync(string query, int pageSize = 30,
-            CancellationToken cancellationToken = default)
+        public async Task<ExperienceInfoMessage?> FindExperienceByNameAsync(string query, int page = 0,
+            int pageSize = 30, CancellationToken cancellationToken = default)
         {
             if (query == null) throw new ArgumentNullException(nameof(query));
             cancellationToken.ThrowIfCancellationRequested();
@@ -307,7 +310,7 @@ namespace LibreMetaverse
                 var http = Client?.HttpCapsClient;
                 if (http == null) { return null; }
 
-                var requestUri = new Uri($"{cap}?page_size={pageSize}&query={Uri.EscapeDataString(query)}");
+                var requestUri = new Uri($"{cap}?page={page}&page_size={pageSize}&query={Uri.EscapeDataString(query)}");
 
                 ExperienceInfoMessage? result = null;
                 var (response, data) = await http.GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
@@ -775,7 +778,9 @@ namespace LibreMetaverse
                 var http = Client?.HttpCapsClient;
                 if (http == null) { return null; }
 
-                var requestUri = new Uri($"{cap}?group_id={groupId}");
+                // Reference viewer's LLExperienceCache::getGroupExperiencesCoro appends the bare
+                // group UUID after "?" -- no "group_id=" key prefix.
+                var requestUri = new Uri($"{cap}?{groupId}");
 
                 ExperienceListMessage? result = null;
                 var (response, data) = await http.GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
@@ -1037,20 +1042,27 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Searches for experiences using the ExperienceQuery capability.
-        /// Raises <see cref="ExperienceInfoReceived"/> with the results.
+        /// Checks whether one or more experiences are currently permitted to run on a parcel, via
+        /// the ExperienceQuery capability. This mirrors the reference viewer's only consumer of the
+        /// capability, DayInjection::testExperiencesOnParcelCoro (llenvironment.cpp), which uses it
+        /// to verify that environment-altering experiences attached to the day cycle are still
+        /// allowed on the parcel the agent is currently standing on: it builds
+        /// "?parcelid=&lt;id&gt;&amp;experiences=&lt;uuid&gt;,&lt;uuid&gt;,..." and reads back an
+        /// "experiences" map of experience UUID (string) to boolean allowed/blocked. This capability
+        /// has nothing to do with searching/listing experiences (that is FindExperienceByName) --
+        /// an earlier implementation incorrectly modeled it as a paged query/maturity/group_id
+        /// search returning "experience_keys", a shape this capability does not produce.
         /// </summary>
-        /// <param name="query">Search string (may be empty to list all)</param>
-        /// <param name="groupId">Filter results to a specific group UUID, or <see cref="UUID.Zero"/> for no filter</param>
-        /// <param name="maturity">Maturity filter: "g" (general), "m" (mature), or "a" (adult)</param>
-        /// <param name="pageSize">Maximum number of results per page (default 30)</param>
-        /// <param name="page">Zero-based page number (default 0)</param>
+        /// <param name="parcelLocalId">Local ID of the parcel to check</param>
+        /// <param name="experienceIds">The experience UUIDs to check</param>
         /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>The deserialized message, or null if the capability is unavailable or the request fails</returns>
-        public async Task<ExperienceInfoMessage?> QueryExperiencesAsync(string query = "",
-            UUID groupId = default, string maturity = "g", int pageSize = 30, int page = 0,
-            CancellationToken cancellationToken = default)
+        /// <returns>A dictionary mapping each queried experience UUID to whether it is currently
+        /// permitted to run on the parcel, or null if the capability is unavailable or the request
+        /// fails</returns>
+        public async Task<Dictionary<UUID, bool>?> QueryExperiencesOnParcelAsync(int parcelLocalId,
+            IEnumerable<UUID> experienceIds, CancellationToken cancellationToken = default)
         {
+            if (experienceIds == null) throw new ArgumentNullException(nameof(experienceIds));
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
@@ -1064,15 +1076,16 @@ namespace LibreMetaverse
                 var http = Client?.HttpCapsClient;
                 if (http == null) { return null; }
 
-                var qs = new StringBuilder();
-                qs.Append($"page_size={pageSize}&page={page}&maturity={Uri.EscapeDataString(maturity)}");
-                if (!string.IsNullOrEmpty(query))
-                    qs.Append($"&query={Uri.EscapeDataString(query)}");
-                if (groupId != UUID.Zero)
-                    qs.Append($"&group_id={groupId}");
+                var idList = new List<UUID>(experienceIds);
+                var qs = new StringBuilder("parcelid=").Append(parcelLocalId);
+                if (idList.Count > 0)
+                {
+                    qs.Append("&experiences=");
+                    qs.Append(string.Join(",", idList));
+                }
                 var requestUri = new Uri($"{cap}?{qs}");
 
-                ExperienceInfoMessage? result = null;
+                Dictionary<UUID, bool>? result = null;
                 var (response, data) = await http.GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode)
                 {
@@ -1087,13 +1100,13 @@ namespace LibreMetaverse
                     try
                     {
                         OSD osd = OSDParser.Deserialize(data);
-                        if (!(osd is OSDMap map)) { }
-                        else
+                        if (osd is OSDMap map && map["experiences"] is OSDMap expMap)
                         {
-                            ExperienceInfoMessage msg = new ExperienceInfoMessage();
-                            msg.Deserialize(map);
-                            result = msg;
-                            OnExperienceInfoReceived(new ExperienceInfoEventArgs(msg));
+                            result = new Dictionary<UUID, bool>();
+                            foreach (string key in expMap.Keys)
+                            {
+                                result[new UUID(key)] = expMap[key].AsBoolean();
+                            }
                         }
                     }
                     catch (Exception ex)
