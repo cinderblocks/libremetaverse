@@ -125,6 +125,24 @@ namespace LibreMetaverse.Tests.TestHelpers
         }
 
         /// <summary>
+        /// Ensures Inventory.Store exists (it's normally only created by the login-reply handler)
+        /// and inserts a folder for it, so tests can exercise code paths that branch on whether a
+        /// UUID is a known local folder (e.g. InventoryManager.UploadThumbnailAsync's
+        /// item-vs-category detection).
+        /// </summary>
+        public void SeedInventoryFolder(UUID folderId, string name, UUID? parentId = null)
+        {
+            if (Inventory.Store == null)
+            {
+                var storeField = typeof(InventoryManager).GetField("_Store",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                storeField?.SetValue(Inventory, new LibreMetaverse.Inventory(this, Self.AgentID));
+            }
+
+            Inventory.Store![folderId] = new InventoryFolder(folderId) { Name = name, ParentUUID = parentId ?? UUID.Zero };
+        }
+
+        /// <summary>
         /// Configure the simulated CurrentSim and set Inventory/Library capability URIs
         /// so tests that call capability lookup APIs will find the fake endpoints.
         /// </summary>

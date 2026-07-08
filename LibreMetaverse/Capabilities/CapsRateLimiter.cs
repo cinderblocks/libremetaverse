@@ -124,12 +124,14 @@ namespace LibreMetaverse
                 ["FetchLibDescendents2"]               = CapsCategory.Inventory,
                 ["InventoryAPIv3"]                     = CapsCategory.Inventory,
                 ["LibraryAPIv3"]                       = CapsCategory.Inventory,
+                ["RequestTaskInventory"]               = CapsCategory.Inventory,
 
                 // AP_UPLOADS
                 ["NewFileAgentInventory"]              = CapsCategory.AssetUpload,
                 ["NewFileAgentInventoryVariablePrice"] = CapsCategory.AssetUpload,
                 ["UploadBakedTexture"]                 = CapsCategory.AssetUpload,
                 ["UpdateAvatarAppearance"]             = CapsCategory.AssetUpload,
+                ["InventoryThumbnailUpload"]           = CapsCategory.AssetUpload,
 
                 // AP_AGENT — name/profile lookups
                 ["GetDisplayNames"]                    = CapsCategory.DisplayName,

@@ -504,6 +504,18 @@ namespace LibreMetaverse
         public async Task<List<InventoryBase>> GetTaskInventoryAsync(UUID objectID, uint objectLocalID,
             Simulator? simulator = null, CancellationToken cancellationToken = default)
         {
+            var sim = simulator ?? Client.Network.CurrentSim;
+
+            // Mirrors the reference viewer's LLViewerObject::fetchInventoryFromServer(): when the
+            // RequestTaskInventory capability is present, use it exclusively instead of the legacy
+            // UDP RequestTaskInventory message + Xfer download below (see
+            // LLViewerObject::fetchInventoryFromCapCoro in llviewerobject.cpp).
+            Uri? cap = sim?.Caps?.CapabilityURI("RequestTaskInventory");
+            if (cap != null)
+            {
+                return await GetTaskInventoryViaCapAsync(objectID, cap, cancellationToken).ConfigureAwait(false);
+            }
+
             var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             void Callback(object? sender, TaskInventoryReplyEventArgs e)
@@ -579,7 +591,138 @@ namespace LibreMetaverse
             }
         }
 
-        public async Task GiveFolderAsync(UUID folderID, string folderName, UUID recipient, bool doEffect, 
+        /// <summary>
+        /// Fetches a task's inventory via the RequestTaskInventory capability. Mirrors
+        /// LLViewerObject::fetchInventoryFromCapCoro (llviewerobject.cpp): GET
+        /// "?task_id=&lt;uuid&gt;" returns an LLSD map with a "contents" array of item maps in the
+        /// same shape used elsewhere for AIS3 items (item_id/parent_id/permissions/sale_info/etc,
+        /// see <see cref="InventoryItem.FromOSD"/>), plus an "inventory_serial" field the reference
+        /// viewer uses to detect and re-request stale results -- LM does not currently cache
+        /// per-task inventory serials, so that staleness optimization is intentionally omitted here.
+        /// The reference viewer also synthesizes a "Contents" root category locally since the
+        /// server doesn't send one; this does the same so callers see the same shape as the legacy
+        /// UDP+Xfer path.
+        /// </summary>
+        private async Task<List<InventoryBase>> GetTaskInventoryViaCapAsync(UUID objectID, Uri cap,
+            CancellationToken cancellationToken)
+        {
+            var items = new List<InventoryBase>
+            {
+                new InventoryFolder(objectID) { Name = "Contents", ParentUUID = UUID.Zero }
+            };
+
+            try
+            {
+                var requestUri = new Uri($"{cap}?task_id={objectID}");
+                var (response, data) = await Client.HttpCapsClient.GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"RequestTaskInventory non-success status: {response.StatusCode}", Client);
+                    return items;
+                }
+                if (data == null) { return items; }
+
+                if (!(OSDParser.Deserialize(data) is OSDMap map) || !(map["contents"] is OSDArray contents))
+                {
+                    Logger.Warn($"Unable to load task inventory via RequestTaskInventory cap for {objectID}", Client);
+                    return items;
+                }
+
+                foreach (OSD entry in contents)
+                {
+                    if (!(entry is OSDMap itemMap) || !itemMap.ContainsKey("item_id")) { continue; }
+
+                    var item = InventoryItem.FromOSD(itemMap);
+                    if (itemMap.ContainsKey("shadow_id"))
+                    {
+                        item.AssetUUID = DecryptShadowID(itemMap["shadow_id"].AsUUID());
+                    }
+                    items.Add(item);
+                }
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error($"Failed fetching task inventory via cap for {objectID}", ex, Client);
+            }
+
+            return items;
+        }
+
+        /// <summary>
+        /// Uploads a thumbnail image for an inventory item, folder, or task-inventory item via the
+        /// InventoryThumbnailUpload capability. Mirrors
+        /// LLFloaterSimpleSnapshot::uploadImageUploadFile / post_thumbnail_image_coro
+        /// (llfloatersimplesnapshot.cpp): a two-phase upload -- POST metadata identifying the
+        /// target to the capability (which returns an "uploader" URL), then POST the raw image
+        /// bytes to that URL; a final "state":"complete" response carries the new thumbnail asset
+        /// UUID under "new_asset". The metadata shape depends on the target, exactly matching the
+        /// reference viewer's branch in uploadImageUploadFile: {item_id, task_id} for a
+        /// task-inventory item, {category_id} for a local folder, or bare {item_id} for an agent
+        /// inventory item. The caller is responsible for J2K-encoding the image data (LibreMetaverse
+        /// has no rendering/snapshot pipeline of its own); per THUMBNAIL_SNAPSHOT_DIM_MAX/MIN in the
+        /// reference viewer the image should be between 64x64 and 256x256.
+        /// </summary>
+        /// <param name="inventoryID">UUID of the item or folder to set the thumbnail on</param>
+        /// <param name="taskID">UUID of the task (object) the item lives in, or <see cref="UUID.Zero"/>
+        /// for agent inventory items/folders</param>
+        /// <param name="j2cImageData">Raw J2K-encoded thumbnail image bytes</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <param name="progress">Optional upload progress reporter</param>
+        /// <returns>The new thumbnail asset UUID, or null if the capability is unavailable or the
+        /// upload fails</returns>
+        public async Task<UUID?> UploadThumbnailAsync(UUID inventoryID, UUID taskID, byte[] j2cImageData,
+            CancellationToken cancellationToken = default, IProgress<HttpCapsClient.ProgressReport>? progress = null)
+        {
+            if (j2cImageData == null) throw new ArgumentNullException(nameof(j2cImageData));
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var cap = GetCapabilityURI("InventoryThumbnailUpload");
+            if (cap == null) { return null; }
+
+            var metadata = new OSDMap();
+            if (taskID != UUID.Zero)
+            {
+                metadata["item_id"] = OSD.FromUUID(inventoryID);
+                metadata["task_id"] = OSD.FromUUID(taskID);
+            }
+            else if (Store != null && Store.Contains(inventoryID) && Store[inventoryID] is InventoryFolder)
+            {
+                metadata["category_id"] = OSD.FromUUID(inventoryID);
+            }
+            else
+            {
+                metadata["item_id"] = OSD.FromUUID(inventoryID);
+            }
+
+            try
+            {
+                var metaResult = await PostCapAsync(cap, metadata, cancellationToken, progress).ConfigureAwait(false);
+                if (!(metaResult is OSDMap metaMap) || !metaMap.ContainsKey("uploader"))
+                {
+                    Logger.Warn("InventoryThumbnailUpload response contained no uploader URL.", Client);
+                    return null;
+                }
+
+                var uploaderUri = new Uri(metaMap["uploader"].AsString());
+                var uploadResult = await PostBytesAsync(uploaderUri, "application/octet-stream", j2cImageData,
+                    cancellationToken, progress).ConfigureAwait(false);
+
+                if (!(uploadResult is OSDMap resultMap) || resultMap["state"].AsString() != "complete")
+                {
+                    Logger.Warn($"InventoryThumbnailUpload did not complete for {inventoryID}: {uploadResult}", Client);
+                    return null;
+                }
+
+                return resultMap["new_asset"].AsUUID();
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error($"Failed uploading thumbnail for {inventoryID}", ex, Client);
+                return null;
+            }
+        }
+
+        public async Task GiveFolderAsync(UUID folderID, string folderName, UUID recipient, bool doEffect,
             CancellationToken cancellationToken = default)
         {
             var folders = new List<InventoryFolder>();
