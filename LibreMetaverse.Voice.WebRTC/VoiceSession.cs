@@ -424,8 +424,13 @@ namespace LibreMetaverse.Voice.WebRTC
                 if (state == RTCIceConnectionState.checking)
                 {
                     // Janus is sometimes not ready when we first provision, so ICE spends 16 s
-                    // in 'checking' before SIPSorcery declares failure. Start a short watchdog
-                    // so we reprovision early rather than waiting the full 16 s.
+                    // in 'checking' before SIPSorcery declares failure. Start a watchdog so we
+                    // reprovision early rather than waiting the full 16 s - but not so early that
+                    // we repeatedly abort negotiations that would have succeeded given more time.
+                    // A 5 s cutoff was too aggressive: real-world ICE (NAT traversal, TURN relay)
+                    // routinely takes longer than that on the first attempt, so the watchdog kept
+                    // tearing down and restarting negotiation in a loop that rarely settled long
+                    // enough for the connected state to reach the UI.
                     if (!ReferenceEquals(pc, _peerConnection)) return;
                     try { _iceCheckingWatchdogCts?.Cancel(); } catch { }
                     var watchdogCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
@@ -434,13 +439,13 @@ namespace LibreMetaverse.Voice.WebRTC
                     {
                         try
                         {
-                            await Task.Delay(TimeSpan.FromSeconds(5), watchdogCts.Token).ConfigureAwait(false);
+                            await Task.Delay(TimeSpan.FromSeconds(12), watchdogCts.Token).ConfigureAwait(false);
                             if (!ReferenceEquals(pc, _peerConnection)) return;
                             if (pc.connectionState != RTCPeerConnectionState.connected &&
                                 pc.connectionState != RTCPeerConnectionState.failed &&
                                 pc.connectionState != RTCPeerConnectionState.closed)
                             {
-                                _log.Warn($"ICE still in 'checking' after 5 s — triggering early reprovision", _client);
+                                _log.Warn($"ICE still in 'checking' after 12 s — triggering early reprovision", _client);
                                 ScheduleReprovisionWithBackoff();
                             }
                         }
