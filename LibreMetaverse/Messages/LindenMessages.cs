@@ -6269,46 +6269,6 @@ namespace LibreMetaverse.Messages.Linden
         }
     }
 
-    /// <summary>
-    /// Message for the ViewerStartAuction capability (HTTP POST).
-    /// Initiates a land auction for a parcel.
-    /// Corresponds to llfloaterauction.cpp sendStartAuction in the SL viewer.
-    /// </summary>
-    public class ViewerStartAuctionMessage : IMessage
-    {
-        /// <summary>The global UUID of the parcel being auctioned</summary>
-        public UUID ParcelID;
-        /// <summary>UUID of the snapshot image to use for the auction listing</summary>
-        public UUID SnapshotID;
-        /// <summary>Starting bid amount in L$</summary>
-        public int StartingBid;
-
-        /// <summary>
-        /// Serialize the object (POST body format)
-        /// </summary>
-        /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
-        public OSDMap Serialize()
-        {
-            return new OSDMap(3)
-            {
-                ["parcel_id"] = OSD.FromUUID(ParcelID),
-                ["snapshot_id"] = OSD.FromUUID(SnapshotID),
-                ["starting_bid"] = OSD.FromInteger(StartingBid)
-            };
-        }
-
-        /// <summary>
-        /// Deserialize the message
-        /// </summary>
-        /// <param name="map">An <see cref="OSDMap"/> containing the data</param>
-        public void Deserialize(OSDMap map)
-        {
-            ParcelID = map["parcel_id"].AsUUID();
-            SnapshotID = map["snapshot_id"].AsUUID();
-            StartingBid = map["starting_bid"].AsInteger();
-        }
-    }
-
     #endregion
 
     #region Experience Messages

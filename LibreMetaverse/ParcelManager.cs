@@ -1724,46 +1724,30 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Initiates a land auction for a parcel via the ViewerStartAuction capability.
-        /// Corresponds to llfloaterauction.cpp in the SL viewer.
+        /// Initiates a land auction for a parcel. Sent as a legacy UDP packet, not a capability --
+        /// there is no CAPS equivalent (corresponds to onClickStartAuction in llfloaterauction.cpp,
+        /// which sends a raw ViewerStartAuction message).
         /// </summary>
         /// <param name="simulator">Simulator the parcel is in</param>
-        /// <param name="parcelID">Global UUID of the parcel to auction</param>
+        /// <param name="localID">Simulator-local ID of the parcel to auction</param>
         /// <param name="snapshotID">UUID of the snapshot image for the auction listing</param>
-        /// <param name="startingBid">Starting bid amount in L$</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        public async Task StartAuctionAsync(Simulator simulator, UUID parcelID, UUID snapshotID, int startingBid,
-            CancellationToken cancellationToken = default)
+        public void StartAuction(Simulator simulator, int localID, UUID snapshotID)
         {
-            if (simulator == null) throw new ArgumentNullException(nameof(simulator));
-            cancellationToken.ThrowIfCancellationRequested();
-
-            Uri? cap = simulator.Caps?.CapabilityURI("ViewerStartAuction");
-            if (cap == null)
+            ViewerStartAuctionPacket auction = new ViewerStartAuctionPacket
             {
-                Logger.Warn("ViewerStartAuction capability not available.", Client);
-                return;
-            }
-
-            ViewerStartAuctionMessage msg = new ViewerStartAuctionMessage
-            {
-                ParcelID = parcelID,
-                SnapshotID = snapshotID,
-                StartingBid = startingBid
+                AgentData =
+                {
+                    AgentID = Client.Self.AgentID,
+                    SessionID = Client.Self.SessionID
+                },
+                ParcelData =
+                {
+                    LocalID = localID,
+                    SnapshotID = snapshotID
+                }
             };
 
-            try
-            {
-                var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken).ConfigureAwait(false);
-                if (!response.IsSuccessStatusCode)
-                {
-                    Logger.Warn($"ViewerStartAuction non-success status: {response.StatusCode}", Client);
-                }
-            }
-            catch (Exception ex) when (!(ex is OperationCanceledException))
-            {
-                Logger.Error("Failed starting auction", ex, Client);
-            }
+            Client.Network.SendPacket(auction, simulator);
         }
 
         /// <summary>
