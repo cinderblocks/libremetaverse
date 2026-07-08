@@ -94,6 +94,8 @@ namespace LibreMetaverse
             public Uri? SeedCapability;
             public Vector3 Position;
             public Vector3 LookAt;
+            public uint RegionSizeX;
+            public uint RegionSizeY;
             public int RetryCount;
             public const int MaxRetries = 3;
             public CrossingFailureReason FailureReason;
@@ -121,7 +123,8 @@ namespace LibreMetaverse
         }
 
         private bool BeginRegionCrossing(Simulator? oldSim, ulong regionHandle, IPEndPoint endPoint,
-            Uri seedCap, Vector3 position, Vector3 lookAt)
+            Uri seedCap, Vector3 position, Vector3 lookAt,
+            uint regionSizeX = Simulator.DefaultRegionSizeX, uint regionSizeY = Simulator.DefaultRegionSizeY)
         {
             if (endPoint == null || seedCap == null)
             {
@@ -167,6 +170,8 @@ namespace LibreMetaverse
                     SeedCapability = seedCap,
                     Position = position,
                     LookAt = lookAt,
+                    RegionSizeX = regionSizeX,
+                    RegionSizeY = regionSizeY,
                 };
                 _currentCrossing = crossing;
                 _crossingTimeoutTimer?.Change(CrossingTimeoutMs, Timeout.Infinite);
@@ -253,7 +258,8 @@ namespace LibreMetaverse
                 try
                 {
                     newSim = Client?.Network?.Connect(
-                        crossing.EndPoint, crossing.RegionHandle, true, crossing.SeedCapability);
+                        crossing.EndPoint, crossing.RegionHandle, true, crossing.SeedCapability,
+                        crossing.RegionSizeX, crossing.RegionSizeY);
                 }
                 catch (Exception ex)
                 {

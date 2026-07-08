@@ -957,35 +957,55 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Process TeleportFinish from Event Queue and pass it onto our TeleportHandler
+        /// Process TeleportFinish from Event Queue
         /// </summary>
         /// <param name="capsKey">The message key</param>
         /// <param name="message">IMessage object containing decoded data from OSD</param>
         /// <param name="simulator">The simulator originating the event message</param>
+        /// <remarks>
+        /// Handled directly (rather than funneled through the shared <see cref="TeleportHandler"/> via a
+        /// synthesized <see cref="TeleportFinishPacket"/>) because the legacy packet has no room for
+        /// RegionSizeX/RegionSizeY, and those are needed to connect correctly when teleporting into a varregion.
+        /// </remarks>
         private void TeleportFinishEventHandler(string capsKey, IMessage message, Simulator simulator)
         {
             TeleportFinishMessage msg = (TeleportFinishMessage)message;
-            
-            // Resolve the correct simulator for this teleport finish event
-            Simulator resolvedSim = ResolveSimulatorFromMessage(msg, simulator);
+            TeleportFlags flags = msg.Flags;
 
-            TeleportFinishPacket p = new TeleportFinishPacket
+            Logger.DebugLog($"TeleportFinish received, Flags: {flags}", Client);
+
+            // Connect to the new sim
+            var currentSim = Client?.Network?.CurrentSim;
+            if (currentSim != null)
             {
-                Info =
-                {
-                    AgentID = msg.AgentID,
-                    LocationID = (uint) msg.LocationID,
-                    RegionHandle = msg.RegionHandle,
-                    SeedCapability = Utils.StringToBytes(msg.SeedCapability.ToString()),
-                    SimAccess = (byte) msg.SimAccess,
-                    SimIP = Utils.IPToUInt(msg.IP),
-                    SimPort = (ushort) msg.Port,
-                    TeleportFlags = (uint) msg.Flags
-                }
-            };
+                currentSim.AgentMovementComplete = false; // we're not there anymore
+            }
 
-            // Pass the resolved simulator to the teleport handler
-            TeleportHandler(this, new PacketReceivedEventArgs(p, resolvedSim));
+            Simulator? newSimulator = Client?.Network?.Connect(msg.IP, (ushort)msg.Port, msg.RegionHandle, true,
+                msg.SeedCapability, msg.RegionSizeX, msg.RegionSizeY);
+
+            if (newSimulator != null)
+            {
+                TeleportMessage = "Teleport finished";
+                teleportStatus = TeleportStatus.Finished;
+
+                Logger.Info($"Moved to {newSimulator}", Client);
+            }
+            else
+            {
+                TeleportMessage = "Failed to connect to simulator after teleport";
+                teleportStatus = TeleportStatus.Failed;
+
+                // We're going to get disconnected now
+                Logger.Error(TeleportMessage, Client);
+            }
+
+            if (m_Teleport != null)
+            {
+                OnTeleport(new TeleportEventArgs(TeleportMessage, teleportStatus, flags));
+            }
+
+            _teleportTcs?.TrySetResult(teleportStatus == TeleportStatus.Finished);
         }
 
         private void Network_OnLoginResponse(bool loginSuccess, bool redirect, string message, string reason,
@@ -1042,7 +1062,7 @@ namespace LibreMetaverse
             
             // Use the state machine to handle the crossing
             if (!BeginRegionCrossing(oldSim, crossed.RegionHandle, endPoint, crossed.SeedCapability,
-                crossed.Position, crossed.LookAt))
+                crossed.Position, crossed.LookAt, crossed.RegionSizeX, crossed.RegionSizeY))
             {
                 Logger.Warn($"Failed to begin region crossing to {endPoint}", Client);
             }

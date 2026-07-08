@@ -707,7 +707,8 @@ namespace LibreMetaverse
 
             var handle = Utils.UIntsToLong(response.RegionX, response.RegionY);
 
-            if (response.SimIP != null && Connect(response.SimIP, response.SimPort, handle, true, LoginSeedCapability) != null)
+            if (response.SimIP != null && Connect(response.SimIP, response.SimPort, handle, true, LoginSeedCapability,
+                    response.RegionSizeX, response.RegionSizeY) != null)
             {
                 SendPacket(new EconomyDataRequestPacket());
 
@@ -1233,7 +1234,8 @@ namespace LibreMetaverse
                         if (data.SimIP != null && data.SimPort != 0)
                         {
                             // Connect to the sim given in the login reply
-                            if (Connect(data.SimIP, data.SimPort, handle, true, LoginSeedCapability) != null)
+                            if (Connect(data.SimIP, data.SimPort, handle, true, LoginSeedCapability,
+                                    data.RegionSizeX, data.RegionSizeY) != null)
                             {
                                 // Request the economy data right after login
                                 SendPacket(new EconomyDataRequestPacket());
