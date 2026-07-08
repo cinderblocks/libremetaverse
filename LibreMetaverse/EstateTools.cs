@@ -52,6 +52,34 @@ namespace LibreMetaverse
         public string OwnerName = string.Empty;
     }
 
+    /// <summary>Weekday flags for a weekly region restart schedule, matching the reference viewer's
+    /// day-letter scheme (llfloaterregionrestartschedule.cpp CHECKBOX_PREFIXES: s,m,t,w,r,f,a).</summary>
+    [Flags]
+    public enum RegionRestartDays
+    {
+        None = 0,
+        Sunday = 1 << 0,
+        Monday = 1 << 1,
+        Tuesday = 1 << 2,
+        Wednesday = 1 << 3,
+        Thursday = 1 << 4,
+        Friday = 1 << 5,
+        Saturday = 1 << 6,
+        All = Sunday | Monday | Tuesday | Wednesday | Thursday | Friday | Saturday
+    }
+
+    /// <summary>A region's automatic restart schedule, as returned/set by the RegionSchedule capability.</summary>
+    public class RegionRestartSchedule
+    {
+        /// <summary>True for a daily restart; false for a weekly schedule on specific <see cref="Days"/>.</summary>
+        public bool IsDaily { get; set; }
+        /// <summary>Days of the week the region restarts on. Only meaningful when <see cref="IsDaily"/>
+        /// is false; an empty set with IsDaily false clears/disables the schedule.</summary>
+        public RegionRestartDays Days { get; set; }
+        /// <summary>Time of day the restart occurs, relative to midnight UTC.</summary>
+        public TimeSpan Time { get; set; }
+    }
+
     /// <summary>
     /// Estate level administration and utilities
     /// </summary>
@@ -1388,6 +1416,150 @@ namespace LibreMetaverse
         {
             if (!(message is SimConsoleResponseMessage msg)) { return; }
             m_PendingSimConsoleResponse?.TrySetResult(msg.Body);
+        }
+
+        #endregion
+
+        #region RegionSchedule
+
+        /// <summary>Matches the reference viewer's CHECKBOX_PREFIXES order exactly
+        /// (llfloaterregionrestartschedule.cpp): s,m,t,w,r,f,a = Sun..Sat. Note "r" for Thursday and
+        /// "a" for Saturday disambiguate from Tuesday ("t") and Sunday ("s").</summary>
+        private static readonly (char Letter, RegionRestartDays Day)[] DayLetters =
+        {
+            ('s', RegionRestartDays.Sunday),
+            ('m', RegionRestartDays.Monday),
+            ('t', RegionRestartDays.Tuesday),
+            ('w', RegionRestartDays.Wednesday),
+            ('r', RegionRestartDays.Thursday),
+            ('f', RegionRestartDays.Friday),
+            ('a', RegionRestartDays.Saturday)
+        };
+
+        private static string DaysToLetters(RegionRestartDays days)
+        {
+            var sb = new StringBuilder();
+            foreach (var (letter, day) in DayLetters)
+            {
+                if (days.HasFlag(day)) { sb.Append(char.ToUpperInvariant(letter)); }
+            }
+            return sb.ToString();
+        }
+
+        private static RegionRestartDays LettersToDays(string letters)
+        {
+            var days = RegionRestartDays.None;
+            if (string.IsNullOrEmpty(letters)) { return days; }
+            foreach (var c in letters.ToLowerInvariant())
+            {
+                foreach (var (letter, day) in DayLetters)
+                {
+                    if (letter == c) { days |= day; break; }
+                }
+            }
+            return days;
+        }
+
+        /// <summary>
+        /// Retrieves the region's automatic restart schedule via the RegionSchedule capability.
+        /// Corresponds to LLFloaterRegionRestartSchedule::requestRegionShcheduleCoro in the SL C++
+        /// viewer (llfloaterregionrestartschedule.cpp). Requires estate owner/manager privileges.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>The region's restart schedule, or null if no schedule is configured, the
+        /// capability is unavailable, or the request fails</returns>
+        public async Task<RegionRestartSchedule?> GetRegionRestartScheduleAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Uri? cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("RegionSchedule");
+            if (cap == null)
+            {
+                Logger.Warn("RegionSchedule capability not available.", Client);
+                return null;
+            }
+
+            try
+            {
+                var (response, data) = await Client.HttpCapsClient.GetAsync(cap, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"RegionSchedule GET non-success status: {response.StatusCode}", Client);
+                    return null;
+                }
+                if (data == null) { return null; }
+
+                if (!(OSDParser.Deserialize(data) is OSDMap map) || !(map["restart"] is OSDMap restart))
+                {
+                    return null; // no restart schedule currently configured
+                }
+
+                bool isDaily = restart["type"].AsString() != "W";
+                return new RegionRestartSchedule
+                {
+                    IsDaily = isDaily,
+                    Days = isDaily ? RegionRestartDays.All : LettersToDays(restart["days"].AsString()),
+                    Time = TimeSpan.FromSeconds(restart["time"].AsInteger())
+                };
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error("Failed fetching RegionSchedule", ex, Client);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Sets or clears the region's automatic restart schedule via the RegionSchedule capability.
+        /// Corresponds to LLFloaterRegionRestartSchedule::onSaveButtonClicked in the SL C++ viewer
+        /// (llfloaterregionrestartschedule.cpp). Pass a non-daily schedule with
+        /// <see cref="RegionRestartSchedule.Days"/> set to <see cref="RegionRestartDays.None"/> to
+        /// clear/disable the schedule (matches the reference viewer's "if days are empty, will
+        /// reset schedule" behavior). Requires estate owner/manager privileges.
+        /// </summary>
+        /// <param name="schedule">The schedule to apply</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>True if the server accepted the change</returns>
+        public async Task<bool> SetRegionRestartScheduleAsync(RegionRestartSchedule schedule, CancellationToken cancellationToken = default)
+        {
+            if (schedule == null) throw new ArgumentNullException(nameof(schedule));
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Uri? cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("RegionSchedule");
+            if (cap == null)
+            {
+                Logger.Warn("RegionSchedule capability not available.", Client);
+                return false;
+            }
+
+            var restart = new OSDMap();
+            if (schedule.IsDaily)
+            {
+                restart["type"] = OSD.FromString("D");
+            }
+            else
+            {
+                restart["type"] = OSD.FromString("W");
+                restart["days"] = OSD.FromString(DaysToLetters(schedule.Days));
+            }
+            restart["time"] = OSD.FromInteger((int)schedule.Time.TotalSeconds);
+
+            var body = new OSDMap { ["restart"] = restart };
+
+            try
+            {
+                var (response, _) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, body, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"RegionSchedule POST non-success status: {response.StatusCode}", Client);
+                }
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error("Failed setting RegionSchedule", ex, Client);
+                return false;
+            }
         }
 
         #endregion
