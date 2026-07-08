@@ -293,6 +293,29 @@ namespace LibreMetaverse
         }
 
         /// <summary>The event subscribers. null if no subscribers</summary>
+        private EventHandler<EstateExperienceReplyEventArgs>? m_EstateExperienceReply;
+
+        /// <summary>Raises the EstateExperienceReply event</summary>
+        /// <param name="e">A EstateExperienceReplyEventArgs object containing the
+        /// data returned from the data server</param>
+        protected virtual void OnEstateExperienceReply(EstateExperienceReplyEventArgs e)
+        {
+            var handler = m_EstateExperienceReply;
+            handler?.Invoke(this, e);
+        }
+
+        /// <summary>Thread sync lock object</summary>
+        private readonly object m_EstateExperienceReply_Lock = new object();
+
+        /// <summary>Raised when the data server responds to a request for the estate's
+        /// key/trusted/allowed/blocked experience lists (Region/Estate &gt; Experiences tab).</summary>
+        public event EventHandler<EstateExperienceReplyEventArgs> EstateExperienceReply
+        {
+            add { lock (m_EstateExperienceReply_Lock) { m_EstateExperienceReply += value; } }
+            remove { lock (m_EstateExperienceReply_Lock) { m_EstateExperienceReply -= value; } }
+        }
+
+        /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<EstateBansReplyEventArgs>? m_EstateBansReply;
 
         /// <summary>Raises the EstateBansReply event</summary>
@@ -1153,8 +1176,42 @@ namespace LibreMetaverse
             } 
             else if (method == "setexperience")
             {
-                // TODO: Implement me!
+                // key = "setexperience"
+                // ParamList[0] = str(estate_id)            (unused here)
+                // ParamList[1] = str(send_to_agent_only)    (unused here)
+                // ParamList[2] = str(num blocked)
+                // ParamList[3] = str(num trusted)
+                // ParamList[4] = str(num allowed)
+                // ParamList[5..] = bin(uuid) x num blocked, then x num trusted, then x num allowed
+                if (message.ParamList.Length >= 5
+                    && int.TryParse(Utils.BytesToString(message.ParamList[2].Parameter), out var numBlocked)
+                    && int.TryParse(Utils.BytesToString(message.ParamList[3].Parameter), out var numTrusted)
+                    && int.TryParse(Utils.BytesToString(message.ParamList[4].Parameter), out var numAllowed))
+                {
+                    var index = 5;
+                    var blocked = ReadEstateExperienceIds(message, ref index, numBlocked);
+                    var trusted = ReadEstateExperienceIds(message, ref index, numTrusted);
+                    var allowed = ReadEstateExperienceIds(message, ref index, numAllowed);
+
+                    OnEstateExperienceReply(new EstateExperienceReplyEventArgs(blocked, trusted, allowed));
+                }
             }
+        }
+
+        /// <summary>Reads <paramref name="count"/> binary-packed UUIDs from an EstateOwnerMessage's
+        /// ParamList starting at <paramref name="index"/>, advancing it past the entries consumed.</summary>
+        private List<UUID> ReadEstateExperienceIds(EstateOwnerMessagePacket message, ref int index, int count)
+        {
+            var ids = new List<UUID>(Math.Max(0, count));
+            for (var n = 0; n < count && index < message.ParamList.Length; n++, index++)
+            {
+                try
+                {
+                    ids.Add(new UUID(message.ParamList[index].Parameter, 0));
+                }
+                catch (Exception ex) { Logger.Error(ex.Message, ex, Client); }
+            }
+            return ids;
         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
@@ -1511,6 +1568,31 @@ namespace LibreMetaverse
             this.EstateID = estateID;
             this.Count = count;
             this.Managers = managers;
+        }
+    }
+
+    /// <summary>Returned when the data server sends the estate's key/trusted/allowed/blocked
+    /// experience lists (Region/Estate &gt; Experiences tab)</summary>
+    public class EstateExperienceReplyEventArgs : EventArgs
+    {
+        /// <summary>Experiences blocked estate-wide</summary>
+        public List<UUID> Blocked { get; }
+
+        /// <summary>Experiences trusted (key) by the estate</summary>
+        public List<UUID> Trusted { get; }
+
+        /// <summary>Experiences explicitly allowed on the estate</summary>
+        public List<UUID> Allowed { get; }
+
+        /// <summary>Construct a new instance of the EstateExperienceReplyEventArgs class</summary>
+        /// <param name="blocked">Blocked experience UUIDs</param>
+        /// <param name="trusted">Trusted (key) experience UUIDs</param>
+        /// <param name="allowed">Allowed experience UUIDs</param>
+        public EstateExperienceReplyEventArgs(List<UUID> blocked, List<UUID> trusted, List<UUID> allowed)
+        {
+            this.Blocked = blocked;
+            this.Trusted = trusted;
+            this.Allowed = allowed;
         }
     }
 

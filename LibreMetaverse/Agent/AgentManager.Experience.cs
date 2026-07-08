@@ -617,6 +617,143 @@ namespace LibreMetaverse
         }
 
         /// <summary>
+        /// Retrieves the agent's allow/block permission for a single experience via the
+        /// ExperiencePreferences capability. This is what the viewer calls when it needs to know
+        /// (e.g. for an experience profile) whether one specific experience is currently allowed or
+        /// blocked, without fetching the entire preferences list.
+        /// </summary>
+        /// <param name="experienceId">UUID of the experience to query</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>"Allow", "Block", or "Forget" (no explicit preference set), or null if the request failed</returns>
+        public async Task<string?> GetExperiencePermissionAsync(UUID experienceId, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                Uri? cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("ExperiencePreferences");
+                if (cap == null)
+                {
+                    Logger.Warn("ExperiencePreferences capability not available.", Client);
+                    return null;
+                }
+
+                var http = Client?.HttpCapsClient;
+                if (http == null) { return null; }
+
+                var requestUri = new Uri($"{cap}?{experienceId}");
+                var (response, data) = await http.GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"ExperiencePreferences (single) non-success status: {response.StatusCode}", Client);
+                    return null;
+                }
+                if (data == null) { return null; }
+
+                return OSDParser.Deserialize(data) is OSDMap map ? ExtractExperiencePermission(map, experienceId) : null;
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error("Failed fetching experience permission", ex, Client);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Sets the agent's allow/block permission for a single experience via the
+        /// ExperiencePreferences capability, without disturbing the rest of the preferences list.
+        /// </summary>
+        /// <param name="experienceId">UUID of the experience to update</param>
+        /// <param name="permission">"Allow" or "Block"</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>True if the server accepted the change</returns>
+        public async Task<bool> SetExperiencePermissionAsync(UUID experienceId, string permission,
+            CancellationToken cancellationToken = default)
+        {
+            if (permission == null) throw new ArgumentNullException(nameof(permission));
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                Uri? cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("ExperiencePreferences");
+                if (cap == null)
+                {
+                    Logger.Warn("ExperiencePreferences capability not available.", Client);
+                    return false;
+                }
+
+                var http = Client?.HttpCapsClient;
+                if (http == null) { return false; }
+
+                var body = new OSDMap
+                {
+                    [experienceId.ToString()] = new OSDMap { ["permission"] = OSD.FromString(permission) }
+                };
+
+                var (response, _) = await http.PutAsync(cap, OSDFormat.Xml, body, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"ExperiencePreferences PUT non-success status: {response.StatusCode}", Client);
+                }
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error("Failed setting experience permission", ex, Client);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Clears any explicit allow/block preference for a single experience via the
+        /// ExperiencePreferences capability, reverting it to the agent's default handling.
+        /// </summary>
+        /// <param name="experienceId">UUID of the experience to forget</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>True if the server accepted the change</returns>
+        public async Task<bool> ForgetExperiencePermissionAsync(UUID experienceId, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                Uri? cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("ExperiencePreferences");
+                if (cap == null)
+                {
+                    Logger.Warn("ExperiencePreferences capability not available.", Client);
+                    return false;
+                }
+
+                var http = Client?.HttpCapsClient;
+                if (http == null) { return false; }
+
+                var requestUri = new Uri($"{cap}?{experienceId}");
+                using var response = await http.DeleteAsync(requestUri, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"ExperiencePreferences DELETE non-success status: {response.StatusCode}", Client);
+                }
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error("Failed forgetting experience permission", ex, Client);
+                return false;
+            }
+        }
+
+        /// <summary>Mirrors the reference viewer's experiencePermissionResults(): "Allow" if the
+        /// experience appears in the "experiences" (allowed) list, "Block" if in "blocked", otherwise
+        /// "Forget" (no explicit preference).</summary>
+        private static string ExtractExperiencePermission(OSDMap map, UUID experienceId)
+        {
+            if (map["experiences"] is OSDArray allowed)
+                foreach (OSD entry in allowed)
+                    if (entry.AsUUID() == experienceId) return "Allow";
+            if (map["blocked"] is OSDArray blocked)
+                foreach (OSD entry in blocked)
+                    if (entry.AsUUID() == experienceId) return "Block";
+            return "Forget";
+        }
+
+        /// <summary>
         /// Retrieves the experiences associated with a group from the GroupExperiences capability.
         /// </summary>
         /// <param name="groupId">UUID of the group to query</param>

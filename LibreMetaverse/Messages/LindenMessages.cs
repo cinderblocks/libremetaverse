@@ -6481,7 +6481,7 @@ namespace LibreMetaverse.Messages.Linden
             foreach (var id in Blocked) blocked.Add(OSD.FromUUID(id));
             return new OSDMap
             {
-                ["allowed"] = allowed,
+                ["experiences"] = allowed,
                 ["blocked"] = blocked
             };
         }
@@ -6490,7 +6490,9 @@ namespace LibreMetaverse.Messages.Linden
         {
             Allowed.Clear();
             Blocked.Clear();
-            if (map["allowed"] is OSDArray allowedArr)
+            // The allowed list is returned under the "experiences" key (not "allowed") --
+            // verified against the reference viewer's LLFloaterExperiences/LLFloaterExperienceProfile.
+            if (map["experiences"] is OSDArray allowedArr)
                 foreach (OSD entry in allowedArr)
                     Allowed.Add(entry.AsUUID());
             if (map["blocked"] is OSDArray blockedArr)
