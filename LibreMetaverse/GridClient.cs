@@ -30,6 +30,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Security;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 #if NET8_0_OR_GREATER
 using System.Threading.Tasks;
 #endif
@@ -175,25 +176,49 @@ namespace LibreMetaverse
             Animesh = new Animesh.AnimeshManager(this);
         }
 
+        private static bool ValidateServerCertificate(HttpRequestMessage message, X509Certificate2? cert,
+            X509Chain? chain, SslPolicyErrors sslPolicyErrors)
+        {
+            if (sslPolicyErrors == SslPolicyErrors.None) { return true; }
+
+            // *HACK:
+            return true;
+        }
+
         private HttpCapsClient SetupHttpCapsClient()
         {
-            var handler = new HttpClientHandler
+            HttpMessageHandler handler;
+#if NETFRAMEWORK
+            // .NET Framework's HttpClientHandler wraps HttpWebRequest, which throws while building
+            // the response if a non-http(s) Location/Content-Location header is present (e.g. AISv3's
+            // "slcaps://" scheme on SlamFolder responses). WinHttpHandler doesn't have this bug.
+            // See https://github.com/cinderblocks/libremetaverse/issues/113.
+            var winHttpHandler = new WinHttpHandler
             {
-                AllowAutoRedirect = true,
+                AutomaticRedirection = true,
                 AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip,
-                ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
-                {
-                    if (sslPolicyErrors == SslPolicyErrors.None) { return true; }
-
-                    // *HACK:
-                    return true;
-                }
+                ServerCertificateValidationCallback = ValidateServerCertificate
             };
 
             if (!RuntimeInformation.FrameworkDescription.StartsWith("mono", StringComparison.OrdinalIgnoreCase))
             {
-                handler.MaxConnectionsPerServer = Settings.MaxHttpConnections;
+                winHttpHandler.MaxConnectionsPerServer = Settings.MaxHttpConnections;
             }
+            handler = winHttpHandler;
+#else
+            var httpClientHandler = new HttpClientHandler
+            {
+                AllowAutoRedirect = true,
+                AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip,
+                ServerCertificateCustomValidationCallback = ValidateServerCertificate
+            };
+
+            if (!RuntimeInformation.FrameworkDescription.StartsWith("mono", StringComparison.OrdinalIgnoreCase))
+            {
+                httpClientHandler.MaxConnectionsPerServer = Settings.MaxHttpConnections;
+            }
+            handler = httpClientHandler;
+#endif
 
             var rateLimitingHandler = new RateLimitingCapsHandler(CapsRateLimiter, handler);
             HttpCapsClient client = new HttpCapsClient(rateLimitingHandler);

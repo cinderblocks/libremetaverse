@@ -44,6 +44,7 @@
     <Reference Include="System.Net.Http" />
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
     <PackageReference Include="Microsoft.Bcl.TimeProvider" />
+    <PackageReference Include="System.Net.Http.WinHttpHandler" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
     <PackageReference Include="Microsoft.Bcl.TimeProvider" />
