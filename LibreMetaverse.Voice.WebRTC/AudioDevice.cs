@@ -275,29 +275,12 @@ namespace LibreMetaverse
             }
 
 #if NETFRAMEWORK
-            // Check if endpoint is closed and needs reinitialization (SDL3-specific)
-            bool needsReinit = false;
-            try
+            // SDL3-specific: a closed endpoint's native audio stream must be recreated via
+            // SetAudioSinkFormat() before StartAudioSink() will actually resume playback —
+            // calling StartAudioSink alone on a closed endpoint is a safe no-op, not a reopen.
+            if (EndPoint!.IsClosed)
             {
-                var epType = EndPoint!.GetType();
-                var closedField = epType.GetField("_isClosed", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                if (closedField != null)
-                {
-                    var isClosed = closedField.GetValue(EndPoint);
-                    if (isClosed is bool b && b)
-                    {
-                        needsReinit = true;
-                        _log.Debug("Endpoint is closed, reinitializing before starting playback");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _log.Debug($"Could not check endpoint closed state: {ex.Message}");
-            }
-
-            if (needsReinit)
-            {
+                _log.Debug("Endpoint is closed, reinitializing before starting playback");
                 try
                 {
                     var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
@@ -993,61 +976,24 @@ namespace LibreMetaverse
 #elif NETFRAMEWORK
             if (EndPoint != null)
             {
-                // Check if endpoint is in a usable state
+                if (!EndPoint.IsClosed) return true;
+
+                // Closed (native stream torn down) but the object itself is still alive —
+                // reopening via SetAudioSinkFormat is cheaper than discarding and recreating
+                // the whole endpoint, so try that first.
+                _log.Debug("Endpoint exists but is closed, reinitializing...");
                 try
                 {
-                    var epType = EndPoint.GetType();
-                    var closedField = epType.GetField("_isClosed", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    if (closedField != null)
-                    {
-                        var isClosed = closedField.GetValue(EndPoint);
-                        if (isClosed is bool b && b)
-                        {
-                            _log.Debug("Endpoint exists but is closed, recreating...");
-                            // Fall through to recreate
-                        }
-                        else
-                        {
-                            var streamField = epType.GetField("_audioStream", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                            if (streamField != null)
-                            {
-                                var stream = streamField.GetValue(EndPoint);
-                                if (stream == null)
-                                {
-                                    _log.Debug("Endpoint exists but audio stream is null, reinitializing...");
-                                    try
-                                    {
-                                        var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
-                                        EndPoint.SetAudioSinkFormat(fmt);
-                                        TrySetEndpointVolume(_speakerLevel);
-                                        _log.Debug("Endpoint reinitialized successfully");
-                                        return true;
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        _log.Debug($"Failed to reinitialize endpoint: {ex.Message}, recreating...");
-                                        // Fall through to recreate
-                                    }
-                                }
-                                else
-                                {
-                                    return true;
-                                }
-                            }
-                            else
-                            {
-                                return true;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        return true;
-                    }
-                }
-                catch
-                {
+                    var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
+                    EndPoint.SetAudioSinkFormat(fmt);
+                    TrySetEndpointVolume(_speakerLevel);
+                    _log.Debug("Endpoint reinitialized successfully");
                     return true;
+                }
+                catch (Exception ex)
+                {
+                    _log.Debug($"Failed to reinitialize endpoint: {ex.Message}, recreating from scratch...");
+                    // Fall through to recreate
                 }
             }
             try
