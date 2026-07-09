@@ -89,6 +89,22 @@ namespace LibreMetaverse.Voice.WebRTC
         private readonly ConcurrentDictionary<ulong, VoiceSession> _neighborSessions =
             new ConcurrentDictionary<ulong, VoiceSession>();
 
+        // Tracks how long each currently-in-range neighbour session has been continuously
+        // disconnected. A neighbour session runs its own internal ICE/reprovision watchdogs
+        // (see VoiceSession.ScheduleReprovisionWithBackoff), but nothing here ever re-checks an
+        // *existing* dictionary entry once created — ReconcileNeighborSessions only adds sessions
+        // for newly in-range regions and removes ones that fell out of range. If a neighbour
+        // session's own reprovisioning eventually gives up for good (persistent network issue),
+        // it would otherwise sit dead in _neighborSessions for as long as the agent stays in
+        // range of that region, since nothing ever replaces it.
+        private readonly ConcurrentDictionary<ulong, DateTime> _neighborDisconnectedSince =
+            new ConcurrentDictionary<ulong, DateTime>();
+
+        // Comfortably longer than a neighbour session's own worst-case reprovision backoff
+        // (6 attempts, delays doubling from 1s up to a 60s cap ≈ 63s total) so we don't replace
+        // a session that's still legitimately retrying on its own.
+        private const int NEIGHBOR_STALL_TIMEOUT_MS = 90_000;
+
         // True while in estate-voice mode (as opposed to parcel-private voice).
         private bool _estateVoiceActive = false;
 
@@ -614,6 +630,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 try { kvp.Value.Dispose(); } catch { }
             }
             _neighborSessions.Clear();
+            _neighborDisconnectedSince.Clear();
         }
 
         /// <summary>
@@ -680,6 +697,39 @@ namespace LibreMetaverse.Voice.WebRTC
                     try { _ = old.CloseSessionAsync(); } catch { }
                     try { old.Dispose(); } catch { }
                 }
+                _neighborDisconnectedSince.TryRemove(handle, out _);
+            }
+
+            // Replace neighbour sessions that are still in range but have been continuously
+            // disconnected long enough that their own reprovision backoff must have exhausted.
+            // Without this, a neighbour session that permanently dies (as opposed to a transient
+            // reconnect) would sit dead in _neighborSessions for as long as the agent stays near
+            // that region, since the loops above only ever add/remove based on range.
+            var stalled = new List<ulong>();
+            foreach (var handle in desired)
+            {
+                if (!_neighborSessions.TryGetValue(handle, out var session)) continue;
+
+                if (session.Connected)
+                {
+                    _neighborDisconnectedSince.TryRemove(handle, out _);
+                    continue;
+                }
+
+                var disconnectedSince = _neighborDisconnectedSince.GetOrAdd(handle, DateTime.UtcNow);
+                if ((DateTime.UtcNow - disconnectedSince).TotalMilliseconds >= NEIGHBOR_STALL_TIMEOUT_MS)
+                    stalled.Add(handle);
+            }
+            foreach (var handle in stalled)
+            {
+                if (_neighborSessions.TryRemove(handle, out var dead))
+                {
+                    _log.Warn($"Neighbour voice session for region handle {handle} stalled disconnected for " +
+                              $"{NEIGHBOR_STALL_TIMEOUT_MS / 1000}s, recreating", Client);
+                    try { _ = dead.CloseSessionAsync(); } catch { }
+                    try { dead.Dispose(); } catch { }
+                }
+                _neighborDisconnectedSince.TryRemove(handle, out _);
             }
 
             // Start sessions for newly in-range regions
