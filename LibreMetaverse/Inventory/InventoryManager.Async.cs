@@ -24,6 +24,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+using LibreMetaverse.Assets;
 using LibreMetaverse.Messages.Linden;
 using LibreMetaverse.Packets;
 using LibreMetaverse.StructuredData;
@@ -292,6 +293,69 @@ namespace LibreMetaverse
             {
                 var result = await PostCapAsync(cap, query, cancellationToken, progress).ConfigureAwait(false);
                 return await PerformInventoryUploadAsync(data, gestureID, result, cancellationToken, progress).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { return (false, ex.Message, UUID.Zero, UUID.Zero); }
+        }
+
+        /// <summary>
+        /// Saves a GLTF material to an existing agent inventory item via the
+        /// UpdateMaterialAgentInventory capability. Mirrors
+        /// LLMaterialEditor::updateInventoryItem's agent-inventory branch (llmaterialeditor.cpp): a
+        /// two-phase upload where the metadata POST (item_id) returns an "uploader" URL that the
+        /// material's minified GLTF JSON is then POSTed to.
+        /// </summary>
+        /// <param name="material">The material to save; its JSON encoding (<see cref="AssetMaterial.ToJson"/>)
+        /// is what gets uploaded</param>
+        /// <param name="materialItemID">UUID of the existing inventory item to update</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <param name="progress">Optional upload progress reporter</param>
+        public async Task<(bool success, string status, UUID itemID, UUID assetID)> RequestUpdateMaterialAgentInventoryAsync(
+            AssetMaterial material, UUID materialItemID, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
+        {
+            if (material == null) throw new ArgumentNullException(nameof(material));
+
+            var cap = GetCapabilityURI("UpdateMaterialAgentInventory", false);
+            if (cap == null)
+                throw new InvalidOperationException("UpdateMaterialAgentInventory capability is not currently available");
+
+            var data = System.Text.Encoding.UTF8.GetBytes(material.ToJson());
+            var query = new OSDMap { { "item_id", OSD.FromUUID(materialItemID) } };
+            try
+            {
+                var result = await PostCapAsync(cap, query, cancellationToken, progress).ConfigureAwait(false);
+                return await PerformInventoryUploadAsync(data, materialItemID, result, cancellationToken, progress).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex) { return (false, ex.Message, UUID.Zero, UUID.Zero); }
+        }
+
+        /// <summary>
+        /// Saves a GLTF material to an existing task (object) inventory item via the
+        /// UpdateMaterialTaskInventory capability. Mirrors
+        /// LLMaterialEditor::updateInventoryItem's task-inventory branch (llmaterialeditor.cpp).
+        /// </summary>
+        /// <param name="material">The material to save; its JSON encoding (<see cref="AssetMaterial.ToJson"/>)
+        /// is what gets uploaded</param>
+        /// <param name="materialItemID">UUID of the existing task-inventory item to update</param>
+        /// <param name="taskID">UUID of the object (task) containing the item</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <param name="progress">Optional upload progress reporter</param>
+        public async Task<(bool success, string status, UUID itemID, UUID assetID)> RequestUpdateMaterialTaskInventoryAsync(
+            AssetMaterial material, UUID materialItemID, UUID taskID, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
+        {
+            if (material == null) throw new ArgumentNullException(nameof(material));
+
+            var cap = GetCapabilityURI("UpdateMaterialTaskInventory", false);
+            if (cap == null)
+                throw new InvalidOperationException("UpdateMaterialTaskInventory capability is not currently available");
+
+            var data = System.Text.Encoding.UTF8.GetBytes(material.ToJson());
+            var query = new OSDMap { { "item_id", OSD.FromUUID(materialItemID) }, { "task_id", OSD.FromUUID(taskID) } };
+            try
+            {
+                var result = await PostCapAsync(cap, query, cancellationToken, progress).ConfigureAwait(false);
+                return await PerformInventoryUploadAsync(data, materialItemID, result, cancellationToken, progress).ConfigureAwait(false);
             }
             catch (OperationCanceledException) { throw; }
             catch (Exception ex) { return (false, ex.Message, UUID.Zero, UUID.Zero); }

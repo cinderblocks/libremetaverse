@@ -105,6 +105,8 @@ namespace LibreMetaverse
             {
                 // AP_MATERIALS
                 ["RenderMaterials"]                    = CapsCategory.RenderMaterials,
+                ["ModifyMaterialParams"]                = CapsCategory.RenderMaterials,
+                ["ModifyRegion"]                        = CapsCategory.RenderMaterials,
 
                 // AP_TEXTURE / AP_MESH
                 ["GetTexture"]                         = CapsCategory.AssetFetch,
@@ -132,6 +134,8 @@ namespace LibreMetaverse
                 ["UploadBakedTexture"]                 = CapsCategory.AssetUpload,
                 ["UpdateAvatarAppearance"]             = CapsCategory.AssetUpload,
                 ["InventoryThumbnailUpload"]           = CapsCategory.AssetUpload,
+                ["UpdateMaterialAgentInventory"]       = CapsCategory.AssetUpload,
+                ["UpdateMaterialTaskInventory"]        = CapsCategory.AssetUpload,
 
                 // AP_AGENT — name/profile lookups
                 ["GetDisplayNames"]                    = CapsCategory.DisplayName,

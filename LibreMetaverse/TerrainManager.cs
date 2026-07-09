@@ -25,12 +25,20 @@
  */
 
 using System;
+using System.Threading;
+using System.Threading.Tasks;
+using LibreMetaverse.Assets;
 using LibreMetaverse.Packets;
+using LibreMetaverse.StructuredData;
 
 namespace LibreMetaverse
 {
     public class TerrainManager : IDisposable
     {
+        /// <summary>Number of PBR terrain material slots (LLTerrainMaterials::ASSET_COUNT in the
+        /// reference viewer): one override per terrain texture blend slot.</summary>
+        public const int TerrainMaterialSlotCount = 4;
+
         #region EventHandling
         /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<LandPatchReceivedEventArgs>? m_LandPatchReceivedEvent;
@@ -198,6 +206,132 @@ namespace LibreMetaverse
                     break;
             }
         }
+
+        #region PBR Terrain Materials (ModifyRegion)
+
+        /// <summary>
+        /// Queries the region's PBR terrain material overrides via the ModifyRegion capability.
+        /// Mirrors LLPBRTerrainFeatures::queryRegionCoro (llpbrterrainfeatures.cpp). Each of the 4
+        /// returned slots is null when that terrain texture blend slot has no material override.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>An array of exactly <see cref="TerrainMaterialSlotCount"/> entries, or null if
+        /// the capability is unavailable or the request fails</returns>
+        public async Task<AssetMaterial?[]?> GetTerrainMaterialOverridesAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Uri? cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("ModifyRegion");
+            if (cap == null)
+            {
+                Logger.Warn("ModifyRegion capability not available.", Client);
+                return null;
+            }
+
+            try
+            {
+                var (response, data) = await Client.HttpCapsClient.GetAsync(cap, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"ModifyRegion GET non-success status: {response.StatusCode}", Client);
+                    return null;
+                }
+                if (data == null) { return null; }
+
+                if (!(OSDParser.Deserialize(data) is OSDMap map))
+                {
+                    Logger.Warn("ModifyRegion returned an unexpected payload.", Client);
+                    return null;
+                }
+                if (!map["success"].AsBoolean())
+                {
+                    Logger.Warn($"Failed to query PBR terrain features: {map["message"].AsString()}", Client);
+                    return null;
+                }
+
+                if (!(map["overrides"] is OSDArray overrides) || overrides.Count < TerrainMaterialSlotCount)
+                {
+                    Logger.Warn("ModifyRegion response missing/invalid overrides array.", Client);
+                    return null;
+                }
+
+                var result = new AssetMaterial?[TerrainMaterialSlotCount];
+                for (var i = 0; i < TerrainMaterialSlotCount; i++)
+                {
+                    if (overrides[i] is OSDMap entry && entry.Count > 0)
+                    {
+                        result[i] = AssetMaterial.FromOverrideOsd(entry);
+                    }
+                }
+                return result;
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error("Failed querying ModifyRegion", ex, Client);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Sets the region's PBR terrain material overrides via the ModifyRegion capability.
+        /// Mirrors LLPBRTerrainFeatures::queueModify/modifyRegionCoro (llpbrterrainfeatures.cpp).
+        /// Requires edit-terrain rights on the region.
+        /// </summary>
+        /// <param name="overrides">Exactly <see cref="TerrainMaterialSlotCount"/> entries; a null
+        /// entry clears that terrain texture blend slot's override</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>True if the server accepted the change</returns>
+        public async Task<bool> SetTerrainMaterialOverridesAsync(AssetMaterial?[] overrides, CancellationToken cancellationToken = default)
+        {
+            if (overrides == null) { throw new ArgumentNullException(nameof(overrides)); }
+            if (overrides.Length != TerrainMaterialSlotCount)
+            {
+                throw new ArgumentException($"Expected exactly {TerrainMaterialSlotCount} entries.", nameof(overrides));
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Uri? cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("ModifyRegion");
+            if (cap == null)
+            {
+                Logger.Warn("ModifyRegion capability not available.", Client);
+                return false;
+            }
+
+            var overrideArray = new OSDArray(TerrainMaterialSlotCount);
+            foreach (var mat in overrides)
+            {
+                overrideArray.Add(mat?.ToOverrideOsd() ?? new OSDMap());
+            }
+            var body = new OSDMap { ["overrides"] = overrideArray };
+
+            try
+            {
+                var (response, data) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, body, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"ModifyRegion POST non-success status: {response.StatusCode}", Client);
+                    return false;
+                }
+                if (data == null) { return false; }
+
+                if (OSDParser.Deserialize(data) is OSDMap result)
+                {
+                    if (!result["success"].AsBoolean())
+                    {
+                        Logger.Warn($"Failed to modify PBR terrain features: {result["message"].AsString()}", Client);
+                    }
+                    return result["success"].AsBoolean();
+                }
+                return false;
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error("Failed setting ModifyRegion", ex, Client);
+                return false;
+            }
+        }
+
+        #endregion
 
         #region IDisposable
         private bool _disposed;
