@@ -1227,6 +1227,10 @@ namespace LibreMetaverse.Voice.WebRTC
 
             _ = Task.Run(async () =>
             {
+                // Tracks whether the loop exited because of deliberate cancellation (session
+                // torn down / disposed) rather than genuine exhaustion, so we don't fire a
+                // misleading "reconnect failed" event during an intentional Disconnect().
+                bool cancelled = false;
                 try
                 {
                     int attempt = 0;
@@ -1237,27 +1241,42 @@ namespace LibreMetaverse.Voice.WebRTC
                     {
                         attempt++;
                         _log.Debug($"Reprovision scheduled attempt {attempt}/{maxAttempts} in {delayMs}ms", _client);
-                        try { await Task.Delay(delayMs, reprovisionToken).ConfigureAwait(false); } catch (OperationCanceledException) { break; }
+                        try { await Task.Delay(delayMs, reprovisionToken).ConfigureAwait(false); } catch (OperationCanceledException) { cancelled = true; break; }
 
                         try
                         {
                             _log.Debug($"Starting scheduled reprovision attempt {attempt}", _client);
-                            await AttemptReprovisionAsync().ConfigureAwait(false);
-                            _log.Debug($"Scheduled reprovision attempt {attempt} succeeded", _client);
-                                Interlocked.Exchange(ref _reprovisionScheduledInt, 0);
+                            // AttemptReprovisionAsync() reports failure via its bool return (and
+                            // an OnReprovisionFailed event for this specific attempt), not by
+                            // throwing — it never lets an exception escape its own try/catch
+                            // blocks. Treating "didn't throw" as "succeeded" here previously
+                            // meant this loop always stopped after exactly one attempt no matter
+                            // the outcome, so a persistently failing reprovision (bad network,
+                            // stuck ICE) would never back off or give up — each new watchdog
+                            // trigger (12s/60s) just restarted the cycle, forever.
+                            bool ok = await AttemptReprovisionAsync().ConfigureAwait(false);
+                            if (ok)
+                            {
+                                _log.Debug($"Scheduled reprovision attempt {attempt} succeeded", _client);
                                 return;
+                            }
+                            _log.Warn($"Scheduled reprovision attempt {attempt} failed", _client);
                         }
-                        catch (OperationCanceledException) { break; }
+                        catch (OperationCanceledException) { cancelled = true; break; }
                         catch (Exception ex)
                         {
-                            _log.Warn($"Scheduled reprovision attempt {attempt} failed: {ex.Message}", _client);
+                            _log.Warn($"Scheduled reprovision attempt {attempt} threw: {ex.Message}", _client);
                         }
 
                         // Exponential backoff for next attempt
                         delayMs = Math.Min(delayMs * 2, 60000);
                     }
 
-                    _log.Warn($"Scheduled reprovision exhausted after {attempt} attempts", _client);
+                    if (!cancelled)
+                    {
+                        _log.Warn($"Scheduled reprovision exhausted after {attempt} attempts, giving up", _client);
+                        try { OnReprovisionFailed?.Invoke(new VoiceException($"Voice reconnection failed after {attempt} attempts")); } catch { }
+                    }
                 }
                 finally
                 {
@@ -1335,13 +1354,17 @@ namespace LibreMetaverse.Voice.WebRTC
             return string.Join("\r\n", output);
         }
 
-        private async Task AttemptReprovisionAsync()
+        // Returns true if this attempt reconnected successfully, false otherwise. The caller
+        // (ScheduleReprovisionWithBackoff) relies on this to know whether to retry — every
+        // failure branch below reports its outcome via OnReprovisionFailed but does not throw,
+        // so a bool return (rather than an exception) is the only reliable signal.
+        private async Task<bool> AttemptReprovisionAsync()
         {
             // Ensure only one reprovision runs at a time
             if (!await _reprovisionLock.WaitAsync(0))
             {
                 _log.Debug("Reprovision already in progress, skipping.", _client);
-                return;
+                return true;
             }
 
             try
@@ -1450,23 +1473,27 @@ namespace LibreMetaverse.Voice.WebRTC
                             }
 
                             try { OnReprovisionSucceeded?.Invoke(); } catch { }
+                            return true;
                         }
                         else
                         {
                             _log.Warn("Reprovision failed: _client not connected to network.", _client);
                             try { OnReprovisionFailed?.Invoke(new Exception("_client not connected to network")); } catch { }
+                            return false;
                         }
                     }
                     catch (Exception ex)
                     {
                         _log.Warn($"Reprovision RequestProvisionAsync failed: {ex.Message}", _client);
                         try { OnReprovisionFailed?.Invoke(ex); } catch { }
+                        return false;
                     }
                 }
                 else
                 {
                     var ex = new Exception("Failed to create new RTCPeerConnection during reprovision");
                     try { OnReprovisionFailed?.Invoke(ex); } catch { }
+                    return false;
                 }
             }
             finally
