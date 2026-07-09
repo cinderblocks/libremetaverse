@@ -871,7 +871,24 @@ namespace LibreMetaverse
 
                 bool wasPlaying = PlaybackActive;
 
-                try { EndPoint?.CloseAudioSink().Wait(2000); } catch { }
+                // Close the outgoing endpoint without blocking the calling thread. This method
+                // is invoked synchronously from a UI event handler (device combo box), and a
+                // blocking .Wait() here stalls the UI thread for up to its timeout — on WinForms
+                // (Legacy Radegast) specifically, blocking a thread that a Task continuation may
+                // need to resume on is a classic sync-over-async deadlock risk, not just a
+                // freeze. EndPoint is about to be replaced with a brand-new instance regardless,
+                // so nothing here needs to wait for the old one to finish closing first.
+                var oldEndPoint = EndPoint;
+                if (oldEndPoint != null)
+                {
+                    try
+                    {
+                        _ = oldEndPoint.CloseAudioSink().ContinueWith(
+                            t => { if (t.IsFaulted) _log.Debug($"Error closing previous playback endpoint: {t.Exception?.GetBaseException().Message}"); },
+                            TaskScheduler.Default);
+                    }
+                    catch { }
+                }
 #if NET8_0_OR_GREATER
                 EndPoint = new SoundFlowAudioEndPoint(deviceName ?? string.Empty, _audioEncoder);
 #elif NETFRAMEWORK
