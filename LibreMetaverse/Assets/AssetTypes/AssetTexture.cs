@@ -28,8 +28,8 @@
 using System;
 using CoreJ2K;
 using CoreJ2K.Configuration;
+using CoreJ2K.Util;
 using LibreMetaverse.Imaging;
-using SkiaSharp;
 
 namespace LibreMetaverse.Assets
 {
@@ -38,6 +38,11 @@ namespace LibreMetaverse.Assets
     /// </summary>
     public class AssetTexture : Asset
     {
+        static AssetTexture()
+        {
+            ImageFactory.Register(new ManagedImageCreator());
+        }
+
         /// <summary>Override the base classes AssetType</summary>
         public override AssetType AssetType => AssetType.Texture;
 
@@ -87,7 +92,7 @@ namespace LibreMetaverse.Assets
                 return;
             }
 
-            AssetData = CompleteConfigurationPresets.Streaming.WithFileFormat(false).Encode(Image.ExportBitmap());
+            AssetData = CompleteConfigurationPresets.Streaming.WithFileFormat(false).Encode(Image);
         }
 
         /// <summary>
@@ -101,8 +106,7 @@ namespace LibreMetaverse.Assets
 
             this.Components = 0;
 
-            using var bitmap = J2kImage.DecodeToImage<SKBitmap>(AssetData);
-            Image = new ManagedImage(bitmap);
+            Image = J2kImage.DecodeToImage<ManagedImage>(AssetData);
 
             if ((Image.Channels & ManagedImage.ImageChannels.Color) != 0)
                 Components += 3;

@@ -154,9 +154,10 @@ namespace LibreMetaverse.Imaging
                 if (tex.TextureIndex >= AvatarTextureIndex.LowerAlpha &&
                     tex.TextureIndex <= AvatarTextureIndex.HairAlpha)
                 {
-                    if (tex.Texture?.Image?.Alpha != null)
+                    var wearableImage = tex.Texture?.Image;
+                    if (wearableImage != null && (wearableImage.Channels & ManagedImage.ImageChannels.Alpha) != 0)
                     {
-                        alphaWearableTextures.Add(tex.Texture.Image.Clone());
+                        alphaWearableTextures.Add(wearableImage.Clone());
                     }
                 }
             }
@@ -236,7 +237,7 @@ namespace LibreMetaverse.Imaging
                 // and apply hair(i==2) pattern over the texture
                 if (skinTexture.Texture == null && bakeType == BakeType.Head && textures[i].TextureIndex == AvatarTextureIndex.Hair)
                 {
-                    if (texture.Alpha != null)
+                    if ((texture.Channels & ManagedImage.ImageChannels.Alpha) != 0)
                     {
                         for (int j = 0; j < texture.Alpha.Length; j++) texture.Alpha[j] = (byte)255;
                     }
@@ -256,7 +257,7 @@ namespace LibreMetaverse.Imaging
                     // alpha and morph layers
                     if (bakeType == BakeType.Hair)
                     {
-                    if (texture.Alpha != null)
+                    if ((texture.Channels & ManagedImage.ImageChannels.Alpha) != 0)
                     {
                         bakedImage.Bump = texture.Alpha;
                     }
@@ -309,7 +310,7 @@ namespace LibreMetaverse.Imaging
                         // alpha as the morth for the whole bake
                         if (Textures[i].TextureIndex == AppearanceManager.MorphLayerForBakeType(bakeType))
                         {
-                            if (texture.Alpha != null)
+                            if ((texture.Channels & ManagedImage.ImageChannels.Alpha) != 0)
                         bakedImage.Bump = texture.Alpha;
                         }
 
@@ -370,11 +371,11 @@ namespace LibreMetaverse.Imaging
                     if (stream != null)
                     {
                         using (stream)
-                        using (var bitmap = Targa.Decode(stream))
                         {
-                            if (bitmap != null)
+                            var image = Targa.DecodeToManagedImage(stream);
+                            if (image != null)
                             {
-                                return new ManagedImage(bitmap);
+                                return image;
                             }
                             else
                             {
@@ -608,12 +609,47 @@ namespace LibreMetaverse.Imaging
             return true;
         }
 
+        /// <summary>
+        /// Returns the per-pixel mask value used to drive alpha/multiply compositing for a
+        /// resource layer. Bundled mask files (e.g. "*_alpha.tga", "head_skingrain.tga") are
+        /// plain single-channel grayscale TGAs whose intensity <i>is</i> the mask value -
+        /// they carry no real alpha channel of their own. Only images that genuinely have an
+        /// alpha channel use it directly; anything else falls back to its Gray/Red data (or an
+        /// RGB average as a last resort) rather than being treated as unconditionally opaque.
+        /// </summary>
+        private static byte[] GetEffectiveMask(ManagedImage img)
+        {
+            if ((img.Channels & ManagedImage.ImageChannels.Alpha) != 0)
+            {
+                return img.Alpha;
+            }
+
+            if ((img.Channels & ManagedImage.ImageChannels.Gray) != 0)
+            {
+                return img.Red;
+            }
+
+            if ((img.Channels & ManagedImage.ImageChannels.Color) != 0)
+            {
+                var n = img.Width * img.Height;
+                var luminance = new byte[n];
+                for (var i = 0; i < n; i++)
+                {
+                    luminance[i] = (byte)((img.Red[i] + img.Green[i] + img.Blue[i]) / 3);
+                }
+                return luminance;
+            }
+
+            var opaque = new byte[img.Width * img.Height];
+            for (var i = 0; i < opaque.Length; i++) opaque[i] = byte.MaxValue;
+            return opaque;
+        }
 
         private void ApplyAlpha(ManagedImage dest, VisualAlphaParam param, float val)
         {
             ManagedImage? src = LoadResourceLayer(param.TGAFile);
 
-            if (dest == null || src?.Alpha == null) return;
+            if (dest == null || src == null) return;
 
             if ((dest.Channels & ManagedImage.ImageChannels.Alpha) == 0)
             {
@@ -622,14 +658,14 @@ namespace LibreMetaverse.Imaging
 
             if (dest.Width != src.Width || dest.Height != src.Height)
             {
-                try { src!.ResizeNearestNeighbor(dest.Width, dest.Height); }
+                try { src.ResizeNearestNeighbor(dest.Width, dest.Height); }
                 catch (Exception) { return; }
             }
 
+            var mask = GetEffectiveMask(src);
             for (int i = 0; i < dest.Alpha.Length; i++)
             {
-                // src and src.Alpha are non-null after the guard above
-                byte alpha = src!.Alpha[i] <= ((1 - val) * 255) ? (byte)0 : (byte)255;
+                byte alpha = mask[i] <= ((1 - val) * 255) ? (byte)0 : (byte)255;
 
                 if (param.MultiplyBlend)
                 {
@@ -649,13 +685,12 @@ namespace LibreMetaverse.Imaging
         {
             if (!SanitizeLayers(dest, src)) return;
 
-            // src is non-null after SanitizeLayers
-            var s = src!;
+            var mask = GetEffectiveMask(src!);
             for (int i = 0; i < dest.Alpha.Length; i++)
             {
-                if (s.Alpha[i] < dest.Alpha[i])
+                if (mask[i] < dest.Alpha[i])
                 {
-                    dest.Alpha[i] = s.Alpha[i];
+                    dest.Alpha[i] = mask[i];
                 }
             }
         }
@@ -664,12 +699,12 @@ namespace LibreMetaverse.Imaging
         {
             if (!SanitizeLayers(dest, src)) return;
 
+            var mask = GetEffectiveMask(src!);
             for (int i = 0; i < dest.Red.Length; i++)
             {
-                // src is non-null after SanitizeLayers, null-forgive for static analysis
-                dest.Red[i] = (byte)((dest.Red[i] * src!.Alpha[i]) >> 8);
-                dest.Green[i] = (byte)((dest.Green[i] * src!.Alpha[i]) >> 8);
-                dest.Blue[i] = (byte)((dest.Blue[i] * src!.Alpha[i]) >> 8);
+                dest.Red[i] = (byte)((dest.Red[i] * mask[i]) >> 8);
+                dest.Green[i] = (byte)((dest.Green[i] * mask[i]) >> 8);
+                dest.Blue[i] = (byte)((dest.Blue[i] * mask[i]) >> 8);
             }
         }
 

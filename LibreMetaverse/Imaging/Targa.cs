@@ -101,6 +101,103 @@ namespace LibreMetaverse.Imaging
             }
         }
 
+        /// <summary>Decode Truevision TGA file directly to <see cref="ManagedImage"/>, with no bitmap library involved</summary>
+        public static ManagedImage DecodeToManagedImage(string fileName)
+        {
+            using (var image = Pfimage.FromFile(fileName))
+            {
+                return DecodeToManagedImage(image);
+            }
+        }
+
+        /// <summary>Decode Truevision TGA stream directly to <see cref="ManagedImage"/>, with no bitmap library involved</summary>
+        public static ManagedImage DecodeToManagedImage(Stream stream)
+        {
+            using (var image = Pfimage.FromStream(stream))
+            {
+                return DecodeToManagedImage(image);
+            }
+        }
+
+        private static ManagedImage DecodeToManagedImage(IImage image)
+        {
+            var width = image.Width;
+            var height = image.Height;
+            var data = image.Data;
+            var stride = image.Stride;
+
+            switch (image.Format)
+            {
+                case ImageFormat.Rgb8:
+                {
+                    var mi = new ManagedImage(width, height, ManagedImage.ImageChannels.Gray);
+                    for (var y = 0; y < height; y++)
+                    {
+                        Array.Copy(data, y * stride, mi.Red, y * width, width);
+                    }
+                    return mi;
+                }
+                case ImageFormat.R5g6b5:
+                {
+                    var mi = new ManagedImage(width, height, ManagedImage.ImageChannels.Color);
+                    for (var y = 0; y < height; y++)
+                    {
+                        var row = y * stride;
+                        for (var x = 0; x < width; x++)
+                        {
+                            var i = y * width + x;
+                            var v = (ushort)(data[row + x * 2] | (data[row + x * 2 + 1] << 8));
+                            int r5 = (v >> 11) & 0x1F;
+                            int g6 = (v >> 5) & 0x3F;
+                            int b5 = v & 0x1F;
+                            mi.Red[i] = (byte)((r5 * 255 + 15) / 31);
+                            mi.Green[i] = (byte)((g6 * 255 + 31) / 63);
+                            mi.Blue[i] = (byte)((b5 * 255 + 15) / 31);
+                        }
+                    }
+                    return mi;
+                }
+                case ImageFormat.Rgb24:
+                {
+                    var mi = new ManagedImage(width, height, ManagedImage.ImageChannels.Color);
+                    for (var y = 0; y < height; y++)
+                    {
+                        var row = y * stride;
+                        for (var x = 0; x < width; x++)
+                        {
+                            var i = y * width + x;
+                            var p = row + x * 3;
+                            mi.Red[i] = data[p + 2];
+                            mi.Green[i] = data[p + 1];
+                            mi.Blue[i] = data[p];
+                        }
+                    }
+                    return mi;
+                }
+                case ImageFormat.Rgba32:
+                {
+                    var mi = new ManagedImage(width, height,
+                        ManagedImage.ImageChannels.Color | ManagedImage.ImageChannels.Alpha);
+                    for (var y = 0; y < height; y++)
+                    {
+                        var row = y * stride;
+                        for (var x = 0; x < width; x++)
+                        {
+                            var i = y * width + x;
+                            var p = row + x * 4;
+                            mi.Blue[i] = data[p];
+                            mi.Green[i] = data[p + 1];
+                            mi.Red[i] = data[p + 2];
+                            mi.Alpha[i] = data[p + 3];
+                        }
+                    }
+                    return mi;
+                }
+                default:
+                    throw new ArgumentException($"Cannot interpret format: {image.Format}");
+            }
+        }
+
         public static byte[] Encode(SKBitmap image)
         {
             if (image == null) { return Array.Empty<byte>(); }

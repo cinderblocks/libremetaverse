@@ -26,6 +26,7 @@
     <PublishAot>true</PublishAot>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="CoreJ2K" />
     <PackageReference Include="CoreJ2K.Skia" />
     <PackageReference Include="ZLogger" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />

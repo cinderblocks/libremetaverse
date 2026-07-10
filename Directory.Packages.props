@@ -4,7 +4,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Appveyor.TestLogger" Version="2.0.0" />
-    <PackageVersion Include="CoreJ2K.Skia" Version="2.3.0.81" />
+    <PackageVersion Include="CoreJ2K" Version="2.3.1.84" />
+    <PackageVersion Include="CoreJ2K.Skia" Version="2.3.1.84" />
     <PackageVersion Include="MessagePack" Version="3.1.8" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.9" />
     <PackageVersion Include="Microsoft.NET.ILLink.Tasks" Version="10.0.9" />
