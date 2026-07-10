@@ -737,6 +737,12 @@ namespace LibreMetaverse.Voice.WebRTC
                 {
                     _audioDevice.Source.OnAudioSourceEncodedSample += (duration, sample) =>
                     {
+                        // Sending before DTLS/SRTP completes is pure waste (SIPSorcery just logs
+                        // "SendRtpPacket cannot be called on a secure session" and drops it) — with
+                        // two concurrent sessions (primary + neighbour) both encoding mic audio at
+                        // ~50fps while a handshake is stuck, this was generating hundreds of no-op
+                        // calls/sec. Skip the call entirely until the connection is actually usable.
+                        if (pc.connectionState != RTCPeerConnectionState.connected) return;
                         pc.SendAudio(duration, sample);
                     };
                 }
@@ -750,6 +756,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 {
                     _audioDevice.OnAudioSourceEncodedSample += (duration, sample) =>
                     {
+                        if (pc.connectionState != RTCPeerConnectionState.connected) return;
                         pc.SendAudio(duration, sample);
                     };
                 }
@@ -1247,13 +1254,25 @@ namespace LibreMetaverse.Voice.WebRTC
                 {
                     int attempt = 0;
                     const int maxAttempts = 6; // up to ~1m total backoff
-                    int delayMs = 1000;
+                    // The trigger that got us here (watchdog timeout or an explicit failure
+                    // callback) already establishes that something is wrong, so the first
+                    // attempt fires immediately — only attempts after a *repeated* failure
+                    // back off, to avoid retry storms without adding a full extra second to
+                    // every single reprovision cycle (SL C++ has no equivalent pre-delay).
+                    int delayMs = 0;
 
                     while (!reprovisionToken.IsCancellationRequested && attempt < maxAttempts)
                     {
                         attempt++;
-                        _log.Debug($"Reprovision scheduled attempt {attempt}/{maxAttempts} in {delayMs}ms", _client);
-                        try { await Task.Delay(delayMs, reprovisionToken).ConfigureAwait(false); } catch (OperationCanceledException) { cancelled = true; break; }
+                        if (delayMs > 0)
+                        {
+                            _log.Debug($"Reprovision scheduled attempt {attempt}/{maxAttempts} in {delayMs}ms", _client);
+                            try { await Task.Delay(delayMs, reprovisionToken).ConfigureAwait(false); } catch (OperationCanceledException) { cancelled = true; break; }
+                        }
+                        else
+                        {
+                            _log.Debug($"Reprovision scheduled attempt {attempt}/{maxAttempts} (immediate)", _client);
+                        }
 
                         try
                         {
@@ -1280,8 +1299,9 @@ namespace LibreMetaverse.Voice.WebRTC
                             _log.Warn($"Scheduled reprovision attempt {attempt} threw: {ex.Message}", _client);
                         }
 
-                        // Exponential backoff for next attempt
-                        delayMs = Math.Min(delayMs * 2, 60000);
+                        // Exponential backoff for next attempt (first retry after the immediate
+                        // attempt waits 1s, then doubles as before).
+                        delayMs = delayMs == 0 ? 1000 : Math.Min(delayMs * 2, 60000);
                     }
 
                     if (!cancelled)
