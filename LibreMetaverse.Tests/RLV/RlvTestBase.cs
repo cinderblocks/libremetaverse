@@ -6,7 +6,7 @@ using Moq;
 
 namespace LibreMetaverse.Tests.RLV
 {
-    public class RlvTestBase
+    public abstract class RlvTestBase
     {
         public record RlvObject(string Name, Guid Id);
 
