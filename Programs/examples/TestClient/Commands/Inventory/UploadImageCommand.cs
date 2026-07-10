@@ -30,7 +30,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using CoreJ2K.Configuration;
 using LibreMetaverse;
-using SkiaSharp;
+using LibreMetaverse.Imaging;
+using LibreMetaverse.Imaging.Skia;
 
 namespace TestClient.Commands.Inventory
 {
@@ -106,11 +107,12 @@ namespace TestClient.Commands.Inventory
             return result.Success ? result.AssetID : UUID.Zero;
         }
 
+        private static readonly SkiaTextureCodec TextureCodec = new SkiaTextureCodec();
+
         private byte[]? LoadImage(string fileName)
         {
             byte[] uploadData;
             string lowfilename = fileName.ToLower();
-            SKBitmap? bitmap = null;
             try
             {
                 if (lowfilename.EndsWith(".jp2") || lowfilename.EndsWith(".j2c"))
@@ -120,28 +122,23 @@ namespace TestClient.Commands.Inventory
                 }
                 else
                 {
+                    ManagedImage image;
                     if (lowfilename.EndsWith(".tga") || lowfilename.EndsWith(".targa"))
                     {
-                        bitmap = LibreMetaverse.Imaging.Targa.Decode(fileName);
+                        image = Targa.DecodeToManagedImage(fileName);
                     }
                     else
                     {
-                        var img = SKImage.FromEncodedData(fileName);
-                        bitmap = SKBitmap.FromImage(img);
+                        using var fs = global::System.IO.File.OpenRead(fileName);
+                        image = TextureCodec.Decode(fs);
                     }
 
-                    int oldwidth = bitmap!.Width;
-                    int oldheight = bitmap.Height;
+                    int oldwidth = image.Width;
+                    int oldheight = image.Height;
 
                     if (!IsPowerOfTwo((uint)oldwidth) || !IsPowerOfTwo((uint)oldheight))
                     {
-                        var info = new SKImageInfo(256, 256);
-                        var scaledImage = new SKBitmap(info);
-                        bitmap.ScalePixels(scaledImage.PeekPixels(), new SKSamplingOptions(SKFilterMode.Linear));
-
-                        bitmap.Dispose();
-                        bitmap = scaledImage;
-
+                        image.ResizeBilinear(256, 256);
                         oldwidth = 256;
                         oldheight = 256;
                     }
@@ -152,24 +149,15 @@ namespace TestClient.Commands.Inventory
                         int newwidth = (oldwidth > 1024) ? 1024 : oldwidth;
                         int newheight = (oldheight > 1024) ? 1024 : oldheight;
 
-                        var info = new SKImageInfo(newwidth, newheight);
-                        var scaledImage = new SKBitmap(info);
-                        bitmap.ScalePixels(scaledImage.PeekPixels(), new SKSamplingOptions(SKFilterMode.Linear));
-
-                        bitmap.Dispose();
-                        bitmap = scaledImage;
+                        image.ResizeBilinear(newwidth, newheight);
                     }
-                    uploadData = CompleteConfigurationPresets.Streaming.WithFileFormat(false).Encode(bitmap);
+                    uploadData = CompleteConfigurationPresets.Streaming.WithFileFormat(false).Encode(image);
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex + " SL Image Upload ");
                 return null;
-            }
-            finally
-            {
-                bitmap?.Dispose();
             }
             return uploadData;
         }

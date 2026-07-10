@@ -18,9 +18,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="SkiaSharp" />
-  </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
     <PackageReference Include="System.Buffers" />
     <PackageReference Include="System.Memory" />
@@ -30,5 +27,6 @@
     <ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
     <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
     <ProjectReference Include="..\PrimMesher\LibreMetaverse.PrimMesher.csproj" />
+    <ProjectReference Include="..\LibreMetaverse.Imaging.Abstractions\LibreMetaverse.Imaging.Abstractions.csproj" />
   </ItemGroup>
   </Project>

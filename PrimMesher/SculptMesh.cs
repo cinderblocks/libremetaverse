@@ -29,7 +29,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using SkiaSharp;
+using LibreMetaverse.Imaging;
 
 namespace LibreMetaverse.PrimMesher
 {
@@ -50,13 +50,20 @@ namespace LibreMetaverse.PrimMesher
 
         public List<ViewerFace> viewerFaces;
 
-
-        public SculptMesh(string fileName, int sculptType, int lod, int viewerMode, int mirror, int invert)
+        /// <summary>
+        /// Decodes a sculpt map image file, then builds a sculpt mesh from it.
+        /// </summary>
+        /// <param name="fileName">Path to the sculpt map image file</param>
+        /// <param name="codec">Decodes the image file; reference LibreMetaverse.Imaging.Skia
+        /// for a working implementation, or provide your own</param>
+        public SculptMesh(string fileName, ITextureCodec codec, int sculptType, int lod, int viewerMode, int mirror, int invert)
         {
-            using (var bitmap = SKBitmap.Decode(fileName))
+            if (codec == null) throw new ArgumentNullException(nameof(codec));
+
+            using (var stream = File.OpenRead(fileName))
             {
-                if (bitmap == null) throw new FileNotFoundException("Unable to decode sculpt image", fileName);
-                _SculptMesh(bitmap, (SculptType)sculptType, lod, viewerMode != 0, mirror != 0, invert != 0);
+                var image = codec.Decode(stream);
+                _SculptMesh(image, (SculptType)sculptType, lod, viewerMode != 0, mirror != 0, invert != 0);
             }
         }
 
@@ -167,15 +174,15 @@ namespace LibreMetaverse.PrimMesher
                 calcVertexNormals(SculptType.plane, numXElements, numYElements);
         }
 
-        public SculptMesh(SKBitmap sculptBitmap, SculptType sculptType, int lod, bool viewerMode)
+        public SculptMesh(ManagedImage sculptImage, SculptType sculptType, int lod, bool viewerMode)
         {
-            _SculptMesh(sculptBitmap, sculptType, lod, viewerMode, false, false);
+            _SculptMesh(sculptImage, sculptType, lod, viewerMode, false, false);
         }
 
-        public SculptMesh(SKBitmap sculptBitmap, SculptType sculptType, int lod, bool viewerMode, bool mirror,
+        public SculptMesh(ManagedImage sculptImage, SculptType sculptType, int lod, bool viewerMode, bool mirror,
             bool invert)
         {
-            _SculptMesh(sculptBitmap, sculptType, lod, viewerMode, mirror, invert);
+            _SculptMesh(sculptImage, sculptType, lod, viewerMode, mirror, invert);
         }
 
         public SculptMesh(List<List<Coord>> rows, SculptType sculptType, bool viewerMode, bool mirror, bool invert)
@@ -192,116 +199,27 @@ namespace LibreMetaverse.PrimMesher
             uvs = new List<UVCoord>(sm.uvs);
         }
 
-        public SculptMesh SculptMeshFromFile(string fileName, SculptType sculptType, int lod, bool viewerMode)
-        {
-            using (var img = SKImage.FromEncodedData(fileName))
-            using (var bitmap = SKBitmap.FromImage(img))
-            {
-                var sculptMesh = new SculptMesh(bitmap, sculptType, lod, viewerMode);
-                return sculptMesh;
-            }
-        }
-
         /// <summary>
-        ///     converts a bitmap to a list of lists of coords, while scaling the image.
-        ///     the scaling is done in floating point to allow for reduced vertex position
-        ///     quantization as the position will be averaged between pixel values. this routine will
-        ///     likely fail if the bitmap width and height are not powers of 2.
+        /// Decodes a sculpt map image file, then builds a sculpt mesh from it.
         /// </summary>
-        /// <param name="bitmap"></param>
-        /// <param name="scale"></param>
-        /// <param name="mirror"></param>
-        /// <returns></returns>
-        private List<List<Coord>> bitmap2Coords(SKBitmap bitmap, int scale, bool mirror)
+        /// <param name="fileName">Path to the sculpt map image file</param>
+        /// <param name="codec">Decodes the image file; reference LibreMetaverse.Imaging.Skia
+        /// for a working implementation, or provide your own</param>
+        public SculptMesh SculptMeshFromFile(string fileName, ITextureCodec codec, SculptType sculptType, int lod, bool viewerMode)
         {
-            var numRows = bitmap.Height / scale;
-            var numCols = bitmap.Width / scale;
-            var rows = new List<List<Coord>>(numRows);
+            if (codec == null) throw new ArgumentNullException(nameof(codec));
 
-            var pixScale = 1.0f / (scale * scale);
-            pixScale /= 255;
-
-            int rowNdx;
-
-            for (rowNdx = 0; rowNdx < numRows; rowNdx++)
+            using (var stream = File.OpenRead(fileName))
             {
-                var row = new List<Coord>(numCols);
-                for (int colNdx = 0; colNdx < numCols; colNdx++)
-                {
-                    var imageX = colNdx * scale;
-                    var imageYStart = rowNdx * scale;
-                    var imageYEnd = imageYStart + scale;
-                    var imageXEnd = imageX + scale;
-                    var rSum = 0.0f;
-                    var gSum = 0.0f;
-                    var bSum = 0.0f;
-                    for (; imageX < imageXEnd; imageX++)
-                    {
-                        int imageY;
-                        for (imageY = imageYStart; imageY < imageYEnd; imageY++)
-                        {
-                            var c = bitmap.GetPixel(imageX, imageY);
-                            if (c.Alpha != 255)
-                            {
-                                bitmap.SetPixel(imageX, imageY, c.WithAlpha(255));
-                                c = bitmap.GetPixel(imageX, imageY);
-                            }
-                            rSum += c.Red;
-                            gSum += c.Green;
-                            bSum += c.Blue;
-                        }
-                    }
-
-                    row.Add(mirror
-                        ? new Coord(-(rSum * pixScale - 0.5f), gSum * pixScale - 0.5f, bSum * pixScale - 0.5f)
-                        : new Coord(rSum * pixScale - 0.5f, gSum * pixScale - 0.5f, bSum * pixScale - 0.5f));
-                }
-                rows.Add(row);
+                var image = codec.Decode(stream);
+                return new SculptMesh(image, sculptType, lod, viewerMode);
             }
-            return rows;
         }
 
-        private List<List<Coord>> bitmap2CoordsSampled(SKBitmap bitmap, int scale, bool mirror)
-        {
-            var numRows = bitmap.Height / scale;
-            var numCols = bitmap.Width / scale;
-            var rows = new List<List<Coord>>(numRows);
-
-            const float pixScale = 1.0f / 256.0f;
-
-            int rowNdx;
-
-            for (rowNdx = 0; rowNdx <= numRows; rowNdx++)
-            {
-                var row = new List<Coord>(numCols);
-                var imageY = rowNdx * scale;
-                if (rowNdx == numRows) { imageY--; }
-                for (int colNdx = 0; colNdx <= numCols; colNdx++)
-                {
-                    var imageX = colNdx * scale;
-                    if (colNdx == numCols) imageX--;
-
-                    var c = bitmap.GetPixel(imageX, imageY);
-                    if (c.Alpha != 255)
-                    {
-                        bitmap.SetPixel(imageX, imageY, c.WithAlpha(255));
-                        c = bitmap.GetPixel(imageX, imageY);
-                    }
-
-                    row.Add(mirror
-                        ? new Coord(-(c.Red * pixScale - 0.5f), c.Green * pixScale - 0.5f, c.Blue * pixScale - 0.5f)
-                        : new Coord(c.Red * pixScale - 0.5f, c.Green * pixScale - 0.5f, c.Blue * pixScale - 0.5f));
-                }
-                rows.Add(row);
-            }
-            return rows;
-        }
-
-
-        private void _SculptMesh(SKBitmap sculptBitmap, SculptType sculptType, int lod, bool viewerMode, bool mirror,
+        private void _SculptMesh(ManagedImage sculptImage, SculptType sculptType, int lod, bool viewerMode, bool mirror,
             bool invert)
         {
-            _SculptMesh(new SculptMap(sculptBitmap, lod).ToRows(mirror), sculptType, viewerMode, mirror, invert);
+            _SculptMesh(new SculptMap(sculptImage, lod).ToRows(mirror), sculptType, viewerMode, mirror, invert);
         }
 
         private void _SculptMesh(List<List<Coord>> rows, SculptType sculptType, bool viewerMode, bool mirror,

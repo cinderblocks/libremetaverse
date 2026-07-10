@@ -35,9 +35,9 @@ using System.Xml;
 using System.Linq;
 using System.Xml.Serialization;
 using CoreJ2K.Configuration;
+using LibreMetaverse.Imaging;
 using LibreMetaverse.ImportExport.Collada14;
 using LibreMetaverse.Rendering;
-using SkiaSharp;
 
 namespace LibreMetaverse.ImportExport
 {
@@ -52,6 +52,18 @@ namespace LibreMetaverse.ImportExport
         private List<ModelMaterial> Materials = new List<ModelMaterial>();
         private Dictionary<string, string> MatSymTarget = new Dictionary<string, string>();
         private string FileName = string.Empty;
+        private readonly ITextureCodec? _textureCodec;
+
+        /// <summary>
+        /// Creates a new Collada loader
+        /// </summary>
+        /// <param name="textureCodec">Decodes arbitrary (non-TGA, non-J2K) image formats referenced
+        /// by the model. Reference LibreMetaverse.Imaging.Skia for a working implementation, or
+        /// provide your own. Not required for models that only reference .tga/.jp2/.j2c textures.</param>
+        public ColladaLoader(ITextureCodec? textureCodec = null)
+        {
+            _textureCodec = textureCodec;
+        }
 
         private class Node
         {
@@ -131,26 +143,36 @@ namespace LibreMetaverse.ImportExport
             {
                 string ext = System.IO.Path.GetExtension(material.Texture).ToLowerInvariant();
 
-                SKBitmap bitmap;
+                if (ext == ".jp2" || ext == ".j2c")
+                {
+                    material.TextureData = File.ReadAllBytes(fname);
+                    return;
+                }
 
+                ManagedImage image;
                 switch (ext)
                 {
-                    case ".jp2":
-                    case ".j2c":
-                        material.TextureData = File.ReadAllBytes(fname);
-                        return;
                     case ".tga":
                     case ".targa":
-                        bitmap = Imaging.Targa.Decode(fname);
+                        image = Targa.DecodeToManagedImage(fname);
                         break;
                     default:
-                        var img = SKImage.FromEncodedData(fname);
-                        bitmap = SKBitmap.FromImage(img);
+                        if (_textureCodec == null)
+                        {
+                            throw new InvalidOperationException(
+                                $"No ITextureCodec configured to decode '{fname}'. Reference " +
+                                "LibreMetaverse.Imaging.Skia (or provide your own ITextureCodec " +
+                                "implementation) and pass it to the ColladaLoader constructor.");
+                        }
+                        using (var fs = File.OpenRead(fname))
+                        {
+                            image = _textureCodec.Decode(fs);
+                        }
                         break;
                 }
 
-                int width = bitmap.Width;
-                int height = bitmap.Height;
+                int width = image.Width;
+                int height = image.Height;
 
                 // Handle resizing to prevent excessively large images and irregular dimensions
                 if (!IsPowerOfTwo((uint)width) || !IsPowerOfTwo((uint)height) || width > 1024 || height > 1024)
@@ -166,14 +188,10 @@ namespace LibreMetaverse.ImportExport
 
                     Logger.Info($"Image has irregular dimensions {origWidth}x{origHieght}. Resizing to {width}x{height}");
 
-                    var info = new SKImageInfo(width, height);
-                    var scaledImage = new SKBitmap(info);
-                    bitmap.ScalePixels(scaledImage.PeekPixels(), new SKSamplingOptions(SKFilterMode.Linear));
-                    bitmap.Dispose();
-                    bitmap = scaledImage;
+                    image.ResizeBilinear(width, height);
                 }
 
-                material.TextureData = CompleteConfigurationPresets.Streaming.WithFileFormat(false).Encode(bitmap);
+                material.TextureData = CompleteConfigurationPresets.Streaming.WithFileFormat(false).Encode(image);
 
                 Logger.Info($"Successfully encoded {fname}");
             }

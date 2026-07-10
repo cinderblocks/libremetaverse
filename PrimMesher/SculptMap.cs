@@ -27,7 +27,7 @@
 
 using System;
 using System.Collections.Generic;
-using SkiaSharp;
+using LibreMetaverse.Imaging;
 
 namespace LibreMetaverse.PrimMesher
 {
@@ -43,15 +43,15 @@ namespace LibreMetaverse.PrimMesher
         {
         }
 
-        public SculptMap(SKBitmap bm, int lod)
+        public SculptMap(ManagedImage image, int lod)
         {
-            if (bm == null) throw new ArgumentNullException(nameof(bm));
+            if (image == null) throw new ArgumentNullException(nameof(image));
 
-            var bmW = bm.Width;
-            var bmH = bm.Height;
+            var bmW = image.Width;
+            var bmH = image.Height;
 
             if (bmW == 0 || bmH == 0)
-                throw new Exception("SculptMap: bitmap has no data");
+                throw new Exception("SculptMap: image has no data");
 
             // desired pixel budget for LOD
             var numLodPixels = (lod * 2) * (lod * 2);
@@ -69,16 +69,15 @@ namespace LibreMetaverse.PrimMesher
                 needsScaling = true;
             }
 
-            SKBitmap scaledBitmap = null;
-            SKBitmap srcBitmap = bm;
+            var srcImage = image;
 
             try
             {
                 if (needsScaling)
                 {
-                    scaledBitmap = ScaleImage(bm, width, height);
-                    // use scaled bitmap for pixel reads, keep original alive for caller
-                    srcBitmap = scaledBitmap;
+                    // use a scaled clone for pixel reads, keep original untouched for caller
+                    srcImage = image.Clone();
+                    srcImage.ResizeBilinear(width, height);
                 }
 
                 // final shrink if still larger than lod*lod
@@ -94,7 +93,6 @@ namespace LibreMetaverse.PrimMesher
                 greenBytes = new byte[numBytes];
                 blueBytes = new byte[numBytes];
 
-                var pix = srcBitmap.PeekPixels(); // low-overhead access to pixel data
                 var byteNdx = 0;
 
                 if (smallMap)
@@ -104,10 +102,10 @@ namespace LibreMetaverse.PrimMesher
                     {
                         for (var x = 0; x < width; x++)
                         {
-                            var c = pix.GetPixelColor(x, y);
-                            redBytes[byteNdx] = c.Red;
-                            greenBytes[byteNdx] = c.Green;
-                            blueBytes[byteNdx] = c.Blue;
+                            SamplePixel(srcImage, x, y, out var r, out var g, out var b);
+                            redBytes[byteNdx] = r;
+                            greenBytes[byteNdx] = g;
+                            blueBytes[byteNdx] = b;
                             ++byteNdx;
                         }
                     }
@@ -122,10 +120,10 @@ namespace LibreMetaverse.PrimMesher
                         for (var x = 0; x <= width; x++)
                         {
                             var sx = (x < width) ? (x * 2) : (x * 2 - 1);
-                            var c = pix.GetPixelColor(sx, sy);
-                            redBytes[byteNdx] = c.Red;
-                            greenBytes[byteNdx] = c.Green;
-                            blueBytes[byteNdx] = c.Blue;
+                            SamplePixel(srcImage, sx, sy, out var r, out var g, out var b);
+                            redBytes[byteNdx] = r;
+                            greenBytes[byteNdx] = g;
+                            blueBytes[byteNdx] = b;
                             ++byteNdx;
                         }
                     }
@@ -142,11 +140,26 @@ namespace LibreMetaverse.PrimMesher
             {
                 throw new Exception("Caught exception processing byte arrays in SculptMap(): e: " + e);
             }
-            finally
+        }
+
+        /// <summary>
+        /// Reads the RGB value at (x,y) from a decoded sculpt map. Sculpt maps without a color
+        /// channel (e.g. a plain grayscale image) replicate their single channel across R/G/B,
+        /// matching how such images are conventionally authored/read as sculpt data.
+        /// </summary>
+        private static void SamplePixel(ManagedImage image, int x, int y, out byte r, out byte g, out byte b)
+        {
+            var idx = y * image.Width + x;
+            if ((image.Channels & ManagedImage.ImageChannels.Color) != 0)
             {
-                // dispose only the scaled bitmap we created locally
-                if (scaledBitmap != null)
-                    scaledBitmap.Dispose();
+                r = image.Red[idx];
+                g = image.Green[idx];
+                b = image.Blue[idx];
+            }
+            else
+            {
+                byte v = idx < image.Red.Length ? image.Red[idx] : (byte)0;
+                r = g = b = v;
             }
         }
 
@@ -175,14 +188,6 @@ namespace LibreMetaverse.PrimMesher
                 rows.Add(row);
             }
             return rows;
-        }
-
-        private SKBitmap ScaleImage(SKBitmap srcImage, int destWidth, int destHeight)
-        {
-            var info = new SKImageInfo(destWidth, destHeight);
-            var scaledImage = new SKBitmap(info);
-            srcImage.ScalePixels(scaledImage.PeekPixels(), new SKSamplingOptions(SKFilterMode.Linear));
-            return scaledImage;
         }
     }
 }

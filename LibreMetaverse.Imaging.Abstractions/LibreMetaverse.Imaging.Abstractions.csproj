@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>LibreMetaverse.Imaging</RootNamespace>
+    <AssemblyName>LibreMetaverse.Imaging.Abstractions</AssemblyName>
+    <PackageId>LibreMetaverse.Imaging.Abstractions</PackageId>
+    <OutputType>Library</OutputType>
+    <TargetFrameworks>netstandard2.1;net481;net8.0;net9.0;net10.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <Description>Backend-agnostic image types (ManagedImage) and the ITextureCodec abstraction used by LibreMetaverse, PrimMesher, and the rendering assemblies to decode arbitrary image formats without depending on a specific imaging library.</Description>
+    <Authors>Sjofn LLC, OpenMetaverse Developers</Authors>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <NoWarn>$(NoWarn);CS0419;CS1591;CS1574</NoWarn>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <OutputPath>..\bin\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DefineConstants>TRACE</DefineConstants>
+  </PropertyGroup>
+</Project>

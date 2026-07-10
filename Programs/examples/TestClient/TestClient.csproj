@@ -27,6 +27,7 @@
     <ProjectReference Include="..\..\..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
     <ProjectReference Include="..\..\..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
     <ProjectReference Include="..\..\..\LibreMetaverse.Voice.Vivox\LibreMetaverse.Voice.Vivox.csproj" />
+    <ProjectReference Include="..\..\..\LibreMetaverse.Imaging.Skia\LibreMetaverse.Imaging.Skia.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Pfim" />

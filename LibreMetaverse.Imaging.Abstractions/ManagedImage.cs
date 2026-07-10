@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006-2016, openmetaverse.co
- * Copyright (c) 2024-2025, Sjofn LLC.
+ * Copyright (c) 2024-2026, Sjofn LLC.
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,6 @@
  */
 
 using System;
-using CoreJ2K.Util;
 
 namespace LibreMetaverse.Imaging
 {
@@ -50,7 +49,7 @@ namespace LibreMetaverse.Imaging
         /// Image height
         /// </summary>
         public int Height;
-        
+
         /// <summary>
         /// Image channel flags
         /// </summary>
@@ -60,12 +59,12 @@ namespace LibreMetaverse.Imaging
         /// Red channel data
         /// </summary>
         public byte[] Red = Array.Empty<byte>();
-        
+
         /// <summary>
         /// Green channel data
         /// </summary>
         public byte[] Green = Array.Empty<byte>();
-        
+
         /// <summary>
         /// Blue channel data
         /// </summary>
@@ -75,7 +74,7 @@ namespace LibreMetaverse.Imaging
         /// Alpha channel data
         /// </summary>
         public byte[] Alpha = Array.Empty<byte>();
-        
+
         /// <summary>
         /// Bump channel data
         /// </summary>
@@ -111,68 +110,6 @@ namespace LibreMetaverse.Imaging
 
             if ((channels & ImageChannels.Bump) != 0)
                 Bump = new byte[n];
-        }
-
-        /// <summary>
-        /// Constructs ManagedImage class from <see cref="InterleavedImage"/>
-        /// Currently only supporting 8-bit channels;
-        /// </summary>
-        /// <param name="image">Input <see cref="InterleavedImage"/></param>
-        public ManagedImage(InterleavedImage image)
-        {
-            Width = image.Width;
-            Height = image.Height;
-
-            var pixelCount = Width * Height;
-            var numComp = image.NumberOfComponents;
-            switch (numComp)
-            {
-                case 1:
-                    Channels = ImageChannels.Gray;
-                    Red = new byte[pixelCount];
-                    image.ToComponentBytes(0, Red);
-                    break;
-                case 2:
-                    Channels = ImageChannels.Gray | ImageChannels.Alpha;
-                    Red = new byte[pixelCount];
-                    Alpha = new byte[pixelCount];
-                    image.ToComponentBytes(0, Red);
-                    image.ToComponentBytes(1, Alpha);
-                    break;
-                case 3:
-                    Channels = ImageChannels.Color;
-                    Red = new byte[pixelCount];
-                    Green = new byte[pixelCount];
-                    Blue = new byte[pixelCount];
-                    image.ToComponentBytes(0, Red);
-                    image.ToComponentBytes(1, Green);
-                    image.ToComponentBytes(2, Blue);
-                    break;
-                case 4:
-                    Channels = ImageChannels.Alpha | ImageChannels.Color;
-                    Red = new byte[pixelCount];
-                    Green = new byte[pixelCount];
-                    Blue = new byte[pixelCount];
-                    Alpha = new byte[pixelCount];
-                    image.ToComponentBytes(0, Red);
-                    image.ToComponentBytes(1, Green);
-                    image.ToComponentBytes(2, Blue);
-                    image.ToComponentBytes(3, Alpha);
-                    break;
-                case 5:
-                    Channels = ImageChannels.Alpha | ImageChannels.Color | ImageChannels.Bump;
-                    Red = new byte[pixelCount];
-                    Green = new byte[pixelCount];
-                    Blue = new byte[pixelCount];
-                    Bump = new byte[pixelCount];
-                    Alpha = new byte[pixelCount];
-                    image.ToComponentBytes(0, Red);
-                    image.ToComponentBytes(1, Green);
-                    image.ToComponentBytes(2, Blue);
-                    image.ToComponentBytes(3, Bump);
-                    image.ToComponentBytes(4, Alpha);
-                    break;
-            }
         }
 
         /// <summary>
@@ -253,7 +190,7 @@ namespace LibreMetaverse.Imaging
 
             if ((Channels & ImageChannels.Bump) != 0)
                 bump = new byte[n];
-            
+
             for (int y = 0; y < height; y++)
             {
                 int srcY = (y * Height) / Math.Max(1, height); // compute source row
@@ -281,6 +218,96 @@ namespace LibreMetaverse.Imaging
             Blue = blue ?? Array.Empty<byte>();
             Alpha = alpha ?? Array.Empty<byte>();
             Bump = bump ?? Array.Empty<byte>();
+        }
+
+        /// <summary>
+        /// Resize or stretch the image using bilinear interpolation. Falls back to nearest
+        /// neighbor when the source is too small to interpolate (a single row or column).
+        /// </summary>
+        /// <param name="width">new width</param>
+        /// <param name="height">new height</param>
+        public void ResizeBilinear(int width, int height)
+        {
+            if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+            if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+            if (width == Width && height == Height)
+                return;
+            if (Width <= 1 || Height <= 1)
+            {
+                ResizeNearestNeighbor(width, height);
+                return;
+            }
+
+            bool hasGray = (Channels & ImageChannels.Gray) != 0;
+            bool hasColor = (Channels & ImageChannels.Color) != 0;
+            bool hasAlpha = (Channels & ImageChannels.Alpha) != 0;
+            bool hasBump = (Channels & ImageChannels.Bump) != 0;
+
+            int n = width * height;
+            byte[]? red = null, green = null, blue = null, alpha = null, bump = null;
+            if (hasGray) red = new byte[n];
+            else if (hasColor)
+            {
+                red = new byte[n];
+                green = new byte[n];
+                blue = new byte[n];
+            }
+
+            if (hasAlpha) alpha = new byte[n];
+            if (hasBump) bump = new byte[n];
+
+            float xScale = (float)(Width - 1) / Math.Max(1, width - 1);
+            float yScale = (float)(Height - 1) / Math.Max(1, height - 1);
+
+            int di = 0;
+            for (int y = 0; y < height; y++)
+            {
+                float srcY = height > 1 ? y * yScale : 0f;
+                for (int x = 0; x < width; x++)
+                {
+                    float srcX = width > 1 ? x * xScale : 0f;
+
+                    if (hasGray)
+                    {
+                        red![di] = BilinearSample(Red, Width, Height, srcX, srcY);
+                    }
+                    else if (hasColor)
+                    {
+                        red![di] = BilinearSample(Red, Width, Height, srcX, srcY);
+                        green![di] = BilinearSample(Green, Width, Height, srcX, srcY);
+                        blue![di] = BilinearSample(Blue, Width, Height, srcX, srcY);
+                    }
+
+                    if (hasAlpha) alpha![di] = BilinearSample(Alpha, Width, Height, srcX, srcY);
+                    if (hasBump) bump![di] = BilinearSample(Bump, Width, Height, srcX, srcY);
+                    di++;
+                }
+            }
+
+            Width = width;
+            Height = height;
+            Red = red ?? Array.Empty<byte>();
+            Green = green ?? Array.Empty<byte>();
+            Blue = blue ?? Array.Empty<byte>();
+            Alpha = alpha ?? Array.Empty<byte>();
+            Bump = bump ?? Array.Empty<byte>();
+        }
+
+        private static byte BilinearSample(byte[] src, int srcWidth, int srcHeight, float srcX, float srcY)
+        {
+            int x0 = (int)srcX;
+            int y0 = (int)srcY;
+            int x1 = Math.Min(x0 + 1, srcWidth - 1);
+            int y1 = Math.Min(y0 + 1, srcHeight - 1);
+            float fx = srcX - x0;
+            float fy = srcY - y0;
+
+            float top = src[y0 * srcWidth + x0] * (1 - fx) + src[y0 * srcWidth + x1] * fx;
+            float bottom = src[y1 * srcWidth + x0] * (1 - fx) + src[y1 * srcWidth + x1] * fx;
+            float value = top * (1 - fy) + bottom * fy;
+            if (value < 0f) value = 0f;
+            else if (value > 255f) value = 255f;
+            return (byte)Math.Round(value);
         }
 
         /// <summary>

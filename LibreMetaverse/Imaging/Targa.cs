@@ -26,81 +26,12 @@
 
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
 using Pfim;
-using SkiaSharp;
 
 namespace LibreMetaverse.Imaging
 {
     public static class Targa
     {
-        /// <summary>Decode Truevision TGA file to <see cref="SKBitmap" /></summary>
-        public static SKBitmap Decode(string fileName)
-        {
-            using (var image = Pfimage.FromFile(fileName))
-            {
-                return Decode(image);
-            }
-        }
-
-        /// <summary>Decode Truevision TGA stream to <see cref="SKBitmap" /></summary>
-        public static SKBitmap Decode(Stream stream)
-        {
-            using (var image = Pfimage.FromStream(stream))
-            {
-                return Decode(image);
-            }
-        }
-
-        private static SKBitmap Decode(IImage image)
-        {
-            SKColorType colorType;
-            var data = image.Data;
-            var dataLen = image.DataLen;
-            var stride = image.Stride;
-            switch (image.Format)
-            {
-                case ImageFormat.Rgb8:
-                    colorType = SKColorType.Gray8;
-                    break;
-                case ImageFormat.R5g6b5: // needs swizzled
-                    colorType = SKColorType.Rgb565;
-                    break;
-                case ImageFormat.Rgba16: // needs swizzled
-                    colorType = SKColorType.Argb4444;
-                    break;
-                case ImageFormat.Rgb24: // skia doesn't support 24-bit (boo!), upscale to 32-bit
-                    var pixels = image.DataLen / 3;
-                    dataLen = pixels * 4;
-                    data = new byte[dataLen];
-                    for (var i = 0; i < pixels; ++i)
-                    {
-                        data[i * 4] = image.Data[i * 3];
-                        data[i * 4 + 1] = image.Data[i * 3 + 1];
-                        data[i * 4 + 2] = image.Data[i * 3 + 2];
-                        data[i * 4 + 3] = 255;
-                    }
-                    stride = image.Width * 4;
-                    colorType = SKColorType.Bgra8888;
-                    break;
-                case ImageFormat.Rgba32:
-                    colorType = SKColorType.Bgra8888;
-                    break;
-                default:
-                    throw new ArgumentException($"Cannot interpret format: {image.Format}");
-            }
-            var imageInfo = new SKImageInfo(image.Width, image.Height, colorType);
-            var handle = GCHandle.Alloc(data, GCHandleType.Pinned);
-            var ptr = Marshal.UnsafeAddrOfPinnedArrayElement(data, 0);
-            using (var skdata = SKData.Create(ptr, dataLen, (address, context) => handle.Free()))
-            {
-                using (var skImage = SKImage.FromPixels(imageInfo, skdata, stride))
-                {
-                    return SKBitmap.FromImage(skImage);
-                }
-            }
-        }
-
         /// <summary>Decode Truevision TGA file directly to <see cref="ManagedImage"/>, with no bitmap library involved</summary>
         public static ManagedImage DecodeToManagedImage(string fileName)
         {
@@ -196,62 +127,6 @@ namespace LibreMetaverse.Imaging
                 default:
                     throw new ArgumentException($"Cannot interpret format: {image.Format}");
             }
-        }
-
-        public static byte[] Encode(SKBitmap image)
-        {
-            if (image == null) { return Array.Empty<byte>(); }
-
-            var imageType = (byte)(image.ColorType == SKColorType.Gray8 || image.ColorType == SKColorType.Alpha8
-                ? 0x03 : 0x02);
-            var imageDescriptor = (byte)(image.AlphaType <= SKAlphaType.Opaque ? 0 : 0x8);
-
-            var tga = new byte[image.Width * image.Height * image.BytesPerPixel + 18];
-            var di = 0;
-            tga[di++] = 0x00; // id length
-            tga[di++] = 0x00; // colormap type = 0: no colormap
-            tga[di++] = imageType; // image type
-            tga[di++] = 0x00; // color map spec is five zeroes for no color map
-            tga[di++] = 0x00; // color map spec is five zeroes for no color map
-            tga[di++] = 0x00; // color map spec is five zeroes for no color map
-            tga[di++] = 0x00; // color map spec is five zeroes for no color map
-            tga[di++] = 0x00; // color map spec is five zeroes for no color map
-            tga[di++] = 0; // x origin = two bytes
-            tga[di++] = 0; // x origin = two bytes
-            tga[di++] = 0; // y origin = two bytes
-            tga[di++] = 0; // y origin = two bytes
-            tga[di++] = (byte)(image.Width & 0xFF); // width - low byte
-            tga[di++] = (byte)(image.Width >> 8); // width - hi byte
-            tga[di++] = (byte)(image.Height & 0xFF); // height - low byte
-            tga[di++] = (byte)(image.Height >> 8); // height - hi byte
-            tga[di++] = (byte)(image.BytesPerPixel*8); // pixel depth, includes attribute bits
-            tga[di++] = imageDescriptor; // image descriptor byte
-
-            for (var y = image.Height - 1; y >= 0; --y) // takes lines from bottom lines to top (mirrored horizontally)
-            {
-                for (var x = 0; x < image.Width; ++x)
-                {
-                    var c = image.GetPixel(x, y);
-                    if (image.ColorType == SKColorType.Gray8)
-                    {
-                        tga[di++] = c.Red;
-                    } else if (image.ColorType == SKColorType.Alpha8)
-                    {
-                        tga[di++] = c.Alpha;
-                    }
-                    else
-                    {
-                        tga[di++] = c.Blue;
-                        tga[di++] = c.Green;
-                        tga[di++] = c.Red;
-
-                        tga[di++] = (byte)(image.AlphaType > SKAlphaType.Opaque ? c.Alpha : 0x0);
-                    }
-
-                }
-            }
-
-            return tga;
         }
 
         /// <summary>Encode <see cref="ManagedImage"/> to Truevision TGA byte array</summary>

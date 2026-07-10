@@ -26,7 +26,7 @@
  */
 
 using System.Collections.Generic;
-using SkiaSharp;
+using LibreMetaverse.Imaging;
 
 namespace LibreMetaverse.Rendering
 {
@@ -50,7 +50,7 @@ namespace LibreMetaverse.Rendering
             return mesh;
         }
 
-        public SimpleMesh GenerateSimpleSculptMesh(Primitive prim, SKBitmap sculptTexture, DetailLevel lod)
+        public SimpleMesh GenerateSimpleSculptMesh(Primitive prim, ManagedImage sculptTexture, DetailLevel lod)
         {
             return GenerateSimpleMesh(prim, lod);
         }
@@ -69,7 +69,7 @@ namespace LibreMetaverse.Rendering
             return mesh;
         }
 
-        public FacetedMesh GenerateFacetedSculptMesh(Primitive prim, SKBitmap sculptTexture, DetailLevel lod)
+        public FacetedMesh GenerateFacetedSculptMesh(Primitive prim, ManagedImage sculptTexture, DetailLevel lod)
         {
             return GenerateFacetedMesh(prim, lod);
         }

@@ -27,7 +27,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CoreJ2K" />
-    <PackageReference Include="CoreJ2K.Skia" />
     <PackageReference Include="ZLogger" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
@@ -53,6 +52,7 @@
   <ItemGroup>
     <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
     <ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
+    <ProjectReference Include="..\LibreMetaverse.Imaging.Abstractions\LibreMetaverse.Imaging.Abstractions.csproj" />
     <ProjectReference Include="..\SourceGenerators\AttentionsGenerator\AttentionsGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\SourceGenerators\GenepoolGenerator\GenepoolGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\SourceGenerators\PacketSourceGenerator\PacketSourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />

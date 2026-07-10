@@ -34,7 +34,6 @@ using System.Threading.Tasks;
 using CoreJ2K;
 using LibreMetaverse;
 using LibreMetaverse.Imaging;
-using SkiaSharp;
 using Targa = LibreMetaverse.Imaging.Targa;
 
 namespace TestClient.Commands.Inventory
@@ -119,13 +118,10 @@ namespace TestClient.Commands.Inventory
                                 {
                                     File.WriteAllBytes(assetTexture.AssetID + ".jp2", assetTexture.AssetData);
                                     Console.WriteLine($"Wrote JPEG2000 image {assetTexture.AssetID}.jp2");
-                                    using (var bitmap = J2kImage.FromBytes(assetTexture.AssetData).As<SKBitmap>())
-                                    {
-                                        var mi = new ManagedImage(bitmap);
-                                        var bytes = Targa.Encode(mi);
-                                        File.WriteAllBytes(assetTexture.AssetID + ".tga", bytes);
-                                        Console.WriteLine($"Wrote TGA image {assetTexture.AssetID}.tga");
-                                    }
+                                    var mi = J2kImage.DecodeToImage<ManagedImage>(assetTexture.AssetData);
+                                    var bytes = Targa.Encode(mi);
+                                    File.WriteAllBytes(assetTexture.AssetID + ".tga", bytes);
+                                    Console.WriteLine($"Wrote TGA image {assetTexture.AssetID}.tga");
                                 }
                                 catch (Exception e) { Console.WriteLine(e.ToString()); }
                             }

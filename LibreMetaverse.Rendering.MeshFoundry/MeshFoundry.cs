@@ -26,8 +26,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using SkiaSharp;
 using LibreMetaverse.Assets;
+using LibreMetaverse.Imaging;
 using LibreMetaverse.StructuredData;
 using LibreMetaverse.PrimMesher;
 
@@ -120,7 +120,7 @@ namespace LibreMetaverse.Rendering
         /// <param name="sculptTexture">Sculpt texture</param>
         /// <param name="lod">Level of detail to generate the mesh at</param>
         /// <returns>The generated mesh, or null on failure</returns>
-        public SimpleMesh? GenerateSimpleSculptMesh(Primitive prim, SKBitmap sculptTexture, DetailLevel lod)
+        public SimpleMesh? GenerateSimpleSculptMesh(Primitive prim, ManagedImage sculptTexture, DetailLevel lod)
         {
             var faceted = GenerateFacetedSculptMesh(prim, sculptTexture, lod);
 
@@ -209,7 +209,7 @@ namespace LibreMetaverse.Rendering
         /// <param name="sculptTexture">Sculpt texture</param>
         /// <param name="lod">Level of detail to generate the mesh at</param>
         /// <returns>The generated mesh, or null on failure</returns>
-        public FacetedMesh? GenerateFacetedSculptMesh(Primitive prim, SKBitmap sculptTexture, DetailLevel lod)
+        public FacetedMesh? GenerateFacetedSculptMesh(Primitive prim, ManagedImage sculptTexture, DetailLevel lod)
         {
             if (prim.Sculpt == null) { return null; }
 
