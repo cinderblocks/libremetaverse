@@ -56,6 +56,11 @@ namespace LibreMetaverse.PrimMesher
         /// <param name="fileName">Path to the sculpt map image file</param>
         /// <param name="codec">Decodes the image file; reference LibreMetaverse.Imaging.Skia
         /// for a working implementation, or provide your own</param>
+        /// <param name="sculptType">SculptType value (sphere, torus, plane, or cylinder) as an int</param>
+        /// <param name="lod">Level of detail to sample the sculpt map at</param>
+        /// <param name="viewerMode">Non-zero to also build normals and UVs for viewer rendering</param>
+        /// <param name="mirror">Non-zero to mirror the mesh</param>
+        /// <param name="invert">Non-zero to invert the mesh</param>
         public SculptMesh(string fileName, ITextureCodec codec, int sculptType, int lod, int viewerMode, int mirror, int invert)
         {
             if (codec == null) throw new ArgumentNullException(nameof(codec));
@@ -205,6 +210,9 @@ namespace LibreMetaverse.PrimMesher
         /// <param name="fileName">Path to the sculpt map image file</param>
         /// <param name="codec">Decodes the image file; reference LibreMetaverse.Imaging.Skia
         /// for a working implementation, or provide your own</param>
+        /// <param name="sculptType">Sculpt type (sphere, torus, plane, or cylinder)</param>
+        /// <param name="lod">Level of detail to sample the sculpt map at</param>
+        /// <param name="viewerMode">True to also build normals and UVs for viewer rendering</param>
         public SculptMesh SculptMeshFromFile(string fileName, ITextureCodec codec, SculptType sculptType, int lod, bool viewerMode)
         {
             if (codec == null) throw new ArgumentNullException(nameof(codec));
@@ -292,7 +300,6 @@ namespace LibreMetaverse.PrimMesher
 
             var coordsDown = rows.Count;
             var coordsAcross = rows[0].Count;
-            var lastColumn = coordsAcross - 1;
 
             var widthUnit = 1.0f / (coordsAcross - 1);
             var heightUnit = 1.0f / (coordsDown - 1);
