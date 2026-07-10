@@ -1,3 +1,115 @@
+# Migration Guide: 3.0.0 → 3.1.0
+
+LibreMetaverse 3.1.0 removes SkiaSharp as a dependency of every core assembly (`LibreMetaverse`, `LibreMetaverse.PrimMesher`, `LibreMetaverse.Rendering.MeshFoundry`, `LibreMetaverse.Rendering.Simple`). Image decoding is now behind a new `ITextureCodec` abstraction, with SkiaSharp available as an opt-in backend. This is a breaking change everywhere `SKBitmap` previously appeared in a public signature.
+
+---
+
+## 1. New packages
+
+- **`LibreMetaverse.Imaging.Abstractions`** — `ManagedImage` (moved here from `LibreMetaverse`, same namespace `LibreMetaverse.Imaging`) and the new `ITextureCodec` interface. No package dependencies of its own. Pulled in transitively by the `LibreMetaverse` package, so most consumers don't need to reference it directly.
+- **`LibreMetaverse.Imaging.Skia`** — `SkiaTextureCodec : ITextureCodec`, a SkiaSharp-backed implementation. Reference this package (and pass a `new SkiaTextureCodec()` where an `ITextureCodec` is expected) if your application needs to decode arbitrary image formats (PNG, JPEG, BMP, etc.) — for example, loading Collada model textures or handling image uploads from disk. Not needed if you only ever work with `.tga`/JPEG2000 image data, which have dedicated Skia-free paths (see below).
+
+```xml
+<!-- Add this if you decode arbitrary image files anywhere in your application -->
+<PackageReference Include="LibreMetaverse.Imaging.Skia" Version="3.1.*" />
+```
+
+---
+
+## 2. `IRendering`: `SKBitmap` → `ManagedImage`
+
+`GenerateSimpleSculptMesh`/`GenerateFacetedSculptMesh` on `IRendering` (and its implementations, `SimpleRenderer`/`MeshFoundry`) now take a `ManagedImage` sculpt texture instead of an `SKBitmap`.
+
+```csharp
+// Before
+FacetedMesh? mesh = renderer.GenerateFacetedSculptMesh(prim, sculptBitmap, DetailLevel.Medium);
+
+// After
+FacetedMesh? mesh = renderer.GenerateFacetedSculptMesh(prim, sculptImage, DetailLevel.Medium);
+// where sculptImage is a LibreMetaverse.Imaging.ManagedImage — e.g. AssetTexture.Image
+// after decoding the sculpt texture asset, or SkiaTextureCodec.Decode(stream) for
+// arbitrary image sources.
+```
+
+If you implement `IRendering` yourself, update your method signatures accordingly.
+
+---
+
+## 3. `PrimMesher.SculptMesh` / `SculptMap`: `SKBitmap` → `ManagedImage`
+
+All `SKBitmap`-typed constructors and parameters have been replaced with `ManagedImage`:
+
+| 3.0.0 | 3.1.0 |
+|-------|-------|
+| `new SculptMap(SKBitmap bm, int lod)` | `new SculptMap(ManagedImage image, int lod)` |
+| `new SculptMesh(SKBitmap sculptBitmap, SculptType sculptType, int lod, bool viewerMode)` | `new SculptMesh(ManagedImage sculptImage, SculptType sculptType, int lod, bool viewerMode)` |
+| `new SculptMesh(SKBitmap sculptBitmap, SculptType sculptType, int lod, bool viewerMode, bool mirror, bool invert)` | `new SculptMesh(ManagedImage sculptImage, SculptType sculptType, int lod, bool viewerMode, bool mirror, bool invert)` |
+
+The file-decoding convenience constructors, which previously called into SkiaSharp directly, now take an `ITextureCodec` so `PrimMesher` itself has no image-library dependency:
+
+```csharp
+// Before
+var mesh = new SculptMesh(fileName, sculptType, lod, viewerMode, mirror, invert);
+var mesh2 = sculptMesh.SculptMeshFromFile(fileName, sculptType, lod, viewerMode);
+
+// After — pass a codec (e.g. from LibreMetaverse.Imaging.Skia)
+var codec = new SkiaTextureCodec();
+var mesh = new SculptMesh(fileName, codec, sculptType, lod, viewerMode, mirror, invert);
+var mesh2 = sculptMesh.SculptMeshFromFile(fileName, codec, sculptType, lod, viewerMode);
+```
+
+`LibreMetaverse.PrimMesher` no longer references SkiaSharp at all.
+
+---
+
+## 4. `Targa`: `SKBitmap`-based `Decode`/`Encode` removed
+
+`Targa.Decode(string)`, `Targa.Decode(Stream)`, and `Targa.Encode(SKBitmap)` have been deleted. Use the `ManagedImage`-native equivalents, which have no SkiaSharp dependency:
+
+```csharp
+// Before
+SKBitmap bitmap = Targa.Decode(fileName);
+byte[] tga = Targa.Encode(bitmap);
+
+// After
+ManagedImage image = Targa.DecodeToManagedImage(fileName);
+byte[] tga = Targa.Encode(image);
+```
+
+---
+
+## 5. `ColladaLoader` constructor takes an optional `ITextureCodec`
+
+```csharp
+// Before
+var loader = new ColladaLoader();
+
+// After — unchanged if your model only references .tga/.jp2/.j2c textures.
+// Pass a codec if any referenced texture is a PNG/JPEG/other arbitrary format:
+var loader = new ColladaLoader(new SkiaTextureCodec());
+```
+
+If a model references a non-TGA, non-JPEG2000 texture and no codec was supplied, `ColladaLoader` throws an `InvalidOperationException` with a message pointing at `LibreMetaverse.Imaging.Skia`, rather than failing with a confusing SkiaSharp error.
+
+---
+
+## 6. `CoreJ2K.Skia` no longer a dependency
+
+`LibreMetaverse` previously pulled in `CoreJ2K.Skia` (and, transitively, an inconsistently-versioned copy of SkiaSharp). JPEG2000 encode/decode now goes through a `ManagedImage`-native CoreJ2K backend exclusively. If you referenced `CoreJ2K.Skia` yourself to interoperate with `LibreMetaverse`'s texture pipeline, you no longer need to.
+
+---
+
+## Quick checklist (3.0.0 → 3.1.0)
+
+- [ ] Add a `PackageReference` to `LibreMetaverse.Imaging.Skia` if your app decodes arbitrary (non-TGA, non-J2K) image formats anywhere
+- [ ] Update any custom `IRendering` implementation's sculpt-mesh methods from `SKBitmap` to `ManagedImage`
+- [ ] Update `PrimMesher.SculptMesh`/`SculptMap` construction from `SKBitmap` to `ManagedImage`; pass an `ITextureCodec` to the file-decoding convenience constructors
+- [ ] Replace `Targa.Decode(...)`/`Targa.Encode(SKBitmap)` with `Targa.DecodeToManagedImage(...)`/`Targa.Encode(ManagedImage)`
+- [ ] Pass an `ITextureCodec` to `new ColladaLoader(...)` if any Collada model you load references a non-TGA/non-J2K texture
+- [ ] Remove any direct `CoreJ2K.Skia` package reference that existed solely to interoperate with LibreMetaverse's texture pipeline
+
+---
+
 # Migration Guide: 2.6.x → 3.0
 
 LibreMetaverse 3.0 is a major version with intentional breaking changes across the entire public API. This guide covers every change a consuming application will need to address. Changes are grouped by category, with before/after examples for the most common cases.
