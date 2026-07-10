@@ -435,15 +435,27 @@ namespace LibreMetaverse.Voice.WebRTC
                     try { _iceCheckingWatchdogCts?.Cancel(); } catch { }
                     var watchdogCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
                     _iceCheckingWatchdogCts = watchdogCts;
+                    // Capture the specific PC and session so a later reprovision replacing
+                    // _peerConnection/SessionId does not cause this watchdog to tear down the
+                    // new (already-healthy) connection — same pattern as the 60s post-answer
+                    // watchdogs in RequestLocalVoiceProvision/RequestMultiAgentVoiceProvision.
+                    // Relying solely on ReferenceEquals(pc, _peerConnection) at fire time is not
+                    // enough: it was observed firing well after a subsequent reprovision had
+                    // already succeeded and reassigned _peerConnection, tearing down a working
+                    // connection because _iceCheckingWatchdogCts is a single field shared across
+                    // every peer-connection generation for this session.
+                    var watchedPc = pc;
+                    var watchedSession = SessionId;
                     _ = Task.Run(async () =>
                     {
                         try
                         {
                             await Task.Delay(TimeSpan.FromSeconds(12), watchdogCts.Token).ConfigureAwait(false);
-                            if (!ReferenceEquals(pc, _peerConnection)) return;
-                            if (pc.connectionState != RTCPeerConnectionState.connected &&
-                                pc.connectionState != RTCPeerConnectionState.failed &&
-                                pc.connectionState != RTCPeerConnectionState.closed)
+                            if (SessionId != watchedSession) return;
+                            if (!ReferenceEquals(watchedPc, _peerConnection)) return;
+                            if (watchedPc.connectionState != RTCPeerConnectionState.connected &&
+                                watchedPc.connectionState != RTCPeerConnectionState.failed &&
+                                watchedPc.connectionState != RTCPeerConnectionState.closed)
                             {
                                 _log.Warn($"ICE still in 'checking' after 12 s — triggering early reprovision", _client);
                                 ScheduleReprovisionWithBackoff();
