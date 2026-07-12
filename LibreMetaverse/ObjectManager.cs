@@ -2258,7 +2258,7 @@ namespace LibreMetaverse
 
             if (sim.Caps == null)
             {
-                Logger.Info("Caps are down, unable to retrieve materials.", Client);
+                Logger.Debug("Caps are down, unable to retrieve materials.", Client);
                 return new List<LegacyMaterial>();
             }
 
@@ -2266,13 +2266,13 @@ namespace LibreMetaverse
 
             if (uri == null)
             {
-                Logger.Info("RenderMaterials capability unavailable.", Client);
+                Logger.Debug("RenderMaterials capability unavailable.", Client);
                 return new List<LegacyMaterial>();
             }
 
             List<LegacyMaterial> matsToReturn = new List<LegacyMaterial>();
 
-            Logger.Info($"Awaiting materials from {uri}", Client);
+            Logger.Trace($"Awaiting materials from {uri}", Client);
 
             try
             {
@@ -2313,7 +2313,7 @@ namespace LibreMetaverse
                             {
                                 Logger.Info("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(result, true), Client);
                             }
-                            Logger.Info($"Fetched (x{matsToReturn.Count}) from {uri}", Client);
+                            Logger.Trace($"Fetched (x{matsToReturn.Count}) from {uri}", Client);
                         }
                     }
                     catch (Exception ex)
@@ -2321,7 +2321,7 @@ namespace LibreMetaverse
                         Logger.Error("Failed fetching RenderMaterials", ex, Client);
                         if (data.Length > 0)
                         {
-                            Logger.Info("Response unparsable; " + System.Text.Encoding.UTF8.GetString(data), Client);
+                            Logger.Debug("Response unparsable; " + System.Text.Encoding.UTF8.GetString(data), Client);
                         }
                     }
                 }
@@ -2359,7 +2359,7 @@ namespace LibreMetaverse
 
             if (sim.Caps == null)
             {
-                Logger.Info("Caps are down, unable to retrieve materials.", Client);
+                Logger.Debug("Caps are down, unable to retrieve materials.", Client);
                 return new List<LegacyMaterial>();
             }
 
@@ -2379,13 +2379,13 @@ namespace LibreMetaverse
 
             if (uri == null)
             {
-                Logger.Info("RenderMaterials capability unavailable.", Client);
+                Logger.Debug("RenderMaterials capability unavailable.", Client);
                 return new List<LegacyMaterial>();
             }
 
             List<LegacyMaterial> matsToReturn = new List<LegacyMaterial>();
 
-            Logger.Info($"Awaiting materials (x{array.Count}) from {uri}", Client);
+            Logger.Trace($"Awaiting materials (x{array.Count}) from {uri}", Client);
 
             try
             {
@@ -2393,7 +2393,7 @@ namespace LibreMetaverse
                 if (data == null || data.Length == 0)
                 {
                     Logger.Error("Failed fetching materials; result was empty.", Client);
-                    Logger.Info($"Sent:\n{uri}\n" +
+                    Logger.Debug($"Sent:\n{uri}\n" +
                                 $"{Convert.ToBase64String(OSDParser.SerializeLLSDBinary(request), Base64FormattingOptions.InsertLineBreaks)}", Client);
                 }
                 else
@@ -2428,17 +2428,17 @@ namespace LibreMetaverse
                             {
                                 Logger.Info("Unexpected OSD return;\n" + OSDParser.SerializeJsonString(result, true), Client);
                             }
-                            Logger.Info($"Fetched (x{matsToReturn.Count}) from {uri}", Client);
+                            Logger.Trace($"Fetched (x{matsToReturn.Count}) from {uri}", Client);
                         }
                     }
                     catch (Exception ex)
                     {
                         Logger.Error("Failed fetching RenderMaterials", ex, Client);
-                        Logger.Info($"Sent:\n{uri}\n{System.Text.Encoding.UTF8.GetString(OSDParser.SerializeLLSDXmlBytes(request))}", Client);
-                        Logger.Info("Requests: " + string.Join(",", materials.Select(m => m.ToString())));
+                        Logger.Debug($"Sent:\n{uri}\n{System.Text.Encoding.UTF8.GetString(OSDParser.SerializeLLSDXmlBytes(request))}", Client);
+                        Logger.Debug("Requests: " + string.Join(",", materials.Select(m => m.ToString())));
                         if (data.Length > 0)
                         {
-                            Logger.Info("Unable to parse response; " + System.Text.Encoding.UTF8.GetString(data), Client);
+                            Logger.Debug("Unable to parse response; " + System.Text.Encoding.UTF8.GetString(data), Client);
                         }
                     }
                 }
