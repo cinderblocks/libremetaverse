@@ -813,7 +813,13 @@ namespace LibreMetaverse
             if (baseUri == null)
                 return (false, null);
 
-            var uri = new Uri(baseUri, avatarid.ToString());
+            // Cap URLs are opaque paths (e.g. ".../cap/<cap-id>") with no trailing slash, so
+            // new Uri(baseUri, avatarid) would treat avatarid as a *replacement* for the last path
+            // segment per RFC 3986 relative-reference rules, silently dropping the cap id and
+            // hitting the wrong endpoint (404). The official viewer instead does a plain
+            // "cap_url + "/" + avatar_id" concatenation (llavatarpropertiesprocessor.cpp,
+            // requestAvatarPropertiesCoro) — match that here.
+            var uri = new Uri(baseUri.AbsoluteUri.TrimEnd('/') + "/" + avatarid);
 
             try
             {
