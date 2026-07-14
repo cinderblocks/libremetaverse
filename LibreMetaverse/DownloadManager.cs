@@ -279,8 +279,16 @@ namespace LibreMetaverse.Http
                             if (finalError == null)
                                 finalError = statusError;
 
-                            // If there was no error or we've exhausted retries or NotFound, finish
-                            if (finalError == null || representative.Attempt >= representative.Retries || response.StatusCode == HttpStatusCode.NotFound)
+                            // If there was no error, we've exhausted retries, or the status is
+                            // deterministic (NotFound/Forbidden/Unauthorized/Gone — the server's
+                            // answer will not change on retry), finish. Retrying permanent
+                            // failures burned the whole retry budget with backoff delays while
+                            // occupying download-queue slots, slowing every queued asset behind it.
+                            if (finalError == null || representative.Attempt >= representative.Retries
+                                || response.StatusCode == HttpStatusCode.NotFound
+                                || response.StatusCode == HttpStatusCode.Forbidden
+                                || response.StatusCode == HttpStatusCode.Unauthorized
+                                || response.StatusCode == HttpStatusCode.Gone)
                             {
                                 sw.Stop();
                                 try {
