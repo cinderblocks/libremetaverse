@@ -440,16 +440,30 @@ namespace LibreMetaverse
             {
                 var path = FileName(assetID);
                 Logger.Trace($"Saving {path} to asset cache.");
+                if (File.Exists(path)) return true; // already cached by a concurrent writer
                 if (!Directory.Exists(Client.Settings.AssetCache.Dir))
                     Directory.CreateDirectory(Client.Settings.AssetCache.Dir);
-                var tempPath = path + ".tmp";
-                File.WriteAllBytes(tempPath, assetData);
+                // Temp name must be unique PER WRITER: the same asset is often saved by
+                // concurrent downloaders, and a shared "<id>.tmp" makes the writers collide
+                // ("file in use by another process"), so the asset never lands in the cache
+                // and is re-downloaded forever. Both writers carry identical bytes, so the
+                // overwriting move is race-tolerant — last-in wins harmlessly.
+                var tempPath = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                try
+                {
+                    File.WriteAllBytes(tempPath, assetData);
 #if NET5_0_OR_GREATER
-                File.Move(tempPath, path, overwrite: true);
+                    File.Move(tempPath, path, overwrite: true);
 #else
-                if (File.Exists(path)) File.Delete(path);
-                File.Move(tempPath, path);
+                    if (File.Exists(path)) File.Delete(path);
+                    File.Move(tempPath, path);
 #endif
+                }
+                catch
+                {
+                    try { if (File.Exists(tempPath)) File.Delete(tempPath); } catch { /* best effort */ }
+                    throw;
+                }
                 return true;
             }
             catch (Exception ex) { Logger.Warn("Failed saving asset to cache (" + ex.Message + ")", Client); return false; }
@@ -470,22 +484,34 @@ namespace LibreMetaverse
                 var path = FileName(assetID);
                 Logger.Trace($"Saving {path} to asset cache.");
 
+                if (File.Exists(path)) return true; // already cached by a concurrent writer
+
                 if (!Directory.Exists(Client.Settings.AssetCache.Dir))
                 {
                     Directory.CreateDirectory(Client.Settings.AssetCache.Dir);
                 }
 
-                var tempPath = path + ".tmp";
-                using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, true))
+                // Unique temp per writer — see SaveAssetToCache for why a shared "<id>.tmp"
+                // breaks concurrent saves of the same asset.
+                var tempPath = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                try
                 {
-                    await fs.WriteAsync(assetData, 0, assetData.Length, cancellationToken).ConfigureAwait(false);
-                }
+                    using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, true))
+                    {
+                        await fs.WriteAsync(assetData, 0, assetData.Length, cancellationToken).ConfigureAwait(false);
+                    }
 #if NET5_0_OR_GREATER
-                File.Move(tempPath, path, overwrite: true);
+                    File.Move(tempPath, path, overwrite: true);
 #else
-                if (File.Exists(path)) File.Delete(path);
-                File.Move(tempPath, path);
+                    if (File.Exists(path)) File.Delete(path);
+                    File.Move(tempPath, path);
 #endif
+                }
+                catch
+                {
+                    try { if (File.Exists(tempPath)) File.Delete(tempPath); } catch { /* best effort */ }
+                    throw;
+                }
             }
             catch (OperationCanceledException)
             {
