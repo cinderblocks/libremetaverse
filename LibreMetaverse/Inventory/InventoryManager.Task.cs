@@ -39,12 +39,13 @@ namespace LibreMetaverse
         /// <param name="objectLocalID">The target object</param>
         /// <param name="item">The item to copy or move from inventory</param>
         /// <param name="simulator">Simulator containing the target object, or null for the current simulator</param>
+        /// <param name="only_mod_meta">If flase, the transaction ID will set be set to a random UUID, and the simulator will re-create the item, potentially breaking things like scripts.</param>
         /// <returns>Returns transaction id</returns>
         /// <remarks>For items with copy permissions a copy of the item is placed in the tasks inventory,
         /// for no-copy items the object is moved to the tasks inventory</remarks>
-        public UUID UpdateTaskInventory(uint objectLocalID, InventoryItem item, Simulator? simulator = null)
+        public UUID UpdateTaskInventory(uint objectLocalID, InventoryItem item, Simulator? simulator = null, bool only_mod_meta = true)
         {
-            var transactionID = UUID.Random();
+            var transactionID = only_mod_meta ? UUID.Zero : UUID.Random();
 
             var update = new UpdateTaskInventoryPacket
             {
