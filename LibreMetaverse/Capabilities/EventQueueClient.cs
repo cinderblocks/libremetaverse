@@ -148,6 +148,16 @@ namespace LibreMetaverse.Http
             var prev = Interlocked.Exchange(ref _queueCts, newCts);
             DisposalHelper.SafeCancelAndDispose(prev);
 
+            // Capture the token once: Dispose()/a later Create() can cancel-and-dispose
+            // this same CTS from another thread while this loop is still running (it only
+            // observes cancellation between awaits), and CancellationTokenSource.Token's
+            // getter throws ObjectDisposedException once disposed — which is not an
+            // OperationCanceledException, so it would fault the task instead of exiting
+            // cleanly. Reading IsCancellationRequested on an already-obtained token stays
+            // safe after the source is disposed, so re-deriving the token from newCts
+            // anywhere below this line must be avoided.
+            var token = newCts.Token;
+
             _pendingRetryDelayMs = 0;
 
             _eqTask = Task.Run(async () =>
@@ -157,21 +167,21 @@ namespace LibreMetaverse.Http
                     // First request is immediate.
                     await ack().ConfigureAwait(false);
 
-                    while (!newCts.Token.IsCancellationRequested)
+                    while (!token.IsCancellationRequested)
                     {
                         int delayMs = _pendingRetryDelayMs;
                         _pendingRetryDelayMs = 0;
 
                         if (delayMs > 0)
-                            await Task.Delay(delayMs, newCts.Token).ConfigureAwait(false);
+                            await Task.Delay(delayMs, token).ConfigureAwait(false);
 
-                        if (newCts.Token.IsCancellationRequested) break;
+                        if (token.IsCancellationRequested) break;
 
                         await ack().ConfigureAwait(false);
                     }
                 }
                 catch (OperationCanceledException) { }
-            }, newCts.Token);
+            }, token);
 
             async Task ack()
             {
@@ -197,7 +207,7 @@ namespace LibreMetaverse.Http
                     try
                     {
                         var (response, data) = await Simulator.Client.HttpCapsClient.PostAsync(
-                            Address, OSDFormat.Xml, payloadSnapshot, newCts.Token).ConfigureAwait(false);
+                            Address, OSDFormat.Xml, payloadSnapshot, token).ConfigureAwait(false);
                         ConnectedResponseHandler(response);
                         RequestCompletedHandler(response, data, null);
                     }
