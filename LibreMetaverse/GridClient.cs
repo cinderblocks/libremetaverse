@@ -278,9 +278,6 @@ namespace LibreMetaverse
                 // that used it have been disposed, so no more requests are in flight.
                 if (HttpCapsClient is IDisposable httpDisposable) DisposalHelper.SafeDispose(httpDisposable);
                 CapsRateLimiter?.Dispose();
-
-                // Attempt to shutdown logging synchronously to flush providers when possible
-                try { Logger.Shutdown(); } catch { }
             }
 
             _disposed = true;
@@ -293,9 +290,11 @@ namespace LibreMetaverse
 
 #if NET8_0_OR_GREATER
         /// <summary>
-        /// Async dispose that ensures logger providers are flushed.
+        /// Async dispose. Logging is a process-wide facility (see <see cref="Logger"/>) and is not
+        /// tied to any single GridClient's lifetime, so it is not touched here — callers that own
+        /// the process should shut it down once at application exit.
         /// </summary>
-        public async ValueTask DisposeAsync()
+        public ValueTask DisposeAsync()
         {
             // Dispose managed resources
             Dispose(true);
@@ -303,8 +302,7 @@ namespace LibreMetaverse
             // Suppress finalizer
             GC.SuppressFinalize(this);
 
-            // Await logger shutdown to allow providers to flush
-            try { await Logger.ShutdownAsync().ConfigureAwait(false); } catch { }
+            return default;
         }
 #endif
         #endregion
