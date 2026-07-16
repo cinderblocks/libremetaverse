@@ -867,7 +867,11 @@ namespace LibreMetaverse
                     try
                     {
                         _ = oldEndPoint.CloseAudioSink().ContinueWith(
-                            t => { if (t.IsFaulted) _log.Debug($"Error closing previous playback endpoint: {t.Exception?.GetBaseException().Message}"); },
+                            t =>
+                            {
+                                if (t.IsFaulted) _log.Debug($"Error closing previous playback endpoint: {t.Exception?.GetBaseException().Message}");
+                                try { (oldEndPoint as IDisposable)?.Dispose(); } catch { }
+                            },
                             TaskScheduler.Default);
                     }
                     catch { }

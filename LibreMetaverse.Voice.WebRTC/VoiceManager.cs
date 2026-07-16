@@ -313,6 +313,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     {
                         try { _primarySession.Session.OnDataChannelReady -= CurrentSessionOnOnDataChannelReady; } catch { }
                         await _primarySession.Session.CloseSessionAsync().ConfigureAwait(false);
+                        try { _primarySession.Session.Dispose(); } catch { }
                     }
                     catch (Exception ex)
                     {
@@ -405,6 +406,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     StopNeighborLoop();
                     try { _primarySession.Session.OnDataChannelReady -= CurrentSessionOnOnDataChannelReady; } catch { }
                     try { await _primarySession.Session.CloseSessionAsync().ConfigureAwait(false); } catch { }
+                    try { _primarySession.Session.Dispose(); } catch { }
                     _primarySession = null;
                 }
 
@@ -1214,14 +1216,14 @@ namespace LibreMetaverse.Voice.WebRTC
                 };
 
                 // Wire up events (aggregate events from all sessions)
-                session.OnPeerJoined += (id) => PeerJoined?.Invoke(id);
-                session.OnPeerLeft += (id) => PeerLeft?.Invoke(id);
-                session.OnPeerPositionUpdated += (id, map) => PeerPositionUpdated?.Invoke(id, map);
-                session.OnPeerListUpdated += (list) => PeerListUpdated?.Invoke(list);
-                session.OnPeerAudioUpdated += (id, state) => PeerAudioUpdated?.Invoke(id, state);
-                session.OnPeerPositionUpdatedTyped += (id, pos) => PeerPositionUpdatedTyped?.Invoke(id, pos);
-                session.OnMuteMapReceived += (m) => MuteMapReceived?.Invoke(m);
-                session.OnGainMapReceived += (g) => GainMapReceived?.Invoke(g);
+                session.OnPeerJoined               += id          => { try { PeerJoined?.Invoke(id); } catch { } };
+                session.OnPeerLeft                 += id          => { try { PeerLeft?.Invoke(id); } catch { } };
+                session.OnPeerPositionUpdated      += (id, map)   => { try { PeerPositionUpdated?.Invoke(id, map); } catch { } };
+                session.OnPeerListUpdated          += list        => { try { PeerListUpdated?.Invoke(list); } catch { } };
+                session.OnPeerAudioUpdated         += (id, state) => { try { PeerAudioUpdated?.Invoke(id, state); } catch { } };
+                session.OnPeerPositionUpdatedTyped += (id, pos)   => { try { PeerPositionUpdatedTyped?.Invoke(id, pos); } catch { } };
+                session.OnMuteMapReceived          += m           => { try { MuteMapReceived?.Invoke(m); } catch { } };
+                session.OnGainMapReceived          += g           => { try { GainMapReceived?.Invoke(g); } catch { } };
 
                 // Store the session
                 _groupSessions[groupId] = groupSession;
@@ -1456,28 +1458,28 @@ namespace LibreMetaverse.Voice.WebRTC
                 };
 
                 // Wire up events (aggregate events from all sessions)
-                session.OnPeerJoined += (id) => 
+                session.OnPeerJoined += (id) =>
                 {
-                    PeerJoined?.Invoke(id);
+                    try { PeerJoined?.Invoke(id); } catch { }
                     if (id == agentId)
                     {
                         try { OnP2PCallAccepted?.Invoke(agentId); } catch { }
                     }
                 };
-                session.OnPeerLeft += (id) => 
+                session.OnPeerLeft += (id) =>
                 {
-                    PeerLeft?.Invoke(id);
+                    try { PeerLeft?.Invoke(id); } catch { }
                     if (id == agentId)
                     {
                         _ = EndP2PCallAsync(agentId);
                     }
                 };
-                session.OnPeerPositionUpdated += (id, map) => PeerPositionUpdated?.Invoke(id, map);
-                session.OnPeerListUpdated += (list) => PeerListUpdated?.Invoke(list);
-                session.OnPeerAudioUpdated += (id, state) => PeerAudioUpdated?.Invoke(id, state);
-                session.OnPeerPositionUpdatedTyped += (id, pos) => PeerPositionUpdatedTyped?.Invoke(id, pos);
-                session.OnMuteMapReceived += (m) => MuteMapReceived?.Invoke(m);
-                session.OnGainMapReceived += (g) => GainMapReceived?.Invoke(g);
+                session.OnPeerPositionUpdated      += (id, map)   => { try { PeerPositionUpdated?.Invoke(id, map); } catch { } };
+                session.OnPeerListUpdated          += list        => { try { PeerListUpdated?.Invoke(list); } catch { } };
+                session.OnPeerAudioUpdated         += (id, state) => { try { PeerAudioUpdated?.Invoke(id, state); } catch { } };
+                session.OnPeerPositionUpdatedTyped += (id, pos)   => { try { PeerPositionUpdatedTyped?.Invoke(id, pos); } catch { } };
+                session.OnMuteMapReceived          += m           => { try { MuteMapReceived?.Invoke(m); } catch { } };
+                session.OnGainMapReceived          += g           => { try { GainMapReceived?.Invoke(g); } catch { } };
 
                 // Store the session
                 _p2pSessions[agentId] = p2pSession;
@@ -1586,21 +1588,21 @@ namespace LibreMetaverse.Voice.WebRTC
                 };
 
                 // Wire up events
-                session.OnPeerJoined += (id) => PeerJoined?.Invoke(id);
-                session.OnPeerLeft += (id) => 
+                session.OnPeerJoined += id => { try { PeerJoined?.Invoke(id); } catch { } };
+                session.OnPeerLeft += (id) =>
                 {
-                    PeerLeft?.Invoke(id);
+                    try { PeerLeft?.Invoke(id); } catch { }
                     if (id == agentId)
                     {
                         _ = EndP2PCallAsync(agentId);
                     }
                 };
-                session.OnPeerPositionUpdated += (id, map) => PeerPositionUpdated?.Invoke(id, map);
-                session.OnPeerListUpdated += (list) => PeerListUpdated?.Invoke(list);
-                session.OnPeerAudioUpdated += (id, state) => PeerAudioUpdated?.Invoke(id, state);
-                session.OnPeerPositionUpdatedTyped += (id, pos) => PeerPositionUpdatedTyped?.Invoke(id, pos);
-                session.OnMuteMapReceived += (m) => MuteMapReceived?.Invoke(m);
-                session.OnGainMapReceived += (g) => GainMapReceived?.Invoke(g);
+                session.OnPeerPositionUpdated      += (id, map)   => { try { PeerPositionUpdated?.Invoke(id, map); } catch { } };
+                session.OnPeerListUpdated          += list        => { try { PeerListUpdated?.Invoke(list); } catch { } };
+                session.OnPeerAudioUpdated         += (id, state) => { try { PeerAudioUpdated?.Invoke(id, state); } catch { } };
+                session.OnPeerPositionUpdatedTyped += (id, pos)   => { try { PeerPositionUpdatedTyped?.Invoke(id, pos); } catch { } };
+                session.OnMuteMapReceived          += m           => { try { MuteMapReceived?.Invoke(m); } catch { } };
+                session.OnGainMapReceived          += g           => { try { GainMapReceived?.Invoke(g); } catch { } };
 
                 // Store the session
                 _p2pSessions[agentId] = p2pSession;

@@ -1433,6 +1433,7 @@ namespace LibreMetaverse.Voice.WebRTC
                             try { _audioDevice.OnAudioSourceEncodedSample -= _peerConnection.SendAudio; } catch { }
                         }
                         try { _peerConnection.Close("Reprovision"); } catch { }
+                        try { (_peerConnection as IDisposable)?.Dispose(); } catch { }
                     }
 
                     // Tell the SL server to close the old session before we re-provision.
