@@ -444,7 +444,7 @@ namespace LibreMetaverse
 
         /// <summary>Visual parameters last sent to the sim</summary>
         public byte[] MyVisualParameters = Array.Empty<byte>();
-        
+
         /// <summary>Textures about this client sent to the sim</summary>
         public Primitive.TextureEntry MyTextures = new Primitive.TextureEntry(Primitive.TextureEntry.WHITE_TEXTURE);
 
@@ -1093,7 +1093,7 @@ namespace LibreMetaverse
                         ItemID = wearableItem.UUID,
                         WearableType = wearableItem.WearableType
                     };
-                    
+
                     // Bodyparts (Shape, Skin, Eyes, Hair) and Physics must always replace - they cannot be layered
                     if (replace || wearableItem.AssetType == AssetType.Bodypart || wearableItem.WearableType == WearableType.Physics)
                     {
@@ -1719,7 +1719,7 @@ namespace LibreMetaverse
                         ItemID = wearableItem.UUID,
                         WearableType = wearableItem.WearableType
                     };
-                    
+
                     // Bodyparts and Physics cannot be layered. Overwrite when multiple are selected.
                     if (wearableItem.AssetType == AssetType.Bodypart || wearableItem.WearableType == WearableType.Physics)
                     {
@@ -1813,7 +1813,7 @@ namespace LibreMetaverse
 
                     indexb = (indexa == n - 1) ? indexa : indexa + 1;
 
-                    // How far is our value from Index A on the 
+                    // How far is our value from Index A on the
                     // line from Index A to Index B
                     var distance = p.Value - (p.VisualParam.MinValue + indexa * step);
 
@@ -3362,7 +3362,7 @@ namespace LibreMetaverse
                 // must be sent — a superseding pipeline will re-bake with its own token.
                 // Only skip if the sim has changed underneath us (teleport/region crossing),
                 // in which case sending to the new sim with old bake data would be wrong.
-                if (Client.Network.CurrentSim != startSim)
+                if (Client?.Network?.CurrentSim != startSim)
                 {
                     Logger.Info("Sim changed during CSB pipeline; skipping AgentSetAppearance for old sim", Client);
                 }
