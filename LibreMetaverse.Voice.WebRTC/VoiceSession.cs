@@ -1670,6 +1670,38 @@ namespace LibreMetaverse.Voice.WebRTC
             _audioDevice.SetSsrcGainPercent(ssrc, gainPercent);
         }
 
+        // Region crossings/teleports fire SimChanged the moment CurrentSim flips, but the new
+        // sim's seed-cap exchange (which populates ProvisionVoiceAccountRequest) is still async
+        // at that point — observed live as an immediate "No ProvisionVoiceAccountRequest
+        // capability available" failure on every region crossing, with no later retry, leaving
+        // voice permanently dead until the next region change (which usually loses the same
+        // race). Poll briefly for the capability instead of failing on the first miss.
+        private async Task<Uri?> WaitForProvisionCapAsync()
+        {
+            var cap = EffectiveSim?.Caps?.CapabilityURI(PROVISION_VOICE_ACCOUNT_CAP);
+            if (cap != null) return cap;
+
+            CancellationToken token;
+            try { token = _cts.Token; }
+            catch (ObjectDisposedException) { return null; }
+
+            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(15);
+            while (DateTime.UtcNow < deadline)
+            {
+                try { await Task.Delay(250, token).ConfigureAwait(false); }
+                catch (OperationCanceledException) { return null; }
+
+                cap = EffectiveSim?.Caps?.CapabilityURI(PROVISION_VOICE_ACCOUNT_CAP);
+                if (cap != null)
+                {
+                    _log.Debug($"{PROVISION_VOICE_ACCOUNT_CAP} capability became available after waiting", _client);
+                    return cap;
+                }
+            }
+
+            return null;
+        }
+
         // Minimal implementation of RequestProvisionAsync to satisfy callers.
         // The real implementation is more involved; this stub returns false.
         public async Task<bool> RequestProvisionAsync()
@@ -1677,7 +1709,7 @@ namespace LibreMetaverse.Voice.WebRTC
             if (_client?.Network == null || !_client.Network.Connected) { return false; }
             _log.Debug("Requesting voice capability...", _client);
 
-            var cap = EffectiveSim?.Caps?.CapabilityURI(PROVISION_VOICE_ACCOUNT_CAP);
+            var cap = await WaitForProvisionCapAsync().ConfigureAwait(false);
             if (cap == null)
             {
                 throw new VoiceException($"No {PROVISION_VOICE_ACCOUNT_CAP} capability available.");

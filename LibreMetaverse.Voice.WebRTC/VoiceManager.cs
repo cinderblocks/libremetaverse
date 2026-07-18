@@ -267,7 +267,7 @@ namespace LibreMetaverse.Voice.WebRTC
             catch (Exception ex)
             {
                 _log.Error($"Region transition failed: {ex.Message}", Client);
-                
+
                 try
                 {
                     OnRegionTransitionFailed?.Invoke(ex);
@@ -276,12 +276,52 @@ namespace LibreMetaverse.Voice.WebRTC
                 {
                     _log.Warn($"Exception in OnRegionTransitionFailed handler: {handlerEx.Message}", Client);
                 }
+
+                // _currentRegionHandle was already advanced to newRegionHandle above, so a
+                // same-region SimChanged fired again later will no-op via the dedupe check at
+                // the top of this method — nothing else will retry this. Without an explicit
+                // retry here, a reprovision that loses the caps-not-ready race (the common case
+                // right after a region crossing) leaves voice permanently dead for the rest of
+                // the session. Retry a few times with backoff before giving up for good.
+                _ = RetryRegionReprovisionAsync(newRegionHandle);
             }
             finally
             {
                 _isTransitioning = false;
                 _regionTransitionLock.Release();
             }
+        }
+
+        private async Task RetryRegionReprovisionAsync(ulong forRegionHandle)
+        {
+            int[] delaysMs = { 3000, 6000, 12000 };
+            foreach (var delay in delaysMs)
+            {
+                await Task.Delay(delay).ConfigureAwait(false);
+
+                // Abandon if another region change has since superseded this one, or voice
+                // was disabled/torn down while we were waiting.
+                if (!_enabled || _primarySession == null || _currentRegionHandle != forRegionHandle) return;
+                if (!await _regionTransitionLock.WaitAsync(0)) return;
+
+                try
+                {
+                    _log.Info($"Retrying voice reprovision for region {forRegionHandle:X}", Client);
+                    await ReprovisionForNewRegion().ConfigureAwait(false);
+                    try { OnRegionTransitionCompleted?.Invoke(); } catch { }
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    _log.Warn($"Retried voice reprovision failed: {ex.Message}", Client);
+                }
+                finally
+                {
+                    _regionTransitionLock.Release();
+                }
+            }
+
+            _log.Error($"Voice reprovision for region {forRegionHandle:X} gave up after retries", Client);
         }
 
         private async Task ReprovisionForNewRegion()
