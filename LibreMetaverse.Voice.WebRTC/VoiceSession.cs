@@ -1321,22 +1321,30 @@ namespace LibreMetaverse.Voice.WebRTC
             if (string.IsNullOrEmpty(sdp)) { return sdp; }
             var sb = new StringBuilder();
             var lines = sdp.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            int total = 0, dropped = 0;
             foreach (var line in lines)
             {
                 // Drop candidate lines that contain a literal port 0 (invalid)
                 if (line.StartsWith("a=candidate:", StringComparison.OrdinalIgnoreCase))
                 {
+                    total++;
                     // Regex to find whitespace + port number + whitespace before typ or end
                     // Candidate format contains the port as the 5th token. Simpler check for ' 0 ' is sufficient.
                     if (Regex.IsMatch(line, "\\s0\\s"))
                     {
+                        dropped++;
                         _log.Debug($"Dropping remote ICE candidate with port 0: {line}", _client);
                         continue;
                     }
+                    // Diagnostic: every candidate line we're actually handing to the ICE agent,
+                    // so a "stuck in checking" report can be correlated against what candidates
+                    // the remote side even offered (e.g. all-TCP answer, no host/srflx UDP path).
+                    _log.Debug($"Keeping remote ICE candidate: {line}", _client);
                 }
 
                 sb.AppendLine(line);
             }
+            _log.Debug($"Remote SDP candidate summary: {total - dropped} kept, {dropped} dropped, {total} total", _client);
             return sb.ToString();
         }
 
