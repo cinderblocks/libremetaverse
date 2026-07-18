@@ -115,6 +115,15 @@ namespace LibreMetaverse.Voice.WebRTC
         private int _pendingCandidateCount = 0;
         // Lock to keep queue and counter consistent for batch operations
         private readonly object _candidateLock = new object();
+        // Serializes SendVoiceSignalingRequest callers (the 25ms trickle-loop poll and the
+        // explicit post-answer flush in Request*VoiceProvision both call it). Without this,
+        // one caller can dequeue+send candidates while the other observes an empty queue and
+        // returns immediately without having waited for that send to actually land — so
+        // IceTrickleStop's "queue is empty" check races ahead and fires 'ICE Signaling Complete'
+        // before the candidates POST it's waiting on has reached the server. Observed live as a
+        // near-100% first-attempt ICE failure (every session needed one reprovision cycle to
+        // connect) — SL C++ doesn't have two independent flush paths racing like this.
+        private readonly SemaphoreSlim _signalingSendLock = new SemaphoreSlim(1, 1);
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
         private CancellationTokenSource? _iceTrickleCts;
@@ -971,6 +980,22 @@ namespace LibreMetaverse.Voice.WebRTC
         // Send any pending ICE candidates to the voice signaling capability
         private async Task SendVoiceSignalingRequest()
         {
+            await _signalingSendLock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                await SendVoiceSignalingRequestLocked().ConfigureAwait(false);
+            }
+            finally
+            {
+                _signalingSendLock.Release();
+            }
+        }
+
+        // Assumes _signalingSendLock is already held. Only call directly from within a block
+        // that holds the lock (e.g. IceTrickleStop's final flush) — otherwise use
+        // SendVoiceSignalingRequest() so concurrent callers serialize instead of racing.
+        private async Task SendVoiceSignalingRequestLocked()
+        {
             if (!_answerReceived)
             {
                 _log.Debug("Skipping ICE send - no answer received yet", _client);
@@ -1221,6 +1246,28 @@ namespace LibreMetaverse.Voice.WebRTC
 
             // Stop the periodic trickle loop — we're about to send the terminal 'completed' marker
             _iceTrickleCts?.Cancel();
+
+            // Acquire the same lock SendVoiceSignalingRequest() uses before deciding candidates
+            // are all sent. The polling loop above only checked the queue was empty, which can be
+            // true because another caller *dequeued* candidates but hasn't finished POSTing them
+            // yet — taking this lock forces us to wait for that in-flight send to actually
+            // complete, then flush anything left over, before signaling completion.
+            try
+            {
+                await _signalingSendLock.WaitAsync(stopCts.Token).ConfigureAwait(false);
+                try
+                {
+                    if (GetPendingCandidateCount() > 0)
+                    {
+                        await SendVoiceSignalingRequestLocked().ConfigureAwait(false);
+                    }
+                }
+                finally
+                {
+                    _signalingSendLock.Release();
+                }
+            }
+            catch (OperationCanceledException) { }
 
             // Only send 'completed' when we have a valid session (i.e., provisioning succeeded)
             if (_answerReceived && !SessionId.Equals(UUID.Zero)
