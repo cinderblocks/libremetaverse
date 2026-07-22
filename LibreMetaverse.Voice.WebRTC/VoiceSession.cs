@@ -283,6 +283,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     if (completed == delayTask)
                     {
                         lastEx = new TimeoutException($"POST to {cap} timed out.");
+                        _log.Warn($"POST to {cap} timed out after {timeout.Value.TotalSeconds:0}s (attempt {attempt}/{maxAttempts})", _client);
                     }
                     else
                     {
@@ -373,6 +374,13 @@ namespace LibreMetaverse.Voice.WebRTC
                     // shutdown doesn't fire a misleading OnReprovisionFailed event.
                     if (ex is OperationCanceledException && token.IsCancellationRequested) throw;
                     lastEx = ex;
+                    // Previously this loop logged nothing per-attempt — a failure here (network
+                    // error, DNS, connection refused, etc.) was only ever visible if the caller
+                    // happened to log the final thrown VoiceException's message, which several
+                    // callers (e.g. VoiceViewModel.Connect()'s catch block) don't. Log every
+                    // attempt's failure so the reason is always in the log even if every caller
+                    // up the chain swallows the exception into just a UI status string.
+                    _log.Warn($"POST to {cap} failed (attempt {attempt}/{maxAttempts}): {ex.GetType().Name}: {ex.Message}", _client);
                 }
 
                 // Slight backoff before retrying: 200ms * attempt, capped at 2000ms
@@ -384,6 +392,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 catch (OperationCanceledException) { break; }
             }
 
+            _log.Error($"Giving up POSTing to {cap} after {attempt} attempts: {lastEx?.Message}", _client);
             throw new VoiceException($"Failed to POST to capability {cap}: {lastEx?.Message}");
         }
 
