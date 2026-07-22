@@ -275,11 +275,21 @@ namespace LibreMetaverse.Voice.WebRTC
             while (attempt < maxAttempts)
             {
                 attempt++;
+                // Temporary bracketing diagnostics: a prior test showed zero log output at all
+                // (not even the per-attempt Warn added for this same investigation) for 5+
+                // minutes after "Attempting to POST for voice provision..." — which should be
+                // impossible given Task.Delay(timeout) below is supposed to fire within ~10s
+                // regardless of what postTask is doing. These two lines pin down whether we
+                // even reach the WhenAny race at all, or hang constructing/starting postTask
+                // itself (e.g. inside HttpCapsClient.PostAsync before its first await).
+                _log.Debug($"[DIAG] PostCapsWithRetries attempt {attempt}/{maxAttempts} starting for {cap}", _client);
                 try
                 {
                     var postTask = _client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload, token);
                     var delayTask = Task.Delay(timeout.Value, token);
+                    _log.Debug($"[DIAG] postTask+delayTask constructed, awaiting WhenAny (attempt {attempt})", _client);
                     var completed = await Task.WhenAny(postTask, delayTask).ConfigureAwait(false);
+                    _log.Debug($"[DIAG] WhenAny resolved (attempt {attempt}): {(completed == delayTask ? "delayTask (timeout)" : "postTask")}", _client);
                     if (completed == delayTask)
                     {
                         lastEx = new TimeoutException($"POST to {cap} timed out.");
