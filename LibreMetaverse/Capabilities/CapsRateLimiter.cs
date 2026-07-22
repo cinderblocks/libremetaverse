@@ -70,6 +70,15 @@ namespace LibreMetaverse
         /// Maps to AP_AGENT in the SL viewer (concurrency 2 default, max 32).
         /// </summary>
         DisplayName,
+        /// <summary>
+        /// WebRTC voice provisioning/signaling: ProvisionVoiceAccountRequest, VoiceSignalingRequest,
+        /// ParcelVoiceInfoRequest. Isolated from Default so an unrelated caps storm elsewhere
+        /// (e.g. inventory fetch retries) can't starve voice's own low-volume traffic out of its
+        /// token bucket — observed live as voice's single provisioning POST queuing indefinitely
+        /// behind a flood of hundreds of Default-category requests with no bound on how long it
+        /// would wait its turn.
+        /// </summary>
+        Voice,
     }
 
     /// <summary>
@@ -142,6 +151,11 @@ namespace LibreMetaverse
                 ["SetDisplayName"]                     = CapsCategory.DisplayName,
                 ["AvatarPickerSearch"]                 = CapsCategory.DisplayName,
                 ["AgentProfile"]                       = CapsCategory.DisplayName,
+
+                // WebRTC voice — see CapsCategory.Voice
+                ["ProvisionVoiceAccountRequest"]       = CapsCategory.Voice,
+                ["VoiceSignalingRequest"]              = CapsCategory.Voice,
+                ["ParcelVoiceInfoRequest"]             = CapsCategory.Voice,
             }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
         private readonly IReadOnlyDictionary<CapsCategory, RateLimiter> _limiters;
@@ -239,6 +253,15 @@ namespace LibreMetaverse
                     // 90 IDs per request, so individual request rate matters more than volume.
                     TokenLimit = 5, TokensPerPeriod = 2,
                     ReplenishmentPeriod = TimeSpan.FromSeconds(1), QueueLimit = 15,
+                },
+                [CapsCategory.Voice] = new CapsRateLimiterOptions
+                {
+                    // Low, bursty volume (one provisioning POST per connect/reprovision, a
+                    // handful of signaling POSTs during ICE trickle) — generous headroom so
+                    // voice's own traffic is never the thing waiting, and isolated in its own
+                    // bucket so it can't be starved by an unrelated storm in another category.
+                    TokenLimit = 10, TokensPerPeriod = 5,
+                    ReplenishmentPeriod = TimeSpan.FromSeconds(1), QueueLimit = 20,
                 },
             };
 
