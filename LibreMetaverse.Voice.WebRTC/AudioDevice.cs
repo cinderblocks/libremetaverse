@@ -332,7 +332,13 @@ namespace LibreMetaverse
         public async Task StopPlaybackAsync()
         {
             if (!IsAvailable || EndPoint == null) return;
-            try { await EndPoint.CloseAudioSink(); PlaybackActive = false; OnPlaybackActiveChanged?.Invoke(false); _log.Debug("Playback stopped"); } catch (Exception ex) { _log.Error($"Failed to stop playback: {ex.Message}"); }
+            // ConfigureAwait(false): Dispose() blocks on this via .Wait(2000) — without this, a
+            // caller with a captured SynchronizationContext (a UI thread) blocking on that Wait
+            // would prevent this continuation from ever resuming on that same thread, the classic
+            // sync-over-async deadlock. No callers currently call Dispose() from a UI thread, but
+            // this makes the blocking wait in Dispose() actually safe rather than just currently
+            // unexercised.
+            try { await EndPoint.CloseAudioSink().ConfigureAwait(false); PlaybackActive = false; OnPlaybackActiveChanged?.Invoke(false); _log.Debug("Playback stopped"); } catch (Exception ex) { _log.Error($"Failed to stop playback: {ex.Message}"); }
         }
 
         public void StartRecording()
@@ -459,6 +465,17 @@ namespace LibreMetaverse
         private CancellationTokenSource? _rawStreamCts;
         private bool _rawStreamActive = false;
 
+        // Incremented on every Start; each task's own finally/continuation only clears its
+        // matching *Active flag if it's still the current generation. StopFilePlayback/
+        // StopRawPcmStream cancel and return without waiting for the old task to actually exit
+        // (see their comments), so a Stop-then-immediate-Start can leave the old task still
+        // winding down when the new one starts. Without this guard, the old task's cleanup
+        // unconditionally clearing *Active would falsely mark the NEW run as inactive — defeating
+        // the re-entrancy guard on the next Start() and losing the only reference able to ever
+        // cancel/dispose that new run (with loop=true, an orphaned stream running forever).
+        private int _filePlaybackGeneration = 0;
+        private int _rawStreamGeneration = 0;
+
         public void StartFilePlayback(string path, bool loop = false)
         {
             if (!IsAvailable) throw new InvalidOperationException("Audio not available");
@@ -481,6 +498,7 @@ namespace LibreMetaverse
             _filePlaybackCts = new CancellationTokenSource();
             var token = _filePlaybackCts.Token;
             _filePlaybackActive = true;
+            int myGeneration = ++_filePlaybackGeneration;
 
             _filePlaybackTask = Task.Run(async () =>
             {
@@ -577,7 +595,11 @@ namespace LibreMetaverse
                     _log.Warn($"File playback failed: {ex.Message}");
                     _log.Debug($"File playback stack trace: {ex.StackTrace}");
                 }
-                finally { _filePlaybackActive = false; _log.Debug("StartFilePlayback: Playback task ended"); }
+                finally
+                {
+                    if (myGeneration == _filePlaybackGeneration) _filePlaybackActive = false;
+                    _log.Debug("StartFilePlayback: Playback task ended");
+                }
 
                 if (_filePlaybackWasRecording) { try { StartRecording(); } catch { } }
             }, token);
@@ -663,7 +685,12 @@ namespace LibreMetaverse
 
             _rawStreamCts = new CancellationTokenSource();
             _rawStreamActive = true;
-            _rawStreamTask = PlayRawPcmStreamAsync(pcmStream, channels, sampleRate, _rawStreamCts.Token).ContinueWith(t => { _rawStreamActive = false; if (t.IsFaulted) _log.Warn($"Raw PCM stream task faulted: {t.Exception?.GetBaseException().Message}"); }, TaskScheduler.Default);
+            int myGeneration = ++_rawStreamGeneration;
+            _rawStreamTask = PlayRawPcmStreamAsync(pcmStream, channels, sampleRate, _rawStreamCts.Token).ContinueWith(t =>
+            {
+                if (myGeneration == _rawStreamGeneration) _rawStreamActive = false;
+                if (t.IsFaulted) _log.Warn($"Raw PCM stream task faulted: {t.Exception?.GetBaseException().Message}");
+            }, TaskScheduler.Default);
         }
 
         public void StartRawPcmFileLoop(string path, int channels = 1, bool loop = true)
@@ -675,6 +702,7 @@ namespace LibreMetaverse
             _rawStreamCts = new CancellationTokenSource();
             var token = _rawStreamCts.Token;
             _rawStreamActive = true;
+            int myGeneration = ++_rawStreamGeneration;
 
             _rawStreamTask = Task.Run(async () =>
             {
@@ -708,7 +736,7 @@ namespace LibreMetaverse
                 }
                 catch (OperationCanceledException) { }
                 catch (Exception ex) { _log.Warn($"Raw PCM file loop failed: {ex.Message}"); }
-                finally { _rawStreamActive = false; }
+                finally { if (myGeneration == _rawStreamGeneration) _rawStreamActive = false; }
             }, token);
         }
 
@@ -1091,6 +1119,15 @@ namespace LibreMetaverse
         private readonly ConcurrentDictionary<uint, float> _ssrcGain = new ConcurrentDictionary<uint, float>(); // 0.0-2.0
         private readonly ConcurrentDictionary<uint, bool> _ssrcMuted = new ConcurrentDictionary<uint, bool>();
 
+        // One Opus decoder context per remote peer (keyed by SSRC). An Opus decoder carries
+        // per-stream continuity/PLC state (see OpusAudioEncoder.UseInbandFEC) — decoding two
+        // different peers' interleaved RTP through the single shared _audioEncoder instance
+        // (which exists for encoding this client's own outgoing audio) corrupted that state for
+        // every peer whenever more than one person spoke at once, and had no locking against
+        // concurrent decode calls for different peers besides.
+        private readonly ConcurrentDictionary<uint, OpusAudioEncoder.OpusDecoderContext> _ssrcDecoders =
+            new ConcurrentDictionary<uint, OpusAudioEncoder.OpusDecoderContext>();
+
         // Public API to set mute/gain for a given SSRC (from VoiceSession mapping)
         public void SetSsrcMute(uint ssrc, bool muted)
         {
@@ -1122,8 +1159,9 @@ namespace LibreMetaverse
             {
                 if (_ssrcMuted.TryGetValue(ssrc, out var muted) && muted) return;
 
-                // Decode opus to PCM
-                var pcmSample = _audioEncoder.DecodeAudio(payload, OpusAudioEncoder.MEDIA_FORMAT_OPUS);
+                // Decode opus to PCM using this peer's own decoder context — see _ssrcDecoders.
+                var decoderCtx = _ssrcDecoders.GetOrAdd(ssrc, _ => _audioEncoder.CreateDecoderContext());
+                var pcmSample = decoderCtx.Decode(payload, _audioEncoder.GetFrameSize());
                 if (pcmSample == null || pcmSample.Length == 0) return;
 
                 // Apply per-SSRC gain if present
@@ -1168,7 +1206,7 @@ namespace LibreMetaverse
         // New helpers for external callers to clear SSRC mappings
         public void ClearSsrc(uint ssrc)
         {
-            try { _ssrcGain.TryRemove(ssrc, out _); _ssrcMuted.TryRemove(ssrc, out _); } catch { }
+            try { _ssrcGain.TryRemove(ssrc, out _); _ssrcMuted.TryRemove(ssrc, out _); _ssrcDecoders.TryRemove(ssrc, out _); } catch { }
         }
     }
 }

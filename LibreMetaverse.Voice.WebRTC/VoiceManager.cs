@@ -484,6 +484,13 @@ namespace LibreMetaverse.Voice.WebRTC
 
             try
             {
+                // Mirrors HandleRegionChange/RetryRegionReprovisionAsync's flag so a SimChanged
+                // arriving while this connect is in flight gets recorded as pending (via
+                // _pendingRegionLock) instead of being silently dropped by the lock-busy fast
+                // path in HandleRegionChange — this call was missed when ConnectPrimaryRegionAsync
+                // was folded onto the shared lock, reopening exactly the bug that change fixed.
+                _isTransitioning = true;
+
                 // Close any existing primary session before creating a new one.
                 // Without this the old Janus session stays live on the server and
                 // the new ICE exchange fails immediately.
@@ -539,7 +546,9 @@ namespace LibreMetaverse.Voice.WebRTC
             }
             finally
             {
+                _isTransitioning = false;
                 _regionTransitionLock.Release();
+                DispatchPendingRegionChangeIfAny();
             }
         }
 

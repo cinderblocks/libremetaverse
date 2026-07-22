@@ -985,14 +985,22 @@ namespace LibreMetaverse.Voice.WebRTC
         // Send any pending ICE candidates to the voice signaling capability
         private async Task SendVoiceSignalingRequest()
         {
-            await _signalingSendLock.WaitAsync().ConfigureAwait(false);
+            // Dispose() can run concurrently with a caller here (this is invoked both from the
+            // 25ms trickle-loop poll and fire-and-forget from onicegatheringstatechange/dc.onopen,
+            // neither of which is joined by Dispose's bounded wait on _iceTrickleTask) and disposes
+            // _signalingSendLock — WaitAsync()/Release() on an already-disposed SemaphoreSlim throw
+            // ObjectDisposedException, which would otherwise be an unobserved exception on whatever
+            // fire-and-forget task called this. Treat it the same as an ordinary cancelled send.
+            try { await _signalingSendLock.WaitAsync().ConfigureAwait(false); }
+            catch (ObjectDisposedException) { return; }
+
             try
             {
                 await SendVoiceSignalingRequestLocked().ConfigureAwait(false);
             }
             finally
             {
-                _signalingSendLock.Release();
+                try { _signalingSendLock.Release(); } catch (ObjectDisposedException) { }
             }
         }
 
@@ -1269,10 +1277,14 @@ namespace LibreMetaverse.Voice.WebRTC
                 }
                 finally
                 {
-                    _signalingSendLock.Release();
+                    try { _signalingSendLock.Release(); } catch (ObjectDisposedException) { }
                 }
             }
             catch (OperationCanceledException) { }
+            // Dispose() can run concurrently with IceTrickleStop (fire-and-forget from
+            // onicegatheringstatechange/dc.onopen, not joined by Dispose's bounded wait) and
+            // dispose _signalingSendLock mid-wait — see SendVoiceSignalingRequest for the same race.
+            catch (ObjectDisposedException) { }
 
             // Only send 'completed' when we have a valid session (i.e., provisioning succeeded)
             if (_answerReceived && !SessionId.Equals(UUID.Zero)

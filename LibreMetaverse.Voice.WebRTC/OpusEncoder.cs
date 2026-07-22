@@ -106,6 +106,55 @@ namespace LibreMetaverse.Voice.WebRTC
             return Array.Empty<short>();
         }
 
+        /// <summary>
+        /// An Opus decoder is stateful per RTP stream (packet-loss-concealment/continuity history,
+        /// used here via <c>UseInbandFEC</c>) — decoding two different remote peers' interleaved
+        /// packets through one shared decoder corrupts that state for both streams (audible
+        /// artifacts, not just theoretical), independent of any thread-safety concern. Callers
+        /// that decode audio from more than one concurrent source (e.g. <c>AudioDevice</c> playing
+        /// back every connected peer through a single <see cref="OpusAudioEncoder"/> instance) must
+        /// keep one <see cref="OpusDecoderContext"/> per remote source (SSRC) instead of calling
+        /// <see cref="DecodeAudio"/> directly, which uses the single shared decoder above intended
+        /// for a lone stream.
+        /// </summary>
+        public sealed class OpusDecoderContext
+        {
+            private IOpusDecoder? _decoder;
+            private short[]? _buffer;
+            private readonly object _lock = new object();
+
+            public short[] Decode(byte[] encodedSample, int frameSize)
+            {
+                lock (_lock)
+                {
+                    if (_decoder == null)
+                    {
+                        _decoder = OpusCodecFactory.CreateDecoder(SAMPLE_RATE, CHANNELS);
+                        _buffer = new short[MAX_FRAME_SIZE * CHANNELS];
+                    }
+
+                    try
+                    {
+                        var numSamplesDecoded = _decoder.Decode(encodedSample.AsSpan(), _buffer!.AsSpan(), frameSize);
+                        if (numSamplesDecoded >= 1)
+                        {
+                            var result = new short[numSamplesDecoded];
+                            Array.Copy(_buffer!, 0, result, 0, numSamplesDecoded);
+                            return result;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        log.LogWarning(ex, "Opus decode failed (per-stream context)");
+                    }
+                    return Array.Empty<short>();
+                }
+            }
+        }
+
+        /// <summary>Creates an independent per-stream decoder context — see <see cref="OpusDecoderContext"/>.</summary>
+        public OpusDecoderContext CreateDecoderContext() => new OpusDecoderContext();
+
         public byte[] EncodeAudio(short[] in_pcm, AudioFormat format)
         {
             if (format.FormatName != "opus") { return _audioEncoder.EncodeAudio(in_pcm, format); }
