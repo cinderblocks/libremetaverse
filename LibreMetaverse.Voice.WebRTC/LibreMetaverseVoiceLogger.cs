@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Sjofn LLC
+ * Copyright (c) 2025-2026, Sjofn LLC
  * All rights reserved.
  *
  * - Redistribution and use in source and binary forms, with or without
