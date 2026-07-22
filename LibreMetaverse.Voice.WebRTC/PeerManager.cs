@@ -40,6 +40,12 @@ namespace LibreMetaverse.Voice.WebRTC
         private readonly ConcurrentDictionary<UUID, OSDMap> Peers = new ConcurrentDictionary<UUID, OSDMap>();
         private readonly ConcurrentDictionary<uint, UUID> SsrcToPeer = new ConcurrentDictionary<uint, UUID>();
         private readonly ConcurrentDictionary<UUID, uint> PeerToSsrc = new ConcurrentDictionary<UUID, uint>();
+        // Last time each peer had any inbound update (join/position/audio/list membership).
+        // Peers are otherwise only ever removed via an explicit "l" (leave) message or by being
+        // absent from a subsequent full "av"/"a" list — a peer that drops without the server
+        // ever sending either would sit here (and keep its SSRC mapping) indefinitely. See
+        // ReapStalePeers, which VoiceSession calls periodically as a client-side safety net.
+        private readonly ConcurrentDictionary<UUID, DateTime> _lastSeen = new ConcurrentDictionary<UUID, DateTime>();
         private readonly AudioDevice _audioDevice;
         private readonly GridClient _client;
         private readonly IVoiceLogger _log;
@@ -67,6 +73,27 @@ namespace LibreMetaverse.Voice.WebRTC
 
         public bool TryGetSsrc(UUID peerId, out uint ssrc) => PeerToSsrc.TryGetValue(peerId, out ssrc);
 
+        /// <summary>
+        /// Removes any peer that hasn't had an inbound update (join/position/audio/list
+        /// membership) for at least <paramref name="maxAge"/>. Client-side safety net for the
+        /// case where the server drops a peer without ever sending an explicit leave message or
+        /// omitting them from a subsequent full roster — without this such a peer (and its SSRC
+        /// mapping) would never be cleaned up.
+        /// </summary>
+        public void ReapStalePeers(TimeSpan maxAge)
+        {
+            var cutoff = DateTime.UtcNow - maxAge;
+            List<UUID> stale;
+            try { stale = _lastSeen.Where(kv => kv.Value < cutoff).Select(kv => kv.Key).ToList(); }
+            catch { return; }
+
+            foreach (var peerId in stale)
+            {
+                try { _log.Debug($"Reaping stale peer {peerId} (no update for over {maxAge.TotalSeconds:0}s)", _client); } catch { }
+                RemovePeer(peerId);
+            }
+        }
+
         public void ClearAllPeers()
         {
             try
@@ -91,6 +118,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
                 PeerToSsrc.Clear();
                 Peers.Clear();
+                _lastSeen.Clear();
             }
             catch { }
         }
@@ -100,6 +128,7 @@ namespace LibreMetaverse.Voice.WebRTC
             try
             {
                 Peers.TryRemove(peerId, out var _);
+                _lastSeen.TryRemove(peerId, out _);
                 try
                 {
                     if (PeerToSsrc.TryRemove(peerId, out var ssrc))
@@ -202,6 +231,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     var peerMap = val;
                     var state = new VoiceSession.PeerAudioState();
                     Peers.AddOrUpdate(peerId, new OSDMap(), (k, v) => v);
+                    _lastSeen[peerId] = DateTime.UtcNow;
 
                     if (peerMap.TryGetProperty("p", out var pProp)) state.Power = GetInt(pProp);
                     if (peerMap.TryGetProperty("V", out var vProp)) state.VoiceActive = GetBool(vProp);
@@ -302,6 +332,7 @@ namespace LibreMetaverse.Voice.WebRTC
                 var idStr = joinEl.TryGetProperty("id", out var joinIdEl) ? GetString(joinIdEl) : null;
                 if (!string.IsNullOrEmpty(idStr)) UUID.TryParse(idStr!, out peerId);
                 Peers.TryAdd(peerId, new OSDMap());
+                _lastSeen[peerId] = DateTime.UtcNow;
                 try { PeerJoined?.Invoke(peerId); } catch { }
             }
 
@@ -399,6 +430,7 @@ namespace LibreMetaverse.Voice.WebRTC
 
                 try { PeerPositionUpdated?.Invoke(peerId, osdMap); } catch { }
                 Peers.AddOrUpdate(peerId, osdMap, (k, v) => osdMap);
+                _lastSeen[peerId] = DateTime.UtcNow;
             }
 
             // Mute map
@@ -463,7 +495,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     if (!string.IsNullOrEmpty(s) && UUID.TryParse(s!, out var id)) list.Add(id);
                 }
 
-                foreach (var id in list) Peers.AddOrUpdate(id, new OSDMap(), (k, v) => v);
+                foreach (var id in list) { Peers.AddOrUpdate(id, new OSDMap(), (k, v) => v); _lastSeen[id] = DateTime.UtcNow; }
                 var toRemove = Peers.Keys.Except(list).ToList();
                 foreach (var r in toRemove) RemovePeer(r);
                 try { PeerListUpdated?.Invoke(list); } catch { }
@@ -485,7 +517,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     list.Add(id);
                 }
 
-                foreach (var id in list) Peers.AddOrUpdate(id, new OSDMap(), (k, v) => v);
+                foreach (var id in list) { Peers.AddOrUpdate(id, new OSDMap(), (k, v) => v); _lastSeen[id] = DateTime.UtcNow; }
                 var toRemoveA = Peers.Keys.Except(list).ToList();
                 foreach (var r in toRemoveA) RemovePeer(r);
                 try { PeerListUpdated?.Invoke(list); } catch { }
@@ -505,7 +537,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     {
                         try { var s = item.AsString(); if (UUID.TryParse(s, out var id)) list.Add(id); } catch { }
                     }
-                    foreach (var id in list) Peers.AddOrUpdate(id, new OSDMap(), (k, v) => v);
+                    foreach (var id in list) { Peers.AddOrUpdate(id, new OSDMap(), (k, v) => v); _lastSeen[id] = DateTime.UtcNow; }
                     var toRemove = Peers.Keys.Except(list).ToList();
                     foreach (var r in toRemove) RemovePeer(r);
                     try { PeerListUpdated?.Invoke(list); } catch { }
@@ -525,12 +557,12 @@ namespace LibreMetaverse.Voice.WebRTC
                             list.Add(id);
                         }
                     }
-                    foreach (var id in list) Peers.AddOrUpdate(id, new OSDMap(), (k, v) => v);
+                    foreach (var id in list) { Peers.AddOrUpdate(id, new OSDMap(), (k, v) => v); _lastSeen[id] = DateTime.UtcNow; }
                     var toRemove = Peers.Keys.Except(list).ToList(); foreach (var r in toRemove) RemovePeer(r);
                     try { PeerListUpdated?.Invoke(list); } catch { }
                     return;
                 }
-                foreach (var key in map.Keys) { if (UUID.TryParse(key, out var peerId)) Peers.AddOrUpdate(peerId, new OSDMap(), (k, v) => v); }
+                foreach (var key in map.Keys) { if (UUID.TryParse(key, out var peerId)) { Peers.AddOrUpdate(peerId, new OSDMap(), (k, v) => v); _lastSeen[peerId] = DateTime.UtcNow; } }
             }
             catch { }
 

@@ -207,6 +207,11 @@ namespace LibreMetaverse.Voice.WebRTC
         // SL C++ sends position on every voice processing frame (~100 ms) regardless of change.
         private const long POSITION_KEEPALIVE_MS = 3000;
 
+        // Stale-peer reaping (PeerManager.ReapStalePeers safety net) — see StartPositionLoop.
+        private long _lastStaleReapMs = 0;
+        private const long STALE_PEER_REAP_INTERVAL_MS = 15_000;
+        private static readonly TimeSpan STALE_PEER_MAX_AGE = TimeSpan.FromSeconds(60);
+
 
         internal VoiceSession(AudioDevice audioDeviceDevice, ESessionType type, GridClient client, IVoiceLogger? logger = null)
         {
@@ -815,6 +820,17 @@ namespace LibreMetaverse.Voice.WebRTC
                 {
                     try
                     {
+                        // Client-side safety net: a peer that drops without the server ever
+                        // sending an explicit leave (or a subsequent full roster that omits
+                        // them) would otherwise sit in PeerManager's known-peers/SSRC maps
+                        // indefinitely. Gated to run every ~15s rather than every 100ms tick.
+                        var nowMsReap = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                        if (nowMsReap - _lastStaleReapMs >= STALE_PEER_REAP_INTERVAL_MS)
+                        {
+                            _lastStaleReapMs = nowMsReap;
+                            try { _peerManager.ReapStalePeers(STALE_PEER_MAX_AGE); } catch { }
+                        }
+
                         var dc = DataChannel;
                         if (dc == null || dc.readyState != RTCDataChannelState.open) { await Task.Delay(100, token).ConfigureAwait(false); continue; }
 
@@ -2122,8 +2138,9 @@ namespace LibreMetaverse.Voice.WebRTC
                 try { _positionLoopCts?.Dispose(); } catch { }
                 _positionLoopCts = null;
 
-                // Release semaphore
+                // Release semaphores
                 try { _reprovisionLock.Dispose(); } catch { }
+                try { _signalingSendLock.Dispose(); } catch { }
 
                 // Null out delegates to help GC
                 try

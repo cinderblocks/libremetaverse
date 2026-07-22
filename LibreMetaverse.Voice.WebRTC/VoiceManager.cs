@@ -105,6 +105,18 @@ namespace LibreMetaverse.Voice.WebRTC
         // a session that's still legitimately retrying on its own.
         private const int NEIGHBOR_STALL_TIMEOUT_MS = 90_000;
 
+        // Tracks consecutive creation failures per neighbour region handle and the earliest time
+        // to retry. Without this, a neighbour region that persistently fails to provision (e.g.
+        // consistently missing a capability, or a bad network path specific to that region) got
+        // hammered on every single 2s reconcile tick, forever — unlike the primary session path,
+        // which backs off exponentially.
+        private readonly ConcurrentDictionary<ulong, int> _neighborFailureCount =
+            new ConcurrentDictionary<ulong, int>();
+        private readonly ConcurrentDictionary<ulong, DateTime> _neighborNextAttempt =
+            new ConcurrentDictionary<ulong, DateTime>();
+        private const int NEIGHBOR_RETRY_BASE_MS = 2000;
+        private const int NEIGHBOR_RETRY_MAX_MS = 60_000;
+
         // True while in estate-voice mode (as opposed to parcel-private voice).
         private bool _estateVoiceActive = false;
 
@@ -746,6 +758,8 @@ namespace LibreMetaverse.Voice.WebRTC
             }
             _neighborSessions.Clear();
             _neighborDisconnectedSince.Clear();
+            _neighborFailureCount.Clear();
+            _neighborNextAttempt.Clear();
         }
 
         /// <summary>
@@ -815,6 +829,18 @@ namespace LibreMetaverse.Voice.WebRTC
                 _neighborDisconnectedSince.TryRemove(handle, out _);
             }
 
+            // Clean up backoff state for regions that fell out of range — these entries can
+            // exist even without a live session (they track *failed* creation attempts), so they
+            // aren't covered by the _neighborSessions-keyed removal above.
+            foreach (var handle in _neighborNextAttempt.Keys.ToList())
+            {
+                if (!desired.Contains(handle))
+                {
+                    _neighborNextAttempt.TryRemove(handle, out _);
+                    _neighborFailureCount.TryRemove(handle, out _);
+                }
+            }
+
             // Replace neighbour sessions that are still in range but have been continuously
             // disconnected long enough that their own reprovision backoff must have exhausted.
             // Without this, a neighbour session that permanently dies (as opposed to a transient
@@ -851,6 +877,7 @@ namespace LibreMetaverse.Voice.WebRTC
             foreach (var handle in desired)
             {
                 if (_neighborSessions.ContainsKey(handle)) continue;
+                if (_neighborNextAttempt.TryGetValue(handle, out var nextAttempt) && DateTime.UtcNow < nextAttempt) continue;
                 ct.ThrowIfCancellationRequested();
 
                 var sim = allSims.Find(s => s.Handle == handle);
@@ -867,6 +894,10 @@ namespace LibreMetaverse.Voice.WebRTC
                     _neighborSessions[handle] = nbSession;
                     await nbSession.StartAsync().ConfigureAwait(false);
                     await nbSession.RequestProvisionAsync().ConfigureAwait(false);
+
+                    // Succeeded — clear any backoff state from prior failures.
+                    _neighborFailureCount.TryRemove(handle, out _);
+                    _neighborNextAttempt.TryRemove(handle, out _);
 
                     // The loop was stopped (region change / disconnect) while this session was
                     // mid-startup — StopNeighborLoop()'s CTS cancellation doesn't abort an
@@ -887,6 +918,12 @@ namespace LibreMetaverse.Voice.WebRTC
                 {
                     _log.Warn($"Failed to start neighbour voice session for {sim.Name}: {ex.Message}", Client);
                     _neighborSessions.TryRemove(handle, out _);
+
+                    // Back off exponentially instead of retrying this region on every 2s tick
+                    // forever — mirrors the primary session's reprovision backoff.
+                    var failures = _neighborFailureCount.AddOrUpdate(handle, 1, (_, c) => c + 1);
+                    var backoffMs = Math.Min(NEIGHBOR_RETRY_BASE_MS * (1 << Math.Min(failures - 1, 5)), NEIGHBOR_RETRY_MAX_MS);
+                    _neighborNextAttempt[handle] = DateTime.UtcNow.AddMilliseconds(backoffMs);
                 }
             }
         }
@@ -918,17 +955,22 @@ namespace LibreMetaverse.Voice.WebRTC
 
         public bool SendDataChannelMessage(string message)
         {
-            return _primarySession?.Session?.TrySendDataChannelString(message) ?? false;
+            // During the reprovision window (old session closed/disposed but _primarySession
+            // not yet reassigned — see ReprovisionForNewRegion), a caller landing here could hit
+            // an unhandled exception on a disposed session. GetKnownPeers already guarded this;
+            // these three didn't.
+            try { return _primarySession?.Session?.TrySendDataChannelString(message) ?? false; }
+            catch { return false; }
         }
 
         public void SetPeerMute(UUID peerId, bool mute)
         {
-            _primarySession?.Session?.SetPeerMute(peerId, mute);
+            try { _primarySession?.Session?.SetPeerMute(peerId, mute); } catch { }
         }
 
         public void SetPeerGain(UUID peerId, int gain)
         {
-            _primarySession?.Session?.SetPeerGain(peerId, gain);
+            try { _primarySession?.Session?.SetPeerGain(peerId, gain); } catch { }
         }
 
         public List<UUID> GetKnownPeers()
