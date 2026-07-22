@@ -164,7 +164,13 @@ namespace LibreMetaverse
         {
             try
             {
-                if (PlaybackActive) { _ = StopPlaybackAsync(); }
+                // Unlike UI-thread entry points (SetPlaybackDevice etc.), Dispose() is expected
+                // to be a synchronous, blocking cleanup boundary — but it must actually wait here.
+                // The previous fire-and-forget `_ = StopPlaybackAsync()` let control fall through
+                // to SDL3Helper.QuitSDL() immediately, tearing down SDL globally while the
+                // endpoint's CloseAudioSink() continuation could still be running against it — a
+                // net481-specific shutdown race/crash risk.
+                if (PlaybackActive) { try { StopPlaybackAsync().Wait(2000); } catch { } }
                 CloseRecordingSource();
 #if NETFRAMEWORK
                 if (IsAvailable) SDL3Helper.QuitSDL();
@@ -293,9 +299,11 @@ namespace LibreMetaverse
                     _log.Warn($"Failed to reinitialize endpoint: {ex.Message}");
                     try
                     {
-                        EndPoint = new SDL3AudioEndPoint(PlaybackDevice.name, _audioEncoder);
+                        // Configure locally before publishing — see SetPlaybackDevice for why.
+                        var newEndPoint = new SDL3AudioEndPoint(PlaybackDevice.name, _audioEncoder);
                         var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
-                        EndPoint!.SetAudioSinkFormat(fmt);
+                        newEndPoint.SetAudioSinkFormat(fmt);
+                        EndPoint = newEndPoint;
                         TrySetEndpointVolume(_speakerLevel);
                         _log.Debug("Endpoint recreated from scratch");
                     }
@@ -457,6 +465,13 @@ namespace LibreMetaverse
             if (string.IsNullOrEmpty(path)) throw new ArgumentException("path");
             if (!File.Exists(path)) throw new FileNotFoundException(path);
 
+            // Unlike StartRawPcmStream/StartRawPcmFileLoop (which both stop any existing run
+            // first), this had no re-entrancy guard: calling it twice orphaned the first
+            // task/CancellationTokenSource/open FileStream — never cancellable or disposed —
+            // which (with loop=true) ran forever, feeding a second concurrent stream into
+            // OnAudioSourceEncodedSample alongside the new one.
+            if (_filePlaybackActive) StopFilePlayback();
+
             _log.Debug($"StartFilePlayback: Starting playback of {path} (loop={loop})");
 
             _filePlaybackWasRecording = RecordingActive;
@@ -571,7 +586,28 @@ namespace LibreMetaverse
         public void StopFilePlayback()
         {
             if (!_filePlaybackActive || _filePlaybackCts == null) return;
-            try { _filePlaybackCts.Cancel(); _filePlaybackTask?.Wait(500); } catch { } finally { try { _filePlaybackCts?.Dispose(); } catch { } _filePlaybackCts = null; _filePlaybackActive = false; }
+            var cts = _filePlaybackCts;
+            var task = _filePlaybackTask;
+            _filePlaybackCts = null;
+            _filePlaybackActive = false;
+            try { cts.Cancel(); } catch { }
+
+            // Dispose once the task actually observes cancellation and exits, without blocking
+            // the calling thread. StopFilePlayback/StopWavAsMic can be invoked synchronously
+            // from a UI event handler — blocking here via Task.Wait() is the same sync-over-async
+            // freeze/deadlock risk already fixed for SetPlaybackDevice.
+            if (task != null)
+            {
+                task.ContinueWith(t =>
+                {
+                    if (t.IsFaulted) _log.Debug($"File playback task faulted during stop: {t.Exception?.GetBaseException().Message}");
+                    try { cts.Dispose(); } catch { }
+                }, TaskScheduler.Default);
+            }
+            else
+            {
+                try { cts.Dispose(); } catch { }
+            }
         }
 
         // Convenience helpers
@@ -679,7 +715,26 @@ namespace LibreMetaverse
         public void StopRawPcmStream()
         {
             if (!_rawStreamActive || _rawStreamCts == null) return;
-            try { _rawStreamCts.Cancel(); _rawStreamTask?.Wait(500); } catch { } finally { _rawStreamCts.Dispose(); _rawStreamCts = null; _rawStreamActive = false; }
+            var cts = _rawStreamCts;
+            var task = _rawStreamTask;
+            _rawStreamCts = null;
+            _rawStreamActive = false;
+            try { cts.Cancel(); } catch { }
+
+            // See StopFilePlayback: avoid blocking the calling (potentially UI) thread on
+            // Task.Wait(); dispose once the task actually exits instead.
+            if (task != null)
+            {
+                task.ContinueWith(t =>
+                {
+                    if (t.IsFaulted) _log.Debug($"Raw PCM stream task faulted during stop: {t.Exception?.GetBaseException().Message}");
+                    try { cts.Dispose(); } catch { }
+                }, TaskScheduler.Default);
+            }
+            else
+            {
+                try { cts.Dispose(); } catch { }
+            }
         }
 
         public void FeedPcmSamples(short[] pcmInterleaved, int channels = 1, int sampleRate = 48000)
@@ -876,14 +931,22 @@ namespace LibreMetaverse
                     }
                     catch { }
                 }
+                // Build and fully configure the new endpoint locally before publishing it to the
+                // EndPoint field. A concurrent PlayRtpPacket reads EndPoint without any lock, so
+                // assigning the raw (unformatted) instance first and calling SetAudioSinkFormat
+                // as a second, separate step exposed a window where that reader could grab a
+                // freshly constructed but not-yet-formatted endpoint and throw. Field assignment
+                // of a reference is atomic, so publishing only once fully configured removes the
+                // window entirely instead of needing a lock on the hot RTP-receive path.
 #if NET8_0_OR_GREATER
-                EndPoint = new SoundFlowAudioEndPoint(deviceName ?? string.Empty, _audioEncoder);
+                var newEndPoint = new SoundFlowAudioEndPoint(deviceName ?? string.Empty, _audioEncoder);
 #elif NETFRAMEWORK
-                EndPoint = new SDL3AudioEndPoint(deviceName ?? string.Empty, _audioEncoder);
+                var newEndPoint = new SDL3AudioEndPoint(deviceName ?? string.Empty, _audioEncoder);
 #endif
 #if NET8_0_OR_GREATER || NETFRAMEWORK
                 var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
-                EndPoint!.SetAudioSinkFormat(fmt);
+                newEndPoint.SetAudioSinkFormat(fmt);
+                EndPoint = newEndPoint;
                 TrySetEndpointVolume(_speakerLevel);
 #endif
 
@@ -964,9 +1027,11 @@ namespace LibreMetaverse
             if (EndPoint != null) return true;
             try
             {
-                EndPoint = new SoundFlowAudioEndPoint(PlaybackDevice.name, _audioEncoder);
+                // Configure locally before publishing — see SetPlaybackDevice for why.
+                var newEndPoint = new SoundFlowAudioEndPoint(PlaybackDevice.name, _audioEncoder);
                 var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
-                EndPoint.SetAudioSinkFormat(fmt);
+                newEndPoint.SetAudioSinkFormat(fmt);
+                EndPoint = newEndPoint;
                 TrySetEndpointVolume(_speakerLevel);
                 _log.Debug("SoundFlowAudioEndPoint created");
                 return true;
@@ -1002,9 +1067,11 @@ namespace LibreMetaverse
             }
             try
             {
-                EndPoint = new SDL3AudioEndPoint(PlaybackDevice.name, _audioEncoder);
+                // Configure locally before publishing — see SetPlaybackDevice for why.
+                var newEndPoint = new SDL3AudioEndPoint(PlaybackDevice.name, _audioEncoder);
                 var fmt = new AudioFormat(AudioCodecsEnum.L16, 96, 48000, 2);
-                EndPoint.SetAudioSinkFormat(fmt);
+                newEndPoint.SetAudioSinkFormat(fmt);
+                EndPoint = newEndPoint;
                 TrySetEndpointVolume(_speakerLevel);
                 _log.Debug("SDL3AudioEndPoint created");
                 return true;

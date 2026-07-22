@@ -231,18 +231,26 @@ namespace LibreMetaverse.Voice.WebRTC
             _peerManager.GainMapReceived += g => { try { OnGainMapReceived?.Invoke(g); } catch { } };
             _dataChannelProcessor = new DataChannelProcessor(_peerManager, _client, _log, TrySendDataChannelString);
         }
+        // Kept alive for the session's lifetime (disposed in Dispose()) instead of a `using`
+        // scoped to StartAsync. Event handlers wired inside CreatePeerConnectionAsync
+        // (dc.onopen/onmessage, inbound channel.onmessage) capture this token but only run
+        // later — after the full ICE/DTLS handshake completes, well after StartAsync returns.
+        // Disposing the linked CTS when StartAsync returned meant every first dc.onopen/onmessage
+        // threw ObjectDisposedException trying to register a continuation
+        // (Task.Delay/Task.Run with a token) against an already-disposed CancellationTokenSource —
+        // on essentially every initial connection, right after the join message was sent.
+        private CancellationTokenSource? _startLinkedCts;
+
         public async Task StartAsync(CancellationToken ct = default)
         {
-            using (var linked = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, ct))
-            {
-                var token = linked.Token;
+            _startLinkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, ct);
+            var token = _startLinkedCts.Token;
 
-                _peerConnection = await CreatePeerConnectionAsync(token).ConfigureAwait(false);
-                _iceTrickleTask = IceTrickleStart(token);
+            _peerConnection = await CreatePeerConnectionAsync(token).ConfigureAwait(false);
+            _iceTrickleTask = IceTrickleStart(token);
 
-                // Do not start recording here. Recording should follow connection state to avoid
-                // capturing audio before the peer connection is established.
-            }
+            // Do not start recording here. Recording should follow connection state to avoid
+            // capturing audio before the peer connection is established.
         }
 
         // Helper that posts to caps and returns deserialized OSD, with retries and timeout handling
@@ -274,6 +282,22 @@ namespace LibreMetaverse.Voice.WebRTC
                     else
                     {
                         var (response, data) = await postTask.ConfigureAwait(false);
+
+                        // Check status BEFORE attempting to parse: a well-formed LLSD/OSD error
+                        // body on a non-2xx response (503 during a mixer hiccup, 403 with a valid
+                        // error payload) previously parsed cleanly and was returned as success,
+                        // so callers failed downstream with a misleading error (e.g. "Region does
+                        // not support WebRtc" for what was really an HTTP 403/503) instead of a
+                        // correctly classified retry/terminal error.
+                        int successPathStatusCode = (int)response.StatusCode;
+                        if (successPathStatusCode >= 400)
+                        {
+                            string errPreview = string.Empty;
+                            try { errPreview = data != null ? Encoding.UTF8.GetString(data) : string.Empty; } catch { }
+                            if (errPreview.Length > 1000) errPreview = errPreview.Substring(0, 1000) + "...";
+                            throw new VoiceException($"HTTP {successPathStatusCode} when POSTing to {cap}: {response.ReasonPhrase ?? ""}. Response preview: {errPreview}");
+                        }
+
                         try
                         {
                             // Attempt to deserialize LLSD/OSD. If parsing fails, capture raw response for diagnostics.
@@ -337,6 +361,12 @@ namespace LibreMetaverse.Voice.WebRTC
                 {
                     // If we threw a VoiceException above (non-retryable), rethrow immediately
                     if (ex is VoiceException) throw;
+                    // A genuine cancellation (session shutting down via CloseSessionAsync/Dispose)
+                    // must propagate as OperationCanceledException, not get converted into a
+                    // generic VoiceException below — callers (e.g. IceTrickleStart's poll loop)
+                    // distinguish "cancelled" from "really failed" specifically so a clean
+                    // shutdown doesn't fire a misleading OnReprovisionFailed event.
+                    if (ex is OperationCanceledException && token.IsCancellationRequested) throw;
                     lastEx = ex;
                 }
 
@@ -936,47 +966,6 @@ namespace LibreMetaverse.Voice.WebRTC
             return Interlocked.CompareExchange(ref _pendingCandidateCount, 0, 0);
         }
 
-        private async Task FlushPendingIceCandidates()
-        {
-            if (!_answerReceived || GetPendingCandidateCount() == 0) { return; }
-
-            var cap = EffectiveSim?.Caps?.CapabilityURI(VOICE_SIGNALING_CAP);
-            if (cap == null) { return; }
-
-            var dequeued = DequeueAllCandidates();
-            if (dequeued.Count == 0) return;
-
-            var candidatesArray = new OSDArray();
-            foreach (var candidate in dequeued)
-            {
-                var map = new OSDMap
-                {
-                    ["candidate"] = candidate.candidate,
-                    ["sdpMid"] = candidate.sdpMid,
-                    ["sdpMLineIndex"] = candidate.sdpMLineIndex
-                };
-                candidatesArray.Add(map);
-            }
-
-            var payload = new OSDMap
-            {
-                ["voice_server_type"] = "webrtc",
-                ["viewer_session"] = SessionId,
-                ["candidates"] = candidatesArray
-            };
-
-            try
-            {
-                if (cap != null)
-                    await PostCapsWithRetries(cap, payload).ConfigureAwait(false);
-                _log.Debug($"Sent {candidatesArray.Count} ICE candidates", _client);
-            }
-            catch (Exception ex)
-            {
-                _log.Warn($"Failed to send ICE candidates: {ex.Message}", _client);
-            }
-        }
-
         // Send any pending ICE candidates to the voice signaling capability
         private async Task SendVoiceSignalingRequest()
         {
@@ -1351,7 +1340,13 @@ namespace LibreMetaverse.Voice.WebRTC
                         delayMs = delayMs == 0 ? 1000 : Math.Min(delayMs * 2, 60000);
                     }
 
-                    if (!cancelled)
+                    // Also treat an already-cancelled token as "cancelled", not "exhausted": if
+                    // reprovisionToken was cancelled before the loop's first iteration (e.g. a
+                    // clean CloseSessionAsync()/Dispose() raced this scheduled task before it got
+                    // to run), the while condition is false immediately, the loop body never
+                    // runs, and `cancelled` would otherwise stay false — firing a misleading
+                    // "voice reconnection failed" event during an ordinary intentional hangup.
+                    if (!cancelled && !reprovisionToken.IsCancellationRequested)
                     {
                         _log.Warn($"Scheduled reprovision exhausted after {attempt} attempts, giving up", _client);
                         try { OnReprovisionFailed?.Invoke(new VoiceException($"Voice reconnection failed after {attempt} attempts")); } catch { }
@@ -1928,9 +1923,15 @@ namespace LibreMetaverse.Voice.WebRTC
                 // Ensure the session id is stored before we start flushing/trickling ICE candidates
                 SessionId = sessionId;
 
-                // Mark that we've received the answer and flush any pending ICE candidates
+                // Mark that we've received the answer and flush any pending ICE candidates.
+                // Must go through the locked SendVoiceSignalingRequest() — the same path
+                // RequestLocalVoiceProvision uses — not the old unlocked FlushPendingIceCandidates,
+                // which raced the 25ms trickle-loop poll (also unaware of the lock) and could let
+                // IceTrickleStop() observe an empty queue and send 'completed' before this flush's
+                // POST had actually reached the server. That's the exact signaling-send race
+                // already fixed for LOCAL sessions, reintroduced here for MULTIAGENT/group voice.
                 _answerReceived = true;
-                _ = FlushPendingIceCandidates();
+                await SendVoiceSignalingRequest().ConfigureAwait(false);
 
                 // Watchdog: 60s timeout — STUN negotiation through NAT can legitimately take >30s.
                 // Capture the specific PC so a later reprovision replacing _peerConnection does not
@@ -2111,6 +2112,11 @@ namespace LibreMetaverse.Voice.WebRTC
                 // Cancel main _cts
                 try { _cts.Cancel(); } catch { }
                 try { _cts.Dispose(); } catch { }
+
+                // Dispose the linked token created in StartAsync
+                try { _startLinkedCts?.Cancel(); } catch { }
+                try { _startLinkedCts?.Dispose(); } catch { }
+                _startLinkedCts = null;
 
                 // Dispose other token sources
                 try { _positionLoopCts?.Dispose(); } catch { }

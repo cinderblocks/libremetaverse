@@ -129,8 +129,10 @@ namespace LibreMetaverse.Voice.WebRTC
         private readonly SemaphoreSlim _regionTransitionLock = new SemaphoreSlim(1, 1);
         private bool _isTransitioning = false;
 
-        // Prevent concurrent ConnectPrimaryRegionAsync calls
-        private readonly SemaphoreSlim _connectLock = new SemaphoreSlim(1, 1);
+        // Pending region handle recorded when a SimChanged/TeleportProgress arrives while a
+        // transition (region change or its retry) is already in flight — see DispatchPendingRegionChangeIfAny.
+        private readonly object _pendingRegionLock = new object();
+        private ulong? _pendingRegionHandle = null;
 
         // Expose session/channel info for primary session
         public UUID SessionId => _primarySession?.Session?.SessionId ?? UUID.Zero;
@@ -223,6 +225,11 @@ namespace LibreMetaverse.Voice.WebRTC
             if (_isTransitioning)
             {
                 _log.Debug("Region transition already in progress, skipping duplicate", Client);
+                // Don't just drop this — record it so whoever is currently holding the lock
+                // re-checks for a newer region once it finishes. Without this, a SimChanged that
+                // arrives while a retry (RetryRegionReprovisionAsync) is in flight was silently
+                // lost forever: _isTransitioning was true but nothing else ever revisited it.
+                lock (_pendingRegionLock) { _pendingRegionHandle = newRegionHandle; }
                 return;
             }
 
@@ -230,6 +237,7 @@ namespace LibreMetaverse.Voice.WebRTC
             if (!await _regionTransitionLock.WaitAsync(0))
             {
                 _log.Debug("Region transition lock held, skipping", Client);
+                lock (_pendingRegionLock) { _pendingRegionHandle = newRegionHandle; }
                 return;
             }
 
@@ -290,6 +298,22 @@ namespace LibreMetaverse.Voice.WebRTC
                 _isTransitioning = false;
                 _regionTransitionLock.Release();
             }
+
+            DispatchPendingRegionChangeIfAny();
+        }
+
+        /// <summary>
+        /// If a SimChanged/TeleportProgress arrived while a transition (this method or
+        /// <see cref="RetryRegionReprovisionAsync"/>) was already in flight and got recorded
+        /// as pending instead of processed, re-run region-change handling now that the lock is
+        /// free. <see cref="HandleRegionChange"/> re-reads the live current-region handle and
+        /// dedupes internally, so this is safe to call speculatively even if nothing is pending.
+        /// </summary>
+        private void DispatchPendingRegionChangeIfAny()
+        {
+            bool hasPending;
+            lock (_pendingRegionLock) { hasPending = _pendingRegionHandle.HasValue; _pendingRegionHandle = null; }
+            if (hasPending) { _ = HandleRegionChange(null); }
         }
 
         private async Task RetryRegionReprovisionAsync(ulong forRegionHandle)
@@ -306,6 +330,10 @@ namespace LibreMetaverse.Voice.WebRTC
 
                 try
                 {
+                    // Mirrors HandleRegionChange's flag so a SimChanged arriving during this
+                    // retry gets recorded as pending (via _pendingRegionLock) instead of being
+                    // silently dropped by the lock-busy fast path — see DispatchPendingRegionChangeIfAny.
+                    _isTransitioning = true;
                     _log.Info($"Retrying voice reprovision for region {forRegionHandle:X}", Client);
                     await ReprovisionForNewRegion().ConfigureAwait(false);
                     try { OnRegionTransitionCompleted?.Invoke(); } catch { }
@@ -317,11 +345,14 @@ namespace LibreMetaverse.Voice.WebRTC
                 }
                 finally
                 {
+                    _isTransitioning = false;
                     _regionTransitionLock.Release();
+                    DispatchPendingRegionChangeIfAny();
                 }
             }
 
             _log.Error($"Voice reprovision for region {forRegionHandle:X} gave up after retries", Client);
+            DispatchPendingRegionChangeIfAny();
         }
 
         private async Task ReprovisionForNewRegion()
@@ -427,11 +458,15 @@ namespace LibreMetaverse.Voice.WebRTC
                 return false;
             }
 
-            // Prevent concurrent calls from racing each other.
-            // Non-blocking: if a connect is already in progress, drop this call.
-            if (!await _connectLock.WaitAsync(0).ConfigureAwait(false))
+            // Share _regionTransitionLock with HandleRegionChange/ReprovisionForNewRegion —
+            // both mutate _primarySession, and using two independent semaphores here let a
+            // region crossing's reprovision and an explicit (re)connect race each other and
+            // stomp on _primarySession mid-construction (one call's session silently replaced
+            // and leaked while the other still thinks it owns _primarySession).
+            // Non-blocking: if a transition is already in progress, drop this call.
+            if (!await _regionTransitionLock.WaitAsync(0).ConfigureAwait(false))
             {
-                _log.Debug("ConnectPrimaryRegionAsync already in progress, dropping duplicate call", Client);
+                _log.Debug("ConnectPrimaryRegionAsync: region transition lock held, dropping duplicate call", Client);
                 return false;
             }
 
@@ -492,67 +527,94 @@ namespace LibreMetaverse.Voice.WebRTC
             }
             finally
             {
-                _connectLock.Release();
+                _regionTransitionLock.Release();
             }
         }
 
         public void Disconnect()
         {
-            // Close all P2P voice calls
-            foreach (var kvp in _p2pSessions)
-            {
-                try
-                {
-                    _ = kvp.Value.Session?.CloseSessionAsync();
-                    try { kvp.Value.Session?.Dispose(); } catch { }
-                }
-                catch { }
-            }
+            // Snapshot and clear tracking state synchronously (Disconnect() must stay callable
+            // from a UI thread without blocking), then close+dispose every session on a
+            // background task, awaiting CloseSessionAsync() before Dispose() per session.
+            // Previously Dispose() ran immediately after firing CloseSessionAsync() without
+            // waiting for it — the same "session left alive on the signaling server" bug
+            // already fixed for the Connect/Reprovision paths (which do await close-before-dispose),
+            // reintroduced here in the disconnect path specifically.
+            var p2pToClose = _p2pSessions.Values.ToList();
             _p2pSessions.Clear();
 
-            // Close all group voice sessions
-            foreach (var kvp in _groupSessions)
-            {
-                try
-                {
-                    _ = kvp.Value.Session?.CloseSessionAsync();
-                    try { kvp.Value.Session?.Dispose(); } catch { }
-                }
-                catch { }
-            }
+            var groupToClose = _groupSessions.Values.ToList();
             _groupSessions.Clear();
 
-            // Close primary session
-            if (_primarySession != null)
+            var primaryToClose = _primarySession;
+            _primarySession = null;
+            if (primaryToClose?.Session != null)
             {
-                try
-                {
-                    if (_primarySession.Session != null)
-                    {
-                        try { _primarySession.Session.OnDataChannelReady -= CurrentSessionOnOnDataChannelReady; } catch { }
-                        _ = _primarySession.Session.CloseSessionAsync();
-                        try { _primarySession.Session.Dispose(); } catch { }
-                    }
-                }
-                catch { }
-                _primarySession = null;
+                try { primaryToClose.Session.OnDataChannelReady -= CurrentSessionOnOnDataChannelReady; } catch { }
             }
 
-            // Stop neighbour-region estate-voice loop and close all neighbour sessions
             StopNeighborLoop();
-            TearDownAllNeighborSessions();
+            var neighborsToClose = _neighborSessions.Values.ToList();
+            _neighborSessions.Clear();
+            _neighborDisconnectedSince.Clear();
+
+            _ = Task.Run(async () =>
+            {
+                foreach (var p2p in p2pToClose)
+                {
+                    try
+                    {
+                        if (p2p.Session != null)
+                        {
+                            await p2p.Session.CloseSessionAsync().ConfigureAwait(false);
+                            p2p.Session.Dispose();
+                        }
+                    }
+                    catch { }
+                }
+
+                foreach (var group in groupToClose)
+                {
+                    try
+                    {
+                        if (group.Session != null)
+                        {
+                            await group.Session.CloseSessionAsync().ConfigureAwait(false);
+                            group.Session.Dispose();
+                        }
+                    }
+                    catch { }
+                }
+
+                if (primaryToClose?.Session != null)
+                {
+                    try
+                    {
+                        await primaryToClose.Session.CloseSessionAsync().ConfigureAwait(false);
+                        primaryToClose.Session.Dispose();
+                    }
+                    catch { }
+                }
+
+                foreach (var nb in neighborsToClose)
+                {
+                    try { await nb.CloseSessionAsync().ConfigureAwait(false); nb.Dispose(); } catch { }
+                }
+            });
 
             // Unregister handlers
             try
             {
                 Client.Network.SimChanged -= OnSimChanged;
                 Client.Self.TeleportProgress -= OnTeleport;
+                Client.Network.UnregisterEventCallback("RequiredVoiceVersion", RequiredVoiceVersionEventHandler);
                 Client.Network.UnregisterEventCallback("ChatterBoxInvitation", OnChatterBoxInvitationForVoice);
                     try { Client.Network.UnregisterEventCallback("ChatterBoxSessionStartReply", OnChatterBoxSessionStartReply); } catch { }
                     try { Client.Network.UnregisterEventCallback("ForceCloseChatterBoxSession", OnForceCloseChatterBoxSession); } catch { }
             }
             catch { }
 
+            _pendingP2PInvites.Clear();
             _channelId = null;
             _channelCredentials = null;
             _currentRegionHandle = 0;
@@ -656,8 +718,19 @@ namespace LibreMetaverse.Voice.WebRTC
 
         private void StopNeighborLoop()
         {
+            // Bound-wait for the loop's current iteration to actually exit before returning.
+            // Cancelling the CTS alone doesn't stop an iteration already past its cancellation
+            // check and mid-await inside ReconcileNeighborSessions (e.g. awaiting a neighbour
+            // session's StartAsync/RequestProvisionAsync) — that iteration can still write a
+            // new entry into _neighborSessions *after* a caller's subsequent
+            // TearDownAllNeighborSessions() has already cleared it, orphaning a live,
+            // untracked, never-disposed neighbour session. The post-await cancellation check
+            // added in ReconcileNeighborSessions is the main defense; this wait just shrinks the
+            // window further for the common case.
             try { _neighborLoopCts?.Cancel(); } catch { }
+            try { _neighborLoopTask?.Wait(500); } catch { }
             _neighborLoopCts = null;
+            _neighborLoopTask = null;
         }
 
         /// <summary>
@@ -794,6 +867,21 @@ namespace LibreMetaverse.Voice.WebRTC
                     _neighborSessions[handle] = nbSession;
                     await nbSession.StartAsync().ConfigureAwait(false);
                     await nbSession.RequestProvisionAsync().ConfigureAwait(false);
+
+                    // The loop was stopped (region change / disconnect) while this session was
+                    // mid-startup — StopNeighborLoop()'s CTS cancellation doesn't abort an
+                    // in-flight StartAsync/RequestProvisionAsync await, so without this check the
+                    // entry just written above would survive a concurrent TearDownAllNeighborSessions()
+                    // that ran while we were awaiting, leaving an orphaned, never-disposed session.
+                    if (ct.IsCancellationRequested)
+                    {
+                        if (_neighborSessions.TryRemove(handle, out var orphaned))
+                        {
+                            _log.Debug($"Neighbour loop stopped mid-startup for {sim.Name}; tearing down orphaned session", Client);
+                            try { _ = orphaned.CloseSessionAsync(); } catch { }
+                            try { orphaned.Dispose(); } catch { }
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -1282,6 +1370,8 @@ namespace LibreMetaverse.Voice.WebRTC
                 {
                     _log.Warn($"Failed to provision group voice session for {groupId}", Client);
                     _groupSessions.TryRemove(groupId, out _);
+                    try { await session.CloseSessionAsync().ConfigureAwait(false); } catch { }
+                    try { session.Dispose(); } catch { }
                     try { OnGroupVoiceJoinFailed?.Invoke(groupId, new Exception("Provisioning failed")); } catch { }
                     return false;
                 }
@@ -1289,7 +1379,15 @@ namespace LibreMetaverse.Voice.WebRTC
             catch (Exception ex)
             {
                 _log.Error($"Exception joining group voice for {groupId}: {ex.Message}", Client);
-                _groupSessions.TryRemove(groupId, out _);
+                // Retrieve (rather than assume `session` is in scope — an exception can occur
+                // before it's even constructed) whatever was stored so it isn't leaked: every
+                // failure path here used to remove the tracking entry without ever closing or
+                // disposing the underlying VoiceSession/peer connection.
+                if (_groupSessions.TryRemove(groupId, out var failedSession) && failedSession.Session != null)
+                {
+                    try { await failedSession.Session.CloseSessionAsync().ConfigureAwait(false); } catch { }
+                    try { failedSession.Session.Dispose(); } catch { }
+                }
                 try { OnGroupVoiceJoinFailed?.Invoke(groupId, ex); } catch { }
                 return false;
             }
@@ -1542,6 +1640,8 @@ namespace LibreMetaverse.Voice.WebRTC
                 {
                     _log.Warn($"Failed to provision P2P call session for {agentId}", Client);
                     _p2pSessions.TryRemove(agentId, out _);
+                    try { await session.CloseSessionAsync().ConfigureAwait(false); } catch { }
+                    try { session.Dispose(); } catch { }
                     try { OnP2PCallFailed?.Invoke(agentId, new Exception("Provisioning failed")); } catch { }
                     return false;
                 }
@@ -1549,7 +1649,11 @@ namespace LibreMetaverse.Voice.WebRTC
             catch (Exception ex)
             {
                 _log.Error($"Exception starting P2P call with {agentId}: {ex.Message}", Client);
-                _p2pSessions.TryRemove(agentId, out _);
+                if (_p2pSessions.TryRemove(agentId, out var failedSession) && failedSession.Session != null)
+                {
+                    try { await failedSession.Session.CloseSessionAsync().ConfigureAwait(false); } catch { }
+                    try { failedSession.Session.Dispose(); } catch { }
+                }
                 try { OnP2PCallFailed?.Invoke(agentId, ex); } catch { }
                 return false;
             }
@@ -1662,6 +1766,8 @@ namespace LibreMetaverse.Voice.WebRTC
                 {
                     _log.Warn($"Failed to provision P2P call session from {agentId}", Client);
                     _p2pSessions.TryRemove(agentId, out _);
+                    try { await session.CloseSessionAsync().ConfigureAwait(false); } catch { }
+                    try { session.Dispose(); } catch { }
                     try { OnP2PCallFailed?.Invoke(agentId, new Exception("Provisioning failed")); } catch { }
                     return false;
                 }
@@ -1669,7 +1775,11 @@ namespace LibreMetaverse.Voice.WebRTC
             catch (Exception ex)
             {
                 _log.Error($"Exception accepting P2P call from {agentId}: {ex.Message}", Client);
-                _p2pSessions.TryRemove(agentId, out _);
+                if (_p2pSessions.TryRemove(agentId, out var failedSession) && failedSession.Session != null)
+                {
+                    try { await failedSession.Session.CloseSessionAsync().ConfigureAwait(false); } catch { }
+                    try { failedSession.Session.Dispose(); } catch { }
+                }
                 try { OnP2PCallFailed?.Invoke(agentId, ex); } catch { }
                 return false;
             }
