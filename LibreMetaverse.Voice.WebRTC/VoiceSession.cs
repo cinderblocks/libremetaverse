@@ -643,6 +643,12 @@ namespace LibreMetaverse.Voice.WebRTC
             var rawSdp = offer.sdp.ToString();
             var processedSdp = ProcessLocalSdp(rawSdp);
 
+            // Temporary diagnostic: the provisioning server is rejecting our SDP offer outright
+            // (HTTP 472 "Invalid SDP offer") on every attempt, consistently — not a timeout or
+            // rate-limit. Need to see the actual offer content to find what's malformed.
+            _log.Debug($"[DIAG] Raw SDP offer from createOffer():\n{rawSdp}", _client);
+            _log.Debug($"[DIAG] Processed SDP offer after ProcessLocalSdp():\n{processedSdp}", _client);
+
             // Assign the mangled SDP string directly
             offer.sdp = processedSdp;
 
