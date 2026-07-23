@@ -146,6 +146,12 @@ namespace LibreMetaverse.Voice.WebRTC
         private readonly object _pendingRegionLock = new object();
         private ulong? _pendingRegionHandle = null;
 
+        // True while a connect or reprovision attempt already holds _regionTransitionLock — lets
+        // callers whose own ConnectPrimaryRegionAsync/reprovision attempt got dropped (see the
+        // lock-busy fast path below) tell "someone else is already connecting" apart from a real
+        // failure instead of reporting both identically to the user.
+        public bool IsTransitioning => _isTransitioning;
+
         // Expose session/channel info for primary session
         public UUID SessionId => _primarySession?.Session?.SessionId ?? UUID.Zero;
         public string ChannelId => _primarySession?.Session?.ChannelId ?? _channelId ?? string.Empty;
