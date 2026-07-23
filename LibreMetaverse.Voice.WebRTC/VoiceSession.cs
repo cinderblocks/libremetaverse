@@ -439,7 +439,16 @@ namespace LibreMetaverse.Voice.WebRTC
 
             var pc = new RTCPeerConnection(new RTCConfiguration
             {
-                X_ICEIncludeAllInterfaceAddresses = true,
+                // Was `true`. Enumerating every local network interface (not just the OS's
+                // preferred outbound one) puts a host candidate for each virtual/VPN adapter
+                // into the SDP offer alongside the real LAN address — e.g. Docker/WSL2, VMware,
+                // or a VPN client's internal ranges (192.168.x.x / 10.x.x.x). Observed live: the
+                // SL voice provisioning endpoint rejected every offer outright with HTTP 472
+                // "Invalid SDP offer" on a machine with exactly this kind of setup, 100%
+                // reproducible across fresh attempts. The real SL viewer doesn't advertise every
+                // virtual adapter's address either; STUN (already configured via iceServers)
+                // is what's supposed to discover the actually-reachable address.
+                X_ICEIncludeAllInterfaceAddresses = false,
                 iceServers = iceServers
             }, 0, new PortRange(49152, 65535));
 
