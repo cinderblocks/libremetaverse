@@ -275,21 +275,11 @@ namespace LibreMetaverse.Voice.WebRTC
             while (attempt < maxAttempts)
             {
                 attempt++;
-                // Temporary bracketing diagnostics: a prior test showed zero log output at all
-                // (not even the per-attempt Warn added for this same investigation) for 5+
-                // minutes after "Attempting to POST for voice provision..." — which should be
-                // impossible given Task.Delay(timeout) below is supposed to fire within ~10s
-                // regardless of what postTask is doing. These two lines pin down whether we
-                // even reach the WhenAny race at all, or hang constructing/starting postTask
-                // itself (e.g. inside HttpCapsClient.PostAsync before its first await).
-                _log.Debug($"[DIAG] PostCapsWithRetries attempt {attempt}/{maxAttempts} starting for {cap}", _client);
                 try
                 {
                     var postTask = _client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, payload, token);
                     var delayTask = Task.Delay(timeout.Value, token);
-                    _log.Debug($"[DIAG] postTask+delayTask constructed, awaiting WhenAny (attempt {attempt})", _client);
                     var completed = await Task.WhenAny(postTask, delayTask).ConfigureAwait(false);
-                    _log.Debug($"[DIAG] WhenAny resolved (attempt {attempt}): {(completed == delayTask ? "delayTask (timeout)" : "postTask")}", _client);
                     if (completed == delayTask)
                     {
                         lastEx = new TimeoutException($"POST to {cap} timed out.");
@@ -297,9 +287,7 @@ namespace LibreMetaverse.Voice.WebRTC
                     }
                     else
                     {
-                        _log.Debug($"[DIAG] Re-awaiting completed postTask (attempt {attempt})", _client);
                         var (response, data) = await postTask.ConfigureAwait(false);
-                        _log.Debug($"[DIAG] postTask yielded response: status={(int)response.StatusCode}, dataLen={data?.Length ?? -1} (attempt {attempt})", _client);
 
                         // Check status BEFORE attempting to parse: a well-formed LLSD/OSD error
                         // body on a non-2xx response (503 during a mixer hiccup, 403 with a valid
@@ -313,15 +301,20 @@ namespace LibreMetaverse.Voice.WebRTC
                             string errPreview = string.Empty;
                             try { errPreview = data != null ? Encoding.UTF8.GetString(data) : string.Empty; } catch { }
                             if (errPreview.Length > 1000) errPreview = errPreview.Substring(0, 1000) + "...";
+                            // Log the actual reason here, not just in the exception message — this
+                            // is treated as non-retryable (see the catch below) and propagates all
+                            // the way to the UI layer, which only updates a status string. Without
+                            // logging it here, a real server-side rejection (observed live: HTTP
+                            // 472 with a 17-byte body) was completely invisible in the log, making
+                            // "voice never connects" undiagnosable from a log capture alone.
+                            _log.Warn($"POST to {cap} returned HTTP {successPathStatusCode} ({response.ReasonPhrase}), attempt {attempt}/{maxAttempts}. Response preview: {errPreview}", _client);
                             throw new VoiceException($"HTTP {successPathStatusCode} when POSTing to {cap}: {response.ReasonPhrase ?? ""}. Response preview: {errPreview}");
                         }
 
                         try
                         {
                             // Attempt to deserialize LLSD/OSD. If parsing fails, capture raw response for diagnostics.
-                            _log.Debug($"[DIAG] Calling OSDParser.Deserialize, dataLen={data?.Length ?? -1} (attempt {attempt})", _client);
                             var osd = OSDParser.Deserialize(data ?? Array.Empty<byte>());
-                            _log.Debug($"[DIAG] OSDParser.Deserialize returned (attempt {attempt})", _client);
                             return osd;
                         }
                         catch (Exception parseEx)

@@ -491,58 +491,101 @@ namespace LibreMetaverse.Voice.WebRTC
                 // was folded onto the shared lock, reopening exactly the bug that change fixed.
                 _isTransitioning = true;
 
-                // Close any existing primary session before creating a new one.
-                // Without this the old Janus session stays live on the server and
-                // the new ICE exchange fails immediately.
-                if (_primarySession?.Session != null)
+                // Retry the whole connect attempt with backoff instead of failing forever on the
+                // first rejection. Observed live: the provisioning POST got back a transient
+                // HTTP 472 (non-retryable at the PostCapsWithRetries layer by design, same as any
+                // classified 4xx) with the very next attempt at the same capability succeeding —
+                // but with no retry at this level, that one rejection silently killed voice for
+                // the whole session (the exception unwound to the UI layer, which only updates a
+                // status string, so nothing was even visible in the log). Mirrors
+                // RetryRegionReprovisionAsync's backoff shape for the equivalent post-crossing case.
+                const int maxConnectAttempts = 3;
+                int[] retryDelaysMs = { 3000, 8000 };
+                Exception? lastEx = null;
+
+                for (int attempt = 1; attempt <= maxConnectAttempts; attempt++)
                 {
-                    _log.Debug("ConnectPrimaryRegionAsync: closing existing primary session before reconnect", Client);
-                    StopNeighborLoop();
-                    try { _primarySession.Session.OnDataChannelReady -= CurrentSessionOnOnDataChannelReady; } catch { }
-                    try { await _primarySession.Session.CloseSessionAsync().ConfigureAwait(false); } catch { }
-                    try { _primarySession.Session.Dispose(); } catch { }
-                    _primarySession = null;
+                    if (attempt > 1)
+                    {
+                        _log.Warn($"ConnectPrimaryRegionAsync: retrying attempt {attempt}/{maxConnectAttempts} in {retryDelaysMs[attempt - 2]}ms after: {lastEx?.Message}", Client);
+                        await Task.Delay(retryDelaysMs[attempt - 2]).ConfigureAwait(false);
+                    }
+
+                    try
+                    {
+                        // Close any existing (failed or stale) primary session before creating a
+                        // new one. Without this the old Janus session stays live on the server
+                        // and the new ICE exchange fails immediately.
+                        if (_primarySession?.Session != null)
+                        {
+                            _log.Debug("ConnectPrimaryRegionAsync: closing existing primary session before reconnect", Client);
+                            StopNeighborLoop();
+                            try { _primarySession.Session.OnDataChannelReady -= CurrentSessionOnOnDataChannelReady; } catch { }
+                            try { await _primarySession.Session.CloseSessionAsync().ConfigureAwait(false); } catch { }
+                            try { _primarySession.Session.Dispose(); } catch { }
+                            _primarySession = null;
+                        }
+
+                        // Initialize current region handle
+                        _currentRegionHandle = Client.Network.CurrentSim?.Handle ?? 0;
+
+                        // SL C++ WebRTC spatial voice is ALWAYS channel_type="local".
+                        // MULTIAGENT is only used for group/P2P adhoc channels, never spatial.
+                        // Parcel-specific vs estate voice is determined by parcel flags, not ParcelVoiceInfoRequest.
+                        // Determine parcel context from flags to set parcel_local_id correctly.
+                        DetermineParcelVoiceContext(out var parcelLocalId, out _estateVoiceActive);
+                        _log.Info(_estateVoiceActive
+                            ? "Using estate voice (parcel uses estate channel)"
+                            : $"Using parcel voice for parcel local_id={parcelLocalId}", Client);
+
+                        var session = new VoiceSession(AudioDevice, VoiceSession.ESessionType.LOCAL, Client, _log)
+                        {
+                            IsPrimary = true,
+                            ParcelLocalId = parcelLocalId
+                        };
+
+                        // Create primary session tracker
+                        _primarySession = new RegionVoiceSession
+                        {
+                            RegionHandle = _currentRegionHandle,
+                            Session = session,
+                            IsPrimary = true,
+                            LastActivity = DateTime.UtcNow
+                        };
+
+                        // wire internal events
+                        session.OnDataChannelReady += CurrentSessionOnOnDataChannelReady;
+                        WirePrimarySessionEvents(session);
+
+                        await session.StartAsync().ConfigureAwait(false);
+                        var provisioned = await session.RequestProvisionAsync().ConfigureAwait(false);
+
+                        // Start estate-voice neighbour loop if applicable
+                        if (_estateVoiceActive)
+                            StartNeighborLoop();
+
+                        return provisioned;
+                    }
+                    catch (Exception ex)
+                    {
+                        lastEx = ex;
+                        _log.Warn($"ConnectPrimaryRegionAsync attempt {attempt}/{maxConnectAttempts} failed: {ex.Message}", Client);
+
+                        // Don't leak the failed session into the next attempt (or past the loop
+                        // if this was the last attempt — the outer caller only expects a thrown
+                        // exception, not a dangling half-connected _primarySession).
+                        if (_primarySession?.Session != null)
+                        {
+                            try { _primarySession.Session.OnDataChannelReady -= CurrentSessionOnOnDataChannelReady; } catch { }
+                            try { await _primarySession.Session.CloseSessionAsync().ConfigureAwait(false); } catch { }
+                            try { _primarySession.Session.Dispose(); } catch { }
+                            _primarySession = null;
+                        }
+                    }
                 }
 
-                // Initialize current region handle
-                _currentRegionHandle = Client.Network.CurrentSim?.Handle ?? 0;
-
-                // SL C++ WebRTC spatial voice is ALWAYS channel_type="local".
-                // MULTIAGENT is only used for group/P2P adhoc channels, never spatial.
-                // Parcel-specific vs estate voice is determined by parcel flags, not ParcelVoiceInfoRequest.
-                // Determine parcel context from flags to set parcel_local_id correctly.
-                DetermineParcelVoiceContext(out var parcelLocalId, out _estateVoiceActive);
-                _log.Info(_estateVoiceActive
-                    ? "Using estate voice (parcel uses estate channel)"
-                    : $"Using parcel voice for parcel local_id={parcelLocalId}", Client);
-
-                var session = new VoiceSession(AudioDevice, VoiceSession.ESessionType.LOCAL, Client, _log)
-                {
-                    IsPrimary = true,
-                    ParcelLocalId = parcelLocalId
-                };
-
-                // Create primary session tracker
-                _primarySession = new RegionVoiceSession
-                {
-                    RegionHandle = _currentRegionHandle,
-                    Session = session,
-                    IsPrimary = true,
-                    LastActivity = DateTime.UtcNow
-                };
-
-                // wire internal events
-                session.OnDataChannelReady += CurrentSessionOnOnDataChannelReady;
-                WirePrimarySessionEvents(session);
-
-                await session.StartAsync().ConfigureAwait(false);
-                var provisioned = await session.RequestProvisionAsync().ConfigureAwait(false);
-
-                // Start estate-voice neighbour loop if applicable
-                if (_estateVoiceActive)
-                    StartNeighborLoop();
-
-                return provisioned;
+                _log.Error($"ConnectPrimaryRegionAsync gave up after {maxConnectAttempts} attempts: {lastEx?.Message}", Client);
+                throw lastEx ?? new VoiceException("Failed to connect primary voice session.");
             }
             finally
             {
