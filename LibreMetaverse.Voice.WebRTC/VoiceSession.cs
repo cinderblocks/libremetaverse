@@ -439,16 +439,17 @@ namespace LibreMetaverse.Voice.WebRTC
 
             var pc = new RTCPeerConnection(new RTCConfiguration
             {
-                // Was `true`. Enumerating every local network interface (not just the OS's
-                // preferred outbound one) puts a host candidate for each virtual/VPN adapter
-                // into the SDP offer alongside the real LAN address — e.g. Docker/WSL2, VMware,
-                // or a VPN client's internal ranges (192.168.x.x / 10.x.x.x). Observed live: the
-                // SL voice provisioning endpoint rejected every offer outright with HTTP 472
-                // "Invalid SDP offer" on a machine with exactly this kind of setup, 100%
-                // reproducible across fresh attempts. The real SL viewer doesn't advertise every
-                // virtual adapter's address either; STUN (already configured via iceServers)
-                // is what's supposed to discover the actually-reachable address.
-                X_ICEIncludeAllInterfaceAddresses = false,
+                // The HTTP 472 "Invalid SDP offer" chased through this whole investigation
+                // turned out to be unrelated to candidates at all — it was the server correctly
+                // rejecting voice on a parcel/region where voice isn't permitted, regardless of
+                // offer content. Enumerating every local network interface (VPN/Docker/VMware
+                // adapters alongside the real LAN address) is genuinely useful here: with only
+                // the OS's single preferred-outbound candidate, a VPN full-tunnel setup can make
+                // that one candidate the VPN's own unreachable interface, leaving ICE dependent
+                // on a slower trickled STUN candidate (and often a 12s stuck-in-checking
+                // reprovision) before it finds one that works. Including every interface gives
+                // ICE the real LAN address as a candidate pair from the very first offer.
+                X_ICEIncludeAllInterfaceAddresses = true,
                 iceServers = iceServers
             }, 0, new PortRange(49152, 65535));
 
@@ -649,14 +650,7 @@ namespace LibreMetaverse.Voice.WebRTC
             };
 
             var offer = pc.createOffer();
-            var rawSdp = offer.sdp.ToString();
-            var processedSdp = ProcessLocalSdp(rawSdp);
-
-            // Temporary diagnostic: the provisioning server is rejecting our SDP offer outright
-            // (HTTP 472 "Invalid SDP offer") on every attempt, consistently — not a timeout or
-            // rate-limit. Need to see the actual offer content to find what's malformed.
-            _log.Debug($"[DIAG] Raw SDP offer from createOffer():\n{rawSdp}", _client);
-            _log.Debug($"[DIAG] Processed SDP offer after ProcessLocalSdp():\n{processedSdp}", _client);
+            var processedSdp = ProcessLocalSdp(offer.sdp.ToString());
 
             // Assign the mangled SDP string directly
             offer.sdp = processedSdp;

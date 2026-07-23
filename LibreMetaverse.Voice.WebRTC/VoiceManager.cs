@@ -162,6 +162,48 @@ namespace LibreMetaverse.Voice.WebRTC
         public string SdpRemote   => _primarySession?.Session?.SdpRemote ?? string.Empty;
         public bool   Connected   => _primarySession?.Session?.Connected  ?? false;
 
+        // Whether the current parcel/estate actually permits voice, as of the last connect or
+        // reprovision attempt. Callers (e.g. the "Join Voice" UI) should check this before
+        // offering to connect at all, rather than discovering it via a failed connect attempt —
+        // the server rejects a provisioning offer outright (HTTP 472) for a parcel/estate with
+        // voice disabled, it does not silently accept-and-mute as previously assumed.
+        public bool VoiceAllowedHere { get; private set; } = true;
+
+        /// <summary>
+        /// Fired whenever <see cref="VoiceAllowedHere"/> changes — on explicit connect, on
+        /// region crossing, or (in future) on a parcel crossing within the same region.
+        /// </summary>
+        public event Action<bool>? OnVoicePermissionChanged;
+
+        /// <summary>
+        /// Checks whether voice is permitted at the agent's current location, mirroring SL C++'s
+        /// combination of the region's "Allow Voice" estate setting and the current parcel's
+        /// "Allow Voice Chat" flag — both must permit it. Safe to call at any time; does not
+        /// require a live <see cref="VoiceManager"/> instance, so UI layers can use it to decide
+        /// whether to even offer a "Join Voice" control before one exists.
+        /// </summary>
+        public static bool IsVoiceAllowedAt(GridClient client)
+        {
+            if (client == null) return false;
+            var sim = client.Network?.CurrentSim;
+            if (sim == null) return false;
+            if (!sim.Flags.HasFlag(RegionFlags.AllowVoice)) return false;
+
+            var parcel = client.Parcels.CurrentParcel;
+            if (parcel != null && parcel.LocalID > 0 && !parcel.Flags.HasFlag(ParcelFlags.AllowVoiceChat))
+                return false;
+
+            return true;
+        }
+
+        private void UpdateVoiceAllowedHere(bool allowed)
+        {
+            if (VoiceAllowedHere == allowed) return;
+            VoiceAllowedHere = allowed;
+            try { OnVoicePermissionChanged?.Invoke(allowed); }
+            catch (Exception ex) { _log.Warn($"Exception in OnVoicePermissionChanged handler: {ex.Message}", Client); }
+        }
+
         // Cross-region events
         public event Action? OnRegionChangeDetected;
         public event Action? OnRegionTransitionCompleted;
@@ -410,6 +452,30 @@ namespace LibreMetaverse.Voice.WebRTC
                     }
                 }
 
+                if (!IsVoiceAllowedAt(Client))
+                {
+                    // The old session is already closed above; the new region/parcel doesn't
+                    // permit voice at all, so don't attempt to provision a new one — that would
+                    // just repeat the HTTP 472 rejection across every retry in
+                    // RetryRegionReprovisionAsync for no benefit. Keep _primarySession non-null
+                    // (with no live Session) rather than clearing it entirely, so a *later*
+                    // region crossing back into a voice-permitted area still passes the
+                    // "_primarySession == null" early-out at the top of HandleRegionChange and
+                    // gets a fresh reprovision attempt automatically instead of staying silently
+                    // disconnected until the user manually hits Join Voice again.
+                    _log.Info("Voice is not permitted in the new region/parcel — staying disconnected", Client);
+                    _primarySession = new RegionVoiceSession
+                    {
+                        RegionHandle = Client.Network.CurrentSim?.Handle ?? 0,
+                        Session = null,
+                        IsPrimary = true,
+                        LastActivity = DateTime.UtcNow
+                    };
+                    UpdateVoiceAllowedHere(false);
+                    return;
+                }
+                UpdateVoiceAllowedHere(true);
+
                 // Determine parcel context for new region using parcel flags (SL C++ approach).
                 // Spatial voice is always channel_type="local"; MULTIAGENT is only for group/P2P.
                 DetermineParcelVoiceContext(out var parcelLocalId, out _estateVoiceActive);
@@ -470,11 +536,23 @@ namespace LibreMetaverse.Voice.WebRTC
         {
             _log.Debug("ConnectPrimaryRegionAsync started", Client);
             if (!Client.Network.Connected) { return false; }
-            if (!_enabled) 
+            if (!_enabled)
             {
                 _log.Warn("WebRTC voice is disabled due to unsupported voice version", Client);
                 return false;
             }
+
+            if (!IsVoiceAllowedAt(Client))
+            {
+                // Don't even attempt a provisioning POST — the server rejects it outright
+                // (HTTP 472 "Invalid SDP offer") for a parcel/estate with voice disabled, so
+                // trying just wastes a round trip and looks like an unexplained connect failure
+                // to the user instead of the permission issue it actually is.
+                _log.Info("Voice is not permitted at the current location (parcel or estate voice disabled) — not attempting to connect", Client);
+                UpdateVoiceAllowedHere(false);
+                return false;
+            }
+            UpdateVoiceAllowedHere(true);
 
             // Share _regionTransitionLock with HandleRegionChange/ReprovisionForNewRegion —
             // both mutate _primarySession, and using two independent semaphores here let a
@@ -756,9 +834,14 @@ namespace LibreMetaverse.Voice.WebRTC
 
             if (!parcel.Flags.HasFlag(allowVoice))
             {
-                // Voice disabled on this parcel — still use estate so the session can connect
-                // (the server will handle muting); SL C++ sets voiceEnabled=false but we stay
-                // connected for neighbour awareness.
+                // Both call sites (ConnectPrimaryRegionAsync/ReprovisionForNewRegion) check
+                // IsVoiceAllowedAt() before ever reaching here, so this should be unreachable in
+                // practice. It's kept as a defensive fallback only — a prior version of this
+                // method assumed falling back to the estate channel here was safe because "the
+                // server will handle muting"; live testing showed the opposite: the server
+                // rejects the provisioning offer outright (HTTP 472) for a parcel with voice
+                // disabled, so that fallback was actually the root cause of the connection
+                // failing, not a workaround for it.
                 return;
             }
 
