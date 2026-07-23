@@ -308,7 +308,7 @@ namespace LibreMetaverse.Voice.WebRTC
                             // 472 with a 17-byte body) was completely invisible in the log, making
                             // "voice never connects" undiagnosable from a log capture alone.
                             _log.Warn($"POST to {cap} returned HTTP {successPathStatusCode} ({response.ReasonPhrase}), attempt {attempt}/{maxAttempts}. Response preview: {errPreview}", _client);
-                            throw new VoiceException($"HTTP {successPathStatusCode} when POSTing to {cap}: {response.ReasonPhrase ?? ""}. Response preview: {errPreview}");
+                            throw new VoiceException($"HTTP {successPathStatusCode} when POSTing to {cap}: {response.ReasonPhrase ?? ""}. Response preview: {errPreview}", isDefinitiveRejection: true);
                         }
 
                         try

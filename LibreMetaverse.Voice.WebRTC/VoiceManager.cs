@@ -581,6 +581,20 @@ namespace LibreMetaverse.Voice.WebRTC
                             try { _primarySession.Session.Dispose(); } catch { }
                             _primarySession = null;
                         }
+
+                        // A definitive rejection (the server told us something concrete, e.g. an
+                        // HTTP status) is already known to be non-retryable at the
+                        // PostCapsWithRetries layer for a reason — blindly retrying the identical
+                        // request 2 more times here defeats that classification. Observed live:
+                        // a deterministic HTTP 472 "Invalid SDP offer" on every single attempt
+                        // across many manual test cycles; retrying it 3x per test just tripled
+                        // the request volume against a server that may reasonably read repeated
+                        // identical rejections as abuse. Give up immediately instead.
+                        if (ex is VoiceException ve && ve.IsDefinitiveRejection)
+                        {
+                            _log.Warn("ConnectPrimaryRegionAsync: rejection is definitive, not retrying further", Client);
+                            break;
+                        }
                     }
                 }
 

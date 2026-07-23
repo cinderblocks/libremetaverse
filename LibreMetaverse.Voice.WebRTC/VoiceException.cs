@@ -30,6 +30,22 @@ namespace LibreMetaverse.Voice.WebRTC
 {
     public class VoiceException : Exception
     {
+        /// <summary>
+        /// True when this represents a definitive, immediate rejection from the server (e.g. an
+        /// HTTP status code the server returned deliberately) rather than a transient condition
+        /// (timeout, connection error) that merely exhausted its retry budget. Callers one layer
+        /// up (e.g. ConnectPrimaryRegionAsync's own retry-with-backoff) should not blindly retry
+        /// a definitive rejection the same way they'd retry a transient one — doing so just
+        /// repeats an outcome that's already known to be deterministic, and against a real server
+        /// can look like abuse/rate-limit-worthy behavior for no benefit.
+        /// </summary>
+        public bool IsDefinitiveRejection { get; }
+
         public VoiceException(string msg) : base(msg) { }
+
+        public VoiceException(string msg, bool isDefinitiveRejection) : base(msg)
+        {
+            IsDefinitiveRejection = isDefinitiveRejection;
+        }
     }
 }
