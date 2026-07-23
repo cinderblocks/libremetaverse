@@ -25,6 +25,7 @@
  */
 
 using System;
+using System.Collections.Concurrent;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,6 +39,13 @@ namespace LibreMetaverse
     /// </summary>
     internal sealed class RateLimitingCapsHandler : DelegatingHandler
     {
+        // A queue-full burst (e.g. a heavy login/COF/texture pile-up hitting the Default
+        // bucket) can produce hundreds of these in under a second, one per request, all
+        // saying the same thing — log at most once per host per this interval instead of
+        // flooding the log to the point that a real, separate warning nearby gets lost in it.
+        private static readonly TimeSpan LogSuppressionWindow = TimeSpan.FromSeconds(5);
+        private static readonly ConcurrentDictionary<string, DateTime> _lastLoggedAt = new();
+
         private readonly CapsRateLimiter _rateLimiter;
 
         public RateLimitingCapsHandler(CapsRateLimiter rateLimiter, HttpMessageHandler innerHandler)
@@ -58,8 +66,14 @@ namespace LibreMetaverse
 
             if (!lease.IsAcquired)
             {
-                // Queue was full — log and proceed rather than dropping the request
-                Logger.Warn($"Caps rate limiter queue full for {request.RequestUri.Host}; proceeding without throttle");
+                // Queue was full — log (rate-limited) and proceed rather than dropping the request
+                var host = request.RequestUri.Host;
+                var now = DateTime.UtcNow;
+                if (!_lastLoggedAt.TryGetValue(host, out var last) || now - last >= LogSuppressionWindow)
+                {
+                    _lastLoggedAt[host] = now;
+                    Logger.Warn($"Caps rate limiter queue full for {host}; proceeding without throttle (further repeats suppressed for {LogSuppressionWindow.TotalSeconds:0}s)");
+                }
             }
 
             return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
