@@ -297,7 +297,9 @@ namespace LibreMetaverse.Voice.WebRTC
                     }
                     else
                     {
+                        _log.Debug($"[DIAG] Re-awaiting completed postTask (attempt {attempt})", _client);
                         var (response, data) = await postTask.ConfigureAwait(false);
+                        _log.Debug($"[DIAG] postTask yielded response: status={(int)response.StatusCode}, dataLen={data?.Length ?? -1} (attempt {attempt})", _client);
 
                         // Check status BEFORE attempting to parse: a well-formed LLSD/OSD error
                         // body on a non-2xx response (503 during a mixer hiccup, 403 with a valid
@@ -317,7 +319,9 @@ namespace LibreMetaverse.Voice.WebRTC
                         try
                         {
                             // Attempt to deserialize LLSD/OSD. If parsing fails, capture raw response for diagnostics.
+                            _log.Debug($"[DIAG] Calling OSDParser.Deserialize, dataLen={data?.Length ?? -1} (attempt {attempt})", _client);
                             var osd = OSDParser.Deserialize(data ?? Array.Empty<byte>());
+                            _log.Debug($"[DIAG] OSDParser.Deserialize returned (attempt {attempt})", _client);
                             return osd;
                         }
                         catch (Exception parseEx)
