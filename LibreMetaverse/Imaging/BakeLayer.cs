@@ -55,9 +55,6 @@ namespace LibreMetaverse.Imaging
         /// <summary>Bake type</summary>
         public BakeType BakeType => bakeType;
 
-        /// <summary>Is this one of the 3 skin bakes</summary>
-        private bool IsSkin => bakeType == BakeType.Head || bakeType == BakeType.LowerBody || bakeType == BakeType.UpperBody;
-
         #endregion
 
         #region Private fields
@@ -698,6 +695,7 @@ namespace LibreMetaverse.Imaging
         private void MultiplyLayerFromAlpha(ManagedImage dest, ManagedImage? src)
         {
             if (!SanitizeLayers(dest, src)) return;
+            if ((dest.Channels & ManagedImage.ImageChannels.Color) == 0) return;
 
             var mask = GetEffectiveMask(src!);
             for (int i = 0; i < dest.Red.Length; i++)
