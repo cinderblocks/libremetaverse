@@ -711,6 +711,7 @@ namespace LibreMetaverse.Imaging
         private void ApplyTint(ManagedImage dest, Color4 src)
         {
             if (dest == null) return;
+            if ((dest.Channels & ManagedImage.ImageChannels.Color) == 0) return;
 
             for (int i = 0; i < dest.Red.Length; i++)
             {
