@@ -26,6 +26,7 @@
  */
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -216,18 +217,9 @@ namespace LibreMetaverse.Imaging
                 //File.WriteAllBytes(bakeType + "-texture-layer-" + textures[i].TextureIndex + "-" + i + ".tga", texture.ExportTGA());
 
                 // Resize texture to the size of baked layer; tile if smaller to avoid stretching
-                if (texture.Width != bakeWidth || texture.Height != bakeHeight)
-                {
-                    if (texture.Width < bakeWidth || texture.Height < bakeHeight)
-                    {
-                        texture = TileTexture(texture, bakeWidth, bakeHeight);
-                    }
-                    else
-                    {
-                        try { texture.ResizeNearestNeighbor(bakeWidth, bakeHeight); }
-                        catch (Exception) { continue; }
-                    }
-                }
+                var resizedTexture = ResizeToBakeDimensions(texture, bakeWidth, bakeHeight);
+                if (resizedTexture == null) continue;
+                texture = resizedTexture;
 
                 // Special case for hair layer for the head bake
                 // If we don't have skin texture, we discard hair alpha
@@ -356,29 +348,37 @@ namespace LibreMetaverse.Imaging
             bakedTexture.Encode();
         }
 
-        private static readonly object ResourceSync = new object();
+        // Bake-mask resource TGAs (head_color.tga, *_alpha.tga, etc.) never change at runtime, so
+        // decoded images are cached here rather than re-reading and re-decoding from disk on every
+        // bake. Callers may mutate the image they receive (e.g. ApplyAlpha/SanitizeLayers resize the
+        // source in place), so a clone is handed out on every call instead of the cached instance.
+        private static readonly ConcurrentDictionary<string, ManagedImage> ResourceCache =
+            new ConcurrentDictionary<string, ManagedImage>();
 
         public static ManagedImage? LoadResourceLayer(string fileName)
         {
+            if (ResourceCache.TryGetValue(fileName, out var cached))
+            {
+                return cached.Clone();
+            }
+
             try
             {
-                lock (ResourceSync)
+                Stream? stream = Helpers.GetResourceStream(fileName, Path.Combine(Settings.ResourceDir, "character"));
+                if (stream != null)
                 {
-                    Stream? stream = Helpers.GetResourceStream(fileName, Path.Combine(Settings.ResourceDir, "character"));
-                    if (stream != null)
+                    using (stream)
                     {
-                        using (stream)
+                        var image = Targa.DecodeToManagedImage(stream);
+                        if (image != null)
                         {
-                            var image = Targa.DecodeToManagedImage(stream);
-                            if (image != null)
-                            {
-                                return image;
-                            }
-                            else
-                            {
-                                Logger.Error($"Failed loading resource file: {fileName}");
-                                return null;
-                            }
+                            ResourceCache[fileName] = image;
+                            return image.Clone();
+                        }
+                        else
+                        {
+                            Logger.Error($"Failed loading resource file: {fileName}");
+                            return null;
                         }
                     }
                 }
@@ -442,6 +442,38 @@ namespace LibreMetaverse.Imaging
             return (bakeType != BakeType.LowerBody || !mask.Contains("upper"))
                    && (bakeType != BakeType.LowerBody || !mask.Contains("shirt"))
                    && (bakeType != BakeType.UpperBody || !mask.Contains("lower"));
+        }
+
+        /// <summary>
+        /// Resizes <paramref name="texture"/> to <paramref name="bakeWidth"/> x
+        /// <paramref name="bakeHeight"/>. Tiles (repeats) the source when it is smaller than
+        /// the bake in <em>both</em> dimensions, to avoid stretching low-res layers into blur.
+        /// Otherwise falls back to a scaled nearest-neighbor resize - tiling only one axis of a
+        /// non-square source that's larger in the other axis would wrap/repeat that axis instead
+        /// of scaling it down, producing a visibly wrong bake.
+        /// </summary>
+        /// <returns>The resized/tiled image, or null if the resize failed and the layer should be skipped</returns>
+        private static ManagedImage? ResizeToBakeDimensions(ManagedImage texture, int bakeWidth, int bakeHeight)
+        {
+            if (texture.Width == bakeWidth && texture.Height == bakeHeight)
+            {
+                return texture;
+            }
+
+            if (texture.Width < bakeWidth && texture.Height < bakeHeight)
+            {
+                return TileTexture(texture, bakeWidth, bakeHeight);
+            }
+
+            try
+            {
+                texture.ResizeNearestNeighbor(bakeWidth, bakeHeight);
+                return texture;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         /// <summary>
