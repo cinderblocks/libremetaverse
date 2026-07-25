@@ -2259,6 +2259,49 @@ namespace LibreMetaverse
         }
 
         /// <summary>
+        /// Posts render info for a batch of avatars to the AvatarRenderInfo capability.
+        /// Mirrors the reference SL viewer's actual reporting behavior
+        /// (LLAvatarRenderInfoAccountant::avatarRenderInfoReportCoro), which reports every
+        /// avatar the local viewer currently renders — each one's weight and tooComplex flag
+        /// as judged by the local viewer's own complexity estimate — not just the local agent.
+        /// The single-avatar overload above remains for callers that only need to report
+        /// themselves.
+        /// </summary>
+        /// <param name="agents">Map of agent UUID to (render weight, locally-judged too-complex flag)</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        public async Task PostAvatarRenderInfoAsync(
+            IReadOnlyDictionary<UUID, (int Weight, bool TooComplex)> agents,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (agents.Count == 0) { return; }
+            try
+            {
+                Uri? cap = Client?.Network?.CurrentSim?.Caps?.CapabilityURI("AvatarRenderInfo");
+                if (cap == null) { return; }
+
+                var http = Client?.HttpCapsClient;
+                if (http == null) { return; }
+
+                AvatarRenderInfoMessage msg = new AvatarRenderInfoMessage();
+                foreach (var kvp in agents)
+                {
+                    msg.Agents[kvp.Key] = new AvatarRenderInfoMessage.AvatarInfo
+                    {
+                        Weight = kvp.Value.Weight,
+                        TooComplex = kvp.Value.TooComplex
+                    };
+                }
+                await http.PostRequestAsync(cap, OSDFormat.Xml, msg.Serialize(), cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error("Failed posting AvatarRenderInfo", ex, Client);
+            }
+        }
+
+        /// <summary>
         /// Requests the current NavMesh generation status from the simulator via the NavMeshGenerationStatus capability.
         /// Corresponds to llpathfindingmanager.cpp navMeshStatusRequestCoro.
         /// </summary>
