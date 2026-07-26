@@ -227,6 +227,37 @@ namespace LibreMetaverse.Rendering
                 }
             }
 
+            // Collision-volume shape deformation (breast/belly/butt/etc.) is driven through a
+            // *different* XML mechanism than SkeletalDistortions above: <param_morph>/<volume_morph>
+            // rather than <param_skeleton>/<bone>. Real body-shape sliders like "Breast Size" have
+            // no param_skeleton at all — they drive group-1 params (e.g. Big/Small/No_Chest) via
+            // param_driver, and those driven params carry the volume_morph deltas. Applied the same
+            // additive way and against the same weight formula as SkeletalDistortions, driven off
+            // paramValues (which must already contain the correct driven-param values, e.g. via
+            // AppearanceManager.GetCurrentParamValues()'s LLDriverParam-equivalent remap).
+            foreach (var kv in VisualParams.Params)
+            {
+                var vp = kv.Value;
+                if (vp.VolumeMorphs == null) continue;
+
+                if (!paramValues.TryGetValue(vp.ParamID, out var rawVal))
+                    rawVal = vp.DefaultValue;
+                float vpRange = vp.MaxValue - vp.MinValue;
+                float weight = vpRange > 1e-6f
+                    ? Math.Max(0f, Math.Min(1f, (rawVal - vp.MinValue) / vpRange))
+                    : 0f;
+
+                foreach (var morph in vp.VolumeMorphs)
+                {
+                    if (!result.TryGetValue(morph.BoneName, out var bt)) continue;
+                    if (morph.HasScale)
+                        bt.Scale += morph.ScaleDelta * weight;
+                    if (morph.HasPosition)
+                        bt.Position += morph.PositionDelta * weight;
+                    result[morph.BoneName] = bt;
+                }
+            }
+
             return result;
         }
 

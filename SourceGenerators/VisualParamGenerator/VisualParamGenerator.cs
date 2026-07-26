@@ -176,6 +176,36 @@ namespace LibreMetaverse
         }
     }
     /// <summary>
+    /// Describes how a single collision-volume bone should be repositioned and/or rescaled
+    /// by a visual parameter. Corresponds to a &lt;volume_morph&gt; entry inside a
+    /// &lt;param_morph&gt; element in avatar_lad.xml — the mechanism SL uses to drive
+    /// body-shape collision volumes (BELLY, CHEST, LEFT_PEC, RIGHT_PEC, BUTT, etc.), as
+    /// distinct from &lt;param_skeleton&gt;/&lt;bone&gt; (see <see cref="SkeletalBoneInfo"/>).
+    /// The deformation formula is additive, same as SkeletalBoneInfo:
+    /// finalValue = defaultValue + Delta * paramValue.
+    /// </summary>
+    public struct VolumeMorphInfo
+    {
+        /// <summary>Name of the collision-volume bone to deform.</summary>
+        public string BoneName;
+        /// <summary>Additive scale delta applied when the parameter is at full value.</summary>
+        public Vector3 ScaleDelta;
+        /// <summary>True when this entry carries a scale delta.</summary>
+        public bool HasScale;
+        /// <summary>Additive position delta applied when the parameter is at full value.</summary>
+        public Vector3 PositionDelta;
+        /// <summary>True when this entry carries a position delta.</summary>
+        public bool HasPosition;
+        public VolumeMorphInfo(string boneName, Vector3 scaleDelta, bool hasScale, Vector3 positionDelta, bool hasPosition)
+        {
+            BoneName = boneName;
+            ScaleDelta = scaleDelta;
+            HasScale = hasScale;
+            PositionDelta = positionDelta;
+            HasPosition = hasPosition;
+        }
+    }
+    /// <summary>
     /// A single visual characteristic of an avatar mesh, such as eyebrow height
     /// </summary>
     public struct VisualParam
@@ -212,6 +242,8 @@ namespace LibreMetaverse
         public DrivenParamInfo[]? DrivenParams;
         /// <summary>Per-bone skeletal deformations driven by this visual parameter (non-null for skeletal morph params).</summary>
         public SkeletalBoneInfo[]? SkeletalDistortions;
+        /// <summary>Per-collision-volume deformations driven by this visual parameter (non-null for volume morph params).</summary>
+        public VolumeMorphInfo[]? VolumeMorphs;
         /// <summary>
         /// Set all the values through the constructor
         /// </summary>
@@ -231,7 +263,8 @@ namespace LibreMetaverse
         /// <param name="colorParams">Color information</param>
         /// <param name="drivenParams">Full driven-param info for driver params</param>
         /// <param name="skeletalDistortions">Per-bone skeletal deformations driven by this parameter</param>
-        public VisualParam(int paramID, string name, int group, string? wearable, string label, string labelMin, string labelMax, float def, float min, float max, bool isBumpAttribute, int[]? drivers, VisualAlphaParam? alpha, VisualColorParam? colorParams, DrivenParamInfo[]? drivenParams = null, SkeletalBoneInfo[]? skeletalDistortions = null)
+        /// <param name="volumeMorphs">Per-collision-volume deformations driven by this parameter</param>
+        public VisualParam(int paramID, string name, int group, string? wearable, string label, string labelMin, string labelMax, float def, float min, float max, bool isBumpAttribute, int[]? drivers, VisualAlphaParam? alpha, VisualColorParam? colorParams, DrivenParamInfo[]? drivenParams = null, SkeletalBoneInfo[]? skeletalDistortions = null, VolumeMorphInfo[]? volumeMorphs = null)
         {
             ParamID = paramID;
             Name = name;
@@ -249,6 +282,7 @@ namespace LibreMetaverse
             ColorParams = colorParams;
             DrivenParams = drivenParams;
             SkeletalDistortions = skeletalDistortions;
+            VolumeMorphs = volumeMorphs;
         }
     }
 
@@ -353,6 +387,7 @@ namespace LibreMetaverse
             var colors = new Dictionary<int, string>();
             var drivenParamInfoMap = new Dictionary<int, string>();
             var skeletalInfoMap = new Dictionary<int, string>();
+            var volumeMorphInfoMap = new Dictionary<int, string>();
 
             var sb = new StringBuilder();
             sb.AppendLine("#nullable enable");
@@ -487,6 +522,48 @@ namespace LibreMetaverse
                                     skeletalInfoMap[id] = $"new SkeletalBoneInfo[] {{ {joinedBones} }}";
                                 }
                             }
+                            else if (child is { Name: "param_morph", HasChildNodes: true })
+                            {
+                                var morphInfoList = new List<string>();
+                                foreach (XmlNode vnode in child.ChildNodes)
+                                {
+                                    if (vnode.Name != "volume_morph" || vnode.Attributes?["name"] == null) continue;
+                                    var volName = vnode.Attributes["name"].Value;
+                                    var scaleAttr = vnode.Attributes["scale"]?.Value;
+                                    var posAttr = vnode.Attributes["pos"]?.Value;
+
+                                    string scaleArg;
+                                    var hasScale = scaleAttr != null;
+                                    if (hasScale)
+                                    {
+                                        var (sx, sy, sz) = ParseVector3(scaleAttr!);
+                                        scaleArg = $"new Vector3({sx}, {sy}, {sz})";
+                                    }
+                                    else
+                                    {
+                                        scaleArg = "Vector3.Zero";
+                                    }
+
+                                    string posArg;
+                                    var hasPos = posAttr != null;
+                                    if (hasPos)
+                                    {
+                                        var (px, py, pz) = ParseVector3(posAttr!);
+                                        posArg = $"new Vector3({px}, {py}, {pz})";
+                                    }
+                                    else
+                                    {
+                                        posArg = "Vector3.Zero";
+                                    }
+
+                                    morphInfoList.Add($"new VolumeMorphInfo(\"" + volName + $"\", {scaleArg}, {(hasScale ? "true" : "false")}, {posArg}, {(hasPos ? "true" : "false")})");
+                                }
+                                if (morphInfoList.Count > 0)
+                                {
+                                    var joinedMorphs = string.Join(", ", morphInfoList);
+                                    volumeMorphInfoMap[id] = $"new VolumeMorphInfo[] {{ {joinedMorphs} }}";
+                                }
+                            }
                         }
                     }
 
@@ -592,8 +669,14 @@ namespace LibreMetaverse
 
                 sb.Append((colors.TryGetValue(kv.Key, out var color) ? color : "null") + ", ");
                 sb.Append(drivenParamInfoMap.TryGetValue(kv.Key, out var dpi) ? dpi : "null");
-                if (skeletalInfoMap.TryGetValue(kv.Key, out var skeletal))
-                    sb.Append(", " + skeletal);
+                var hasSkeletal = skeletalInfoMap.TryGetValue(kv.Key, out var skeletal);
+                var hasVolumeMorph = volumeMorphInfoMap.TryGetValue(kv.Key, out var volumeMorph);
+                if (hasSkeletal || hasVolumeMorph)
+                {
+                    sb.Append(", " + (hasSkeletal ? skeletal : "null"));
+                    if (hasVolumeMorph)
+                        sb.Append(", " + volumeMorph);
+                }
                 sb.AppendLine(");");
             }
 
