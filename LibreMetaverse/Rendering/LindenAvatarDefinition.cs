@@ -212,10 +212,22 @@ namespace LibreMetaverse.Rendering
 
                 if (!paramValues.TryGetValue(vp.ParamID, out var rawVal))
                     rawVal = vp.DefaultValue;
-                float vpRange = vp.MaxValue - vp.MinValue;
-                float weight = vpRange > 1e-6f
-                    ? Math.Max(0f, Math.Min(1f, (rawVal - vp.MinValue) / vpRange))
-                    : 0f;
+                // Weight is the raw param value itself, clamped to its declared range —
+                // NOT normalized to [0,1] via (rawVal-min)/(max-min). Verified against the
+                // real SL viewer source: LLVisualParam::setWeight does
+                // "mCurWeight = llclamp(weight, mMinWeight, mMaxWeight)" with no division,
+                // and LLPolySkeletalDistortion::apply multiplies scaleDelta/positionDelta
+                // by that raw (clamped) mCurWeight directly. The old [0,1] normalization
+                // was silently wrong for any param whose neutral/default value isn't at
+                // MinValue — e.g. "Head Size" (id 655, range -0.25..0.10): at the default
+                // raw value of 0, the old formula computed weight=(0-(-0.25))/0.35≈0.71,
+                // adding 71% of the full "scale=1 1 1" bone delta to mHead/mSkull even at
+                // an unmodified/neutral shape — a ~1.7x oversized head. This bug was never
+                // visible before because fitted attachments (the only consumer of this VP
+                // scale until this session) never render a head, and params like leg
+                // length/height happened to look plausible enough by coincidence not to
+                // raise suspicion.
+                float weight = Math.Max(vp.MinValue, Math.Min(vp.MaxValue, rawVal));
 
                 foreach (var boneInfo in vp.SkeletalDistortions)
                 {
@@ -242,10 +254,9 @@ namespace LibreMetaverse.Rendering
 
                 if (!paramValues.TryGetValue(vp.ParamID, out var rawVal))
                     rawVal = vp.DefaultValue;
-                float vpRange = vp.MaxValue - vp.MinValue;
-                float weight = vpRange > 1e-6f
-                    ? Math.Max(0f, Math.Min(1f, (rawVal - vp.MinValue) / vpRange))
-                    : 0f;
+                // See the matching comment on the SkeletalDistortions loop above — same
+                // fix, same source verification (raw clamped value, not [0,1] normalized).
+                float weight = Math.Max(vp.MinValue, Math.Min(vp.MaxValue, rawVal));
 
                 foreach (var morph in vp.VolumeMorphs)
                 {

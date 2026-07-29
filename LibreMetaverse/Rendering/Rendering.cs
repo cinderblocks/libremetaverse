@@ -404,7 +404,9 @@ namespace LibreMetaverse.Rendering
                     // of Detail Blocks (maps) contain just a NoGeometry key to signal there is no
                     // geometry for this submesh.
                     if (subMeshMap.ContainsKey("NoGeometry") && ((OSDBoolean)subMeshMap["NoGeometry"]))
+                    {
                         continue;
+                    }
 
                         Face oface = new Face
                         {
@@ -697,6 +699,14 @@ namespace LibreMetaverse.Rendering
             {
                 var vw = new VertexWeight();
                 int influence = 0;
+                // SL's writer (LLModel::writeModel) only emits the 0xFF terminator when a
+                // vertex has FEWER than 4 influences ("if (count < 4) write end_list"). A
+                // vertex with exactly 4 valid influences has no terminator at all -- the next
+                // byte is the next vertex's first joint index. So this loop must stop after
+                // the 4th (joint, weight) pair unconditionally, or it desyncs into the next
+                // vertex's bytes hunting for a terminator that was never written, corrupting
+                // every vertex for the rest of the submesh.
+                int entriesRead = 0;
 
                 while (idx < data.Length)
                 {
@@ -707,26 +717,30 @@ namespace LibreMetaverse.Rendering
                     if (idx + 1 >= data.Length) break;
                     ushort rawWeight = (ushort)(data[idx] | (data[idx + 1] << 8));
                     idx += 2;
+                    entriesRead++;
 
-                    if (jointIdx >= jointCount)
-                        continue; // skip invalid but non-sentinel joint index
-
-                    // Clamp to [0.001, 0.999] to match the SL viewer.
-                    float w = rawWeight / 65535f;
-                    if (w < 0.001f) w = 0.001f;
-                    else if (w > 0.999f) w = 0.999f;
-
-                    if (influence < 4)
+                    if (jointIdx < jointCount)
                     {
-                        switch (influence)
+                        // Clamp to [0.001, 0.999] to match the SL viewer.
+                        float w = rawWeight / 65535f;
+                        if (w < 0.001f) w = 0.001f;
+                        else if (w > 0.999f) w = 0.999f;
+
+                        if (influence < 4)
                         {
-                            case 0: vw.Joint0 = jointIdx; vw.Weight0 = w; break;
-                            case 1: vw.Joint1 = jointIdx; vw.Weight1 = w; break;
-                            case 2: vw.Joint2 = jointIdx; vw.Weight2 = w; break;
-                            case 3: vw.Joint3 = jointIdx; vw.Weight3 = w; break;
+                            switch (influence)
+                            {
+                                case 0: vw.Joint0 = jointIdx; vw.Weight0 = w; break;
+                                case 1: vw.Joint1 = jointIdx; vw.Weight1 = w; break;
+                                case 2: vw.Joint2 = jointIdx; vw.Weight2 = w; break;
+                                case 3: vw.Joint3 = jointIdx; vw.Weight3 = w; break;
+                            }
+                            influence++;
                         }
-                        influence++;
                     }
+
+                    if (entriesRead >= 4)
+                        break;
                 }
 
                 // Normalize weights so they sum to 1.
