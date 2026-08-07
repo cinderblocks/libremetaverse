@@ -8,12 +8,13 @@ namespace LibreMetaverse.Tests
     [TestFixture]
     public class InventoryAISClientTests
     {
-        private static OSDMap MakePermissions(UUID creator, UUID lastOwner)
+        private static OSDMap MakePermissions(UUID creator, UUID lastOwner, UUID? owner = null)
         {
             return new OSDMap
             {
                 { "creator_id", OSD.FromUUID(creator) },
                 { "last_owner_id", OSD.FromUUID(lastOwner) },
+                { "owner_id", OSD.FromUUID(owner ?? lastOwner) },
                 { "base_mask", 0 },
                 { "everyone_mask", 0 },
                 { "group_mask", 0 },
@@ -98,7 +99,7 @@ namespace LibreMetaverse.Tests
                 { "inv_type", (int)InventoryType.Object },
                 { "type", (int)AssetType.Object },
                 { "created_at", createdAt },
-                { "permissions", MakePermissions(UUID.Random(), UUID.Random()) },
+                { "permissions", MakePermissions(UUID.Random(), UUID.Random(), agentId) },
                 { "sale_info", MakeSaleInfo() }
             };
 

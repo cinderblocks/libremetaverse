@@ -260,7 +260,47 @@ namespace LibreMetaverse
         /// <returns>Inventory item created</returns>
         public static InventoryItem FromOSD(OSD data)
         {
+            /*  OSD map looks like (from e.g. GetTaskInventoryAsync()):
+            {
+                "asset_id": "00000000-0000-0000-0000-000000000000",
+                "created_at": 1785363605,
+                "desc": "description",
+                "flags": 0,
+                "inv_type": "script",
+                "item_id": "806baac6-64cd-daae-efff-627208ed1d2b",
+                "metadata": {
+                },
+                "name": "New Script",
+                "parent_id": "74a61033-366a-0b89-4d4b-649c5b0de2ad",
+                "permissions": {
+                    "base_mask": 2147483647,
+                    "creator_id": "90d514eb-85f5-4ffe-b95e-20bcc77168db",
+                    "everyone_mask": 0,
+                    "group_id": "00000000-0000-0000-0000-000000000000",
+                    "group_mask": 0,
+                    "is_owner_group": false,
+                    "last_owner_id": "90d514eb-85f5-4ffe-b95e-20bcc77168db",
+                    "next_owner_mask": 532480,
+                    "owner_id": "90d514eb-85f5-4ffe-b95e-20bcc77168db",
+                    "owner_mask": 2147483647
+                },
+                "sale_info": {
+                    "sale_price": 10,
+                    "sale_type": "not"
+                },
+                "type": "lsltext"
+            }
+            */
             OSDMap descItem = (OSDMap)data;
+
+            InventoryType invType = descItem["inv_type"].Type == OSDType.String
+                ? Utils.StringToInventoryType(descItem["inv_type"].AsString())
+                : (InventoryType)descItem["inv_type"].AsInteger();
+
+            AssetType assetType = descItem["type"].Type == OSDType.String
+                ? Utils.StringToAssetType(descItem["type"].AsString())
+                : (AssetType)descItem["type"].AsInteger();
+
             /*
              * Objects that have been attached in-world prior to being stored on the
              * asset server are stored with the InventoryType of 0 (Texture)
@@ -269,25 +309,24 @@ namespace LibreMetaverse
              * This corrects that behavior by forcing Object Asset types that have an
              * invalid InventoryType with the proper InventoryType of Attachment.
              */
-            InventoryType type = (InventoryType)descItem["inv_type"].AsInteger();
-            if (type == InventoryType.Texture &&
-                ((AssetType)descItem["type"].AsInteger() == AssetType.Object
-                 || (AssetType)descItem["type"].AsInteger() == AssetType.Mesh))
+            if (invType == InventoryType.Texture &&
+                (assetType == AssetType.Object || assetType == AssetType.Mesh))
             {
-                type = InventoryType.Attachment;
+                invType = InventoryType.Attachment;
             }
-            InventoryItem item = InventoryManager.CreateInventoryItem(type, descItem["item_id"]);
+
+            InventoryItem item = InventoryManager.CreateInventoryItem(invType, descItem["item_id"]);
 
             item.ParentUUID = descItem["parent_id"];
             item.Name = descItem["name"];
             item.Description = descItem["desc"];
-            item.OwnerID = descItem["agent_id"];
             item.AssetUUID = descItem["asset_id"];
-            item.AssetType = (AssetType)descItem["type"].AsInteger();
+            item.AssetType = assetType;
             item.CreationDate = Utils.UnixTimeToDateTime(descItem["created_at"]);
             item.Flags = descItem["flags"];
 
             OSDMap perms = (OSDMap)descItem["permissions"];
+            item.OwnerID = perms["owner_id"];
             item.CreatorID = perms["creator_id"];
             item.LastOwnerID = perms["last_owner_id"];
             item.Permissions = new Permissions(perms["base_mask"], perms["everyone_mask"], perms["group_mask"], perms["next_owner_mask"], perms["owner_mask"]);
