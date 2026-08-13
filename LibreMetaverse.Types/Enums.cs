@@ -297,10 +297,18 @@ namespace LibreMetaverse
         Gesture = 20,
         /// <summary></summary>
         Mesh = 22,
-        /// <summary></summary>
-        Settings = 23,
-        /// <summary></summary>
-        Material = 24,
+        /// <summary>Widget</summary>
+        Widget = 23,
+        /// <summary>Person</summary>
+        Person = 24,
+        /// <summary>Settings</summary>
+        Settings = 25,
+        /// <summary>Render material</summary>
+        Material = 26,
+        /// <summary>glTF asset</summary>
+        GLTF = 27,
+        /// <summary>Binary glTF asset</summary>
+        GLTFBin = 28,
     }
 
     /// <summary>

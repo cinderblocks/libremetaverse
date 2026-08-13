@@ -171,7 +171,13 @@ namespace LibreMetaverse
 	        "animation",  // 19
 	        "gesture",    // 20
             string.Empty, // 21
-            "mesh"        // 22
+            "mesh",       // 22
+            "widget",     // 23
+            "person",     // 24
+            "settings",   // 25
+            "material",   // 26
+            "gltf",       // 27
+            "glbin"       // 28
         };
 
         private static readonly string[] _SaleTypeNames = {

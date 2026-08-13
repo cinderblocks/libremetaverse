@@ -90,5 +90,31 @@ namespace LibreMetaverse.Tests
                 Assert.That(unknown, Is.InstanceOf<InventoryItem>());
             }
         }
+
+        [TestCase(23, "Widget", "widget")]
+        [TestCase(24, "Person", "person")]
+        [TestCase(25, "Settings", "settings")]
+        [TestCase(26, "Material", "material")]
+        [TestCase(27, "GLTF", "gltf")]
+        [TestCase(28, "GLTFBin", "glbin")]
+        public void InventoryTypeCanonicalTail_HasExpectedWireValueAndName(int value, string enumName, string wireName)
+        {
+            var inventoryType = (InventoryType)value;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(Enum.GetName(typeof(InventoryType), inventoryType), Is.EqualTo(enumName));
+                Assert.That(Utils.InventoryTypeToString(inventoryType), Is.EqualTo(wireName));
+                Assert.That(Utils.StringToInventoryType(wireName), Is.EqualTo(inventoryType));
+            }
+        }
+
+        [Test]
+        public void CreateInventoryItem_MaterialWireValue_ReturnsMaterial()
+        {
+            var item = InventoryManager.CreateInventoryItem((InventoryType)26, UUID.Random());
+
+            Assert.That(item, Is.InstanceOf<InventoryMaterial>());
+        }
     }
 }
