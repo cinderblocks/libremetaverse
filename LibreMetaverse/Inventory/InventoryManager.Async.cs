@@ -302,11 +302,10 @@ namespace LibreMetaverse
         /// Saves a GLTF material to an existing agent inventory item via the
         /// UpdateMaterialAgentInventory capability. Mirrors
         /// LLMaterialEditor::updateInventoryItem's agent-inventory branch (llmaterialeditor.cpp): a
-        /// two-phase upload where the metadata POST (item_id) returns an "uploader" URL that the
-        /// material's minified GLTF JSON is then POSTed to.
+        /// two-phase upload where the metadata POST (item_id) returns an "uploader" URL. The second
+        /// POST sends a binary LLSD map containing version, type, and the material JSON in data.
         /// </summary>
-        /// <param name="material">The material to save; its JSON encoding (<see cref="AssetMaterial.ToJson"/>)
-        /// is what gets uploaded</param>
+        /// <param name="material">The material to save</param>
         /// <param name="materialItemID">UUID of the existing inventory item to update</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <param name="progress">Optional upload progress reporter</param>
@@ -319,7 +318,7 @@ namespace LibreMetaverse
             if (cap == null)
                 throw new InvalidOperationException("UpdateMaterialAgentInventory capability is not currently available");
 
-            var data = System.Text.Encoding.UTF8.GetBytes(material.ToJson());
+            var data = EncodeMaterialAsset(material);
             var query = new OSDMap { { "item_id", OSD.FromUUID(materialItemID) } };
             try
             {
@@ -333,10 +332,10 @@ namespace LibreMetaverse
         /// <summary>
         /// Saves a GLTF material to an existing task (object) inventory item via the
         /// UpdateMaterialTaskInventory capability. Mirrors
-        /// LLMaterialEditor::updateInventoryItem's task-inventory branch (llmaterialeditor.cpp).
+        /// LLMaterialEditor::updateInventoryItem's task-inventory branch (llmaterialeditor.cpp) and
+        /// uses the same two-phase binary LLSD material envelope as the agent-inventory path.
         /// </summary>
-        /// <param name="material">The material to save; its JSON encoding (<see cref="AssetMaterial.ToJson"/>)
-        /// is what gets uploaded</param>
+        /// <param name="material">The material to save</param>
         /// <param name="materialItemID">UUID of the existing task-inventory item to update</param>
         /// <param name="taskID">UUID of the object (task) containing the item</param>
         /// <param name="cancellationToken">Cancellation token</param>
@@ -350,7 +349,7 @@ namespace LibreMetaverse
             if (cap == null)
                 throw new InvalidOperationException("UpdateMaterialTaskInventory capability is not currently available");
 
-            var data = System.Text.Encoding.UTF8.GetBytes(material.ToJson());
+            var data = EncodeMaterialAsset(material);
             var query = new OSDMap { { "item_id", OSD.FromUUID(materialItemID) }, { "task_id", OSD.FromUUID(taskID) } };
             try
             {
@@ -359,6 +358,17 @@ namespace LibreMetaverse
             }
             catch (OperationCanceledException) { throw; }
             catch (Exception ex) { return (false, ex.Message, UUID.Zero, UUID.Zero); }
+        }
+
+        private static byte[] EncodeMaterialAsset(AssetMaterial material)
+        {
+            var asset = new OSDMap
+            {
+                ["version"] = OSD.FromString("1.1"),
+                ["type"] = OSD.FromString("GLTF 2.0"),
+                ["data"] = OSD.FromString(material.ToJson())
+            };
+            return OSDParser.SerializeLLSDBinary(asset);
         }
 
         public async Task<(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string>? compileMessages, UUID itemID, UUID assetID)> RequestUpdateScriptAgentInventoryAsync(

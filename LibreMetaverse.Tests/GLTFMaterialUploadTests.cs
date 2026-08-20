@@ -25,9 +25,12 @@
  */
 
 using System;
+using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 using LibreMetaverse.Assets;
+using LibreMetaverse.StructuredData;
 using LibreMetaverse.Tests.TestHelpers;
 using NUnit.Framework;
 
@@ -38,9 +41,9 @@ namespace LibreMetaverse.Tests
     /// Verified against the reference viewer (LLMaterialEditor::updateInventoryItem in
     /// llmaterialeditor.cpp): a two-phase upload using the same LLBufferedAssetUploadInfo shape as
     /// UpdateNotecardAgentInventory/UpdateNotecardTaskInventory -- POST {"item_id"} (plus "task_id"
-    /// for the task variant) to the capability, which returns an "uploader" URL that the material's
-    /// GLTF JSON is then POSTed to; a final "state":"complete" response carries the new asset UUID
-    /// under "new_asset".
+    /// for the task variant) to the capability, which returns an "uploader" URL. The second POST
+    /// sends a binary LLSD map containing version, type, and the material JSON in data; a final
+    /// "state":"complete" response carries the new asset UUID under "new_asset".
     /// </summary>
     [TestFixture]
     public class GLTFMaterialUploadTests
@@ -66,7 +69,7 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        public async Task RequestUpdateMaterialAgentInventoryAsync_HappyPath_PostsMetadataThenJsonAndReturnsNewAsset()
+        public async Task RequestUpdateMaterialAgentInventoryAsync_HappyPath_PostsWrappedAssetAndReturnsNewAsset()
         {
             var itemId = UUID.Random();
             var newAsset = UUID.Random();
@@ -129,7 +132,7 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        public async Task RequestUpdateMaterialAgentInventoryAsync_UploadedJsonRoundTripsMaterial()
+        public async Task RequestUpdateMaterialAgentInventoryAsync_UploadedAssetIsBinaryLlsdWrappedGltf()
         {
             var itemId = UUID.Random();
             var newAsset = UUID.Random();
@@ -139,15 +142,32 @@ namespace LibreMetaverse.Tests
             _client.AddHttpResponse(new Uri(UploaderUrl), HttpStatusCode.OK,
                 $"{{\"state\":\"complete\",\"new_asset\":\"{newAsset}\"}}", "application/json");
 
-            var material = new AssetMaterial { Name = "My Material" };
+            var material = new AssetMaterial { Name = "My Material \u0394" };
             material.SetBaseColorFactor(new Color4(0.2f, 0.4f, 0.6f, 1f));
+            var expectedJson = material.ToJson();
             await _client.Inventory.RequestUpdateMaterialAgentInventoryAsync(material, itemId);
 
-            var uploadedJson = _client.CapturedRequests[1].Body;
-            var roundTripped = new AssetMaterial(UUID.Random(),
-                System.Text.Encoding.UTF8.GetBytes(uploadedJson));
+            var uploadedAsset = _client.CapturedRequestBodies[1];
+            var binaryHeader = Encoding.ASCII.GetBytes("<?llsd/binary?>\n");
+            Assert.That(uploadedAsset.Take(binaryHeader.Length), Is.EqualTo(binaryHeader));
+            Assert.That(Encoding.ASCII.GetString(uploadedAsset).IndexOf(
+                "<?llsd/binary?>", binaryHeader.Length, StringComparison.Ordinal), Is.EqualTo(-1));
 
-            Assert.That(roundTripped.Name, Is.EqualTo("My Material"));
+            var asset = OSDParser.DeserializeLLSDBinary(uploadedAsset);
+            Assert.That(asset, Is.TypeOf<OSDMap>());
+            var assetMap = (OSDMap)asset;
+            Assert.That(assetMap.Count, Is.EqualTo(3));
+            Assert.That(assetMap["version"].Type, Is.EqualTo(OSDType.String));
+            Assert.That(assetMap["version"].AsString(), Is.EqualTo("1.1"));
+            Assert.That(assetMap["type"].Type, Is.EqualTo(OSDType.String));
+            Assert.That(assetMap["type"].AsString(), Is.EqualTo("GLTF 2.0"));
+            Assert.That(assetMap["data"].Type, Is.EqualTo(OSDType.String));
+            Assert.That(assetMap["data"].AsString(), Is.EqualTo(expectedJson));
+
+            var roundTripped = new AssetMaterial(UUID.Random(),
+                Encoding.UTF8.GetBytes(assetMap["data"].AsString()));
+
+            Assert.That(roundTripped.Name, Is.EqualTo("My Material \u0394"));
             Assert.That(roundTripped.BaseColorFactor, Is.EqualTo(material.BaseColorFactor));
         }
     }
