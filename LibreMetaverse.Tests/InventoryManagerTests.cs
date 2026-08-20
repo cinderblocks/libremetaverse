@@ -26,6 +26,8 @@
 
 using NUnit.Framework;
 using System;
+using System.Collections;
+using System.Reflection;
 
 namespace LibreMetaverse.Tests
 {
@@ -115,6 +117,53 @@ namespace LibreMetaverse.Tests
             var item = InventoryManager.CreateInventoryItem((InventoryType)26, UUID.Random());
 
             Assert.That(item, Is.InstanceOf<InventoryMaterial>());
+        }
+
+        [TestCase(25, 10, 25)]
+        [TestCase(0, 10, 0)]
+        [TestCase(null, 10, 10)]
+        public void GetUploadCostForAssetType_TextureUsesPresentBenefitOrBaseFallback(
+            int? textureUploadCost, int baseUploadCost, int expected)
+        {
+            var actual = GetUploadCostForAssetType(
+                AssetType.Texture, "texture_upload_cost", textureUploadCost, baseUploadCost);
+
+            Assert.That(actual, Is.EqualTo(expected));
+        }
+
+        [TestCase(AssetType.Animation, "animation_upload_cost", 7, 7)]
+        [TestCase(AssetType.Animation, "animation_upload_cost", null, 10)]
+        [TestCase(AssetType.Sound, "sound_upload_cost", 8, 8)]
+        [TestCase(AssetType.Sound, "sound_upload_cost", null, 10)]
+        [TestCase(AssetType.Object, "mesh_upload_cost", 9, 9)]
+        [TestCase(AssetType.Object, "mesh_upload_cost", null, 10)]
+        public void GetUploadCostForAssetType_PreservesNeighboringBenefitAndFallbackBehavior(
+            AssetType assetType, string benefitKey, int? benefitCost, int expected)
+        {
+            var actual = GetUploadCostForAssetType(assetType, benefitKey, benefitCost, 10);
+
+            Assert.That(actual, Is.EqualTo(expected));
+        }
+
+        private static int GetUploadCostForAssetType(
+            AssetType assetType, string benefitKey, int? benefitCost, int baseUploadCost)
+        {
+            var client = new GridClient();
+            client.Settings.UploadCost = baseUploadCost;
+
+            var values = new Hashtable();
+            if (benefitCost.HasValue)
+                values[benefitKey] = benefitCost.Value;
+
+            var benefitsProperty = typeof(AgentManager).GetProperty(nameof(AgentManager.Benefits));
+            Assert.That(benefitsProperty, Is.Not.Null);
+            benefitsProperty!.SetValue(client.Self, new AccountLevelBenefits(values));
+
+            var method = typeof(InventoryManager).GetMethod(
+                "GetUploadCostForAssetType", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+
+            return (int)method!.Invoke(client.Inventory, new object[] { assetType })!;
         }
     }
 }
