@@ -40,8 +40,13 @@ namespace LibreMetaverse.Tests.TestHelpers
             var bodyBytes = Array.Empty<byte>();
             if (request?.Content != null)
             {
+#if NET5_0_OR_GREATER
+                body = await request.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                bodyBytes = await request.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+#else
                 body = await request.Content.ReadAsStringAsync().ConfigureAwait(false);
                 bodyBytes = await request.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+#endif
             }
 
             if (request?.RequestUri != null)
