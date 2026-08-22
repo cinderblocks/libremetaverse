@@ -19,6 +19,9 @@ namespace LibreMetaverse.Tests.TestHelpers
         /// <summary>All requests received, in order.</summary>
         public List<(HttpMethod Method, Uri Uri, string Body)> CapturedRequests { get; } = new List<(HttpMethod, Uri, string)>();
 
+        /// <summary>Raw request bodies received, in the same order as <see cref="CapturedRequests"/>.</summary>
+        public List<byte[]> CapturedRequestBodies { get; } = new List<byte[]>();
+
         /// <summary>Register a response matched by exact URI string.</summary>
         public void AddResponse(Uri uri, HttpStatusCode status, string content, string mediaType = "application/json")
         {
@@ -34,11 +37,23 @@ namespace LibreMetaverse.Tests.TestHelpers
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var body = string.Empty;
+            var bodyBytes = Array.Empty<byte>();
             if (request?.Content != null)
+            {
+#if NET5_0_OR_GREATER
+                body = await request.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                bodyBytes = await request.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
+#else
                 body = await request.Content.ReadAsStringAsync().ConfigureAwait(false);
+                bodyBytes = await request.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+#endif
+            }
 
             if (request?.RequestUri != null)
+            {
                 CapturedRequests.Add((request.Method, request.RequestUri, body));
+                CapturedRequestBodies.Add(bodyBytes);
+            }
 
             // Exact match
             if (request?.RequestUri != null && _responses.TryGetValue(request.RequestUri.ToString(), out var entry))
@@ -102,6 +117,9 @@ namespace LibreMetaverse.Tests.TestHelpers
 
         /// <summary>All HTTP requests received by this client, in order.</summary>
         public List<(HttpMethod Method, Uri Uri, string Body)> CapturedRequests => _fakeHandler.CapturedRequests;
+
+        /// <summary>Raw HTTP request bodies received, in the same order as <see cref="CapturedRequests"/>.</summary>
+        public List<byte[]> CapturedRequestBodies => _fakeHandler.CapturedRequestBodies;
 
         /// <summary>
         /// Injects an arbitrary named capability URI into CurrentSim's Caps, creating a fake
