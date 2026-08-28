@@ -294,7 +294,7 @@ namespace LibreMetaverse
         public static SortedList<int, VisualParam> Params = new SortedList<int, VisualParam>();
 
         /// <summary>
-        /// Group-0 parameter IDs in the exact order they appear in avatar_lad.xml.
+        /// Group-0 and group-3 parameter IDs in ascending numeric ID order.
         /// This order matches the byte sequence in the AvatarAppearance packet visual_param block.
         /// </summary>
         public static int[] Group0ParamIds = Array.Empty<int>();
@@ -382,7 +382,7 @@ namespace LibreMetaverse
             var nodes = doc.GetElementsByTagName("param");
 
             var ids = new SortedList<int, string>();
-            var group0IdsInOrder = new List<int>();  // group-0 and group-3 (TRANSMIT_NOT_TWEAKABLE) IDs in avatar_lad.xml document order
+            var group0IdsInOrder = new List<int>();  // group-0 and group-3 (TRANSMIT_NOT_TWEAKABLE) wire IDs
             var alphas = new Dictionary<int, string>();
             var colors = new Dictionary<int, string>();
             var drivenParamInfoMap = new Dictionary<int, string>();
@@ -640,7 +640,7 @@ namespace LibreMetaverse
                     {
                         // group-3 (VISUAL_PARAM_GROUP_TRANSMIT_NOT_TWEAKABLE) params are also
                         // transmitted in the AvatarAppearance packet interleaved with group-0 params
-                        // in avatar_lad.xml document order. They must be included here so that
+                        // in ascending numeric ID order. They must be included here so that
                         // DecodeVisualParams() reads each byte from the correct offset.
                         group0IdsInOrder.Add(id);
                     }

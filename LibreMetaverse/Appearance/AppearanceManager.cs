@@ -2484,16 +2484,12 @@ namespace LibreMetaverse
             {
                 #region VisualParam
 
-                var vpIndex = 0;
-                var wearingPhysics = Wearables.ContainsKey(WearableType.Physics);
+                var wireParamIds = VisualParams.Group0ParamIds;
+                set.VisualParam = new AgentSetAppearancePacket.VisualParamBlock[wireParamIds.Length];
 
-                var nrParams = wearingPhysics ? 251 : 218;
-                set.VisualParam = new AgentSetAppearancePacket.VisualParamBlock[nrParams];
-
-                foreach (var kvp in VisualParams.Params)
+                for (var vpIndex = 0; vpIndex < wireParamIds.Length; ++vpIndex)
                 {
-                    if (vpIndex >= nrParams) break;
-                    var vp = kvp.Value;
+                    var vp = VisualParams.Params[wireParamIds[vpIndex]];
 
                     var paramValue = 0f;
                     var found = Wearables.Any(wearableList => wearableList.Value.Any(wearable => wearable.Asset != null && wearable.Asset.Params.TryGetValue(vp.ParamID, out paramValue)));
@@ -2505,7 +2501,6 @@ namespace LibreMetaverse
                     {
                         ParamValue = Utils.FloatToByte(paramValue, vp.MinValue, vp.MaxValue)
                     };
-                    ++vpIndex;
 
                     // Check if this is one of the visual params used in the agent height calculation
                     switch (vp.ParamID)

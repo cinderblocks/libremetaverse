@@ -1,3 +1,4 @@
+using System.Linq;
 using NUnit.Framework;
 
 namespace LibreMetaverse.Tests
@@ -5,6 +6,30 @@ namespace LibreMetaverse.Tests
     [TestFixture]
     public class AppearanceManagerTests
     {
+        [Test]
+        public void MakeAppearancePacket_UsesCompleteVisualParamWireSequence()
+        {
+            var client = new GridClient();
+            var packet = client.Appearance.MakeAppearancePacket();
+            var wireParamIds = VisualParams.Group0ParamIds;
+            var expectedValues = wireParamIds
+                .Select(id => VisualParams.Params[id])
+                .Select(param => Utils.FloatToByte(param.DefaultValue, param.MinValue, param.MaxValue))
+                .ToArray();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(wireParamIds, Has.Length.EqualTo(253));
+                Assert.That(wireParamIds, Is.Ordered);
+                Assert.That(wireParamIds.Distinct().Count(), Is.EqualTo(wireParamIds.Length));
+                Assert.That(wireParamIds.All(id =>
+                    VisualParams.Params.TryGetValue(id, out var param) &&
+                    (param.Group == 0 || param.Group == 3)), Is.True);
+                Assert.That(packet.VisualParam.Select(block => block.ParamValue),
+                    Is.EqualTo(expectedValues));
+            });
+        }
+
         [Test]
         public void WearableTypeToAssetType_BodypartsAndClothing_ReturnsExpected()
         {
