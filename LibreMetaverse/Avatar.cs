@@ -500,7 +500,9 @@ namespace LibreMetaverse
         /// The AvatarAppearance packet transmits both TWEAKABLE (group-0) and
         /// TRANSMIT_NOT_TWEAKABLE (group-3) params interleaved in ascending numeric ID order.
         /// <see cref="VisualParams.Group0ParamIds"/> includes both groups in that order so each
-        /// byte maps to the correct parameter.
+        /// byte maps to the correct parameter. This ordering must stay in sync with the encode
+        /// side in <see cref="AppearanceManager.MakeAppearancePacket"/>, which builds the
+        /// outgoing VisualParam block from the same array.
         /// </remarks>
         public IReadOnlyDictionary<int, float> DecodeVisualParams()
         {

@@ -2459,6 +2459,13 @@ namespace LibreMetaverse
             return null;
         }
 
+        /// <remarks>
+        /// The outgoing VisualParam block is built from <see cref="VisualParams.Group0ParamIds"/>,
+        /// which orders group-0 (TWEAKABLE) and group-3 (TRANSMIT_NOT_TWEAKABLE) params by ascending
+        /// numeric ID. This must stay in sync with the decode side in
+        /// <see cref="Avatar.DecodeVisualParams"/>, which reads bytes from the same array in the
+        /// same order.
+        /// </remarks>
         public AgentSetAppearancePacket MakeAppearancePacket()
         {
             var set = new AgentSetAppearancePacket
