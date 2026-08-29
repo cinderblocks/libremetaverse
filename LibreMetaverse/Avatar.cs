@@ -498,7 +498,7 @@ namespace LibreMetaverse
         /// </summary>
         /// <remarks>
         /// The AvatarAppearance packet transmits both TWEAKABLE (group-0) and
-        /// TRANSMIT_NOT_TWEAKABLE (group-3) params interleaved in avatar_lad.xml document order.
+        /// TRANSMIT_NOT_TWEAKABLE (group-3) params interleaved in ascending numeric ID order.
         /// <see cref="VisualParams.Group0ParamIds"/> includes both groups in that order so each
         /// byte maps to the correct parameter.
         /// </remarks>
@@ -662,4 +662,3 @@ namespace LibreMetaverse
 
     }
 }
-

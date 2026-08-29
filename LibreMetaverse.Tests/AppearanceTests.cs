@@ -70,8 +70,8 @@ namespace LibreMetaverse.Tests
         [Test]
         public void DecodeVisualParams_RoundTrip_DefaultValues()
         {
-            // Build the byte array in Group0ParamIds document order — this is the order
-            // DecodeVisualParams consumes, which differs from the SortedList key order.
+            // Build the byte array in Group0ParamIds wire order — this is the order
+            // DecodeVisualParams consumes.
             var bytes = VisualParams.Group0ParamIds
                 .Select(id => VisualParams.Params.TryGetValue(id, out var vp)
                     ? Utils.FloatToByte(vp.DefaultValue, vp.MinValue, vp.MaxValue)
@@ -176,7 +176,7 @@ namespace LibreMetaverse.Tests
         [Test]
         public void AvatarAppearanceEventArgs_DecodeVisualParams_RoundTrip_DefaultValues()
         {
-            // Build bytes in Group0ParamIds document order — this is the order DecodeVisualParams consumes.
+            // Build bytes in Group0ParamIds wire order — this is the order DecodeVisualParams consumes.
             var bytes = VisualParams.Group0ParamIds
                 .Select(id => VisualParams.Params.TryGetValue(id, out var vp)
                     ? Utils.FloatToByte(vp.DefaultValue, vp.MinValue, vp.MaxValue)
