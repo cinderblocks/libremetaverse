@@ -35,6 +35,7 @@ using System.Xml;
 using System.Linq;
 using System.Xml.Serialization;
 using CoreJ2K.Configuration;
+using CoreJ2K.Util;
 using LibreMetaverse.Imaging;
 using LibreMetaverse.ImportExport.Collada14;
 using LibreMetaverse.Rendering;
@@ -46,6 +47,16 @@ namespace LibreMetaverse.ImportExport
     /// </summary>
     public class ColladaLoader
     {
+        static ColladaLoader()
+        {
+            // LoadImage's J2C encode requires ManagedImage to be registered with CoreJ2K's
+            // ImageFactory. AssetTexture registers it too, but nothing guarantees that type has
+            // been touched yet in a process that only uses ColladaLoader (e.g. a standalone
+            // model-upload tool), so register it here as well -- redundant, not conflicting, if
+            // AssetTexture already has.
+            ImageFactory.Register(new ManagedImageCreator());
+        }
+
         private COLLADA? Model;
         private static XmlSerializer? Serializer = null;
         private List<Node> Nodes = new List<Node>();
@@ -191,6 +202,8 @@ namespace LibreMetaverse.ImportExport
                     image.ResizeBilinear(width, height);
                 }
 
+                material.Width = width;
+                material.Height = height;
                 material.TextureData = CompleteConfigurationPresets.Streaming.WithFileFormat(false).Encode(image);
 
                 Logger.Info($"Successfully encoded {fname}");

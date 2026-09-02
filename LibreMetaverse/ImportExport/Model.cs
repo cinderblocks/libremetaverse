@@ -38,6 +38,12 @@ namespace LibreMetaverse.ImportExport
         public Color4 DiffuseColor = Color4.White;
         public string Texture = string.Empty;
         public byte[] TextureData = Array.Empty<byte>();
+
+        /// <summary>Decoded pixel dimensions of <see cref="Texture"/>, captured by the loader before
+        /// J2C encoding. Used to report accurate width/height in a fee-quote request that omits the
+        /// real texture bytes -- see LLMeshUploadThread::wholeModelToLLSD's <c>texture_info</c>.</summary>
+        public int Width;
+        public int Height;
     }
 
     public class ModelFace
