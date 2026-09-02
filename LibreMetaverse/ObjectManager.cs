@@ -650,6 +650,7 @@ namespace LibreMetaverse
             Client.Network.RegisterCallback(PacketType.PayPriceReply, PayPriceReplyHandler);
             Client.Network.RegisterCallback(PacketType.ObjectAnimation, ObjectAnimationHandler);
             Client.Network.RegisterEventCallback("ObjectPhysicsProperties", ObjectPhysicsPropertiesHandler);
+            Client.Network.GenericStreamingMessage += GenericStreamingMessageHandler;
         }
 
         // IDisposable support
@@ -679,6 +680,7 @@ namespace LibreMetaverse
                         try { Client.Network.UnregisterCallback(PacketType.PayPriceReply, PayPriceReplyHandler); } catch { }
                         try { Client.Network.UnregisterCallback(PacketType.ObjectAnimation, ObjectAnimationHandler); } catch { }
                         try { Client.Network.UnregisterEventCallback("ObjectPhysicsProperties", ObjectPhysicsPropertiesHandler); } catch { }
+                        try { Client.Network.GenericStreamingMessage -= GenericStreamingMessageHandler; } catch { }
                     }
 
                     // Clean up multi-sim object tracking

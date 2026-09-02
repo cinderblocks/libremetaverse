@@ -458,6 +458,17 @@ namespace LibreMetaverse
         /// </summary>
         public ConcurrentDictionary<UUID, uint> GlobalToLocalID = new ConcurrentDictionary<UUID, uint>();
 
+        /// <summary>
+        /// A thread-safe cache of the most recently received GLTF material override for each
+        /// object local ID in this simulator, keyed by local ID. Populated from
+        /// <see cref="GenericStreamingMethod.GltfMaterialOverride"/> messages regardless of whether
+        /// the object is currently tracked, so an override that arrives before the object's own
+        /// update can still be applied once <see cref="ObjectsPrimitives"/> catches up. Mirrors
+        /// LLViewerRegion's per-region GLTF override cache in the reference viewer.
+        /// </summary>
+        public ConcurrentDictionary<uint, GLTFMaterialOverrideCacheEntry> GLTFMaterialOverrides =
+            new ConcurrentDictionary<uint, GLTFMaterialOverrideCacheEntry>();
+
         public readonly TerrainPatch[] Terrain = Array.Empty<TerrainPatch>();
 
         public readonly Vector2[]? WindSpeeds;

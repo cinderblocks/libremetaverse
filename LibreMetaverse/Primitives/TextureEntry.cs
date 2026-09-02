@@ -28,6 +28,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using LibreMetaverse.Assets;
 using LibreMetaverse.StructuredData;
 
 namespace LibreMetaverse
@@ -452,6 +453,16 @@ namespace LibreMetaverse
                 }
             }
 
+            /// <summary>
+            /// Runtime-only GLTF material override for this face, delivered out-of-band via a
+            /// <see cref="GenericStreamingMethod.GltfMaterialOverride"/> message rather than as part
+            /// of the TextureEntry wire block itself -- mirrors LLTextureEntry::mGLTFMaterialOverride
+            /// in the reference viewer. Not populated by <see cref="FromBytes"/>/<see cref="FromOSD"/>
+            /// and not written by <see cref="GetBytes"/>/<see cref="GetOSD()"/>. Null when this face
+            /// has no active override.
+            /// </summary>
+            public AssetMaterial? MaterialOverride { get; set; }
+
             #endregion Properties
 
             /// <summary>
@@ -539,7 +550,8 @@ namespace LibreMetaverse
                     hasAttribute = hasAttribute,
                     textureID = textureID,
                     materialID = materialID,
-                    renderMaterialID = renderMaterialID
+                    renderMaterialID = renderMaterialID,
+                    MaterialOverride = MaterialOverride
                 };
                 return ret;
             }
