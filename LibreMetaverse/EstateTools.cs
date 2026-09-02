@@ -1251,50 +1251,32 @@ namespace LibreMetaverse
         /// <param name="e">The EventArgs object containing the packet data</param>
         protected void LandStatReplyHandler(object? sender, PacketReceivedEventArgs e)
         {
-            //if (OnLandStatReply != null || OnGetTopScripts != null || OnGetTopColliders != null)
-            //if (OnGetTopScripts != null || OnGetTopColliders != null)
+            var p = (LandStatReplyPacket)e.Packet;
+            var Tasks = new Dictionary<UUID, EstateTask>();
+
+            foreach (var rep in p.ReportData)
             {
-                var p = (LandStatReplyPacket)e.Packet;
-                var Tasks = new Dictionary<UUID, EstateTask>();
-
-                foreach (var rep in p.ReportData)
+                var task = new EstateTask
                 {
-                    var task = new EstateTask
-                    {
-                        Position = new Vector3(rep.LocationX, rep.LocationY, rep.LocationZ),
-                        Score = rep.Score,
-                        TaskID = rep.TaskID,
-                        TaskLocalID = rep.TaskLocalID,
-                        TaskName = Utils.BytesToString(rep.TaskName),
-                        OwnerName = Utils.BytesToString(rep.OwnerName)
-                    };
-                    Tasks.Add(task.TaskID, task);
-                }
+                    Position = new Vector3(rep.LocationX, rep.LocationY, rep.LocationZ),
+                    Score = rep.Score,
+                    TaskID = rep.TaskID,
+                    TaskLocalID = rep.TaskLocalID,
+                    TaskName = Utils.BytesToString(rep.TaskName),
+                    OwnerName = Utils.BytesToString(rep.OwnerName)
+                };
+                Tasks.Add(task.TaskID, task);
+            }
 
-                var type = (LandStatReportType)p.RequestData.ReportType;
+            var type = (LandStatReportType)p.RequestData.ReportType;
 
-                if (type == LandStatReportType.TopScripts)
-                {
-                    OnTopScriptsReply(new TopScriptsReplyEventArgs((int)p.RequestData.TotalObjectCount, Tasks));
-                }
-                else if (type == LandStatReportType.TopColliders)
-                {
-                    OnTopCollidersReply(new TopCollidersReplyEventArgs((int)p.RequestData.TotalObjectCount, Tasks));
-                }
-
-                /*
-                if (OnGetTopColliders != null)
-                {
-                    //FIXME - System.UnhandledExceptionEventArgs
-                    OnLandStatReply(
-                        type,
-                        p.RequestData.RequestFlags,
-                        (int)p.RequestData.TotalObjectCount,
-                        Tasks
-                    );
-                }
-                */
-
+            if (type == LandStatReportType.TopScripts)
+            {
+                OnTopScriptsReply(new TopScriptsReplyEventArgs((int)p.RequestData.TotalObjectCount, Tasks));
+            }
+            else if (type == LandStatReportType.TopColliders)
+            {
+                OnTopCollidersReply(new TopCollidersReplyEventArgs((int)p.RequestData.TotalObjectCount, Tasks));
             }
         }
         private void LandStatCapsReplyHandler(string capsKey, IMessage message, Simulator simulator)
