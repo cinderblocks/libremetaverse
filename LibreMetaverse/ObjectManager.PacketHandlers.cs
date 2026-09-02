@@ -607,7 +607,11 @@ namespace LibreMetaverse
                     pos += 6;
 
                     // Textures
-                    // FIXME: Why are we ignoring the first four bytes here?
+                    // Unlike ObjectUpdate's TextureEntry block (parsed from offset 0), a terse
+                    // update's TextureEntry field carries 4 leading bytes before the actual
+                    // TextureEntry data. This offset is original to the wire parsing and has been
+                    // unchanged since it was first written; texture updates via terse packets have
+                    // worked correctly with it in practice.
                     if (block.TextureEntry.Length != 0)
                         update.Textures = new Primitive.TextureEntry(block.TextureEntry, 4, block.TextureEntry.Length - 4);
 
