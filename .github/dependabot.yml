@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    ignore:
+      # Pinned below the oldest Roslyn our supported build tools ship (VS 2022 17.14, which
+      # self-reports as compiler version 5.0.0.0) so the SourceGenerators/* analyzer projects keep
+      # loading (Roslyn refuses to load an analyzer built against a newer compiler than the one
+      # hosting it -- CS9057). See the comment on this package in Directory.Packages.props before
+      # ever bumping it; a newer version needs a coordinated CI toolchain bump alongside it.
+      - dependency-name: "Microsoft.CodeAnalysis.CSharp"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

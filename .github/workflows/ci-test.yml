@@ -8,6 +8,36 @@ on:
   workflow_dispatch: {}
 
 jobs:
+  security-audit:
+    name: NuGet vulnerability audit
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore LibreMetaverse.sln
+
+      - name: Check for known-vulnerable packages
+        shell: bash
+        run: |
+          # --include-transitive on purpose: several dependencies here (e.g. the
+          # SIPSorceryMedia.SDL3 family) are this project's own packages, so a vulnerability
+          # anywhere in the resolved graph is still actionable, not just in top-level references.
+          output=$(dotnet list LibreMetaverse.sln package --vulnerable --include-transitive 2>&1)
+          echo "$output"
+          if echo "$output" | grep -q "has the following vulnerable packages"; then
+            echo "::error::One or more resolved NuGet packages have known vulnerabilities. See the log above for affected projects/frameworks and advisory URLs."
+            exit 1
+          fi
+
   test:
     name: Test matrix
     runs-on: ${{ matrix.os }}
