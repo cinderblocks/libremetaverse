@@ -2179,9 +2179,9 @@ namespace LibreMetaverse
                 AssetType.Texture => b.TextureUploadCost >= 0
                     ? b.TextureUploadCost
                     : Client.Settings.UploadCost,
-                AssetType.Animation => b.AnimationUploadCost > 0 ? b.AnimationUploadCost : Client.Settings.UploadCost,
-                AssetType.Sound     => b.SoundUploadCost     > 0 ? b.SoundUploadCost     : Client.Settings.UploadCost,
-                AssetType.Object    => b.MeshUploadCost      > 0 ? b.MeshUploadCost      : Client.Settings.UploadCost,
+                AssetType.Animation => b.AnimationUploadCost >= 0 ? b.AnimationUploadCost : Client.Settings.UploadCost,
+                AssetType.Sound     => b.SoundUploadCost     >= 0 ? b.SoundUploadCost     : Client.Settings.UploadCost,
+                AssetType.Object    => b.MeshUploadCost      >= 0 ? b.MeshUploadCost      : Client.Settings.UploadCost,
                 _                   => Client.Settings.UploadCost
             };
         }

@@ -132,14 +132,23 @@ namespace LibreMetaverse.Tests
         }
 
         [TestCase(AssetType.Animation, "animation_upload_cost", 7, 7)]
+        [TestCase(AssetType.Animation, "animation_upload_cost", 0, 0)]
         [TestCase(AssetType.Animation, "animation_upload_cost", null, 10)]
         [TestCase(AssetType.Sound, "sound_upload_cost", 8, 8)]
+        [TestCase(AssetType.Sound, "sound_upload_cost", 0, 0)]
         [TestCase(AssetType.Sound, "sound_upload_cost", null, 10)]
         [TestCase(AssetType.Object, "mesh_upload_cost", 9, 9)]
+        [TestCase(AssetType.Object, "mesh_upload_cost", 0, 0)]
         [TestCase(AssetType.Object, "mesh_upload_cost", null, 10)]
-        public void GetUploadCostForAssetType_PreservesNeighboringBenefitAndFallbackBehavior(
+        public void GetUploadCostForAssetType_NonTextureBenefit_UsesPresentBenefitOrBaseFallback(
             AssetType assetType, string benefitKey, int? benefitCost, int expected)
         {
+            // A present benefit cost of 0 (e.g. a free-upload account tier) must be declared as
+            // 0, not silently replaced by Settings.UploadCost -- the same class of bug fixed for
+            // Texture in GetUploadCostForAssetType_TextureUsesPresentBenefitOrBaseFallback, which
+            // applies equally here since all four benefit costs share the same -1-when-absent
+            // wire contract (see AccountLevelBenefits). Declaring a fee the simulator won't
+            // actually charge causes the real upload request to be rejected.
             var actual = GetUploadCostForAssetType(assetType, benefitKey, benefitCost, 10);
 
             Assert.That(actual, Is.EqualTo(expected));
