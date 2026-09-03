@@ -45,7 +45,16 @@ namespace LibreMetaverse
 
         public object SyncRoot => syncRoot;
 
-        public int Count => Dictionary.Count;
+        public int Count
+        {
+            get
+            {
+                lock (syncRoot)
+                {
+                    return Dictionary.Count;
+                }
+            }
+        }
 
         public InventoryNodeDictionary(InventoryNode parent)
         {
@@ -54,7 +63,13 @@ namespace LibreMetaverse
 
         public InventoryNode this[UUID key]
         {
-            get => Dictionary[key];
+            get
+            {
+                lock (syncRoot)
+                {
+                    return Dictionary[key];
+                }
+            }
             set
             {
                 value.Parent = parent;
