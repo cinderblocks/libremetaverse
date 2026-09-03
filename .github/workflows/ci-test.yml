@@ -104,7 +104,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ matrix.os }}-dotnet-${{ matrix.dotnet }}
           path: |
@@ -179,7 +179,7 @@ jobs:
 
       - name: Upload net48 test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-windows-net481
           path: |
