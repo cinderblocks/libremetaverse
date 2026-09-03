@@ -123,18 +123,25 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $packages = Get-ChildItem -Path ./artifacts\* -Include *.nupkg,*.snupkg -File -ErrorAction SilentlyContinue
-          if ($packages) {
-            foreach ($p in $packages) {
-              $pkg = $p.FullName
-              Write-Host "Publishing $pkg to nuget.org"
-              try {
-                dotnet nuget push $pkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
-              } catch {
-                Write-Host "Failed to push ${pkg}: $($_)"
-              }
+          if (-not $packages) {
+            Write-Host "::error::No packages found to publish"
+            exit 1
+          }
+
+          $failed = @()
+          foreach ($p in $packages) {
+            $pkg = $p.FullName
+            Write-Host "Publishing $pkg to nuget.org"
+            dotnet nuget push $pkg --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "::error::Failed to push $pkg (exit code $LASTEXITCODE)"
+              $failed += $pkg
             }
-          } else {
-            Write-Host "No packages to publish"
+          }
+
+          if ($failed.Count -gt 0) {
+            Write-Host "::error::$($failed.Count) package(s) failed to publish: $($failed -join ', ')"
+            exit 1
           }
 
       - name: Generate release notes
