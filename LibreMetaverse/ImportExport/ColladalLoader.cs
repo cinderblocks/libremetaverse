@@ -106,18 +106,19 @@ namespace LibreMetaverse.ImportExport
                 this.FileName = filename;
 
                 // A FileStream is needed to read the XML document.
-                FileStream fs = new FileStream(filename, FileMode.Open);
-                XmlReader reader = XmlReader.Create(fs);
+                object? des;
+                using (var fs = new FileStream(filename, FileMode.Open))
+                using (var reader = XmlReader.Create(fs))
+                {
 #pragma warning disable IL3050
-                var des = Serializer.Deserialize(reader);
+                    des = Serializer.Deserialize(reader);
 #pragma warning restore IL3050
+                }
                 Model = des as COLLADA;
                 if (Model == null)
                 {
-                    fs.Close();
                     throw new InvalidOperationException("Failed to deserialize COLLADA document");
                 }
-                fs.Close();
                 var prims = Parse();
                 if (loadImages)
                 {

@@ -152,6 +152,26 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
+        public void Load_MalformedFile_ReleasesFileHandleOnDeserializeFailure()
+        {
+            // Load() previously left the FileStream open on any exception thrown out of
+            // Serializer.Deserialize (e.g. malformed/corrupt XML) -- it only closed the stream on
+            // the two paths it anticipated (null result, success). Deserialize throws for genuinely
+            // malformed XML rather than returning null, so that leak was on the routine "bad file"
+            // path, not just a hypothetical one. Prove the handle is released by deleting the file
+            // immediately after Load() returns -- on Windows, File.Delete throws IOException if this
+            // process still holds the file open, so the delete succeeding is direct evidence of no leak.
+            var badPath = Path.Combine(_tempDir, "malformed.dae");
+            File.WriteAllText(badPath, "<not-a-collada-document><unclosed>");
+
+            var prims = new ColladaLoader().Load(badPath, loadImages: false);
+
+            Assert.That(prims, Is.Empty, "malformed input should fail closed and return an empty list, not throw");
+            Assert.DoesNotThrow(() => File.Delete(badPath),
+                "Load() must release its FileStream on a Deserialize failure, not just on the success/null paths");
+        }
+
+        [Test]
         public void Load_MinimalTriangleWithTgaTexture_ProducesExpectedModelPrim()
         {
             var prims = new ColladaLoader().Load(_daePath, loadImages: true);
