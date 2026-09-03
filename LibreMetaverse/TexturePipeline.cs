@@ -104,10 +104,15 @@ internal delegate void TextureDownloadCallback(TextureRequestState state, AssetT
             /// <summary>The ImageType of the request.</summary>
             public ImageType Type;
 
-            /// <summary>The callback to fire when the request is complete, will include 
-            /// the <see cref="TextureRequestState"/> and the <see cref="AssetTexture"/> 
+            /// <summary>The callback to fire when the request is complete, will include
+            /// the <see cref="TextureRequestState"/> and the <see cref="AssetTexture"/>
             /// object containing the result data</summary>
             public List<TextureDownloadCallback> Callbacks = new List<TextureDownloadCallback>();
+            /// <summary>Guards add/iterate access to <see cref="Callbacks"/>. Deliberately not
+            /// <see cref="Transfer"/>'s own lock -- <see cref="Transfer"/> is reassigned before the
+            /// task is published to <c>_Transfers</c>, and locking on a reassignable field is
+            /// fragile even though today's reassignment happens pre-publish.</summary>
+            public readonly object CallbacksLock = new object();
             /// <summary>If true, indicates the callback will be fired whenever new data is returned from the simulator.
             /// This is used to progressively render textures as portions of the texture are received.</summary>
             public bool ReportProgress;
@@ -291,7 +296,10 @@ internal delegate void TextureDownloadCallback(TextureRequestState state, AssetT
                 if (!object.ReferenceEquals(existing, request))
                 {
                     // Another thread already had this transfer, add the callback to existing
-                    existing.Callbacks.Add(callback);
+                    lock (existing.CallbacksLock)
+                    {
+                        existing.Callbacks.Add(callback);
+                    }
                 }
             }
         }
@@ -406,25 +414,14 @@ internal delegate void TextureDownloadCallback(TextureRequestState state, AssetT
                     Type = (byte) task.Type
                 };
                 _Client.Network.SendPacket(request);
-
-                foreach (var callback in task.Callbacks)
-                    callback(TextureRequestState.Aborted, new AssetTexture(textureID, Utils.EmptyBytes));
-
-                _Client.Assets.FireImageProgressEvent(task.RequestID, task.Transfer.Transferred, task.Transfer.Size);
-
-                task.TokenSource.Cancel();
-
-                CompleteTransfer(textureID, TextureRequestState.Aborted, Utils.EmptyBytes);
             }
-            else
-            {
-                CompleteTransfer(textureID, TextureRequestState.Aborted, Utils.EmptyBytes);
 
-                foreach (var callback in task.Callbacks)
-                    callback(TextureRequestState.Aborted, new AssetTexture(textureID, Utils.EmptyBytes));
-
-                _Client.Assets.FireImageProgressEvent(task.RequestID, task.Transfer.Transferred, task.Transfer.Size);
-            }
+            // CompleteTransfer removes the task and fires Aborted to every registered callback
+            // exactly once, plus the image-progress event -- don't duplicate that here. Cancel the
+            // token only after removal (CompleteTransfer's own finally also cancels it, and
+            // TryRemove is idempotent) so a worker woken by cancellation can't still find the task
+            // present and race to deliver Timeout instead of Aborted.
+            CompleteTransfer(textureID, TextureRequestState.Aborted, Utils.EmptyBytes);
         }
 
         /// <summary>
@@ -571,12 +568,8 @@ internal delegate void TextureDownloadCallback(TextureRequestState state, AssetT
             Logger.Warn("Worker timeout waiting for texture " + task.RequestID + " to download got " +
                 task.Transfer.Transferred + " of " + task.Transfer.Size);
 
-            AssetTexture texture = new AssetTexture(task.RequestID, task.Transfer.AssetData);
-            foreach (TextureDownloadCallback callback in task.Callbacks)
-                callback(TextureRequestState.Timeout, texture);
-
-            _Client.Assets.FireImageProgressEvent(task.RequestID, task.Transfer.Transferred, task.Transfer.Size);
-
+            // CompleteTransfer removes the task and fires Timeout to every registered callback
+            // exactly once, plus the image-progress event -- don't duplicate that here.
             CompleteTransfer(task.RequestID, TextureRequestState.Timeout, task.Transfer.AssetData);
         }
 
@@ -723,11 +716,8 @@ internal delegate void TextureDownloadCallback(TextureRequestState state, AssetT
                 {
                     if (task.ReportProgress)
                     {
-                        foreach (var callback in task.Callbacks)
-                        {
-                            callback(TextureRequestState.Progress,
-                                     new AssetTexture(task.RequestID, task.Transfer.AssetData));
-                        }
+                        FireCallbacks(task, TextureRequestState.Progress,
+                            new AssetTexture(task.RequestID, task.Transfer.AssetData));
                     }
                     _Client.Assets.FireImageProgressEvent(task.RequestID, task.Transfer.Transferred,
                                                               task.Transfer.Size);
@@ -794,11 +784,8 @@ internal delegate void TextureDownloadCallback(TextureRequestState state, AssetT
                 {
                     if (task.ReportProgress)
                     {
-                        foreach (var callback in task.Callbacks)
-                        {
-                            callback(TextureRequestState.Progress,
-                                      new AssetTexture(task.RequestID, task.Transfer.AssetData));
-                        }
+                        FireCallbacks(task, TextureRequestState.Progress,
+                            new AssetTexture(task.RequestID, task.Transfer.AssetData));
                     }
 
                     _Client.Assets.FireImageProgressEvent(task.RequestID, task.Transfer.Transferred,
@@ -819,6 +806,35 @@ internal delegate void TextureDownloadCallback(TextureRequestState state, AssetT
             return _Transfers.TryRemove(textureID, out _);
         }
 
+        /// <summary>
+        /// Snapshots <paramref name="task"/>'s <see cref="TaskInfo.Callbacks"/> under
+        /// <see cref="TaskInfo.CallbacksLock"/> and invokes each one outside the lock, so a
+        /// concurrent <see cref="RequestTexture"/> registering a new callback never races an
+        /// in-progress enumeration, and a throwing (or slow, or reentrant) subscriber can't hold
+        /// the lock or take down the caller.
+        /// </summary>
+        private void FireCallbacks(TaskInfo task, TextureRequestState state, AssetTexture texture)
+        {
+            // Copied via an explicit loop (not List<T>.ToArray/CopyTo) so that, defense-in-depth,
+            // a caller who ever adds to Callbacks without holding CallbacksLock gets a loud
+            // InvalidOperationException from the enumerator's version check instead of a silently
+            // torn read.
+            var callbacks = new List<TextureDownloadCallback>();
+            lock (task.CallbacksLock)
+            {
+                foreach (var callback in task.Callbacks)
+                {
+                    callbacks.Add(callback);
+                }
+            }
+
+            foreach (var callback in callbacks)
+            {
+                try { callback(state, texture); }
+                catch (Exception ex) { Logger.Error(ex.Message, ex, _Client); }
+            }
+        }
+
         // Atomically remove the transfer and invoke callbacks with the given final state.
         // assetData may be provided to override the data passed to callbacks.
         private void CompleteTransfer(UUID textureID, TextureRequestState finalState, byte[]? assetData = null)
@@ -834,11 +850,7 @@ internal delegate void TextureDownloadCallback(TextureRequestState state, AssetT
                     try { _Client.Assets.Cache.SaveAssetToCache(textureID, data); } catch { }
                 }
 
-                foreach (var callback in info.Callbacks)
-                {
-                    try { callback(finalState, new AssetTexture(textureID, data ?? Utils.EmptyBytes)); }
-                    catch (Exception ex) { Logger.Error(ex.Message, ex, _Client); }
-                }
+                FireCallbacks(info, finalState, new AssetTexture(textureID, data ?? Utils.EmptyBytes));
 
                 try { _Client.Assets.FireImageProgressEvent(textureID, info.Transfer?.Transferred ?? 0, info.Transfer?.Size ?? 0); } catch { }
             }
