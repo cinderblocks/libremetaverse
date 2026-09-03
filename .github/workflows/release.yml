@@ -160,14 +160,18 @@ jobs:
           "# Release $CURRENT_TAG" | Out-File -FilePath $NOTES_FILE -Encoding utf8
           "" | Out-File -FilePath $NOTES_FILE -Append
 
+          # Diff against HEAD, not $CURRENT_TAG -- on a workflow_dispatch run the tag doesn't exist
+          # yet (it's created later by the release-creation step), so $CURRENT_TAG wouldn't resolve
+          # as a git ref. HEAD is always valid and, on both trigger paths, points at exactly the
+          # commit this release is being cut from.
           if ($PREV_TAG) {
             "## Changes since $PREV_TAG" | Out-File -FilePath $NOTES_FILE -Append
             "" | Out-File -FilePath $NOTES_FILE -Append
-            git log --no-merges --pretty=format:'- %s (%an)' "$PREV_TAG..$CURRENT_TAG" | Out-File -FilePath $NOTES_FILE -Append
+            git log --no-merges --pretty=format:'- %s (%an)' "$PREV_TAG..HEAD" | Out-File -FilePath $NOTES_FILE -Append
           } else {
             "## Changes" | Out-File -FilePath $NOTES_FILE -Append
             "" | Out-File -FilePath $NOTES_FILE -Append
-            git log --no-merges --pretty=format:'- %s (%an)' "$CURRENT_TAG" | Out-File -FilePath $NOTES_FILE -Append
+            git log --no-merges --pretty=format:'- %s (%an)' "HEAD" | Out-File -FilePath $NOTES_FILE -Append
           }
 
           "" | Out-File -FilePath $NOTES_FILE -Append
