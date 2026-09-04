@@ -24,6 +24,7 @@
     <PackageReference Include="SkiaSharp" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
+    <PackageReference Include="SkiaSharp.NativeAssets.macOS" />
     <PackageReference Include="System.Buffers" />
     <PackageReference Include="System.Memory" />
   </ItemGroup>
