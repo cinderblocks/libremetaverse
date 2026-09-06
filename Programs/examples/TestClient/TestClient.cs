@@ -335,6 +335,12 @@ namespace TestClient
         {
             if (e.RequestID != GroupMembersRequestID) return;
 
+            if (!e.Success)
+            {
+                Logger.Warn($"Failed to retrieve members for group {e.GroupID}", this);
+                return;
+            }
+
             GroupMembers = e.Members;
         }
 
