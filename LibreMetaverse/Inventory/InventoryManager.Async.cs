@@ -517,7 +517,13 @@ namespace LibreMetaverse
                 {
                     if (!(inventory[i] is InventoryItem item)) continue;
 
-                    if (!item.IsLink()) continue;
+                    // Folder links reference categories, not items; FetchItemAsync only ever
+                    // resolves item IDs, so a folder-link target here would hang until cancellation.
+                    // Preserve folder-link entries as-is and only resolve ordinary item links.
+                    // Folder links reference categories, not items; FetchItemAsync only ever
+                    // resolves item IDs, so a folder-link target here would hang until cancellation.
+                    // Preserve folder-link entries as-is and only resolve ordinary item links.
+                    if (item.AssetType != AssetType.Link) continue;
 
                     var store = Store;
                     // If the real item is already in the local store, substitute it immediately
