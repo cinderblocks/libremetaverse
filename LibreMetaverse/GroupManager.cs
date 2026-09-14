@@ -2062,9 +2062,12 @@ namespace LibreMetaverse
 
         protected void GroupMembersHandlerCaps(UUID requestID, OSD result)
         {
+            UUID groupID = UUID.Zero;
+            GroupMembersReplyEventArgs reply;
             try
             {
                 OSDMap res = (OSDMap)result;
+                groupID = res["group_id"];
                 int memberCount = res["member_count"];
                 OSDArray titlesOSD = (OSDArray)res["titles"];
                 string[] titles = new string[titlesOSD.Count];
@@ -2072,7 +2075,6 @@ namespace LibreMetaverse
                 {
                     titles[i] = titlesOSD[i];
                 }
-                UUID groupID = res["group_id"];
                 GroupPowers defaultPowers = (GroupPowers)(ulong)((OSDMap)res["defaults"])["default_powers"];
                 OSDMap membersOSD = (OSDMap)res["members"];
                 Dictionary<UUID, GroupMember> groupMembers = new Dictionary<UUID, GroupMember>(membersOSD.Count);
@@ -2097,12 +2099,15 @@ namespace LibreMetaverse
                     groupMembers[groupMember.ID] = groupMember;
                 }
 
-                OnGroupMembersReply(new GroupMembersReplyEventArgs(requestID, groupID, groupMembers));
+                reply = new GroupMembersReplyEventArgs(requestID, groupID, groupMembers);
             }
             catch (Exception ex)
             {
                 Logger.Error("Failed to decode result of GroupMemberData capability: ", ex, Client);
+                reply = new GroupMembersReplyEventArgs(requestID, groupID, new Dictionary<UUID, GroupMember>(), false);
             }
+
+            OnGroupMembersReply(reply);
         }
 
         /// <summary>Process an incoming packet and raise the appropriate events</summary>
@@ -2365,8 +2370,11 @@ namespace LibreMetaverse
         /// <summary>Get the ID of the group</summary>
         public UUID GroupID { get; }
 
-        /// <summary>Get the dictionary of members</summary>
+        /// <summary>Get the dictionary of members; empty when the reply is unsuccessful.</summary>
         public Dictionary<UUID, GroupMember> Members { get; }
+
+        /// <summary>Whether the members were decoded successfully. Failure does not necessarily mean the group does not exist.</summary>
+        public bool Success { get; } = true;
 
         /// <summary>
         /// Construct a new instance of the GroupMembersReplyEventArgs class
@@ -2379,6 +2387,17 @@ namespace LibreMetaverse
             RequestID = requestID;
             GroupID = groupID;
             Members = members;
+        }
+
+        /// <summary>Construct a group members reply with an explicit success status.</summary>
+        /// <param name="requestID">The ID of the request</param>
+        /// <param name="groupID">The group ID from the response, or UUID.Zero if unavailable</param>
+        /// <param name="members">The membership list, or an empty dictionary on failure</param>
+        /// <param name="success">Whether the members were decoded successfully</param>
+        public GroupMembersReplyEventArgs(UUID requestID, UUID groupID, Dictionary<UUID, GroupMember> members, bool success)
+            : this(requestID, groupID, members)
+        {
+            Success = success;
         }
     }
 
@@ -2625,4 +2644,3 @@ namespace LibreMetaverse
 
     #endregion
 }
-

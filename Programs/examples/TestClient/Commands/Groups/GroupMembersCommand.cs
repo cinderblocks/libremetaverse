@@ -44,6 +44,12 @@ namespace TestClient.Commands.Groups
                 {
                     if (e.RequestID == GroupRequestID)
                     {
+                        if (!e.Success)
+                        {
+                            tcs.TrySetResult(false);
+                            return;
+                        }
+
                         StringBuilder sb = new StringBuilder();
                         sb.AppendLine();
                         sb.AppendFormat("GroupMembers: RequestID {0}", e.RequestID).AppendLine();
@@ -67,7 +73,9 @@ namespace TestClient.Commands.Groups
                     if (completed != tcs.Task)
                         return "Timeout waiting for group members";
 
-                    return Client + " got group members";
+                    return await tcs.Task.ConfigureAwait(false)
+                        ? Client + " got group members"
+                        : "Failed to retrieve group members for " + GroupName;
                 }
                 finally
                 {
