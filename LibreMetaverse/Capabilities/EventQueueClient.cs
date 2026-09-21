@@ -206,8 +206,11 @@ namespace LibreMetaverse.Http
 
                     try
                     {
+                        // Raw-bytes overload: passing these pre-serialized bytes with an OSDFormat instead
+                        // binds to the OSD overload via the implicit byte[] -> OSDBinary conversion, which
+                        // would base64 the whole document and hide "ack"/"done" from the simulator.
                         var (response, data) = await Simulator.Client.HttpCapsClient.PostAsync(
-                            Address, OSDFormat.Xml, payloadSnapshot, token).ConfigureAwait(false);
+                            Address, HttpCapsClient.LLSD_XML, payloadSnapshot, token).ConfigureAwait(false);
                         ConnectedResponseHandler(response);
                         RequestCompletedHandler(response, data, null);
                     }

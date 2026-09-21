@@ -603,7 +603,7 @@ namespace LibreMetaverse
             Uri seedCap = new Uri(Utils.BytesToString(crossing.RegionData.SeedCapability));
             IPEndPoint endPoint = new IPEndPoint(crossing.RegionData.SimIP, crossing.RegionData.SimPort);
 
-            Logger.Info($"Crossed in to new region area, attempting to connect to {endPoint}", Client);
+            Logger.Info($"CrossedRegionHandler: Crossed in to new region area, attempting to connect to {endPoint}", Client);
 
             // Use ResolveSimulator to get the old simulator context
             Simulator? oldSim = ResolveSimulator(e);
@@ -1049,10 +1049,11 @@ namespace LibreMetaverse
 
             IPEndPoint endPoint = new IPEndPoint(crossed.IP, crossed.Port);
 
-            Logger.Info($"Crossed in to new region area, attempting to connect to {endPoint}", Client);
+            Logger.Info($"CrossedRegionEventHandler: Crossed in to new region area, attempting to connect to {endPoint}", Client);
 
-            // Resolve the simulator context - the old simulator from which we're crossing
-            Simulator oldSim = ResolveSimulatorFromMessage(crossed, simulator);
+            // The simulator that delivered this event is the old sim we're leaving; the message's
+            // IP/port/handle describe the new sim, so resolving "old" by those would find the new sim instead.
+            Simulator oldSim = simulator;
             
             // Use the state machine to handle the crossing
             if (!BeginRegionCrossing(oldSim, crossed.RegionHandle, endPoint, crossed.SeedCapability,
