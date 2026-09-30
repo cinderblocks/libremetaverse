@@ -216,7 +216,7 @@ namespace LibreMetaverse.Imaging
                 ManagedImage texture = texAsset.Image.Clone();
                 //File.WriteAllBytes(bakeType + "-texture-layer-" + textures[i].TextureIndex + "-" + i + ".tga", texture.ExportTGA());
 
-                // Resize texture to the size of baked layer; tile if smaller to avoid stretching
+                // Scale texture to the size of the baked layer
                 var resizedTexture = ResizeToBakeDimensions(texture, bakeWidth, bakeHeight);
                 if (resizedTexture == null) continue;
                 texture = resizedTexture;
@@ -446,13 +446,13 @@ namespace LibreMetaverse.Imaging
 
         /// <summary>
         /// Resizes <paramref name="texture"/> to <paramref name="bakeWidth"/> x
-        /// <paramref name="bakeHeight"/>. Tiles (repeats) the source when it is smaller than
-        /// the bake in <em>both</em> dimensions, to avoid stretching low-res layers into blur.
-        /// Otherwise falls back to a scaled nearest-neighbor resize - tiling only one axis of a
-        /// non-square source that's larger in the other axis would wrap/repeat that axis instead
-        /// of scaling it down, producing a visibly wrong bake.
+        /// <paramref name="bakeHeight"/> by scaling. Wearable layers are UV-mapped over the whole
+        /// bake region, so a lower-resolution layer (e.g. a 512 px Second Life clothing texture
+        /// on a 1024 px bake, or a reduced-resolution decode) is a complete picture that must be
+        /// stretched to fit; repeating it would draw miniature duplicates of the clothing/skin.
+        /// Bilinear interpolation is used so upscaled layers are smooth instead of blocky.
         /// </summary>
-        /// <returns>The resized/tiled image, or null if the resize failed and the layer should be skipped</returns>
+        /// <returns>The resized image, or null if the resize failed and the layer should be skipped</returns>
         private static ManagedImage? ResizeToBakeDimensions(ManagedImage texture, int bakeWidth, int bakeHeight)
         {
             if (texture.Width == bakeWidth && texture.Height == bakeHeight)
@@ -460,57 +460,15 @@ namespace LibreMetaverse.Imaging
                 return texture;
             }
 
-            if (texture.Width < bakeWidth && texture.Height < bakeHeight)
-            {
-                return TileTexture(texture, bakeWidth, bakeHeight);
-            }
-
             try
             {
-                texture.ResizeNearestNeighbor(bakeWidth, bakeHeight);
+                texture.ResizeBilinear(bakeWidth, bakeHeight);
                 return texture;
             }
             catch (Exception)
             {
                 return null;
             }
-        }
-
-        /// <summary>
-        /// Creates a tiled copy of <paramref name="src"/> at
-        /// <paramref name="targetWidth"/> x <paramref name="targetHeight"/>.
-        /// Pixels outside the source bounds repeat by wrap-around (modulo).
-        /// </summary>
-        private static ManagedImage TileTexture(ManagedImage src, int targetWidth, int targetHeight)
-        {
-            var tiled = new ManagedImage(targetWidth, targetHeight, src.Channels);
-            int srcWidth = src.Width;
-            int srcHeight = src.Height;
-            if (srcWidth == 0 || srcHeight == 0) return tiled;
-
-            bool hasColor = (src.Channels & ManagedImage.ImageChannels.Color) != 0;
-            bool hasAlpha = (src.Channels & ManagedImage.ImageChannels.Alpha) != 0;
-            bool hasBump  = (src.Channels & ManagedImage.ImageChannels.Bump)  != 0;
-
-            for (int y = 0; y < targetHeight; y++)
-            {
-                int srcY = y % srcHeight;
-                for (int x = 0; x < targetWidth; x++)
-                {
-                    int srcX   = x % srcWidth;
-                    int dstIdx = y * targetWidth + x;
-                    int srcIdx = srcY * srcWidth + srcX;
-                    if (hasColor)
-                    {
-                        tiled.Red[dstIdx]   = src.Red[srcIdx];
-                        tiled.Green[dstIdx] = src.Green[srcIdx];
-                        tiled.Blue[dstIdx]  = src.Blue[srcIdx];
-                    }
-                    if (hasAlpha) tiled.Alpha[dstIdx] = src.Alpha[srcIdx];
-                    if (hasBump)  tiled.Bump[dstIdx]  = src.Bump[srcIdx];
-                }
-            }
-            return tiled;
         }
 
         private bool DrawLayer(ManagedImage? source, bool addSourceAlpha)

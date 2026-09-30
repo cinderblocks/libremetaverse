@@ -90,17 +90,57 @@ namespace LibreMetaverse.Tests
             Assert.That(third.Height, Is.EqualTo(originalHeight));
         }
 
-        [Test]
-        public void ResizeToBakeDimensions_SourceSmallerInOneAxisOnly_ScalesRatherThanTiles()
+        private static ManagedImage? InvokeResize(ManagedImage src, int width, int height)
         {
             var method = typeof(Baker).GetMethod("ResizeToBakeDimensions", BindingFlags.NonPublic | BindingFlags.Static);
             Assert.That(method, Is.Not.Null);
+            return (ManagedImage?)method!.Invoke(null, new object[] { src, width, height });
+        }
 
-            // Width (2) is smaller than the 4x4 target, but height (8) is larger - the mixed
-            // case that used to always tile (wrapping/cropping the larger axis instead of
-            // scaling it down). Fill Red with a gradient down the height axis so tiling
-            // (which would only ever see source rows 0-3) is distinguishable from a proper
-            // resize (which should sample across the full 0-7 source row range).
+        [Test]
+        public void ResizeToBakeDimensions_SameSize_ReturnsSourceUnchanged()
+        {
+            var src = new ManagedImage(4, 4, ManagedImage.ImageChannels.Color);
+
+            var result = InvokeResize(src, 4, 4);
+
+            Assert.That(result, Is.SameAs(src));
+        }
+
+        [Test]
+        public void ResizeToBakeDimensions_SourceSmallerInBothAxes_ScalesRatherThanTiles()
+        {
+            // Regression test: a layer smaller than the bake (e.g. a 256 px wearable on a 1024 px
+            // bake) is UV-mapped over the whole bake and must be stretched to fit. Tiling it
+            // drew repeated miniature copies of the clothing.
+            var src = new ManagedImage(2, 2, ManagedImage.ImageChannels.Color | ManagedImage.ImageChannels.Alpha);
+            src.Red[0] = 0;   src.Red[1] = 200;
+            src.Red[2] = 0;   src.Red[3] = 200;
+            for (int i = 0; i < 4; i++) src.Alpha[i] = 255;
+
+            var result = InvokeResize(src, 4, 4);
+
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result!.Width, Is.EqualTo(4));
+            Assert.That(result.Height, Is.EqualTo(4));
+            Assert.That(result.Red.Length, Is.EqualTo(16));
+            Assert.That(result.Alpha.Length, Is.EqualTo(16));
+
+            // Across the first row the gradient must run 0 -> 200 once over the full width.
+            // Tiling would give 0,200,0,200.
+            Assert.That(result.Red[0], Is.EqualTo(0));
+            Assert.That(result.Red[3], Is.EqualTo(200));
+            Assert.That(result.Red[1], Is.GreaterThan(0).And.LessThan(result.Red[2]));
+            Assert.That(result.Red[2], Is.GreaterThan(result.Red[1]).And.LessThan(200));
+            Assert.That(result.Alpha, Has.All.EqualTo((byte)255));
+        }
+
+        [Test]
+        public void ResizeToBakeDimensions_SourceSmallerInOneAxisOnly_ScalesRatherThanTiles()
+        {
+            // Width (2) is smaller than the 4x4 target, but height (8) is larger. Fill Red with a
+            // gradient down the height axis so a wrap/crop of only source rows 0-3 is
+            // distinguishable from a proper resize sampling the full 0-7 source row range.
             var src = new ManagedImage(2, 8, ManagedImage.ImageChannels.Color);
             for (int y = 0; y < 8; y++)
             {
@@ -110,15 +150,29 @@ namespace LibreMetaverse.Tests
                 }
             }
 
-            var result = (ManagedImage?)method!.Invoke(null, new object[] { src, 4, 4 });
+            var result = InvokeResize(src, 4, 4);
 
             Assert.That(result, Is.Not.Null);
             Assert.That(result!.Width, Is.EqualTo(4));
             Assert.That(result.Height, Is.EqualTo(4));
 
-            // Last output row should sample near the top of the source (value ~70), not be
+            // Last output row should sample the bottom of the source (value ~70), not be
             // capped at ~30 the way a wrap/crop of only the first 4 source rows would be.
             Assert.That(result.Red[3 * 4], Is.GreaterThan(50));
+        }
+
+        [Test]
+        public void ResizeToBakeDimensions_SourceLargerThanBake_Downscales()
+        {
+            var src = new ManagedImage(8, 8, ManagedImage.ImageChannels.Color);
+            for (int i = 0; i < 64; i++) src.Red[i] = 100;
+
+            var result = InvokeResize(src, 4, 4);
+
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result!.Width, Is.EqualTo(4));
+            Assert.That(result.Height, Is.EqualTo(4));
+            Assert.That(result.Red, Has.All.EqualTo((byte)100));
         }
     }
 }
