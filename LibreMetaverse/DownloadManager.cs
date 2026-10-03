@@ -152,10 +152,7 @@ namespace LibreMetaverse.Http
                 }
 
                 // If this request provided a cancellation token, register it to cancel the active download
-                if (item.CancellationToken.CanBeCanceled)
-                {
-                    try { item.CancellationToken.Register(() => activeDownload.CancellationToken.Cancel()); } catch { }
-                }
+                CancelWhileIncomplete(item.CancellationToken, completionTcs.Task, () => activeDownload.CancellationToken.Cancel());
 
                 // Only one thread should start the actual HTTP request
                 if (Interlocked.Exchange(ref activeDownload.Started, 1) == 0)
@@ -398,6 +395,25 @@ namespace LibreMetaverse.Http
             }
         }
 
+        /// <summary>
+        /// Runs <paramref name="onCancel"/> if <paramref name="token"/> is cancelled before
+        /// <paramref name="completion"/> finishes. The registration is released once the work has
+        /// completed so a long-lived token doesn't accumulate callbacks, and everything they
+        /// capture, for downloads that are already done.
+        /// </summary>
+        private static void CancelWhileIncomplete(CancellationToken token, Task completion, Action onCancel)
+        {
+            if (!token.CanBeCanceled) return;
+
+            try
+            {
+                var registration = token.Register(onCancel);
+                _ = completion.ContinueWith(_ => registration.Dispose(),
+                    CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+            }
+            catch { }
+        }
+
         /// <summary>Enqueue a new HTTP download</summary>
         public void QueueDownload(DownloadRequest req)
         {
@@ -413,10 +429,7 @@ namespace LibreMetaverse.Http
                 {
                     existing.ProgressHandlers.Add(req.DownloadProgressCallback);
                 }
-                if (req.CancellationToken.CanBeCanceled)
-                {
-                    try { req.CancellationToken.Register(() => existing.CancellationToken.Cancel()); } catch { }
-                }
+                CancelWhileIncomplete(req.CancellationToken, tcs.Task, () => existing.CancellationToken.Cancel());
                 return;
             }
 
@@ -443,10 +456,7 @@ namespace LibreMetaverse.Http
             if (req.CompletionTcs == null)
                 req.CompletionTcs = new TaskCompletionSource<(HttpResponseMessage, byte[])>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            if (req.CancellationToken.CanBeCanceled)
-            {
-                try { req.CancellationToken.Register(() => req.CompletionTcs.TrySetCanceled()); } catch { }
-            }
+            CancelWhileIncomplete(req.CancellationToken, req.CompletionTcs.Task, () => req.CompletionTcs.TrySetCanceled());
 
             QueueDownload(req);
             return req.CompletionTcs.Task;
@@ -474,7 +484,7 @@ namespace LibreMetaverse.Http
             if (cancellationToken.CanBeCanceled)
             {
                 req.CancellationToken = cancellationToken;
-                try { cancellationToken.Register(() => req.CompletionTcs.TrySetCanceled()); } catch { }
+                CancelWhileIncomplete(cancellationToken, req.CompletionTcs.Task, () => req.CompletionTcs.TrySetCanceled());
             }
 
             QueueDownload(req, cancellationToken);

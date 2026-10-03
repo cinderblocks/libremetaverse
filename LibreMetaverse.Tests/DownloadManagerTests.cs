@@ -3,6 +3,7 @@ using LibreMetaverse.Http;
 using System;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -116,6 +117,70 @@ namespace LibreMetaverse.Tests
 
                 // Task should be canceled (registered cancellation sets the TaskCompletionSource)
                 Assert.ThrowsAsync<TaskCanceledException>(async () => await task.ConfigureAwait(false));
+            }
+        }
+
+        [Test]
+        public async Task QueueDownloadAsync_CancelledWhileInFlight_CancelsTask()
+        {
+            var handler = new FakeHandler(Encoding.UTF8.GetBytes("slow"), delayMs: 5000);
+            var client = new GridClient { HttpCapsClient = new HttpCapsClient(handler) };
+
+            using (var dm = new DownloadManager(client))
+            using (var cts = new CancellationTokenSource())
+            {
+                var task = dm.QueueDownloadAsync(new Uri("http://example.test/in-flight"), null, null, cts.Token, retries: 1);
+
+                await Task.Delay(100).ConfigureAwait(false);
+                cts.Cancel();
+
+                var completed = await Task.WhenAny(task, Task.Delay(3000)).ConfigureAwait(false);
+                Assert.That(completed, Is.SameAs(task), "Cancelling the token did not cancel the in-flight download");
+                Assert.ThrowsAsync<TaskCanceledException>(async () => await task.ConfigureAwait(false));
+            }
+        }
+
+        private sealed class NoopProgress : IProgress<HttpCapsClient.ProgressReport>
+        {
+            public void Report(HttpCapsClient.ProgressReport value) { }
+        }
+
+        // Kept out of line so the test method holds no reference to the progress object itself
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static (Task task, WeakReference progress) QueueTracked(DownloadManager dm, Uri uri, CancellationToken token)
+        {
+            var progress = new NoopProgress();
+            var task = dm.QueueDownloadAsync(uri, null, progress, token, retries: 1);
+            return (task, new WeakReference(progress));
+        }
+
+        [Test]
+        public async Task QueueDownloadAsync_LongLivedToken_DoesNotRetainCompletedDownloads()
+        {
+            var handler = new FakeHandler(Encoding.UTF8.GetBytes("payload"));
+            var client = new GridClient { HttpCapsClient = new HttpCapsClient(handler) };
+
+            // An application-wide token: it can be cancelled but outlives every download
+            using (var dm = new DownloadManager(client))
+            using (var cts = new CancellationTokenSource())
+            {
+                var (task, progress) = QueueTracked(dm, new Uri("http://example.test/retained"), cts.Token);
+
+                var completed = await Task.WhenAny(task, Task.Delay(5000)).ConfigureAwait(false);
+                Assert.That(completed, Is.SameAs(task), "Download task timed out");
+                await task.ConfigureAwait(false);
+
+                // The token's cancellation callbacks used to keep the finished download alive
+                for (var i = 0; i < 20 && progress.IsAlive; i++)
+                {
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    await Task.Delay(50).ConfigureAwait(false);
+                }
+
+                Assert.That(progress.IsAlive, Is.False,
+                    "A completed download is still referenced by the caller's cancellation token");
+                GC.KeepAlive(cts);
             }
         }
     }
