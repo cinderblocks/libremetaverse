@@ -3,7 +3,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="CoreJ2K" Version="2.3.3.91" />
+    <PackageVersion Include="CoreJ2K" Version="2.4.0" />
     <PackageVersion Include="MessagePack" Version="3.1.8" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.12" />
     <PackageVersion Include="Microsoft.NET.ILLink.Tasks" Version="10.0.12" />
