@@ -179,8 +179,23 @@ namespace LibreMetaverse
             }
             finally { _stateLock.Release(); }
 
-            _ = TransitionCrossingStateAsync(CrossingState.Connecting, crossing.WorkCts.Token);
+            LogCrossingFaults(TransitionCrossingStateAsync(CrossingState.Connecting, crossing.WorkCts.Token), "connecting");
             return true;
+        }
+
+        // Region crossing work runs detached from the caller, so log a failure rather than letting
+        // the task fault unobserved. Cancellation is the normal way a crossing is abandoned.
+        private void LogCrossingFaults(Task task, string stage)
+        {
+            _ = task.ContinueWith(
+                t =>
+                {
+                    var ex = t.Exception!.GetBaseException();
+                    Logger.Error($"Unhandled exception in region crossing ({stage}): {ex.Message}", ex, Client);
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
         }
 
         // Acquires _stateLock briefly to update State, then releases before doing any async work.
@@ -414,7 +429,7 @@ namespace LibreMetaverse
             var crossing = _currentCrossing;
             if (crossing == null || crossing.State != CrossingState.WaitingForComplete) return;
 
-            _ = Task.Run(async () =>
+            LogCrossingFaults(Task.Run(async () =>
             {
                 if (crossing.NewSimulator == simulator)
                 {
@@ -432,7 +447,7 @@ namespace LibreMetaverse
                 {
                     Logger.Warn($"Received MovementComplete from unexpected simulator: {simulator?.Name}", Client);
                 }
-            });
+            }), "movement complete");
         }
 
         private void CrossingTimeoutCallback(object? state)
@@ -442,7 +457,7 @@ namespace LibreMetaverse
             var s = crossing.State;
             if (s is CrossingState.Completed or CrossingState.Failed or CrossingState.Idle) return;
 
-            _ = Task.Run(async () =>
+            LogCrossingFaults(Task.Run(async () =>
             {
                 crossing.FailureReason = CrossingFailureReason.Timeout;
                 crossing.FailureMessage = $"Timeout in state {s}";
@@ -450,7 +465,7 @@ namespace LibreMetaverse
 
                 var next = s == CrossingState.Recovering ? CrossingState.Failed : CrossingState.Recovering;
                 await TransitionCrossingStateAsync(next, crossing.WorkCts.Token).ConfigureAwait(false);
-            });
+            }), "timeout");
         }
 
         /// <summary>Get the current crossing state</summary>
