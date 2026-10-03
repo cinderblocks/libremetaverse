@@ -568,7 +568,8 @@ namespace LibreMetaverse.Http
 
                 #region Handle incoming events
 
-                if (OnEvent == null || events == null || events.Count <= 0) { return; }
+                var onEvent = OnEvent;
+                if (onEvent == null || events == null || events.Count <= 0) { return; }
                 // Fire callbacks for each event received
                 foreach (var osd in events)
                 {
@@ -576,15 +577,13 @@ namespace LibreMetaverse.Http
                     var msg = evt["message"].AsString();
                     var body = (OSDMap)evt["body"];
 
-                    try
+                    // Run handlers on the thread pool to avoid blocking the event loop. The catch has to
+                    // be inside the task: it is what sees an exception thrown by the handler itself.
+                    Task.Run(() =>
                     {
-                        // Run handlers on the thread pool to avoid blocking the event loop
-                        Task.Run(() => OnEvent(msg, body));
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Error(ex.Message, ex);
-                    }
+                        try { onEvent(msg, body); }
+                        catch (Exception ex) { Logger.Error($"Exception in event queue handler for {msg}: {ex.Message}", ex); }
+                    });
                 }
 
                 #endregion Handle incoming events
