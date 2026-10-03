@@ -1079,13 +1079,17 @@ namespace LibreMetaverse
             }
 
             var confirmTask = upload.ConfirmTcs.Task;
-            var timeoutTask = Task.Delay(UPLOAD_CONFIRM_TIMEOUT, cancellationToken);
-            var cancelTask = cancellationToken.CanBeCanceled ? Task.Run(() => { cancellationToken.WaitHandle.WaitOne(); }, cancellationToken) : null;
+            // The delay is linked to the caller's token, so cancelling the caller also ends it, and
+            // cancelling it ourselves releases the timer once the upload has been confirmed.
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var timeoutTask = Task.Delay(UPLOAD_CONFIRM_TIMEOUT, timeoutCts.Token);
 
-            var finished = await Task.WhenAny(new[] { confirmTask, timeoutTask, cancelTask ?? Task.Delay(-1, cancellationToken) }).ConfigureAwait(false);
+            var finished = await Task.WhenAny(confirmTask, timeoutTask).ConfigureAwait(false);
 
             if (finished == confirmTask)
             {
+                timeoutCts.Cancel();
+
                 // propagate exceptions/cancellation if any
                 await confirmTask.ConfigureAwait(false);
                 return upload.ID;
@@ -1097,10 +1101,8 @@ namespace LibreMetaverse
                 if (PendingUpload == upload) PendingUpload = null;
             }
 
-            if (finished == cancelTask)
-            {
-                throw new OperationCanceledException(cancellationToken);
-            }
+            // The delay ends early when the caller cancels, so tell that apart from a real timeout
+            cancellationToken.ThrowIfCancellationRequested();
 
             throw new TimeoutException("Timeout waiting for previous asset upload to begin");
         }
