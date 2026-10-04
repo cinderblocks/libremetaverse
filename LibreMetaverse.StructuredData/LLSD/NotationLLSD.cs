@@ -300,7 +300,7 @@ namespace LibreMetaverse.StructuredData
             int character;
             StringBuilder s = new StringBuilder();
             if (((character = reader.Peek()) > 0) &&
-                ((char)character == '-' && (char)character == '+'))
+                ((char)character == '-' || (char)character == '+'))
             {
                 s.Append((char)character);
                 reader.Read();
@@ -356,7 +356,7 @@ namespace LibreMetaverse.StructuredData
                 string key = osdKey.AsString();
 
                 character = ReadAndSkipWhitespace(reader);
-                if ((char)character != keyNotationDelimiter)
+                if (character < 0)
                     throw new OSDException("Notation LLSD parsing: Unexpected end of stream in map.");
                 if ((char)character != keyNotationDelimiter)
                     throw new OSDException("Notation LLSD parsing: Invalid delimiter in map.");
