@@ -423,9 +423,23 @@ namespace LibreMetaverse.Rendering
                 Indices = new List<ushort>()
             };
 
-            foreach (OSD subMesh in meshFaces)
+            if (meshFaces.Count > FacetedMesh.MaxFaces)
             {
-                AddSubMesh(subMesh, ref ret);
+                Logger.Warn($"Refusing mesh submesh with more than {FacetedMesh.MaxFaces} faces");
+                return null;
+            }
+
+            try
+            {
+                foreach (OSD subMesh in meshFaces)
+                {
+                    AddSubMesh(subMesh, ref ret);
+                }
+            }
+            catch (InvalidDataException ex)
+            {
+                Logger.Warn("Failed to decode mesh submesh", ex);
+                return null;
             }
 
             return ret;
@@ -627,8 +641,16 @@ namespace LibreMetaverse.Rendering
                 if (subMeshMap.ContainsKey("NoGeometry") && ((OSDBoolean)subMeshMap["NoGeometry"]))
                     return;
 
-                holdingMesh.Vertices.AddRange(CollectVertices(subMeshMap));
-                holdingMesh.Indices.AddRange(CollectIndices(subMeshMap));
+                var vertices = CollectVertices(subMeshMap);
+                var indices = CollectIndices(subMeshMap);
+                foreach (ushort index in indices)
+                {
+                    if (index >= vertices.Count)
+                        throw new InvalidDataException("Mesh triangle refers to a vertex that does not exist");
+                }
+
+                holdingMesh.Vertices.AddRange(vertices);
+                holdingMesh.Indices.AddRange(indices);
             }
         }
 
@@ -654,6 +676,7 @@ namespace LibreMetaverse.Rendering
                 return vertices;
 
             byte[] posBytes = posOsd.AsBinary();
+            ValidateSubMeshBlocks(posBytes.Length, subMeshMap["TriangleList"].AsBinary().Length);
 
             byte[]? norBytes = null;
             if (subMeshMap.TryGetValue("Normal", out var normalObj) && normalObj is OSD normalOsd && normalOsd.Type == OSDType.Binary)
@@ -709,11 +732,19 @@ namespace LibreMetaverse.Rendering
                         Utils.UInt16ToFloat(tY, texPosMin.Y, texPosMax.Y));
                 }
 
+                if (!IsFinite(vx.Position.X) || !IsFinite(vx.Position.Y) || !IsFinite(vx.Position.Z))
+                    throw new InvalidDataException("Mesh vertex position is not finite");
+
                 vertices.Add(vx);
             }
 
             return vertices;
         }
+
+        private static bool IsFinite(float value) => !(float.IsNaN(value) || float.IsInfinity(value));
+
+        private static void ValidateSubMeshBlocks(int positionBytes, int triangleBytes)
+            => FacetedMesh.ValidateSubMeshBlocks(positionBytes, triangleBytes);
 
         private List<ushort> CollectIndices(OSDMap subMeshMap)
         {

@@ -4,6 +4,7 @@ using System.Text;
 using LibreMetaverse.Assets;
 using LibreMetaverse.Imaging;
 using LibreMetaverse.Messages.Linden;
+using LibreMetaverse.Rendering;
 using LibreMetaverse.StructuredData;
 using NUnit.Framework;
 
@@ -21,6 +22,9 @@ namespace LibreMetaverse.Tests
         private int savedMaxPart;
         private long savedMaxAsset;
         private int savedMaxElements;
+        private int savedMaxFaces;
+        private int savedMaxVertices;
+        private int savedMaxTriangles;
 
         [SetUp]
         public void SaveLimits()
@@ -29,6 +33,9 @@ namespace LibreMetaverse.Tests
             savedMaxPart = AssetMesh.MaxInflatedPartBytes;
             savedMaxAsset = AssetMesh.MaxInflatedAssetBytes;
             savedMaxElements = AssetMesh.MaxDecodedElements;
+            savedMaxFaces = FacetedMesh.MaxFaces;
+            savedMaxVertices = FacetedMesh.MaxVerticesPerFace;
+            savedMaxTriangles = FacetedMesh.MaxTrianglesPerFace;
         }
 
         [TearDown]
@@ -38,6 +45,9 @@ namespace LibreMetaverse.Tests
             AssetMesh.MaxInflatedPartBytes = savedMaxPart;
             AssetMesh.MaxInflatedAssetBytes = savedMaxAsset;
             AssetMesh.MaxDecodedElements = savedMaxElements;
+            FacetedMesh.MaxFaces = savedMaxFaces;
+            FacetedMesh.MaxVerticesPerFace = savedMaxVertices;
+            FacetedMesh.MaxTrianglesPerFace = savedMaxTriangles;
         }
 
         #region helpers
@@ -393,6 +403,131 @@ namespace LibreMetaverse.Tests
             // a 'b' element in the header declaring 2 GB, in an asset a few bytes long
             var asset = new byte[] { (byte)'{', 0, 0, 0, 1, (byte)'k', 0, 0, 0, 1, (byte)'x', (byte)'b', 0x7F, 0xFF, 0xFF, 0xFF };
             Assert.That(TryDecodeMesh(asset, out _), Is.False);
+        }
+
+        #endregion
+
+        #region decoded geometry
+
+        private static byte[] U16s(params ushort[] values)
+        {
+            var bytes = new byte[values.Length * 2];
+            for (int i = 0; i < values.Length; i++)
+            {
+                bytes[i * 2] = (byte)(values[i] & 0xFF);
+                bytes[i * 2 + 1] = (byte)(values[i] >> 8);
+            }
+            return bytes;
+        }
+
+        private static OSDMap SubMesh(int vertices = 3, ushort[] triangle = null, byte[] position = null, OSDMap positionDomain = null)
+        {
+            var map = new OSDMap
+            {
+                ["Position"] = OSD.FromBinary(position ?? new byte[vertices * 6]),
+                ["TriangleList"] = OSD.FromBinary(U16s(triangle ?? new ushort[] { 0, 1, 2 }))
+            };
+            if (positionDomain != null) map["PositionDomain"] = positionDomain;
+            return map;
+        }
+
+        private static OSDMap Domain(float min, float max) => new OSDMap
+        {
+            ["Min"] = new OSDArray { min, min, min },
+            ["Max"] = new OSDArray { max, max, max }
+        };
+
+        private static bool TryDecodeGeometry(OSDArray faces, out FacetedMesh mesh, OSDMap skin = null)
+        {
+            byte[] part = Helpers.ZCompressOSD(faces);
+            var header = new OSDMap { ["high_lod"] = PartInfo(0, part.Length) };
+            byte[] skinPart = null;
+            if (skin != null)
+            {
+                skinPart = Helpers.ZCompressOSD(skin);
+                header["skin"] = PartInfo(part.Length, skinPart.Length);
+            }
+            byte[] asset = skinPart == null ? MeshAsset(header, part) : MeshAsset(header, part, skinPart);
+            return FacetedMesh.TryDecodeFromAsset(new Primitive(), new AssetMesh(UUID.Random(), asset), DetailLevel.Highest, out mesh);
+        }
+
+        [Test]
+        public void Geometry_ValidSubMesh_Decodes()
+        {
+            Assert.That(TryDecodeGeometry(new OSDArray { SubMesh() }, out var mesh), Is.True);
+            Assert.That(mesh.Faces.Count, Is.EqualTo(1));
+            Assert.That(mesh.Faces[0].Vertices.Count, Is.EqualTo(3));
+            Assert.That(mesh.Faces[0].Indices, Is.EqualTo(new ushort[] { 0, 1, 2 }));
+        }
+
+        [Test]
+        public void Geometry_EightFaces_Decode_NineAreRefused()
+        {
+            var eight = new OSDArray();
+            for (int i = 0; i < 8; i++) eight.Add(SubMesh());
+            Assert.That(TryDecodeGeometry(eight, out _), Is.True);
+
+            var nine = new OSDArray();
+            for (int i = 0; i < 9; i++) nine.Add(SubMesh());
+            Assert.That(TryDecodeGeometry(nine, out var mesh), Is.False);
+            Assert.That(mesh, Is.Null);
+        }
+
+        [Test]
+        public void Geometry_TooManyVertices_AreRefused()
+        {
+            FacetedMesh.MaxVerticesPerFace = 4;
+            Assert.That(TryDecodeGeometry(new OSDArray { SubMesh(4, new ushort[] { 0, 1, 2 }) }, out _), Is.True);
+            Assert.That(TryDecodeGeometry(new OSDArray { SubMesh(5, new ushort[] { 0, 1, 2 }) }, out _), Is.False);
+        }
+
+        [Test]
+        public void Geometry_TooManyTriangles_AreRefused()
+        {
+            FacetedMesh.MaxTrianglesPerFace = 1;
+            Assert.That(TryDecodeGeometry(new OSDArray { SubMesh(3, new ushort[] { 0, 1, 2 }) }, out _), Is.True);
+            Assert.That(TryDecodeGeometry(new OSDArray { SubMesh(3, new ushort[] { 0, 1, 2, 2, 1, 0 }) }, out _), Is.False);
+        }
+
+        [Test]
+        public void Geometry_PartialEntries_AreRefused()
+        {
+            Assert.That(TryDecodeGeometry(new OSDArray { SubMesh(position: new byte[20]) }, out _), Is.False);
+        }
+
+        [Test]
+        public void Geometry_TriangleIndexPastTheVertices_IsRefused()
+        {
+            Assert.That(TryDecodeGeometry(new OSDArray { SubMesh(3, new ushort[] { 0, 1, 3 }) }, out _), Is.False);
+            Assert.That(TryDecodeGeometry(new OSDArray { SubMesh(3, new ushort[] { 0, 1, 65535 }) }, out _), Is.False);
+        }
+
+        [Test]
+        public void Geometry_NonFiniteDomain_IsRefused()
+        {
+            Assert.That(TryDecodeGeometry(new OSDArray { SubMesh(positionDomain: Domain(-1f, 1f)) }, out _), Is.True);
+            Assert.That(TryDecodeGeometry(new OSDArray { SubMesh(positionDomain: Domain(float.NaN, 1f)) }, out _), Is.False);
+            Assert.That(TryDecodeGeometry(new OSDArray { SubMesh(positionDomain: Domain(-1f, float.PositiveInfinity)) }, out _), Is.False);
+        }
+
+        [Test]
+        public void Geometry_DomainWhoseExtentOverflows_IsRefused()
+        {
+            Assert.That(TryDecodeGeometry(new OSDArray { SubMesh(positionDomain: Domain(-3e38f, 3e38f)) }, out _), Is.False);
+        }
+
+        [Test]
+        public void Geometry_TooManyJoints_AreRefused()
+        {
+            OSDMap Skin(int joints)
+            {
+                var names = new OSDArray();
+                for (int i = 0; i < joints; i++) names.Add("joint" + i);
+                return new OSDMap { ["joint_names"] = names };
+            }
+
+            Assert.That(TryDecodeGeometry(new OSDArray { SubMesh() }, out _, Skin(110)), Is.True);
+            Assert.That(TryDecodeGeometry(new OSDArray { SubMesh() }, out _, Skin(FacetedMesh.MaxSkinJoints + 1)), Is.False);
         }
 
         #endregion

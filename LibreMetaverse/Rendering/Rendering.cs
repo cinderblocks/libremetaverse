@@ -331,6 +331,39 @@ namespace LibreMetaverse.Rendering
         /// </summary>
         public MeshSkinData? SkinData;
 
+        /// <summary>Maximum number of faces (submeshes) in one level of detail of a mesh</summary>
+        public static int MaxFaces = 8;
+
+        /// <summary>Maximum number of vertices in one face of a mesh</summary>
+        public static int MaxVerticesPerFace = 65536;
+
+        /// <summary>Maximum number of triangles in one face of a mesh</summary>
+        public static int MaxTrianglesPerFace = 1024 * 1024;
+
+        /// <summary>Maximum number of joints a rigged mesh may declare</summary>
+        public static int MaxSkinJoints = 256;
+
+        internal static bool IsFinite(float value) => !(float.IsNaN(value) || float.IsInfinity(value));
+
+        internal static bool IsFinite(Vector2 v) => IsFinite(v.X) && IsFinite(v.Y);
+
+        internal static bool IsFinite(Vector3 v) => IsFinite(v.X) && IsFinite(v.Y) && IsFinite(v.Z);
+
+        /// <summary>
+        /// Checks the sizes of the binary position and triangle blocks of a submesh, which come from
+        /// the (untrusted) asset, against the limits above and against each other.
+        /// </summary>
+        /// <exception cref="InvalidDataException">The blocks are malformed or too large</exception>
+        public static void ValidateSubMeshBlocks(int positionBytes, int triangleBytes)
+        {
+            if (positionBytes % 6 != 0 || triangleBytes % 6 != 0)
+                throw new InvalidDataException("Mesh position or triangle data is not a whole number of entries");
+            if (positionBytes / 6 > MaxVerticesPerFace)
+                throw new InvalidDataException($"Mesh face has more than {MaxVerticesPerFace} vertices");
+            if (triangleBytes / 6 > MaxTrianglesPerFace)
+                throw new InvalidDataException($"Mesh face has more than {MaxTrianglesPerFace} triangles");
+        }
+
         /// <summary>
         /// Decodes mesh asset into FacetedMesh
         /// </summary>
@@ -393,6 +426,9 @@ namespace LibreMetaverse.Rendering
                     return false;
                 }
 
+                if (decodedMeshOsdArray.Count > MaxFaces)
+                    throw new InvalidDataException($"Mesh has more than {MaxFaces} faces");
+
                 for (int faceNr = 0; faceNr < decodedMeshOsdArray.Count; faceNr++)
                 {
                     OSD subMeshOsd = decodedMeshOsdArray[faceNr];
@@ -433,6 +469,10 @@ namespace LibreMetaverse.Rendering
 
                         // Vertex positions
                         byte[] posBytes = subMeshMap["Position"];
+                        byte[] triangleBytes = subMeshMap["TriangleList"];
+                        ValidateSubMeshBlocks(posBytes.Length, triangleBytes.Length);
+                        if (!IsFinite(posMin) || !IsFinite(posMax))
+                            throw new InvalidDataException("Mesh position domain is not finite");
 
                         // Normals
                         byte[]? norBytes = null;
@@ -481,6 +521,10 @@ namespace LibreMetaverse.Rendering
                             oface.NormalizedScale = new Vector3(1f, 1f, 1f);
                         }
 
+                        if (!IsFinite(oface.NormalizedScale) || !IsFinite(texPosMin) || !IsFinite(texPosMax)
+                            || !IsFinite(tex1PosMin) || !IsFinite(tex1PosMax))
+                            throw new InvalidDataException("Mesh scale or texture domain is not finite");
+
                         // Allocate TexCoords1 list when second UV channel is present.
                         if (tex1Bytes != null)
                         {
@@ -503,6 +547,10 @@ namespace LibreMetaverse.Rendering
                                     Utils.UInt16ToFloat(uY, posMin.Y, posMax.Y),
                                     Utils.UInt16ToFloat(uZ, posMin.Z, posMax.Z))
                             };
+
+                            // The domain is finite but its extent (max - min) can still overflow
+                            if (!IsFinite(vx.Position))
+                                throw new InvalidDataException("Mesh vertex position is not finite");
 
                             if (norBytes != null && norBytes.Length >= i + 6)
                             {
@@ -543,7 +591,6 @@ namespace LibreMetaverse.Rendering
                             oface.Vertices.Add(vx);
                         }
 
-                        byte[] triangleBytes = subMeshMap["TriangleList"];
                         for (int i = 0; i < triangleBytes.Length; i += 6)
                         {
                             ushort v1 = (ushort)(Utils.BytesToUInt16(triangleBytes, i));
@@ -552,6 +599,8 @@ namespace LibreMetaverse.Rendering
                             oface.Indices.Add(v2);
                             ushort v3 = (ushort)(Utils.BytesToUInt16(triangleBytes, i + 4));
                             oface.Indices.Add(v3);
+                            if (v1 >= oface.Vertices.Count || v2 >= oface.Vertices.Count || v3 >= oface.Vertices.Count)
+                                throw new InvalidDataException("Mesh triangle refers to a vertex that does not exist");
                         }
 
                         // Parse per-vertex skin weights for rigged mesh faces.
@@ -617,6 +666,7 @@ namespace LibreMetaverse.Rendering
             catch (Exception ex)
             {
                 Logger.Warn("Failed to decode mesh asset: " + ex.Message);
+                mesh = null;
                 return false;
             }
 
@@ -632,6 +682,8 @@ namespace LibreMetaverse.Rendering
 
             if (skinMap.TryGetValue("joint_names", out var jnOsd) && jnOsd is OSDArray jnArr)
             {
+                if (jnArr.Count > MaxSkinJoints)
+                    throw new InvalidDataException($"Mesh declares more than {MaxSkinJoints} joints");
                 data.JointNames = new string[jnArr.Count];
                 for (int i = 0; i < jnArr.Count; i++)
                     data.JointNames[i] = jnArr[i].AsString();
@@ -639,6 +691,8 @@ namespace LibreMetaverse.Rendering
 
             if (skinMap.TryGetValue("inverse_bind_matrix", out var ibmOsd) && ibmOsd is OSDArray ibmArr)
             {
+                if (ibmArr.Count > MaxSkinJoints)
+                    throw new InvalidDataException($"Mesh declares more than {MaxSkinJoints} joints");
                 data.InverseBindMatrices = new float[ibmArr.Count * 16];
                 for (int i = 0; i < ibmArr.Count; i++)
                 {
@@ -663,6 +717,8 @@ namespace LibreMetaverse.Rendering
 
             if (skinMap.TryGetValue("alt_inverse_bind_matrix", out var aibmOsd) && aibmOsd is OSDArray aibmArr)
             {
+                if (aibmArr.Count > MaxSkinJoints)
+                    throw new InvalidDataException($"Mesh declares more than {MaxSkinJoints} joints");
                 data.AltInverseBindMatrices = new float[aibmArr.Count * 16];
                 for (int i = 0; i < aibmArr.Count; i++)
                 {
