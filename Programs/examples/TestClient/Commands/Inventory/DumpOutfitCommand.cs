@@ -118,10 +118,13 @@ namespace TestClient.Commands.Inventory
                                 {
                                     File.WriteAllBytes(assetTexture.AssetID + ".jp2", assetTexture.AssetData);
                                     Console.WriteLine($"Wrote JPEG2000 image {assetTexture.AssetID}.jp2");
-                                    var mi = J2kImage.DecodeToImage<ManagedImage>(assetTexture.AssetData);
-                                    var bytes = Targa.Encode(mi);
-                                    File.WriteAllBytes(assetTexture.AssetID + ".tga", bytes);
-                                    Console.WriteLine($"Wrote TGA image {assetTexture.AssetID}.tga");
+                                    if (assetTexture.Decode() && assetTexture.Image != null)
+                                    {
+                                        var bytes = Targa.Encode(assetTexture.Image);
+                                        File.WriteAllBytes(assetTexture.AssetID + ".tga", bytes);
+                                        Console.WriteLine($"Wrote TGA image {assetTexture.AssetID}.tga");
+                                    }
+                                    else Console.WriteLine($"Failed to decode image {assetTexture.AssetID}");
                                 }
                                 catch (Exception e) { Console.WriteLine(e.ToString()); }
                             }

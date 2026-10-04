@@ -657,13 +657,42 @@ namespace LibreMetaverse
             return ret;
         }
 
+        /// <summary>
+        /// Default limit, in bytes, on the inflated size of a single compressed OSD block
+        /// handled by <see cref="DecompressOSD(byte[])"/> and <see cref="ZDecompressOSD(byte[])"/>.
+        /// Compressed data can expand by orders of magnitude, so output is capped rather than
+        /// trusting the data.
+        /// </summary>
+        public static int MaxInflatedOSDBytes = 16 * 1024 * 1024;
+
+        /// <summary>
+        /// Decompresses a zlib compressed OSD object
+        /// </summary>
+        /// <param name="data">zlib compressed binary LLSD</param>
+        /// <returns>the OSD object</returns>
+        /// <exception cref="InvalidDataException">The data inflates to more than
+        /// <see cref="MaxInflatedOSDBytes"/> bytes</exception>
         public static OSD ZDecompressOSD(byte[] data)
+        {
+            return ZDecompressOSD(data, MaxInflatedOSDBytes);
+        }
+
+        /// <summary>
+        /// Decompresses a zlib compressed OSD object
+        /// </summary>
+        /// <param name="data">zlib compressed binary LLSD</param>
+        /// <param name="maxOutputBytes">Maximum number of bytes the data may inflate to</param>
+        /// <returns>the OSD object</returns>
+        /// <exception cref="InvalidDataException">The data inflates to more than
+        /// <paramref name="maxOutputBytes"/> bytes</exception>
+        public static OSD ZDecompressOSD(byte[] data, int maxOutputBytes)
         {
             OSD ret;
 
             using (MemoryStream input = new MemoryStream(data))
             using (MemoryStream output = new MemoryStream())
-            using (ZOutputStream zout = new ZOutputStream(output))
+            using (LimitedWriteStream limited = new LimitedWriteStream(output, maxOutputBytes))
+            using (ZOutputStream zout = new ZOutputStream(limited))
             {
                 CopyStream(input, zout);
                 zout.finish();
@@ -679,7 +708,42 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="meshBytes"></param>
         /// <returns>the OSD object</returns>
-        public static OSD DecompressOSD(byte[] meshBytes) {
+        /// <exception cref="InvalidDataException">The data inflates to more than
+        /// <see cref="MaxInflatedOSDBytes"/> bytes</exception>
+        public static OSD DecompressOSD(byte[] meshBytes)
+        {
+            return DecompressOSD(meshBytes, MaxInflatedOSDBytes, out _);
+        }
+
+        /// <summary>
+        /// decompresses a gzipped OSD object
+        /// </summary>
+        /// <param name="meshBytes">zlib framed deflate data containing binary LLSD</param>
+        /// <param name="maxOutputBytes">Maximum number of bytes the data may inflate to</param>
+        /// <param name="inflatedBytes">Number of bytes the data inflated to</param>
+        /// <returns>the OSD object</returns>
+        /// <exception cref="InvalidDataException">The data inflates to more than
+        /// <paramref name="maxOutputBytes"/> bytes</exception>
+        public static OSD DecompressOSD(byte[] meshBytes, int maxOutputBytes, out int inflatedBytes)
+        {
+            int elementBudget = OSDParser.MaxBinaryElements;
+            return DecompressOSD(meshBytes, maxOutputBytes, out inflatedBytes, ref elementBudget);
+        }
+
+        /// <summary>
+        /// decompresses a gzipped OSD object
+        /// </summary>
+        /// <param name="meshBytes">zlib framed deflate data containing binary LLSD</param>
+        /// <param name="maxOutputBytes">Maximum number of bytes the data may inflate to</param>
+        /// <param name="inflatedBytes">Number of bytes the data inflated to</param>
+        /// <param name="elementBudget">Number of values the object may contain; reduced by the
+        /// number it did contain, so one budget can cover several objects</param>
+        /// <returns>the OSD object</returns>
+        /// <exception cref="InvalidDataException">The data inflates to more than
+        /// <paramref name="maxOutputBytes"/> bytes</exception>
+        /// <exception cref="OSDException">The object contains more values than the budget allows</exception>
+        public static OSD DecompressOSD(byte[] meshBytes, int maxOutputBytes, out int inflatedBytes, ref int elementBudget)
+        {
             OSD? decodedOsd = null;
 
             using (MemoryStream inMs = new MemoryStream(meshBytes))
@@ -689,19 +753,67 @@ namespace LibreMetaverse
                 byte[] readBuffer = new byte[2048];
                 inMs.Read(readBuffer, 0, 2); // skip first 2 bytes in header
                 int readLen = 0;
+                long total = 0;
 
                 while ((readLen = decompressionStream.Read(readBuffer, 0, readBuffer.Length)) > 0)
+                {
+                    total += readLen;
+                    if (total > maxOutputBytes)
+                        throw new InvalidDataException($"Compressed data inflates to more than {maxOutputBytes} bytes");
                     outMs.Write(readBuffer, 0, readLen);
+                }
 
                 outMs.Flush();
+                inflatedBytes = (int)total;
 
                 outMs.Seek(0, SeekOrigin.Begin);
 
-                byte[] decompressedBuf = outMs.GetBuffer();
-
-                decodedOsd = OSDParser.DeserializeLLSDBinary(decompressedBuf);
+                decodedOsd = OSDParser.DeserializeLLSDBinary(outMs, ref elementBudget);
             }
             return decodedOsd!;
+        }
+
+        /// <summary>
+        /// Write-only pass-through stream that refuses to accept more than a fixed number of bytes
+        /// </summary>
+        private sealed class LimitedWriteStream : Stream
+        {
+            private readonly Stream _inner;
+            private readonly long _limit;
+            private long _written;
+
+            public LimitedWriteStream(Stream inner, long limit)
+            {
+                _inner = inner;
+                _limit = limit;
+            }
+
+            public override void Write(byte[] buffer, int offset, int count)
+            {
+                if (count > _limit - _written)
+                    throw new InvalidDataException($"Compressed data inflates to more than {_limit} bytes");
+                _written += count;
+                _inner.Write(buffer, offset, count);
+            }
+
+            public override void WriteByte(byte value)
+            {
+                Write(new[] { value }, 0, 1);
+            }
+
+            public override void Flush() => _inner.Flush();
+            public override bool CanRead => false;
+            public override bool CanSeek => false;
+            public override bool CanWrite => true;
+            public override long Length => throw new NotSupportedException();
+            public override long Position
+            {
+                get => throw new NotSupportedException();
+                set => throw new NotSupportedException();
+            }
+            public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+            public override void SetLength(long value) => throw new NotSupportedException();
         }
 
         /// <summary>

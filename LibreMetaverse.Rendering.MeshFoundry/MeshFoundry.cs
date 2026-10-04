@@ -402,7 +402,18 @@ namespace LibreMetaverse.Rendering
         /// <returns>The decoded mesh, or null on failure</returns>
         public SimpleMesh? MeshSubMeshAsSimpleMesh(Primitive prim, byte[] compressedMeshData)
         {
-            if (!(Helpers.DecompressOSD(compressedMeshData) is OSDArray meshFaces))
+            OSD decompressed;
+            try
+            {
+                decompressed = Helpers.DecompressOSD(compressedMeshData);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn("Failed to decode mesh submesh", ex);
+                return null;
+            }
+
+            if (!(decompressed is OSDArray meshFaces))
                 return null;
 
             var ret = new SimpleMesh
@@ -560,6 +571,7 @@ namespace LibreMetaverse.Rendering
                     OSDMap header = (OSDMap)OSDParser.DeserializeLLSDBinary(data);
                     meshData["asset_header"] = header;
                     long start = data.Position;
+                    int parts = 0;
 
                     foreach (string partName in header.Keys)
                     {
@@ -569,15 +581,32 @@ namespace LibreMetaverse.Rendering
                             continue;
                         }
 
+                        if (++parts > AssetMesh.MaxParts)
+                            throw new InvalidDataException($"Mesh asset has more than {AssetMesh.MaxParts} parts");
+
                         OSDMap partInfo = (OSDMap)header[partName];
-                        if (partInfo["offset"] < 0 || partInfo["size"] == 0)
+                        if (!partInfo.TryGetValue("offset", out OSD offsetOsd) || !partInfo.TryGetValue("size", out OSD sizeOsd)
+                            || offsetOsd.Type != OSDType.Integer || sizeOsd.Type != OSDType.Integer)
                         {
                             meshData[partName] = partInfo;
                             continue;
                         }
 
-                        byte[] part = new byte[partInfo["size"]];
-                        Buffer.BlockCopy(assetData, partInfo["offset"] + (int)start, part, 0, part.Length);
+                        long offset = offsetOsd.AsInteger();
+                        long size = sizeOsd.AsInteger();
+                        if (offset < 0 || size == 0)
+                        {
+                            meshData[partName] = partInfo;
+                            continue;
+                        }
+
+                        // The header is untrusted: check the declared range against the bytes we
+                        // actually have before allocating a buffer for it.
+                        if (size < 0 || start + offset + size > assetData.Length)
+                            throw new InvalidDataException($"Mesh part {partName} extends past the end of the asset");
+
+                        byte[] part = new byte[size];
+                        Buffer.BlockCopy(assetData, (int)(start + offset), part, 0, part.Length);
                         meshData[partName] = part;
                     }
                 }

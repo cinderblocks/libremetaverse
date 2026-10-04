@@ -70,6 +70,20 @@ namespace LibreMetaverse.StructuredData
         private const byte mapEndBinaryMarker = (byte)'}';
         private const byte keyBinaryMarker = (byte)'k';
 
+        /// <summary>
+        /// Maximum depth of nested arrays and maps accepted when parsing binary LLSD.
+        /// Deeper input is rejected with an <see cref="OSDException"/> rather than
+        /// risking a stack overflow, which cannot be caught.
+        /// </summary>
+        public const int MaxBinaryNestingDepth = 128;
+
+        /// <summary>
+        /// Default maximum number of values (and map keys) accepted in one binary LLSD document.
+        /// A single byte of input can become a value of several dozen bytes of managed memory,
+        /// so the size of the input alone does not bound the memory used to parse it.
+        /// </summary>
+        public static int MaxBinaryElements = 4 * 1024 * 1024;
+
         private static readonly byte[] llsdBinaryHeadBytes = Encoding.ASCII.GetBytes(llsdBinaryHead2);
 
         /// <summary>
@@ -105,7 +119,32 @@ namespace LibreMetaverse.StructuredData
 
             SkipWhiteSpace(stream);
 
-            return ParseLLSDBinaryElement(stream);
+            int budget = MaxBinaryElements;
+            return ParseLLSDBinaryElement(stream, 0, ref budget);
+        }
+
+        /// <summary>
+        /// Deserializes binary LLSD, limiting how many values it may contain
+        /// </summary>
+        /// <param name="stream">Stream to read the data from</param>
+        /// <param name="elementBudget">Number of values (and map keys) that may still be parsed.
+        /// Reduced by the number parsed, so one budget can be shared by several documents.</param>
+        /// <returns>OSD containting deserialized data</returns>
+        /// <exception cref="OSDException">The data contains more values than the budget allows</exception>
+        public static OSD DeserializeLLSDBinary(Stream stream, ref int elementBudget)
+        {
+            if (!stream.CanSeek)
+                throw new OSDException("Cannot deserialize binary LLSD from unseekable streams");
+
+            SkipWhiteSpace(stream);
+
+            if (!FindString(stream, llsdBinaryHead) && !FindString(stream, llsdBinaryHead2))
+            {
+            }
+
+            SkipWhiteSpace(stream);
+
+            return ParseLLSDBinaryElement(stream, 0, ref elementBudget);
         }
 
         /// <summary>
@@ -252,8 +291,11 @@ namespace LibreMetaverse.StructuredData
             stream.WriteByte(mapEndBinaryMarker);
         }
 
-        private static OSD ParseLLSDBinaryElement(Stream stream)
+        private static OSD ParseLLSDBinaryElement(Stream stream, int depth, ref int budget)
         {
+            if (--budget < 0)
+                throw new OSDException("Binary LLSD parsing: Too many values.");
+
             SkipWhiteSpace(stream);
             OSD osd;
 
@@ -313,10 +355,10 @@ namespace LibreMetaverse.StructuredData
                     osd = OSD.FromDate(dateTime.ToLocalTime());
                     break;
                 case arrayBeginBinaryMarker:
-                    osd = ParseLLSDBinaryArray(stream);
+                    osd = ParseLLSDBinaryArray(stream, depth + 1, ref budget);
                     break;
                 case mapBeginBinaryMarker:
-                    osd = ParseLLSDBinaryMap(stream);
+                    osd = ParseLLSDBinaryMap(stream, depth + 1, ref budget);
                     break;
                 default:
                     throw new OSDException("Binary LLSD parsing: Unknown type marker.");
@@ -325,14 +367,17 @@ namespace LibreMetaverse.StructuredData
             return osd;
         }
 
-        private static OSD ParseLLSDBinaryArray(Stream stream)
+        private static OSD ParseLLSDBinaryArray(Stream stream, int depth, ref int budget)
         {
+            if (depth > MaxBinaryNestingDepth)
+                throw new OSDException("Binary LLSD parsing: Maximum nesting depth exceeded.");
+
             int numElements = NetworkToHostInt(ConsumeBytes(stream, int32Length));
             int crrElement = 0;
             OSDArray osdArray = new OSDArray();
             while (crrElement < numElements)
             {
-                osdArray.Add(ParseLLSDBinaryElement(stream));
+                osdArray.Add(ParseLLSDBinaryElement(stream, depth, ref budget));
                 crrElement++;
             }
 
@@ -342,8 +387,11 @@ namespace LibreMetaverse.StructuredData
             return (OSD)osdArray;
         }
 
-        private static OSD ParseLLSDBinaryMap(Stream stream)
+        private static OSD ParseLLSDBinaryMap(Stream stream, int depth, ref int budget)
         {
+            if (depth > MaxBinaryNestingDepth)
+                throw new OSDException("Binary LLSD parsing: Maximum nesting depth exceeded.");
+
             int numElements = NetworkToHostInt(ConsumeBytes(stream, int32Length));
             int crrElement = 0;
             OSDMap osdMap = new OSDMap();
@@ -351,9 +399,11 @@ namespace LibreMetaverse.StructuredData
             {
                 if (!FindByte(stream, keyBinaryMarker))
                     throw new OSDException("Binary LLSD parsing: Missing key marker in map.");
+                if (--budget < 0)
+                    throw new OSDException("Binary LLSD parsing: Too many values.");
                 int keyLength = NetworkToHostInt(ConsumeBytes(stream, int32Length));
                 string key = Encoding.UTF8.GetString(ConsumeBytes(stream, keyLength));
-                osdMap[key] = ParseLLSDBinaryElement(stream);
+                osdMap[key] = ParseLLSDBinaryElement(stream, depth, ref budget);
                 crrElement++;
             }
 
@@ -450,9 +500,22 @@ namespace LibreMetaverse.StructuredData
         /// <returns></returns>
         public static byte[] ConsumeBytes(Stream stream, int consumeBytes)
         {
-            byte[] bytes = new byte[consumeBytes];
-            if (stream.Read(bytes, 0, consumeBytes) < consumeBytes)
+            // The length comes from the data being parsed, so check it against what the
+            // stream can actually supply before allocating anything.
+            if (consumeBytes < 0)
+                throw new OSDException("Binary LLSD parsing: Invalid length.");
+            if (stream.CanSeek && consumeBytes > stream.Length - stream.Position)
                 throw new OSDException("Binary LLSD parsing: Unexpected end of stream.");
+
+            byte[] bytes = new byte[consumeBytes];
+            int total = 0;
+            while (total < consumeBytes)
+            {
+                int read = stream.Read(bytes, total, consumeBytes - total);
+                if (read <= 0)
+                    throw new OSDException("Binary LLSD parsing: Unexpected end of stream.");
+                total += read;
+            }
             return bytes;
         }
 

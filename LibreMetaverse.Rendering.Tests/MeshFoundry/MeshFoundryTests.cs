@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.IO;
+using LibreMetaverse.StructuredData;
 using NUnit.Framework;
 
 namespace LibreMetaverse.Rendering.Tests.MeshFoundry
@@ -471,6 +473,57 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
             var zMap = new float[8, 8];
             var face = renderer.TerrainMesh(zMap, 0f, 128f, 0f, 128f);
             Assert.That(face.Indices.Count % 3, Is.EqualTo(0));
+        }
+
+        // ─── UnpackMesh with an untrusted header ───────────────────────────────
+
+        private static byte[] AssetWithHeader(OSDMap header, byte[] body)
+        {
+            byte[] head = OSDParser.SerializeLLSDBinary(header, true);
+            var asset = new byte[head.Length + body.Length];
+            System.Array.Copy(head, asset, head.Length);
+            System.Array.Copy(body, 0, asset, head.Length, body.Length);
+            return asset;
+        }
+
+        [Test]
+        public void UnpackMesh_ValidParts_AreSliced()
+        {
+            var body = new byte[] { 1, 2, 3, 4, 5, 6 };
+            var header = new OSDMap
+            {
+                ["version"] = 1,
+                ["high_lod"] = new OSDMap { ["offset"] = 2, ["size"] = 3 }
+            };
+
+            var result = new LibreMetaverse.Rendering.MeshFoundry().UnpackMesh(AssetWithHeader(header, body));
+
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result["high_lod"].AsBinary(), Is.EqualTo(new byte[] { 3, 4, 5 }));
+        }
+
+        [TestCase(0, int.MaxValue)]
+        [TestCase(0, -1)]
+        [TestCase(int.MaxValue, 4)]
+        [TestCase(4, 4)]
+        public void UnpackMesh_PartOutsideTheAsset_IsRefused(int offset, int size)
+        {
+            var header = new OSDMap { ["high_lod"] = new OSDMap { ["offset"] = offset, ["size"] = size } };
+
+            var result = new LibreMetaverse.Rendering.MeshFoundry().UnpackMesh(AssetWithHeader(header, new byte[6]));
+
+            Assert.That(result, Is.Null);
+        }
+
+        [Test]
+        public void MeshSubMeshAsSimpleMesh_InflationBomb_ReturnsNull()
+        {
+            var blob = new OSDMap { ["blob"] = OSD.FromBinary(new byte[Helpers.MaxInflatedOSDBytes + 1024 * 1024]) };
+            byte[] bomb = Helpers.ZCompressOSD(blob);
+
+            var mesh = new LibreMetaverse.Rendering.MeshFoundry().MeshSubMeshAsSimpleMesh(MakeBoxPrim(), bomb);
+
+            Assert.That(mesh, Is.Null);
         }
     }
 }

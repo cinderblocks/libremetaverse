@@ -43,6 +43,19 @@ namespace LibreMetaverse.Assets
         /// </summary>
         public OSDMap MeshData = new OSDMap();
 
+        /// <summary>Maximum number of parts (LODs, physics, skin, etc.) a mesh asset header may declare</summary>
+        public static int MaxParts = 64;
+
+        /// <summary>Maximum number of bytes a single mesh part may inflate to</summary>
+        public static int MaxInflatedPartBytes = 16 * 1024 * 1024;
+
+        /// <summary>Maximum number of bytes all the parts of one mesh asset may inflate to in total</summary>
+        public static long MaxInflatedAssetBytes = 64L * 1024 * 1024;
+
+        /// <summary>Maximum number of values all the parts of one mesh asset may contain in total.
+        /// Real meshes keep geometry in binary blobs and have only a few hundred.</summary>
+        public static int MaxDecodedElements = 2 * 1024 * 1024;
+
         /// <summary>Initializes a new instance of an AssetMesh object</summary>
         public AssetMesh() { }
 
@@ -62,7 +75,9 @@ namespace LibreMetaverse.Assets
         /// <summary>
         /// Decodes mesh asset. See <see cref="LibreMetaverse.Rendering.FacetedMesh.TryDecodeFromAsset"/>
         /// to furter decode it for rendering</summary>
-        /// <returns>true</returns>
+        /// <returns>true if the asset was decoded, false if it is malformed or exceeds the
+        /// size limits (<see cref="MaxParts"/>, <see cref="MaxInflatedPartBytes"/>,
+        /// <see cref="MaxInflatedAssetBytes"/>, <see cref="MaxDecodedElements"/>)</returns>
         public sealed override bool Decode()
         {
             try
@@ -74,6 +89,9 @@ namespace LibreMetaverse.Assets
                     OSDMap header = (OSDMap)OSDParser.DeserializeLLSDBinary(data);
                     MeshData["asset_header"] = header;
                     long start = data.Position;
+                    int parts = 0;
+                    long remaining = MaxInflatedAssetBytes;
+                    int elementBudget = MaxDecodedElements;
 
                     foreach(string partName in header.Keys)
                     {
@@ -83,16 +101,34 @@ namespace LibreMetaverse.Assets
                             continue;
                         }
 
+                        if (++parts > MaxParts)
+                            throw new InvalidDataException($"Mesh asset has more than {MaxParts} parts");
+
                         OSDMap partInfo = (OSDMap)header[partName];
-                        if (partInfo["offset"] < 0 || partInfo["size"] == 0)
+                        if (!partInfo.TryGetValue("offset", out OSD offsetOsd) || !partInfo.TryGetValue("size", out OSD sizeOsd)
+                            || offsetOsd.Type != OSDType.Integer || sizeOsd.Type != OSDType.Integer)
                         {
                             MeshData[partName] = partInfo;
                             continue;
                         }
 
-                        byte[] part = new byte[partInfo["size"]];
-                        Buffer.BlockCopy(AssetData, partInfo["offset"] + (int)start, part, 0, part.Length);
-                        MeshData[partName] = Helpers.DecompressOSD(part);
+                        long offset = offsetOsd.AsInteger();
+                        long size = sizeOsd.AsInteger();
+                        if (offset < 0 || size == 0)
+                        {
+                            MeshData[partName] = partInfo;
+                            continue;
+                        }
+
+                        // The header is untrusted: check the declared range against the bytes we
+                        // actually have before allocating a buffer for it.
+                        if (size < 0 || start + offset + size > AssetData.Length)
+                            throw new InvalidDataException($"Mesh part {partName} extends past the end of the asset");
+
+                        byte[] part = new byte[size];
+                        Buffer.BlockCopy(AssetData, (int)(start + offset), part, 0, part.Length);
+                        MeshData[partName] = Helpers.DecompressOSD(part, (int)Math.Min(MaxInflatedPartBytes, remaining), out int inflated, ref elementBudget);
+                        remaining -= inflated;
                     }
                 }
                 return true;
