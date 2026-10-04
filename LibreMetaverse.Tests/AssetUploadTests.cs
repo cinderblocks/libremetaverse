@@ -52,6 +52,27 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
+        public async Task BakedTextureUpload_UdpFallback_DoesNotBlockTheCaller()
+        {
+            // No simulator or capabilities, so the upload takes the UDP fallback path and
+            // would wait for a confirmation that never arrives.
+            using var cts = new CancellationTokenSource();
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+            var upload = _client.Assets.RequestUploadBakedTextureAsync(new byte[16], cts.Token);
+
+            // The call used to block here until the upload timed out
+            Assert.That(stopwatch.Elapsed, Is.LessThan(TimeSpan.FromSeconds(5)), "Call blocked instead of returning a task");
+            Assert.That(upload.IsCompleted, Is.False);
+
+            cts.Cancel();
+
+            var completed = await Task.WhenAny(upload, Task.Delay(TimeSpan.FromSeconds(5)));
+            Assert.That(completed, Is.SameAs(upload), "Cancelling did not end the upload");
+            Assert.That(await upload, Is.EqualTo(UUID.Zero));
+        }
+
+        [Test]
         public async Task AssetUpload_Confirmed_DoesNotHoldThreadPoolThreads()
         {
             // A token that can be cancelled but never is, as an application-wide token would be.

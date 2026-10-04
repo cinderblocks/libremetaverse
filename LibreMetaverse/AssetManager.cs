@@ -1232,7 +1232,7 @@ namespace LibreMetaverse
             AssetUploaded += UdpCallback;
             try
             {
-                RequestUpload(out _, AssetType.Texture, textureData, true, transactionID);
+                await RequestUploadAsync(AssetType.Texture, textureData, true, transactionID, cancellationToken).ConfigureAwait(false);
                 using (cancellationToken.Register(() => { AssetUploaded -= UdpCallback; tcs.TrySetCanceled(cancellationToken); }))
                     return await tcs.Task.ConfigureAwait(false);
             }
