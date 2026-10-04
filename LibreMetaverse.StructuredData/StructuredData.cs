@@ -585,6 +585,14 @@ namespace LibreMetaverse.StructuredData
             this._mString = value ?? string.Empty;
         }
 
+        // LLSD numbers are always written with '.' as the decimal separator, whatever the local
+        // culture is, so parse them with the same format they are written with.
+        private static bool TryParseNumber(string s, out double result)
+        {
+            return double.TryParse(s, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands,
+                Utils.EnUsCulture.NumberFormat, out result);
+        }
+
         public override bool AsBoolean()
         {
             if (string.IsNullOrEmpty(_mString))
@@ -595,35 +603,35 @@ namespace LibreMetaverse.StructuredData
 
         public override int AsInteger()
         {
-            if (double.TryParse(_mString, out var dbl))
+            if (TryParseNumber(_mString, out var dbl))
                 return (int)Math.Floor(dbl);
             return 0;
         }
 
         public override uint AsUInteger()
         {
-            if (double.TryParse(_mString, out var dbl))
+            if (TryParseNumber(_mString, out var dbl))
                 return (uint)Math.Floor(dbl);
             return 0;
         }
 
         public override long AsLong()
         {
-            if (double.TryParse(_mString, out var dbl))
+            if (TryParseNumber(_mString, out var dbl))
                 return (long)Math.Floor(dbl);
             return 0;
         }
 
         public override ulong AsULong()
         {
-            if (double.TryParse(_mString, out var dbl))
+            if (TryParseNumber(_mString, out var dbl))
                 return (ulong)Math.Floor(dbl);
             return 0;
         }
 
         public override double AsReal()
         {
-            return double.TryParse(_mString, out var dbl) ? dbl : 0d;
+            return TryParseNumber(_mString, out var dbl) ? dbl : 0d;
         }
 
         public override string AsString() { return _mString; }
