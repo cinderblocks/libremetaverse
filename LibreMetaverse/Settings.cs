@@ -122,6 +122,9 @@ namespace LibreMetaverse
         /// <summary>Texture download pipeline settings</summary>
         public TexturePipelineSettings TexturePipeline { get; } = new TexturePipelineSettings();
 
+        /// <summary>How the certificates presented by servers are checked</summary>
+        public SecuritySettings Security { get; } = new SecuritySettings();
+
         /// <summary>Per-client logging behaviour</summary>
         public LoggingSettings Logging { get; } = new LoggingSettings();
 

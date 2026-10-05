@@ -176,13 +176,11 @@ namespace LibreMetaverse
             Animesh = new Animesh.AnimeshManager(this);
         }
 
-        private static bool ValidateServerCertificate(HttpRequestMessage message, X509Certificate2? cert,
+        private bool ValidateServerCertificate(HttpRequestMessage message, X509Certificate2? cert,
             X509Chain? chain, SslPolicyErrors sslPolicyErrors)
         {
-            if (sslPolicyErrors == SslPolicyErrors.None) { return true; }
-
-            // *HACK:
-            return true;
+            return ServerCertificateValidator.Validate(Settings.Security,
+                message.RequestUri?.Host ?? string.Empty, cert, chain, sslPolicyErrors);
         }
 
         private HttpCapsClient SetupHttpCapsClient()

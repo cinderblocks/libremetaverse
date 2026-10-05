@@ -1,3 +1,27 @@
+# Migration Guide: Server certificate validation
+
+Server certificates are now checked. Previously every certificate was accepted, which let anyone
+on the network path impersonate a grid and read login credentials. Second Life's servers present
+certificates that verify normally, so nothing changes there. A grid whose certificate does not
+verify (self-signed, private CA, or a platform with an incomplete trust store) is now refused, and
+the warning in the log shows the certificate's SHA-256 fingerprint. Configure `Settings.Security`:
+
+```csharp
+// Trust one specific certificate (the way to connect to a self-signed server)
+client.Settings.Security.TrustCertificate("D1:E0:FE:13:...");
+
+// Trust the roots in a PEM file, like the viewer's ca-bundle.crt
+client.Settings.Security.CaBundlePath = "/path/to/ca-bundle.pem";
+
+// Decide per connection, for example by asking the user
+client.Settings.Security.CertificateValidationCallback = (host, cert, errors) => AskUser(host, cert);
+
+// Restore the old behaviour (not recommended)
+client.Settings.Security.VerifyServerCertificates = false;
+```
+
+---
+
 # Migration Guide: 3.0.0 → 3.1.0
 
 LibreMetaverse 3.1.0 removes SkiaSharp as a dependency of every core assembly (`LibreMetaverse`, `LibreMetaverse.PrimMesher`, `LibreMetaverse.Rendering.MeshFoundry`, `LibreMetaverse.Rendering.Simple`). Image decoding is now behind a new `ITextureCodec` abstraction, with SkiaSharp available as an opt-in backend. This is a breaking change everywhere `SKBitmap` previously appeared in a public signature.
