@@ -171,6 +171,64 @@ namespace LibreMetaverse.Tests
                 "Load() must release its FileStream on a Deserialize failure, not just on the success/null paths");
         }
 
+        private string WriteModelReferencing(string modelDir, string texturePath)
+        {
+            Directory.CreateDirectory(modelDir);
+            var path = Path.Combine(modelDir, "model.dae");
+            File.WriteAllText(path, DaeXml.Replace("<init_from>tex0.tga</init_from>", $"<init_from>{texturePath}</init_from>"));
+            return path;
+        }
+
+        [Test]
+        public void Load_TextureInSubdirectory_IsLoaded()
+        {
+            Directory.CreateDirectory(Path.Combine(_tempDir, "textures"));
+            File.Copy(Path.Combine(_tempDir, "tex0.tga"), Path.Combine(_tempDir, "textures", "tex1.tga"));
+            var dae = WriteModelReferencing(_tempDir, "textures/tex1.tga");
+
+            var prims = new ColladaLoader().Load(dae, loadImages: true);
+
+            Assert.That(prims[0].Faces[0].Material.TextureData, Is.Not.Empty);
+        }
+
+        [Test]
+        public void Load_TextureOutsideModelDirectory_IsNotLoaded_UnlessAllowed()
+        {
+            var modelDir = Path.Combine(_tempDir, "model");
+            var dae = WriteModelReferencing(modelDir, "../tex0.tga");
+
+            var restricted = new ColladaLoader().Load(dae, loadImages: true);
+            var allowed = new ColladaLoader { RestrictTexturesToModelDirectory = false }.Load(dae, loadImages: true);
+
+            Assert.That(restricted[0].Faces[0].Material.TextureData, Is.Null.Or.Empty);
+            Assert.That(allowed[0].Faces[0].Material.TextureData, Is.Not.Empty);
+        }
+
+        [Test]
+        public void Load_AbsoluteTexturePath_IsNotLoaded()
+        {
+            var modelDir = Path.Combine(_tempDir, "model");
+            var dae = WriteModelReferencing(modelDir, Path.Combine(_tempDir, "tex0.tga"));
+
+            var prims = new ColladaLoader().Load(dae, loadImages: true);
+
+            Assert.That(prims[0].Faces[0].Material.TextureData, Is.Null.Or.Empty);
+        }
+
+        [Test]
+        public void Load_TextureInSiblingDirectoryWithSamePrefix_IsNotLoaded()
+        {
+            // "model-evil" starts with "model" but is not inside it
+            var evil = Path.Combine(_tempDir, "model-evil");
+            Directory.CreateDirectory(evil);
+            File.Copy(Path.Combine(_tempDir, "tex0.tga"), Path.Combine(evil, "tex0.tga"));
+            var dae = WriteModelReferencing(Path.Combine(_tempDir, "model"), "../model-evil/tex0.tga");
+
+            var prims = new ColladaLoader().Load(dae, loadImages: true);
+
+            Assert.That(prims[0].Faces[0].Material.TextureData, Is.Null.Or.Empty);
+        }
+
         [Test]
         public void Load_MinimalTriangleWithTgaTexture_ProducesExpectedModelPrim()
         {

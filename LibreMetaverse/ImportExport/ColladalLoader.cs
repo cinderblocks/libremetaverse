@@ -31,6 +31,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Xml;
 using System.Linq;
 using System.Xml.Serialization;
@@ -64,6 +65,14 @@ namespace LibreMetaverse.ImportExport
         private Dictionary<string, string> MatSymTarget = new Dictionary<string, string>();
         private string FileName = string.Empty;
         private readonly ITextureCodec? _textureCodec;
+
+        /// <summary>
+        /// Only load textures from the directory of the model file and its subdirectories. A model
+        /// file can name any path, so without this an untrusted model can make the loader read
+        /// (and a caller upload) image files from anywhere the user can read. Set to false for
+        /// models that keep their textures elsewhere, such as in a sibling directory.
+        /// </summary>
+        public bool RestrictTexturesToModelDirectory { get; set; } = true;
 
         /// <summary>
         /// Creates a new Collada loader
@@ -147,9 +156,40 @@ namespace LibreMetaverse.ImportExport
             }
         }
 
+        private bool IsInModelDirectory(string path)
+        {
+            try
+            {
+                string root = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(FileName)) ?? string.Empty;
+                if (!root.EndsWith(System.IO.Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)
+                    && !root.EndsWith(System.IO.Path.AltDirectorySeparatorChar.ToString(), StringComparison.Ordinal))
+                {
+                    root += System.IO.Path.DirectorySeparatorChar;
+                }
+
+                // GetFullPath collapses any ".." segments, so they cannot be used to climb out
+                string full = System.IO.Path.GetFullPath(path);
+                var comparison = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? StringComparison.OrdinalIgnoreCase
+                    : StringComparison.Ordinal;
+                return full.StartsWith(root, comparison);
+            }
+            catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is System.IO.PathTooLongException)
+            {
+                return false;
+            }
+        }
+
         private void LoadImage(ModelMaterial material)
         {
             var fname = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(FileName) ?? string.Empty, material.Texture);
+
+            if (RestrictTexturesToModelDirectory && !IsInModelDirectory(fname))
+            {
+                Logger.Warn($"Not loading texture {material.Texture}: it is outside the model's directory " +
+                            "(see ColladaLoader.RestrictTexturesToModelDirectory)");
+                return;
+            }
 
             try
             {
