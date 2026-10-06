@@ -1492,9 +1492,12 @@ namespace LibreMetaverse
                 {
                     packet = Packet.BuildPacket(buffer.Data, ref packetEnd, zeroBuffer);
                 }
-                catch (MalformedDataException)
+                catch (MalformedDataException ex)
                 {
-                    Logger.Error($"Malformed data, cannot parse packet:\n{Utils.BytesToHexString(buffer.Data, buffer.DataLength, null)}");
+                    // Anyone who can send us UDP can cause this, so keep what is logged for each one short
+                    int dumpLen = Math.Min(buffer.DataLength, 64);
+                    Logger.Error($"Malformed data, cannot parse {buffer.DataLength} byte packet: {ex.Message}\n" +
+                                 $"First {dumpLen} bytes: {Utils.BytesToHexString(buffer.Data, dumpLen, null)}");
                 }
                 finally
                 {

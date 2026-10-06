@@ -334,11 +334,14 @@ namespace LibreMetaverse
             }
             catch (Exception ex)
             {
+                // Malformed packets come from the network, so keep what is logged for each one short
+                int dumpLen = Math.Min(srclen, 64);
                 Logger.Log(
-                    $"Zerodecoding error: i={i}, srclen={srclen}, bodylen={bodylen}, zerolen={zerolen}\n{Utils.BytesToHexString(src, srclen, null)}\n{ex}", Microsoft.Extensions.Logging.LogLevel.Error);
+                    $"Zerodecoding error: i={i}, srclen={srclen}, bodylen={bodylen}, zerolen={zerolen}\n" +
+                    $"First {dumpLen} bytes: {Utils.BytesToHexString(src, dumpLen, null)}\n{ex}", Microsoft.Extensions.Logging.LogLevel.Error);
 
                 throw new IndexOutOfRangeException(
-                    $"Zerodecoding error: i={i}, srclen={srclen}, bodylen={bodylen}, zerolen={zerolen}\n{Utils.BytesToHexString(src, srclen, null)}\n{ex.InnerException}");
+                    $"Zerodecoding error: i={i}, srclen={srclen}, bodylen={bodylen}, zerolen={zerolen}", ex);
             }
         }
 

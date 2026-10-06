@@ -154,6 +154,12 @@ namespace LibreMetaverse.Packets
         public static Header BuildHeader(byte[] bytes, ref int pos, ref int packetEnd)
         {
             Header header;
+
+            // The buffer holds whatever earlier datagrams left behind, so never read past the end of this one.
+            int available = packetEnd + 1 - pos;
+            if (available < 7)
+                throw new MalformedDataException("Packet is shorter than a packet header");
+
             byte flags = bytes[pos];
 
             header.AppendedAcks = (flags & Helpers.MSG_APPENDED_ACKS) != 0;
@@ -165,8 +171,14 @@ namespace LibreMetaverse.Packets
             // Set the frequency and packet ID number
             if (bytes[pos + 6] == 0xFF)
             {
+                if (available < 8)
+                    throw new MalformedDataException("Packet is shorter than a packet header");
+
                 if (bytes[pos + 7] == 0xFF)
                 {
+                    if (available < 10 || (header.Zerocoded && bytes[pos + 8] == 0 && available < 11))
+                        throw new MalformedDataException("Packet is shorter than a packet header");
+
                     header.Frequency = PacketFrequency.Low;
                     if (header.Zerocoded && bytes[pos + 8] == 0)
                         header.ID = bytes[pos + 10];
@@ -192,7 +204,7 @@ namespace LibreMetaverse.Packets
             }
 
             header.AckList = null;
-            CreateAckList(ref header, bytes, ref packetEnd);
+            CreateAckList(ref header, bytes, pos, ref packetEnd);
 
             return header;
         }
@@ -203,11 +215,19 @@ namespace LibreMetaverse.Packets
         /// <param name="header"></param>
         /// <param name="bytes"></param>
         /// <param name="packetEnd"></param>
-        static void CreateAckList(ref Header header, byte[] bytes, ref int packetEnd)
+        static void CreateAckList(ref Header header, byte[] bytes, int bodyStart, ref int packetEnd)
         {
             if (header.AppendedAcks)
             {
+                if (packetEnd < bodyStart)
+                    throw new MalformedDataException("Packet has appended ACKs but no room for them");
+
                 int count = bytes[packetEnd--];
+
+                // the ACKs sit after the header, and cannot reach back into it
+                if (packetEnd - count * 4 + 1 < bodyStart)
+                    throw new MalformedDataException("Packet declares more appended ACKs than it can hold");
+
                 header.AckList = new uint[count];
 
                 for (int i = 0; i < count; i++)
