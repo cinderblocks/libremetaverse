@@ -57,5 +57,26 @@ namespace LibreMetaverse.Tests
         {
             Assert.That(() => AgentManager.ParseMuteListEntry(line), Throws.InstanceOf<ArgumentException>());
         }
+
+        [Test]
+        public void LeadingWhitespace_IsAccepted()
+        {
+            var entry = AgentManager.ParseMuteListEntry($"  1 {Id} Some Avatar|3");
+            Assert.That(entry.Name, Is.EqualTo("Some Avatar"));
+        }
+
+        [TestCase(200000, "")]
+        [TestCase(200000, " ")]
+        [TestCase(200000, " 1")]
+        public void LongRunOfDigits_IsRefusedQuickly(int digits, string suffix)
+        {
+            // an unanchored pattern retries from every digit, which takes minutes for a line this long
+            var line = new string('1', digits) + suffix;
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+            Assert.That(() => AgentManager.ParseMuteListEntry(line), Throws.InstanceOf<ArgumentException>());
+
+            Assert.That(stopwatch.ElapsedMilliseconds, Is.LessThan(1000));
+        }
     }
 }

@@ -747,7 +747,9 @@ namespace LibreMetaverse
                                 }
                                 catch (Exception ex)
                                 {
-                                    Logger.Warn("Failed to parse the mute list line: " + line, ex, Client);
+                                    // the line is from the network, so do not log all of an arbitrarily long one
+                                    Logger.Warn("Failed to parse the mute list line: " +
+                                                (line.Length > 200 ? line.Substring(0, 200) + "..." : line), ex, Client);
                                 }
                             }
                         }
@@ -1170,9 +1172,10 @@ namespace LibreMetaverse
         }
 
         // One mute list line looks like "<type> <uuid> <name>|<flags>". The name may contain spaces
-        // and the flags are optional.
+        // and the flags are optional. Anchored, with bounded numbers, so a long line of digits cannot make
+        // the match retry from every position (that is quadratic in the length of the line).
         private static readonly Regex MuteListEntryRegex = new Regex(
-            @"(?<MuteType>\d+)\s+(?<Key>[a-zA-Z0-9-]+)\s+(?<Name>[^|]+)(?:\|(?<Flags>\d+))?",
+            @"^\s*(?<MuteType>\d{1,9})\s+(?<Key>[a-zA-Z0-9-]{1,36})\s+(?<Name>[^|]+)(?:\|(?<Flags>\d{1,9}))?",
             RegexOptions.CultureInvariant);
 
         /// <summary>Parse a single line of the mute list asset</summary>
