@@ -25,6 +25,7 @@
  */
 
 using System;
+using System.IO;
 
 namespace LibreMetaverse
 {
@@ -98,6 +99,11 @@ namespace LibreMetaverse
 
 
         /// <summary>
+        /// The most joints an animation may declare
+        /// </summary>
+        public const int MaxJoints = 512;
+
+        /// <summary>
         /// Contains an array of joints
         /// </summary>
         public binBVHJoint[] joints;
@@ -146,6 +152,13 @@ namespace LibreMetaverse
 
                 JointCount = Utils.BytesToUInt(animationdata, i); i += 4; // Get Joint count
             }
+
+            // The count comes from the (untrusted) asset: it has to fit in the data that is there, and a
+            // plausible animation does not have more joints than the avatar skeleton has.
+            const int MinJointBytes = 13; // name terminator, priority, and two key counts
+            if (JointCount > MaxJoints || JointCount > (long)(animationdata.Length - i) / MinJointBytes)
+                throw new InvalidDataException($"Animation declares {JointCount} joints, which its data cannot hold");
+
             joints = new binBVHJoint[JointCount];
 
             // deserialize the number of joints in the animation.
@@ -330,6 +343,10 @@ namespace LibreMetaverse
 
             if (keycount == 0)
                 return Array.Empty<binBVHJointKey>();
+
+            // each key is a time and three components, two bytes each
+            if (i < 0 || (long)keycount * 8 > data.Length - i)
+                throw new InvalidDataException($"Animation declares {keycount} keyframes, which its data cannot hold");
 
             binBVHJointKey[] m_keys = new binBVHJointKey[keycount];
             for (int j = 0; j < keycount; j++)

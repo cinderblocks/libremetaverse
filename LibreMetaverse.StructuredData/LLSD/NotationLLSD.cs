@@ -36,6 +36,13 @@ namespace LibreMetaverse.StructuredData
     /// </summary>
     public static partial class OSDParser
     {
+        /// <summary>
+        /// Maximum depth of nested arrays and maps accepted when parsing notation LLSD. Deeper input is
+        /// rejected with an <see cref="OSDException"/> rather than risking a stack overflow, which
+        /// cannot be caught.
+        /// </summary>
+        public const int MaxNotationNestingDepth = 128;
+
         private const string baseIndent = "  ";
 
         private const char undefNotationValue = '!';
@@ -83,7 +90,7 @@ namespace LibreMetaverse.StructuredData
 
         public static OSD DeserializeLLSDNotation(StringReader reader)
         {
-            OSD osd = DeserializeLLSDNotationElement(reader);
+            OSD osd = DeserializeLLSDNotationElement(reader, 0);
             return osd;
         }
 
@@ -127,7 +134,7 @@ namespace LibreMetaverse.StructuredData
         /// </summary>
         /// <param name="reader"></param>
         /// <returns></returns>
-        private static OSD DeserializeLLSDNotationElement(StringReader reader)
+        private static OSD DeserializeLLSDNotationElement(StringReader reader, int depth)
         {
             int character = ReadAndSkipWhitespace(reader);
             if (character < 0)
@@ -261,10 +268,10 @@ namespace LibreMetaverse.StructuredData
                     osd = OSD.FromDate(dt);
                     break;
                 case arrayBeginNotationMarker:
-                    osd = DeserializeLLSDNotationArray(reader);
+                    osd = DeserializeLLSDNotationArray(reader, depth + 1);
                     break;
                 case mapBeginNotationMarker:
-                    osd = DeserializeLLSDNotationMap(reader);
+                    osd = DeserializeLLSDNotationMap(reader, depth + 1);
                     break;
                 default:
                     throw new OSDException("Notation LLSD parsing: Unknown type marker '" + (char)character + "'.");
@@ -320,14 +327,17 @@ namespace LibreMetaverse.StructuredData
             return OSD.FromReal(dbl);
         }
 
-        private static OSD DeserializeLLSDNotationArray(StringReader reader)
+        private static OSD DeserializeLLSDNotationArray(StringReader reader, int depth)
         {
+            if (depth > MaxNotationNestingDepth)
+                throw new OSDException("Notation LLSD parsing: Maximum nesting depth exceeded.");
+
             int character;
             OSDArray osdArray = new OSDArray();
             while (((character = PeekAndSkipWhitespace(reader)) > 0) &&
                   ((char)character != arrayEndNotationMarker))
             {
-                osdArray.Add(DeserializeLLSDNotationElement(reader));
+                osdArray.Add(DeserializeLLSDNotationElement(reader, depth));
 
                 character = ReadAndSkipWhitespace(reader);
                 if (character < 0)
@@ -343,14 +353,17 @@ namespace LibreMetaverse.StructuredData
             return (OSD)osdArray;
         }
 
-        private static OSD DeserializeLLSDNotationMap(StringReader reader)
+        private static OSD DeserializeLLSDNotationMap(StringReader reader, int depth)
         {
+            if (depth > MaxNotationNestingDepth)
+                throw new OSDException("Notation LLSD parsing: Maximum nesting depth exceeded.");
+
             int character;
             OSDMap osdMap = new OSDMap();
             while (((character = PeekAndSkipWhitespace(reader)) > 0) &&
                   ((char)character != mapEndNotationMarker))
             {
-                OSD osdKey = DeserializeLLSDNotationElement(reader);
+                OSD osdKey = DeserializeLLSDNotationElement(reader, depth);
                 if (osdKey.Type != OSDType.String)
                     throw new OSDException("Notation LLSD parsing: Invalid key in map");
                 string key = osdKey.AsString();
@@ -361,7 +374,7 @@ namespace LibreMetaverse.StructuredData
                 if ((char)character != keyNotationDelimiter)
                     throw new OSDException("Notation LLSD parsing: Invalid delimiter in map.");
 
-                osdMap[key] = DeserializeLLSDNotationElement(reader);
+                osdMap[key] = DeserializeLLSDNotationElement(reader, depth);
                 character = ReadAndSkipWhitespace(reader);
                 if (character < 0)
                     throw new OSDException("Notation LLSD parsing: Unexpected end of map discovered.");

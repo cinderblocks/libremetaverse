@@ -38,6 +38,13 @@ namespace LibreMetaverse.StructuredData
     /// </summary>
     public static partial class OSDParser
     {
+        /// <summary>
+        /// Maximum depth of nested arrays and maps accepted when parsing XML LLSD. Deeper input is
+        /// rejected with an <see cref="OSDException"/> rather than risking a stack overflow, which
+        /// cannot be caught.
+        /// </summary>
+        public const int MaxXmlNestingDepth = 128;
+
         private const string LINDEN_LAB_LOVES_BAD_PI = "<? LLSD/";
 
         /// <summary>
@@ -135,7 +142,7 @@ namespace LibreMetaverse.StructuredData
                     SkipWhitespace(xmlData);
                 }
 
-                OSD ret = ParseLLSDXmlElement(xmlData);
+                OSD ret = ParseLLSDXmlElement(xmlData, 0);
 
                 return ret;
             }
@@ -278,7 +285,7 @@ namespace LibreMetaverse.StructuredData
         /// </summary>
         /// <param name="reader"></param>
         /// <returns></returns>
-        private static OSD ParseLLSDXmlElement(XmlReader reader)
+        private static OSD ParseLLSDXmlElement(XmlReader reader, int depth)
         {
             SkipWhitespace(reader);
 
@@ -452,9 +459,9 @@ namespace LibreMetaverse.StructuredData
                     ret = OSD.FromUri(new Uri(string.Empty, UriKind.RelativeOrAbsolute));
                     break;
                 case "map":
-                    return ParseLLSDXmlMap(reader);
+                    return ParseLLSDXmlMap(reader, depth + 1);
                 case "array":
-                    return ParseLLSDXmlArray(reader);
+                    return ParseLLSDXmlArray(reader, depth + 1);
                 default:
                     reader.Read();
                     ret = null;
@@ -470,8 +477,11 @@ namespace LibreMetaverse.StructuredData
             return ret!;
         }
 
-        private static OSDMap ParseLLSDXmlMap(XmlReader reader)
+        private static OSDMap ParseLLSDXmlMap(XmlReader reader, int depth)
         {
+            if (depth > MaxXmlNestingDepth)
+                throw new OSDException("XML LLSD parsing: Maximum nesting depth exceeded.");
+
             if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "map")
                 throw new NotImplementedException("Expected <map>");
 
@@ -504,7 +514,7 @@ namespace LibreMetaverse.StructuredData
                         throw new OSDException("Expected </key>");
 
                     if (reader.Read())
-                        map[key] = ParseLLSDXmlElement(reader);
+                        map[key] = ParseLLSDXmlElement(reader, depth);
                     else
                         throw new OSDException("Failed to parse a value for key " + key);
                 }
@@ -513,8 +523,11 @@ namespace LibreMetaverse.StructuredData
             return map;
         }
 
-        private static OSDArray ParseLLSDXmlArray(XmlReader reader)
+        private static OSDArray ParseLLSDXmlArray(XmlReader reader, int depth)
         {
+            if (depth > MaxXmlNestingDepth)
+                throw new OSDException("XML LLSD parsing: Maximum nesting depth exceeded.");
+
             if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "array")
                 throw new OSDException("Expected <array>");
 
@@ -538,7 +551,7 @@ namespace LibreMetaverse.StructuredData
                         break;
                     }
 
-                    array.Add(ParseLLSDXmlElement(reader));
+                    array.Add(ParseLLSDXmlElement(reader, depth));
                 }
             }
 
