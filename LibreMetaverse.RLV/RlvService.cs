@@ -378,7 +378,7 @@ namespace LibreMetaverse.RLV
         {
             if (Blacklist.IsBlacklisted(rlvMessage.Behavior))
             {
-                if (int.TryParse(rlvMessage.Param, out var channel))
+                if (int.TryParse(rlvMessage.Param, out var channel) && channel != 0)
                 {
                     await ActionCallbacks.SendReplyAsync(channel, "", cancellationToken).ConfigureAwait(false);
                 }

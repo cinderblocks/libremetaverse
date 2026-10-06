@@ -114,7 +114,8 @@ namespace LibreMetaverse.RLV
             {
                 case RlvRestrictionType.Notify:
                 {
-                    if (args.Length < 1 || !int.TryParse(args[0], out var channel))
+                    // Channel 0 is public chat: notifications must not be broadcast there
+                    if (args.Length < 1 || !int.TryParse(args[0], out var channel) || channel == 0)
                     {
                         return false;
                     }
@@ -207,6 +208,17 @@ namespace LibreMetaverse.RLV
 
                 case RlvRestrictionType.RedirChat:
                 case RlvRestrictionType.RedirEmote:
+                {
+                    // Channel 0 is public chat, so redirecting to it would repeat what the user said
+                    if (args.Length != 1 || !int.TryParse(args[0], out var val) || val == 0)
+                    {
+                        return false;
+                    }
+
+                    parsedArgs.Add(val);
+                    return true;
+                }
+
                 case RlvRestrictionType.SendChannelExcept:
                 {
                     if (args.Length != 1 || !int.TryParse(args[0], out var val))
