@@ -623,39 +623,21 @@ namespace LibreMetaverse.ImportExport
             if (avatar == null)
                 Logger.Warn("The avatar skeleton is not available, so joint names are not checked");
 
-            var info = new SkinInfo { Map = new int[count] };
-            var firstOf = new List<int>(); // the glTF joint each avatar joint was taken from
-            var dropped = new List<string>();
+            var jointNames = new List<string>(count);
             for (int j = 0; j < count; j++)
             {
                 int node = skin.Joints[j];
                 if (node < 0 || node >= doc.Nodes.Count)
                     throw new InvalidDataException($"glTF skin refers to missing joint node {node}");
-
-                string name = doc.Nodes[node].Name ?? string.Empty;
-                string canonical = name;
-                if (avatar != null && !avatar.TryGetCanonical(name, out canonical))
-                {
-                    info.Map[j] = -1;
-                    dropped.Add(name);
-                    continue;
-                }
-
-                int existing = info.Names.IndexOf(canonical);
-                if (existing >= 0)
-                {
-                    // Two glTF joints that are the same avatar joint share the first one's matrix
-                    info.Map[j] = existing;
-                    continue;
-                }
-
-                info.Map[j] = info.Names.Count;
-                info.Names.Add(canonical);
-                firstOf.Add(j);
+                jointNames.Add(doc.Nodes[node].Name ?? string.Empty);
             }
 
-            if (dropped.Count > 0)
-                Logger.Warn($"Ignoring glTF joints that are not on the avatar skeleton: {string.Join(", ", dropped)}");
+            var selection = RigImport.SelectJoints(jointNames, avatar);
+            var info = new SkinInfo { Map = selection.Map, Names = selection.Names };
+            var firstOf = selection.FirstOf; // the glTF joint each avatar joint was taken from
+
+            if (selection.Dropped.Count > 0)
+                Logger.Warn($"Ignoring glTF joints that are not on the avatar skeleton: {string.Join(", ", selection.Dropped)}");
 
             if (info.Names.Count == 0)
             {
@@ -690,23 +672,7 @@ namespace LibreMetaverse.ImportExport
                 }
             }
 
-            var inverseBind = new List<float>();
-            foreach (var m in result)
-            {
-                var values = new[]
-                {
-                    m.M11, m.M12, m.M13, m.M14, m.M21, m.M22, m.M23, m.M24,
-                    m.M31, m.M32, m.M33, m.M34, m.M41, m.M42, m.M43, m.M44
-                };
-                foreach (var value in values)
-                {
-                    if (!Utils.IsFinite(value))
-                        throw new InvalidDataException("glTF skin gives an inverse bind matrix that is not finite");
-                }
-                inverseBind.AddRange(values);
-            }
-
-            info.InverseBind = inverseBind.ToArray();
+            info.InverseBind = RigImport.Flatten(result, "glTF skin");
             _skins[index] = info;
             return info;
         }
@@ -753,21 +719,12 @@ namespace LibreMetaverse.ImportExport
             info.MeshToSl = ToLibre(meshToSl);
             info.NormalToSl = ToLibre(NumMatrix.Transpose(inverseMeshToSl));
 
-            var defaults = AvatarSkeletonIndex.Default?.DefaultWorld;
             for (int i = 0; i < joints.Count; i++)
             {
-                // The joint's position from the file, with the avatar's own axes and size at that joint. The skeleton's
-                // bones have no rotation or scale; its collision volumes (which fitted mesh is weighted to) have both.
+                // The joint's position from the file, with the avatar's own axes and size at that joint
                 var origin = NumVector3.Transform(new NumVector3(worlds[i].M41, worlds[i].M42, worlds[i].M43), toSl);
-                var avatarWorld = NumMatrix.CreateTranslation(origin);
-                if (defaults != null && defaults.TryGetValue(info.Names[i], out var atRest))
-                {
-                    avatarWorld = atRest;
-                    avatarWorld.M41 = origin.X;
-                    avatarWorld.M42 = origin.Y;
-                    avatarWorld.M43 = origin.Z;
-                }
-                if (!NumMatrix.Invert(avatarWorld, out var inverseAvatarWorld))
+                var inverseAvatarWorld = RigImport.OnAvatarAxes(info.Names[i], NumMatrix.CreateTranslation(origin), out bool invertible);
+                if (!invertible)
                     return false;
 
                 result.Add(fromSl * inverseReference * bound[i] * toSl * inverseAvatarWorld);
@@ -865,32 +822,12 @@ namespace LibreMetaverse.ImportExport
                     int joint = skin.Map[j[k]];
                     if (joint < 0) continue;
 
-                    int existing = influences.FindIndex(e => e.Key == joint);
-                    if (existing >= 0)
-                        influences[existing] = new KeyValuePair<int, float>(joint, influences[existing].Value + w[k]);
-                    else
-                        influences.Add(new KeyValuePair<int, float>(joint, w[k]));
+                    influences.Add(new KeyValuePair<int, float>(joint, w[k]));
                 }
 
-                // Strongest first, and they add up to one
-                influences.Sort((a, b) => b.Value.CompareTo(a.Value));
-                float total = 0f;
-                foreach (var influence in influences) total += influence.Value;
-
-                var weight = new VertexWeight();
-                if (influences.Count == 0 || !(total > 0f))
-                {
-                    // Nothing it is weighted to is a joint of the avatar: it follows the first one
-                    weight.Weight0 = 1f;
-                    unweighted++;
-                }
-                else
-                {
-                    weight.Joint0 = influences[0].Key; weight.Weight0 = influences[0].Value / total;
-                    if (influences.Count > 1) { weight.Joint1 = influences[1].Key; weight.Weight1 = influences[1].Value / total; }
-                    if (influences.Count > 2) { weight.Joint2 = influences[2].Key; weight.Weight2 = influences[2].Value / total; }
-                    if (influences.Count > 3) { weight.Joint3 = influences[3].Key; weight.Weight3 = influences[3].Value / total; }
-                }
+                // Strongest first, and they add up to one. Nothing it is weighted to being a joint of the avatar
+                // leaves a vertex that follows the first one.
+                if (!RigImport.Reduce(influences, out var weight)) unweighted++;
                 result[v] = weight;
             }
 

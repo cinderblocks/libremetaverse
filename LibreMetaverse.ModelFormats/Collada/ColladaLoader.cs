@@ -35,6 +35,8 @@ using System.Runtime.InteropServices;
 using System.Xml;
 using System.Linq;
 using System.Xml.Serialization;
+using NumMatrix = System.Numerics.Matrix4x4;
+using NumVector3 = System.Numerics.Vector3;
 using LibreMetaverse.Imaging;
 using LibreMetaverse.ImportExport.Collada14;
 using LibreMetaverse.Rendering;
@@ -53,6 +55,8 @@ namespace LibreMetaverse.ImportExport
         private Dictionary<string, string> MatSymTarget = new Dictionary<string, string>();
         private string FileName = string.Empty;
         private readonly ITextureCodec? _textureCodec;
+        private UpAxisType _upAxis = UpAxisType.Y_UP;
+        private float _unitMeter = 1f;
 
         /// <summary>
         /// Only load textures from the directory of the model file and its subdirectories. A model
@@ -61,6 +65,18 @@ namespace LibreMetaverse.ImportExport
         /// models that keep their textures elsewhere, such as in a sibling directory.
         /// </summary>
         public bool RestrictTexturesToModelDirectory { get; set; } = true;
+
+        /// <summary>
+        /// For a rigged mesh, take the position and size of each joint from the file's inverse bind matrices, and
+        /// use the rotation the avatar's joint has there. A rig built in a modelling program usually gives its bones
+        /// axes of their own, which would turn the mesh around each joint on the avatar. A rig made for Second Life
+        /// has the avatar's rotations already, whatever shape it was bound at, and comes out the same either way. Set
+        /// to false to carry the matrices over exactly as authored, as the viewer's uploader does.
+        /// </summary>
+        public bool UseAvatarJointAxes { get; set; } = true;
+
+        /// <summary>The most joints a rigged mesh may use; a mesh with more is refused</summary>
+        public int MaxJoints { get; set; } = ModelSkin.MaxJoints;
 
         /// <summary>
         /// Creates a new Collada loader
@@ -79,6 +95,9 @@ namespace LibreMetaverse.ImportExport
             public string Name = string.Empty;
             public string ID = string.Empty;
             public string MeshID = string.Empty;
+
+            /// <summary>The controller (skin) this node instances, for a rigged mesh</summary>
+            public string ControllerID = string.Empty;
         }
 
         /// <summary>
@@ -316,16 +335,18 @@ namespace LibreMetaverse.ImportExport
                 {
                     n.MeshID = instGeom.url.Substring(1);
                 }
-                if (instGeom.bind_material?.technique_common != null)
-                {
-                    foreach (var teq in instGeom.bind_material.technique_common)
-                    {
-                        var target = teq.target;
-                        if (string.IsNullOrEmpty(target)) continue;
+                BindMaterials(instGeom.bind_material);
+            }
 
-                        target = target.Substring(1);
-                        MatSymTarget[teq.symbol] = target;
-                    }
+            // A skinned mesh is instanced through its controller. It is placed by its joints, so the node's own
+            // transform only matters if the skin turns out not to be one we can use.
+            if (node.instance_controller != null && node.instance_controller.Length > 0)
+            {
+                var instController = node.instance_controller[0];
+                if (!string.IsNullOrEmpty(instController.url) && instController.url.Length > 1)
+                {
+                    Nodes.Add(new Node { Name = node.name, ID = node.id, Transform = n.Transform, ControllerID = instController.url.Substring(1) });
+                    BindMaterials(instController.bind_material);
                 }
             }
 
@@ -337,6 +358,20 @@ namespace LibreMetaverse.ImportExport
             {
                 foreach (node nd in node.node1)
                     ProcessNode(nd);
+            }
+        }
+
+        private void BindMaterials(bind_material? bind)
+        {
+            if (bind?.technique_common == null) return;
+
+            foreach (var teq in bind.technique_common)
+            {
+                var target = teq.target;
+                if (string.IsNullOrEmpty(target)) continue;
+
+                target = target.Substring(1);
+                MatSymTarget[teq.symbol] = target;
             }
         }
 
@@ -371,6 +406,7 @@ namespace LibreMetaverse.ImportExport
             Matrix4 transform = Matrix4.Identity;
 
             UpAxisType upAxis = UpAxisType.Y_UP;
+            _unitMeter = 1f;
 
             var asset = Model.asset;
             if (asset != null)
@@ -379,6 +415,7 @@ namespace LibreMetaverse.ImportExport
                 if (asset.unit != null)
                 {
                     float meter = (float)asset.unit.meter;
+                    _unitMeter = meter;
                     transform = new Matrix4(
                         meter, transform.M12, transform.M13, transform.M14,
                         transform.M21, meter, transform.M23, transform.M24,
@@ -402,9 +439,11 @@ namespace LibreMetaverse.ImportExport
 
             rotation *= transform;
             transform = rotation;
+            _upAxis = upAxis;
 
             ParseVisualScene();
             ParseMaterials();
+            var rigs = ResolveRigs();
 
             foreach (var item in Model.Items) {
                 if (item is library_geometries geometries) {
@@ -467,8 +506,386 @@ namespace LibreMetaverse.ImportExport
                 }
             }
 
+            // Rigged meshes: one prim for each node that instances a skin
+            foreach (var node in Nodes)
+            {
+                if (node.ControllerID.Length == 0 || !rigs.TryGetValue(node.ControllerID, out var rig)) continue;
+
+                Prims.Add(new ModelPrim
+                {
+                    ID = node.ID,
+                    Asset = rig.Prim.Asset,
+                    BoundMin = rig.Prim.BoundMin,
+                    BoundMax = rig.Prim.BoundMax,
+                    Positions = rig.Prim.Positions,
+                    Faces = rig.Prim.Faces,
+                    Skin = rig.Prim.Skin,
+                    Position = rig.Offset,
+                    Scale = rig.Scale
+                });
+            }
+
             return Prims;
         }
+
+        #region Rigs
+
+        /// <summary>What a rigged mesh's faces need to know about its skin while they are made</summary>
+        private sealed class RigWeights
+        {
+            /// <summary>The weights of each position of the mesh</summary>
+            public VertexWeight[] Weights = Array.Empty<VertexWeight>();
+
+            /// <summary>The scale that fits the mesh into the unit cube (1 along a flat axis)</summary>
+            public Vector3 Fit = Vector3.One;
+
+            /// <summary>
+            /// The bind shape matrix undoes the fit, and a normal is drawn through the inverse transpose of that,
+            /// so it is stored scaled the other way
+            /// </summary>
+            public Vector3 FitNormal(Vector3 normal)
+            {
+                var scaled = normal * Fit;
+                float length = scaled.Length();
+                return length > 0f && !float.IsNaN(length) && !float.IsInfinity(length) ? scaled / length : Vector3.Zero;
+            }
+        }
+
+        private sealed class RigTemplate
+        {
+            public ModelPrim Prim = null!;
+            public Vector3 Scale;
+            public Vector3 Offset;
+        }
+
+        /// <summary>
+        /// Builds a rigged prim for each skin that a node instances. A skin that cannot be used as one (it is
+        /// not a skin, or none of its joints are the avatar's) has its nodes loaded as ordinary meshes instead,
+        /// or dropped if there is no mesh to show.
+        /// </summary>
+        private Dictionary<string, RigTemplate> ResolveRigs()
+        {
+            var result = new Dictionary<string, RigTemplate>(StringComparer.Ordinal);
+            if (Model == null) return result;
+
+            var controllers = new Dictionary<string, controller>(StringComparer.Ordinal);
+            foreach (var item in Model.Items)
+            {
+                if (item is library_controllers library && library.controller != null)
+                {
+                    foreach (var c in library.controller)
+                    {
+                        if (!string.IsNullOrEmpty(c.id)) controllers[c.id] = c;
+                    }
+                }
+            }
+
+            var used = new List<string>();
+            foreach (var node in Nodes)
+            {
+                if (node.ControllerID.Length > 0 && !used.Contains(node.ControllerID)) used.Add(node.ControllerID);
+            }
+
+            foreach (var id in used)
+            {
+                string? geometryId = null;
+                RigTemplate? rig = null;
+                if (!controllers.TryGetValue(id, out var controller))
+                    Logger.Warn($"Collada controller {id} is not defined, so the nodes that use it are skipped");
+                else
+                    rig = BuildRig(controller, out geometryId);
+
+                if (rig != null)
+                {
+                    result[id] = rig;
+                    continue;
+                }
+
+                // Not a rig after all: a mesh that stands where its node puts it, if there is a mesh
+                foreach (var node in Nodes.FindAll(n => n.ControllerID == id))
+                {
+                    node.ControllerID = string.Empty;
+                    if (geometryId != null) node.MeshID = geometryId;
+                }
+            }
+            return result;
+        }
+
+        private RigTemplate? BuildRig(controller controller, out string? geometryId)
+        {
+            geometryId = null;
+            var skin = controller.Item as skin;
+            if (skin == null)
+            {
+                Logger.Warn($"Collada controller {controller.id} is not a skin (morph targets are not supported), so its mesh is loaded without one");
+                return null;
+            }
+
+            string? wanted = !string.IsNullOrEmpty(skin.source1) && skin.source1.Length > 1 ? skin.source1.Substring(1) : null;
+            geometryId = wanted;
+            mesh? geometry = null;
+            if (wanted != null)
+            {
+                foreach (var item in Model!.Items)
+                {
+                    if (item is library_geometries geometries && geometries.geometry != null)
+                    {
+                        var found = geometries.geometry.FirstOrDefault(g => g.id == wanted);
+                        if (found != null) geometry = found.Item as mesh;
+                    }
+                }
+            }
+            if (geometry == null)
+            {
+                Logger.Warn($"Collada skin {controller.id} has no mesh to skin, so it is skipped");
+                geometryId = null;
+                return null;
+            }
+
+            if (_upAxis != UpAxisType.Z_UP || Math.Abs(_unitMeter - 1f) > 1e-6f)
+            {
+                Logger.Warn("This Collada file is not Z-up in meters. A rigged mesh is taken exactly as it is in the file, " +
+                            "as the viewer does, so it will only fit the avatar if it was made for Second Life");
+            }
+
+            // The joints and their inverse bind matrices
+            if (skin.joints?.input == null || skin.vertex_weights == null)
+                throw new InvalidDataException("Collada skin has no joints or no vertex weights");
+
+            string[]? names = null;
+            double[]? matrixValues = null;
+            foreach (var input in skin.joints.input)
+            {
+                var source = FindSkinSource(skin, input.source);
+                if (input.semantic == "JOINT") names = ReadNames(source);
+                else if (input.semantic == "INV_BIND_MATRIX") matrixValues = (source?.Item as float_array)?.Values;
+            }
+            if (names == null || names.Length == 0)
+                throw new InvalidDataException("Collada skin names no joints");
+            if (matrixValues == null || matrixValues.Length < names.Length * 16)
+                throw new InvalidDataException("Collada skin has fewer inverse bind matrices than joints");
+
+            var selection = RigImport.SelectJoints(names, AvatarSkeletonIndex.Default);
+            if (selection.Dropped.Count > 0)
+                Logger.Warn($"Ignoring Collada joints that are not on the avatar skeleton: {string.Join(", ", selection.Dropped)}");
+            if (selection.Names.Count == 0)
+            {
+                Logger.Warn("None of the joints of the Collada skin are on the avatar skeleton, so the mesh is loaded without a rig");
+                return null;
+            }
+            if (selection.Names.Count > MaxJoints)
+                throw new InvalidDataException($"Collada skin has {selection.Names.Count} joints, and a mesh may use at most {MaxJoints}");
+
+            var bindShape = ReadBindShape(skin.bind_shape_matrix);
+
+            // Collada's matrices are column vector, written a row at a time: reading the same floats a column at
+            // a time gives the row vector matrix
+            var authored = new List<NumMatrix>();
+            foreach (var j in selection.FirstOf)
+            {
+                int o = j * 16;
+                var m = new NumMatrix(
+                    (float)matrixValues[o + 0], (float)matrixValues[o + 4], (float)matrixValues[o + 8], (float)matrixValues[o + 12],
+                    (float)matrixValues[o + 1], (float)matrixValues[o + 5], (float)matrixValues[o + 9], (float)matrixValues[o + 13],
+                    (float)matrixValues[o + 2], (float)matrixValues[o + 6], (float)matrixValues[o + 10], (float)matrixValues[o + 14],
+                    (float)matrixValues[o + 3], (float)matrixValues[o + 7], (float)matrixValues[o + 11], (float)matrixValues[o + 15]);
+                authored.Add(m);
+            }
+            var matrices = authored;
+            if (UseAvatarJointAxes && !TryAlignToAvatar(selection.Names, authored, out matrices))
+                matrices = authored;
+
+            // The weights, one list for each position of the mesh
+            var weights = ReadWeights(skin, names.Length, selection, out int positionCount);
+
+            var prim = new ModelPrim();
+            AddPositions(out var assetScale, out var assetOffset, geometry, prim, Matrix4.Identity);
+            if (prim.Positions.Count != positionCount)
+                throw new InvalidDataException($"Collada skin weights {positionCount} vertices, but the mesh has {prim.Positions.Count}");
+
+            var rig = new RigWeights
+            {
+                Weights = weights,
+                Fit = new Vector3(assetScale.X == 0 ? 1f : assetScale.X, assetScale.Y == 0 ? 1f : assetScale.Y,
+                    assetScale.Z == 0 ? 1f : assetScale.Z)
+            };
+
+            foreach (var item in geometry.Items)
+            {
+                if (item is triangles triangles)
+                    AddFacesFromPolyList(Triangles2Polylist(triangles), geometry, prim, Matrix4.Identity, assetScale, rig);
+                if (item is polylist polylist)
+                    AddFacesFromPolyList(polylist, geometry, prim, Matrix4.Identity, assetScale, rig);
+            }
+
+            // The fit comes first, then the file's own bind shape
+            var fit = NumMatrix.CreateScale(rig.Fit.X, rig.Fit.Y, rig.Fit.Z) *
+                      NumMatrix.CreateTranslation(assetOffset.X, assetOffset.Y, assetOffset.Z);
+            var bind = fit * bindShape;
+            prim.Skin = new ModelSkin
+            {
+                BindShapeMatrix = RigImport.Flatten(new[] { bind }, "Collada bind shape matrix")
+            };
+            prim.Skin.JointNames.AddRange(selection.Names);
+            prim.Skin.InverseBindMatrices = RigImport.Flatten(matrices, "Collada skin");
+            prim.CreateAsset(UUID.Zero);
+
+            return new RigTemplate { Prim = prim, Scale = assetScale, Offset = assetOffset };
+        }
+
+        /// <summary>
+        /// Gives each joint the avatar's axes and size at the position its inverse bind matrix puts it. The
+        /// inverse of an inverse bind matrix is where the joint sits in the space the mesh is bound in.
+        /// </summary>
+        private bool TryAlignToAvatar(List<string> names, List<NumMatrix> authored, out List<NumMatrix> aligned)
+        {
+            aligned = new List<NumMatrix>(authored.Count);
+            for (int i = 0; i < authored.Count; i++)
+            {
+                if (!NumMatrix.Invert(authored[i], out var bindWorld))
+                {
+                    Logger.Warn($"The inverse bind matrix of joint {names[i]} cannot be inverted, so the matrices are used as authored");
+                    return false;
+                }
+
+                var matrix = RigImport.OnAvatarRotation(names[i], bindWorld, out bool ok);
+                if (!ok)
+                    return false;
+                aligned.Add(matrix);
+            }
+            return true;
+        }
+
+        private static source? FindSkinSource(skin skin, string? reference)
+        {
+            if (string.IsNullOrEmpty(reference) || reference!.Length < 2 || skin.source == null) return null;
+            string id = reference.Substring(1);
+            return skin.source.FirstOrDefault(src => src.id == id);
+        }
+
+        private static string[]? ReadNames(source? source)
+        {
+            if (source?.Item is Name_array names)
+                return names.Values;
+            if (source?.Item is IDREF_array ids && ids.Value != null)
+                return ids.Value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+            return null;
+        }
+
+        private static NumMatrix ReadBindShape(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return NumMatrix.Identity;
+
+            var values = ParseFloats(text!, "bind shape matrix");
+            if (values.Length != 16)
+                throw new InvalidDataException($"Collada bind shape matrix has {values.Length} values, not 16");
+
+            return new NumMatrix(
+                values[0], values[4], values[8], values[12],
+                values[1], values[5], values[9], values[13],
+                values[2], values[6], values[10], values[14],
+                values[3], values[7], values[11], values[15]);
+        }
+
+        private static float[] ParseFloats(string text, string what)
+        {
+            var tokens = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+            var result = new float[tokens.Length];
+            for (int i = 0; i < tokens.Length; i++)
+            {
+                if (!float.TryParse(tokens[i], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out result[i]) ||
+                    !Utils.IsFinite(result[i]))
+                    throw new InvalidDataException($"Collada {what} has a value that is not a number: {tokens[i]}");
+            }
+            return result;
+        }
+
+        private static int[] ParseIntegers(string? text, string what)
+        {
+            if (text == null) throw new InvalidDataException($"Collada skin has no {what}");
+            var tokens = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+            var result = new int[tokens.Length];
+            for (int i = 0; i < tokens.Length; i++)
+            {
+                if (!int.TryParse(tokens[i], System.Globalization.NumberStyles.AllowLeadingSign,
+                        System.Globalization.CultureInfo.InvariantCulture, out result[i]))
+                    throw new InvalidDataException($"Collada {what} has a value that is not an integer: {tokens[i]}");
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Reads <c>vertex_weights</c>: for each position of the mesh, which joints pull on it and how hard. A joint
+        /// index of -1 is the bind shape matrix, which does not count. Only the four strongest influences are kept,
+        /// and they are made to add up to one.
+        /// </summary>
+        private static VertexWeight[] ReadWeights(skin skin, int jointCount, JointSelection selection, out int vertexCount)
+        {
+            var vw = skin.vertex_weights;
+            int jointOffset = -1, weightOffset = -1, stride = 0;
+            double[]? weightValues = null;
+            foreach (var input in vw.input)
+            {
+                stride = Math.Max(stride, (int)Math.Min(input.offset, 1024UL) + 1);
+                if (input.semantic == "JOINT") jointOffset = (int)Math.Min(input.offset, 1024UL);
+                else if (input.semantic == "WEIGHT")
+                {
+                    weightOffset = (int)Math.Min(input.offset, 1024UL);
+                    weightValues = (FindSkinSource(skin, input.source)?.Item as float_array)?.Values;
+                }
+            }
+            if (jointOffset < 0 || weightOffset < 0 || weightValues == null)
+                throw new InvalidDataException("Collada skin has no JOINT and WEIGHT inputs on its vertex weights");
+
+            var counts = ParseIntegers(vw.vcount, "vertex weight counts");
+            var pairs = ParseIntegers(vw.v, "vertex weights");
+
+            long total = 0;
+            foreach (var c in counts)
+            {
+                if (c < 0) throw new InvalidDataException("Collada vertex weight count is negative");
+                total += c;
+            }
+            if (total * stride != pairs.Length)
+                throw new InvalidDataException("Collada vertex weights do not add up to the counts of them");
+
+            vertexCount = counts.Length;
+            var result = new VertexWeight[counts.Length];
+            var influences = new List<KeyValuePair<int, float>>();
+            int unweighted = 0;
+            long at = 0;
+            for (int vertex = 0; vertex < counts.Length; vertex++)
+            {
+                influences.Clear();
+                for (int k = 0; k < counts[vertex]; k++, at += stride)
+                {
+                    int joint = pairs[at + jointOffset];
+                    int weightIndex = pairs[at + weightOffset];
+                    if (joint == -1) continue;
+                    if (joint < 0 || joint >= jointCount)
+                        throw new InvalidDataException("Collada vertex weights refer to a joint the skin does not have");
+                    if (weightIndex < 0 || weightIndex >= weightValues.Length)
+                        throw new InvalidDataException("Collada vertex weights refer to a weight the skin does not have");
+
+                    double weight = weightValues[weightIndex];
+                    if (double.IsNaN(weight) || double.IsInfinity(weight) || weight < 0)
+                        throw new InvalidDataException("Collada skin has a weight that is not a weight");
+
+                    int mapped = selection.Map[joint];
+                    if (mapped < 0) continue;
+                    influences.Add(new KeyValuePair<int, float>(mapped, (float)weight));
+                }
+
+                // A vertex with nothing left to follow follows the first joint
+                if (!RigImport.Reduce(influences, out result[vertex])) unweighted++;
+            }
+
+            if (unweighted > 0)
+                Logger.Warn($"{unweighted} vertices have no weight to a joint of the avatar and follow the first joint instead");
+            return result;
+        }
+
+        #endregion Rigs
 
         private source? FindSource(IEnumerable<source> sources, string id)
         {
@@ -487,6 +904,8 @@ namespace LibreMetaverse.ImportExport
             for (int i = 0; i < posVals.Length / 3; i++)
             {
                 Vector3 pos = new Vector3((float)posVals[i * 3], (float)posVals[i * 3 + 1], (float)posVals[i * 3 + 2]);
+                if (!pos.IsFinite())
+                    throw new InvalidDataException("Collada mesh has a position that is not a number");
                 pos = Vector3.Transform(pos, transform);
                 prim.Positions.Add(pos);
             }
@@ -535,7 +954,7 @@ namespace LibreMetaverse.ImportExport
             return ret;
         }
 
-        private void AddFacesFromPolyList(polylist list, mesh mesh, ModelPrim prim, Matrix4 transform, Vector3 assetScale)
+        private void AddFacesFromPolyList(polylist list, mesh mesh, ModelPrim prim, Matrix4 transform, Vector3 assetScale, RigWeights? rig = null)
         {
             source? posSrc = null;
             source? normalSrc = null;
@@ -623,14 +1042,18 @@ namespace LibreMetaverse.ImportExport
                 }
 
                 Vertex[] verts = new Vertex[nvert];
+                var positionIndices = new int[nvert];
                 for (int j = 0; j < nvert; j++)
                 {
-                    verts[j].Position = prim.Positions[idx[curIdx + posOffset + (int)stride * j]];
+                    positionIndices[j] = idx[curIdx + posOffset + (int)stride * j];
+                    verts[j].Position = prim.Positions[positionIndices[j]];
 
                     if (normals != null)
                     {
-                        // The mesh gets fitted into the unit cube, so its normals are stored to match
-                        verts[j].Normal = UnitCubeFit.FitNormal(normals[idx[curIdx + norOffset + (int)stride * j]], assetScale);
+                        // The mesh gets fitted into the unit cube, so its normals are stored to match. A rigged
+                        // mesh's bind shape is exact about the scale, so it gets the matching one.
+                        var normal = normals[idx[curIdx + norOffset + (int)stride * j]];
+                        verts[j].Normal = rig != null ? rig.FitNormal(normal) : UnitCubeFit.FitNormal(normal, assetScale);
                     }
 
                     if (uvs != null)
@@ -640,22 +1063,15 @@ namespace LibreMetaverse.ImportExport
                 }
 
 
-                switch (nvert)
+                // The corners of the triangles this polygon makes
+                int[] corners = nvert == 3 ? new[] { 0, 1, 2 } : new[] { 0, 1, 2, 0, 2, 3 };
+                foreach (var corner in corners)
                 {
-                    case 3:
-                        face.AddVertex(verts[0]);
-                        face.AddVertex(verts[1]);
-                        face.AddVertex(verts[2]);
-                        break;
-                    case 4:
-                        face.AddVertex(verts[0]);
-                        face.AddVertex(verts[1]);
-                        face.AddVertex(verts[2]);
-
-                        face.AddVertex(verts[0]);
-                        face.AddVertex(verts[2]);
-                        face.AddVertex(verts[3]);
-                        break;
+                    // The weights belong to the position, not to the corner
+                    if (rig != null)
+                        face.AddVertex(verts[corner], rig.Weights[positionIndices[corner]]);
+                    else
+                        face.AddVertex(verts[corner]);
                 }
 
                 curIdx += (int)stride * nvert;

@@ -38275,9 +38275,16 @@ namespace LibreMetaverse.ImportExport.Collada14
             return string.Join(" ", values);
         }
 
+        // Text in arrays is separated by white space, and may have some before the first value and after the last, which
+        // Regex.Split would turn into values of their own
+        private static string[] SplitTokens(string val)
+        {
+            return (val ?? string.Empty).Split((char[]?)null, System.StringSplitOptions.RemoveEmptyEntries);
+        }
+
         public static double[] ConvertDoubleArray(string val)
         {
-            string[] vals = Regex.Split(val, @"\s+");
+            string[] vals = SplitTokens(val);
             double[] ret = new double[vals.Length];
             for (int i = 0; i < vals.Length; i++)
             {
@@ -38288,7 +38295,7 @@ namespace LibreMetaverse.ImportExport.Collada14
 
         public static long[] ConvertLongArray(string val)
         {
-            string[] vals = Regex.Split(val, @"\s+");
+            string[] vals = SplitTokens(val);
             long[] ret = new long[vals.Length];
             for (int i = 0; i < vals.Length; i++)
             {
@@ -38299,7 +38306,7 @@ namespace LibreMetaverse.ImportExport.Collada14
 
         public static bool[] ConvertBoolArray(string val)
         {
-            string[] vals = Regex.Split(val, @"\s+");
+            string[] vals = SplitTokens(val);
             var ret = new bool[vals.Length];
             for (int i = 0; i < vals.Length; i++)
             {
@@ -38310,7 +38317,7 @@ namespace LibreMetaverse.ImportExport.Collada14
 
         public static string[] ConvertNameArray(string val)
         {
-            return Regex.Split(val, @"\s+");
+            return SplitTokens(val);
         }
     }
 }

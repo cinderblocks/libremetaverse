@@ -274,6 +274,42 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
+        public void Load_QuadInAPolylist_IsSplitIntoTwoTrianglesFromTheFirstCorner()
+        {
+            var xml = DaeXml
+                .Replace("count=\"9\">0 0 0 1 0 0 0 1 0", "count=\"12\">0 0 0 1 0 0 1 1 0 0 1 0")
+                .Replace("count=\"6\">0 0 1 0 0 1", "count=\"8\">0 0 1 0 1 1 0 1")
+                .Replace("<triangles count=\"1\"", "<polylist count=\"1\"")
+                .Replace("<p>0 0 0 1 0 1 2 0 2</p>\n        </triangles>", "<vcount>4</vcount><p>0 0 0 1 0 1 2 0 2 3 0 3</p>\n        </polylist>");
+            var path = Path.Combine(_tempDir, "quad.dae");
+            File.WriteAllText(path, xml);
+
+            var prim = new ColladaLoader().Load(path, loadImages: false)[0];
+
+            var face = prim.Faces[0];
+            Assert.That(face.Vertices, Has.Count.EqualTo(4));
+            Assert.That(face.Indices, Is.EqualTo(new ushort[] { 0, 1, 2, 0, 2, 3 }));
+        }
+
+        [Test]
+        public void Load_ArraysWithWhiteSpaceAroundThem_AreReadAsWrittenNotShifted()
+        {
+            // A pretty-printed array has a line break before its first value and after its last. They used to become
+            // values of their own (zeroes), pushing every real value along by one.
+            var xml = DaeXml.Replace(">0 0 0 1 0 0 0 1 0</float_array>", ">\n   0 0 0\n   2 0 0\n   0 3 0\n  </float_array>");
+            var path = Path.Combine(_tempDir, "pretty.dae");
+            File.WriteAllText(path, xml);
+
+            var prim = new ColladaLoader().Load(path, loadImages: false)[0];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(prim.Scale.X, Is.EqualTo(2f).Within(1e-5f));
+                Assert.That(prim.Scale.Z, Is.EqualTo(3f).Within(1e-5f), "Y-up (0, 3, 0) is 3 tall");
+            });
+        }
+
+        [Test]
         public void Load_UnevenSize_StoresNormalsScaledByTheSizeSoTheyDrawTrue()
         {
             // Same 1 x 3 x 2 triangle as above, with a slanted normal. In Z-up it is (1, -1, 1), and the

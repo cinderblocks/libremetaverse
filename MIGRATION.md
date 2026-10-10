@@ -41,6 +41,22 @@ animation, other primitive modes and Draco/meshopt/quantized meshes are not supp
 buffers and textures from the model's directory unless `RestrictTexturesToModelDirectory` is set to false.
 PNG and JPEG textures, which glTF models normally use, need an `ITextureCodec` such as `SkiaTextureCodec`.
 
+`ColladaLoader` now reads skins too. A node that instances a controller becomes a rigged prim, read the way
+the viewer reads it: the joint names come from the skin's `JOINT` source (through the avatar's aliases),
+the inverse bind matrices and bind shape matrix are taken as they are in the file, and only the four strongest
+weights of a vertex are kept. By default (`UseAvatarJointAxes`) each joint keeps the position and size its inverse
+bind matrix gives it and takes the rotation the avatar's joint has there. A rig made for Second Life has those already,
+at whatever shape it was bound (a collision volume's scale follows the wearer's shape), and does not notice; a rig from a
+modelling program with bones turned about axes of their own needs it. Set it to false to carry the matrices over exactly,
+as the viewer's uploader does. The file's up axis and unit are
+not applied to a rig, as in the viewer, and a warning says so when the file is not Z-up in meters. Joint position
+overrides are not imported, a skin with no joint of the avatar loads as an ordinary mesh, and morph targets are not supported.
+
+**Behavior change:** the Collada parser used to turn white space before the first value or after the last of a
+`float_array` or `Name_array` into values of their own, so a pretty-printed array was read shifted by one. They are
+ignored now. A Collada mesh with a position that is not a number is also refused now, rather than loading with
+every vertex scaled by the bad one.
+
 `ObjLoader` turns each `o` object into a prim (or each `g` group, in a file with no objects) and each
 material it uses into a face. It reads the diffuse color, opacity and diffuse texture of each material, and
 fan-triangulates polygons, which is only right for convex ones. Points, lines and curves are ignored. OBJ does
