@@ -28,6 +28,7 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using CoreJ2K;
 using CoreJ2K.Configuration;
 using CoreJ2K.Util;
 using LibreMetaverse.Imaging;
@@ -166,8 +167,21 @@ namespace LibreMetaverse.ImportExport
 
         private static void Encode(ManagedImage image, ModelMaterial material)
         {
-            int width = image.Width;
-            int height = image.Height;
+            Encode(image, lossless: false, out var data, out var width, out var height);
+            material.Width = width;
+            material.Height = height;
+            material.TextureData = data;
+        }
+
+        /// <summary>
+        /// Resizes an image that is too big or not a power of two in each direction, and compresses it to JPEG2000. The
+        /// image is changed. The viewer compresses a normal map without loss, because lossy compression shows in the
+        /// lighting, and everything else with loss.
+        /// </summary>
+        internal static void Encode(ManagedImage image, bool lossless, out byte[] data, out int width, out int height)
+        {
+            width = image.Width;
+            height = image.Height;
 
             // Handle resizing to prevent excessively large images and irregular dimensions
             if (!IsPowerOfTwo((uint)width) || !IsPowerOfTwo((uint)height) || width > 1024 || height > 1024)
@@ -186,9 +200,41 @@ namespace LibreMetaverse.ImportExport
                 image.ResizeBilinear(width, height);
             }
 
-            material.Width = width;
-            material.Height = height;
-            material.TextureData = CompleteConfigurationPresets.Streaming.WithFileFormat(false).Encode(image);
+            var configuration = lossless
+                ? CompleteConfigurationPresets.Streaming.ForLossless()
+                : CompleteConfigurationPresets.Streaming;
+            data = configuration.WithFileFormat(false).Encode(image);
+        }
+
+        /// <summary>Decodes a texture file into an image, whatever format it is in. Throws if it cannot.</summary>
+        internal static ManagedImage DecodeFile(string fname, string textureName, ITextureCodec? textureCodec)
+        {
+            string ext = Path.GetExtension(textureName).ToLowerInvariant();
+
+            if (ext == ".jp2" || ext == ".j2c")
+                return J2kImage.DecodeToImage<ManagedImage>(File.ReadAllBytes(fname));
+            if (ext == ".tga" || ext == ".targa")
+                return Targa.DecodeToManagedImage(fname);
+
+            var codec = RequireCodec(fname, textureCodec);
+            using (var fs = File.OpenRead(fname))
+            {
+                return codec.Decode(fs);
+            }
+        }
+
+        /// <summary>Decodes a texture that was embedded in the model file into an image. Throws if it cannot.</summary>
+        internal static ManagedImage DecodeBytes(byte[] data, string extension, string description, ITextureCodec? textureCodec)
+        {
+            if (extension == ".jp2" || extension == ".j2c")
+                return J2kImage.DecodeToImage<ManagedImage>(data);
+
+            using (var ms = new MemoryStream(data, writable: false))
+            {
+                if (extension == ".tga" || extension == ".targa")
+                    return Targa.DecodeToManagedImage(ms);
+                return RequireCodec(description, textureCodec).Decode(ms);
+            }
         }
 
         private static bool IsPowerOfTwo(uint n)

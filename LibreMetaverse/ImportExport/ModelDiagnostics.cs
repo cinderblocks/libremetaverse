@@ -127,7 +127,13 @@ namespace LibreMetaverse.ImportExport
         InvalidModel,
 
         /// <summary>A texture's pixel size is not known, so the upload fee is quoted from the whole texture</summary>
-        TextureSizeUnknown
+        TextureSizeUnknown,
+
+        /// <summary>
+        /// A glTF material has something a Second Life material cannot hold (a second set of texture coordinates, a normal
+        /// scale, an occlusion strength, or a <c>KHR_materials_*</c> extension), and it was left out
+        /// </summary>
+        PbrApproximated
     }
 
     /// <summary>One thing a loader or exporter wants you to know about</summary>

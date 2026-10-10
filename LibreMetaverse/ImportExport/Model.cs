@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using LibreMetaverse.Assets;
 using LibreMetaverse.Rendering;
 using LibreMetaverse.StructuredData;
 
@@ -44,6 +45,107 @@ namespace LibreMetaverse.ImportExport
         /// real texture bytes -- see LLMeshUploadThread::wholeModelToLLSD's <c>texture_info</c>.</summary>
         public int Width;
         public int Height;
+
+        /// <summary>
+        /// The physically based material this was made from, when the model had one (glTF does; OBJ and
+        /// COLLADA do not). The mesh upload does not carry it: a Second Life mesh has a color and one texture for each
+        /// face. See <see cref="ModelPbrMaterial.ToAssetMaterial"/> for making a material asset from it.
+        /// </summary>
+        public ModelPbrMaterial? Pbr;
+    }
+
+    /// <summary>A texture of a <see cref="ModelPbrMaterial"/>, in the form it would be uploaded in</summary>
+    public class ModelTexture
+    {
+        /// <summary>What the model calls the image: its file name, or a made-up name if it was embedded</summary>
+        public string Name = string.Empty;
+
+        /// <summary>The image as JPEG2000, ready to upload, or empty if the textures were not loaded or this one could not be</summary>
+        public byte[] Data = Array.Empty<byte>();
+
+        /// <summary>Pixel size of <see cref="Data"/></summary>
+        public int Width;
+        public int Height;
+
+        /// <summary>The set of texture coordinates the model says this texture uses. Second Life uses the first.</summary>
+        public int TexCoord;
+
+        /// <summary>The model's <c>KHR_texture_transform</c>, as the model has it</summary>
+        public GltfTextureTransform Transform = GltfTextureTransform.Default;
+    }
+
+    /// <summary>
+    /// A physically based (metallic-roughness) material as a model file gives it, along with the textures a Second
+    /// Life material would use, prepared the way the reference viewer prepares them when it imports a glTF material:
+    /// no alpha, the occlusion map packed into the red channel of the metallic-roughness map (white if there is none),
+    /// and the normal map compressed without loss.
+    /// </summary>
+    public class ModelPbrMaterial
+    {
+        public string Name = string.Empty;
+
+        /// <summary>As the model has them: nothing is clamped or converted</summary>
+        public Color4 BaseColorFactor = Color4.White;
+        public float MetallicFactor = 1f;
+        public float RoughnessFactor = 1f;
+        public Vector3 EmissiveFactor = Vector3.Zero;
+        public GltfAlphaMode AlphaMode = GltfAlphaMode.Opaque;
+        public float AlphaCutoff = 0.5f;
+        public bool DoubleSided;
+
+        /// <summary>How strongly the normal map bends the surface. A Second Life material has no such setting.</summary>
+        public float NormalScale = 1f;
+
+        /// <summary>How strongly occlusion darkens the surface. A Second Life material has no such setting.</summary>
+        public float OcclusionStrength = 1f;
+
+        public ModelTexture? BaseColorTexture;
+        public ModelTexture? NormalTexture;
+
+        /// <summary>Occlusion in the red channel, roughness in the green and metalness in the blue, as a Second Life material has it</summary>
+        public ModelTexture? MetallicRoughnessTexture;
+        public ModelTexture? EmissiveTexture;
+
+        /// <summary>
+        /// Makes the Second Life material asset for this material, given the asset IDs the caller got by uploading the
+        /// textures (called once for each texture this material has; the textures are in <see cref="ModelTexture.Data"/>).
+        /// Like the viewer's import, it leaves double sided off whatever the model says, because that doubles the cost of
+        /// drawing it and most exporters turn it on without need, and it leaves out the texture transforms.
+        /// </summary>
+        /// <param name="textureId">Gives the asset ID of an uploaded texture</param>
+        /// <param name="carryTextureTransforms">
+        /// Carry the model's <c>KHR_texture_transform</c> over too. The viewer's import does not, and which way is up
+        /// in the transform of a Second Life material has not been checked against it, so this is as the model has them.
+        /// </param>
+        public AssetMaterial ToAssetMaterial(Func<ModelTexture, UUID> textureId, bool carryTextureTransforms = false)
+        {
+            if (textureId == null) throw new ArgumentNullException(nameof(textureId));
+
+            var asset = new AssetMaterial
+            {
+                Name = Name,
+                BaseColorFactor = BaseColorFactor,
+                EmissiveFactor = EmissiveFactor,
+                MetallicFactor = MetallicFactor,
+                RoughnessFactor = RoughnessFactor,
+                AlphaMode = AlphaMode,
+                AlphaCutoff = AlphaCutoff,
+                DoubleSided = false
+            };
+
+            void Slot(int slot, ModelTexture? texture)
+            {
+                if (texture == null) return;
+                asset.TextureIds[slot] = textureId(texture);
+                if (carryTextureTransforms) asset.TextureTransforms[slot] = texture.Transform;
+            }
+
+            Slot(AssetMaterial.TEXTURE_BASE_COLOR, BaseColorTexture);
+            Slot(AssetMaterial.TEXTURE_NORMAL, NormalTexture);
+            Slot(AssetMaterial.TEXTURE_METALLIC_ROUGHNESS, MetallicRoughnessTexture);
+            Slot(AssetMaterial.TEXTURE_EMISSIVE, EmissiveTexture);
+            return asset;
+        }
     }
 
     /// <summary>

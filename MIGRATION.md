@@ -100,6 +100,24 @@ overrides are not imported, a skin with no joint of the avatar loads as an ordin
 ignored now. A Collada mesh with a position that is not a number is also refused now, rather than loading with
 every vertex scaled by the bad one.
 
+`GltfLoader` also reads the physically based material of each face. `ModelMaterial.Pbr` (null for OBJ and COLLADA) holds the
+factors exactly as the file has them (nothing clamped), the alpha mode and cutoff, double sided, the normal scale and occlusion
+strength, and a `ModelTexture` for each of the base color, normal, metallic-roughness and emissive maps with its name, texture
+coordinate set and `KHR_texture_transform`. A mesh upload cannot carry any of this (a mesh face has a color and one texture), so it
+is for making a Second Life material: `Pbr.ToAssetMaterial(texture => idYouGotByUploadingIt)` gives the `AssetMaterial`. Like the
+viewer's own import, it leaves double sided off whatever the file says, and leaves the texture transforms out unless you pass
+`carryTextureTransforms: true` (the viewer does not read them, and which way up they are in a Second Life material has not been checked against it).
+
+The textures themselves are loaded only if you set `GltfLoader.LoadPbrTextures` (off by default, because it decodes and compresses
+extra images on every load and a mesh upload ignores them) and ask for images. They are prepared as the viewer prepares a glTF
+material's: the occlusion map goes into the red channel of the metallic-roughness map (scaled to its size), a metallic-roughness map
+with no occlusion gets a white red channel (glTF ignores that channel and files often leave it black, which would make the surface
+black), an occlusion map with no metallic-roughness map becomes a white one with the occlusion in red, alpha is dropped from
+all but the base color, and the normal map is compressed without loss. Every image goes through the same checks as the base color
+(`RestrictTexturesToModelDirectory`, file size limits, diagnostics). The encoder this library uses writes an alpha component to every
+texture, so "no alpha" means an opaque one. With the option on, `PbrApproximated` reports what a Second Life material cannot hold:
+a second set of texture coordinates, a normal scale or occlusion strength other than 1, and `KHR_materials_*` extensions.
+
 `ObjLoader` turns each `o` object into a prim (or each `g` group, in a file with no objects) and each
 material it uses into a face. It reads the diffuse color, opacity and diffuse texture of each material, and
 fan-triangulates polygons, which is only right for convex ones. Points, lines and curves are ignored. OBJ does

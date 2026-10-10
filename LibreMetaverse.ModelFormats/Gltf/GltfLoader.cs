@@ -106,6 +106,15 @@ namespace LibreMetaverse.ImportExport
         public int MaxVertices { get; set; } = 4_000_000;
 
         /// <summary>
+        /// Load the textures of each material's <see cref="ModelMaterial.Pbr"/> too (normal, metallic-roughness and emissive;
+        /// the base color is loaded in any case), prepared the way the viewer prepares them when it imports a glTF
+        /// material, and report what a Second Life material cannot hold (see <see cref="ModelDiagnosticCode.PbrApproximated"/>).
+        /// Off by default, because it decodes and compresses extra images, and the mesh upload does not use them. The material's
+        /// factors and the names of its textures are there either way.
+        /// </summary>
+        public bool LoadPbrTextures { get; set; }
+
+        /// <summary>
         /// Creates a new glTF loader
         /// </summary>
         /// <param name="textureCodec">Decodes the PNG and JPEG images glTF models normally use.
@@ -158,11 +167,14 @@ namespace LibreMetaverse.ImportExport
                 _vertexBudget = MaxVertices;
                 _skins = new Dictionary<int, SkinInfo?>();
                 _nodeParents = null;
+                _pbrSources = new List<PbrSource>();
                 var textureSources = new Dictionary<ModelMaterial, int>();
                 prims = Parse(doc, textureSources);
+                if (LoadPbrTextures) WarnAboutMaterialExtensions(doc);
                 if (loadImages)
                 {
                     LoadImages(doc, textureSources);
+                    if (LoadPbrTextures) LoadPbrImages(doc);
                 }
             }
             catch (Exception ex)
@@ -964,9 +976,132 @@ namespace LibreMetaverse.ImportExport
                 }
             }
 
+            material.Pbr = BuildPbr(doc, source, material);
+
             materials[index] = material;
             return material;
         }
+
+        #region Physically based materials
+
+        /// <summary>A material's PBR textures, and which images of the file they come from</summary>
+        private sealed class PbrSource
+        {
+            public ModelMaterial Material = null!;
+            public ModelPbrMaterial Pbr = null!;
+            public int BaseImage = -1, NormalImage = -1, MetallicRoughnessImage = -1, EmissiveImage = -1, OcclusionImage = -1;
+            public int MetallicRoughnessTexture = -1, OcclusionTexture = -1;
+        }
+
+        private List<PbrSource> _pbrSources = new List<PbrSource>();
+
+        private ModelPbrMaterial BuildPbr(GltfDocument doc, GltfDocumentMaterial source, ModelMaterial material)
+        {
+            var pbr = new ModelPbrMaterial
+            {
+                Name = material.ID,
+                BaseColorFactor = source.BaseColorFactor,
+                MetallicFactor = source.MetallicFactor,
+                RoughnessFactor = source.RoughnessFactor,
+                EmissiveFactor = source.EmissiveFactor,
+                AlphaMode = source.AlphaMode,
+                AlphaCutoff = source.AlphaCutoff,
+                DoubleSided = source.DoubleSided,
+                NormalScale = source.NormalTexture?.Scale ?? 1f,
+                OcclusionStrength = source.OcclusionTexture?.Strength ?? 1f
+            };
+
+            var record = new PbrSource { Material = material, Pbr = pbr };
+            pbr.BaseColorTexture = PbrTexture(doc, source.BaseColorTexture, material, "base color", out record.BaseImage, out _);
+            pbr.NormalTexture = PbrTexture(doc, source.NormalTexture, material, "normal", out record.NormalImage, out _);
+            pbr.MetallicRoughnessTexture = PbrTexture(doc, source.MetallicRoughnessTexture, material, "metallic-roughness",
+                out record.MetallicRoughnessImage, out record.MetallicRoughnessTexture);
+            pbr.EmissiveTexture = PbrTexture(doc, source.EmissiveTexture, material, "emissive", out record.EmissiveImage, out _);
+
+            // Occlusion has no texture of its own in a Second Life material: it is packed into the red channel of
+            // the metallic-roughness texture, so it is only an image to load from
+            PbrTexture(doc, source.OcclusionTexture, material, "occlusion", out record.OcclusionImage, out record.OcclusionTexture);
+
+            if (LoadPbrTextures)
+            {
+                // What the viewer does not use of the material, and a Second Life material cannot hold
+                var loss = new List<string>();
+                foreach (var texture in new GltfTextureRef?[] { source.BaseColorTexture, source.NormalTexture, source.MetallicRoughnessTexture,
+                             source.EmissiveTexture, source.OcclusionTexture })
+                {
+                    if (texture != null && texture.Index >= 0 && texture.TexCoord != 0) loss.Add($"a texture uses coordinate set {texture.TexCoord}");
+                }
+                if (source.NormalTexture != null && source.NormalTexture.Index >= 0 && source.NormalTexture.Scale != 1f)
+                    loss.Add("the normal map has a scale");
+                if (source.OcclusionTexture != null && source.OcclusionTexture.Index >= 0 && source.OcclusionTexture.Strength != 1f)
+                    loss.Add("occlusion has a strength");
+
+                if (loss.Count > 0)
+                {
+                    _diagnostics.Warn(ModelDiagnosticCode.PbrApproximated,
+                        $"glTF material {material.ID} has what a Second Life material cannot hold ({string.Join(", ", loss)})", material.ID, loss.Count);
+                }
+            }
+
+            _pbrSources.Add(record);
+            return pbr;
+        }
+
+        /// <summary>The texture of a material slot, or null if it has none or its image cannot be found</summary>
+        private ModelTexture? PbrTexture(GltfDocument doc, GltfTextureRef? reference, ModelMaterial material, string slot,
+            out int imageIndex, out int textureIndex)
+        {
+            imageIndex = -1;
+            textureIndex = reference?.Index ?? -1;
+            if (reference == null || reference.Index < 0) return null;
+
+            if (reference.Index >= doc.Textures.Count || doc.Textures[reference.Index].Source < 0 ||
+                doc.Textures[reference.Index].Source >= doc.Images.Count)
+            {
+                if (LoadPbrTextures)
+                    _diagnostics.Warn(ModelDiagnosticCode.TextureNotLoaded, $"glTF material {material.ID} refers to a missing {slot} texture", material.ID);
+                return null;
+            }
+
+            int index = doc.Textures[reference.Index].Source;
+            var image = doc.Images[index];
+            try
+            {
+                var texture = new ModelTexture
+                {
+                    Name = image.Uri != null && !image.Uri.StartsWith("data:", StringComparison.Ordinal)
+                        ? DecodeUri(image.Uri)
+                        : "gltf-image-" + index,
+                    TexCoord = reference.TexCoord,
+                    Transform = reference.Transform
+                };
+                imageIndex = index;
+                return texture;
+            }
+            catch (InvalidDataException ex)
+            {
+                if (LoadPbrTextures)
+                    _diagnostics.Warn(ModelDiagnosticCode.TextureNotLoaded, $"Not loading {slot} texture for glTF material {material.ID}: {ex.Message}", material.ID);
+                return null;
+            }
+        }
+
+        private void WarnAboutMaterialExtensions(GltfDocument doc)
+        {
+            var used = new List<string>();
+            foreach (var name in doc.ExtensionsUsed)
+            {
+                if (name.StartsWith("KHR_materials_", StringComparison.Ordinal)) used.Add(name);
+            }
+            if (used.Count > 0)
+            {
+                _diagnostics.Warn(ModelDiagnosticCode.PbrApproximated,
+                    $"The glTF file uses material extensions a Second Life material cannot hold: {string.Join(", ", used)}",
+                    string.Join(", ", used), used.Count);
+            }
+        }
+
+        #endregion Physically based materials
 
         private void LoadImages(GltfDocument doc, Dictionary<ModelMaterial, int> textureSources)
         {
@@ -991,44 +1126,217 @@ namespace LibreMetaverse.ImportExport
             }
         }
 
+        /// <summary>Where an image of the file is: in a file beside it, or in bytes the file holds</summary>
+        private struct ImageSource
+        {
+            public string? File;       // the path, when it is a file
+            public string Relative;    // the name the file is given in the model
+            public byte[]? Bytes;      // the contents, when they are in the model
+            public string Extension;   // of the format, for bytes
+        }
+
+        /// <summary>
+        /// Finds an image, refusing a file outside the model's directory or too big to read. This is where every
+        /// texture the file names is vetted, whatever it is for.
+        /// </summary>
+        /// <returns>False if it was refused (and the reason is reported)</returns>
+        private bool TryFindImage(GltfDocument doc, GltfImage image, out ImageSource source)
+        {
+            source = new ImageSource { Relative = string.Empty, Extension = string.Empty };
+            if (image.Uri != null && !image.Uri.StartsWith("data:", StringComparison.Ordinal))
+            {
+                var relative = DecodeUri(image.Uri);
+                var fname = Path.Combine(Path.GetDirectoryName(_fileName) ?? string.Empty, relative);
+
+                if (RestrictTexturesToModelDirectory && !ModelTextureLoader.IsInModelDirectory(_fileName, fname))
+                {
+                    _diagnostics.Warn(ModelDiagnosticCode.TextureOutsideModelDirectory, $"Not loading texture {relative}: it is outside the model's directory " +
+                                "(see GltfLoader.RestrictTexturesToModelDirectory)", relative);
+                    return false;
+                }
+
+                CheckFileSize(fname);
+                source.File = fname;
+                source.Relative = relative;
+                return true;
+            }
+
+            string extension = ExtensionForMimeType(image.MimeType);
+            if (image.Uri != null)
+            {
+                source.Bytes = DecodeDataUri(image.Uri, out var mimeType);
+                if (image.MimeType == null) extension = ExtensionForMimeType(mimeType);
+            }
+            else
+            {
+                source.Bytes = ReadBufferView(doc, image.BufferView);
+            }
+            source.Extension = extension;
+            return true;
+        }
+
         private void LoadImage(GltfDocument doc, GltfImage image, ModelMaterial material)
         {
             try
             {
-                if (image.Uri != null && !image.Uri.StartsWith("data:", StringComparison.Ordinal))
-                {
-                    var relative = DecodeUri(image.Uri);
-                    var fname = Path.Combine(Path.GetDirectoryName(_fileName) ?? string.Empty, relative);
+                if (!TryFindImage(doc, image, out var source)) return;
 
-                    if (RestrictTexturesToModelDirectory && !ModelTextureLoader.IsInModelDirectory(_fileName, fname))
-                    {
-                        _diagnostics.Warn(ModelDiagnosticCode.TextureOutsideModelDirectory, $"Not loading texture {relative}: it is outside the model's directory " +
-                                    "(see GltfLoader.RestrictTexturesToModelDirectory)", relative);
-                        return;
-                    }
-
-                    CheckFileSize(fname);
-                    ModelTextureLoader.LoadFile(_diagnostics, fname, relative, material, _textureCodec);
-                    return;
-                }
-
-                byte[] bytes;
-                string extension = ExtensionForMimeType(image.MimeType);
-                if (image.Uri != null)
-                {
-                    bytes = DecodeDataUri(image.Uri, out var mimeType);
-                    if (image.MimeType == null) extension = ExtensionForMimeType(mimeType);
-                }
+                if (source.File != null)
+                    ModelTextureLoader.LoadFile(_diagnostics, source.File, source.Relative, material, _textureCodec);
                 else
-                {
-                    bytes = ReadBufferView(doc, image.BufferView);
-                }
-
-                ModelTextureLoader.LoadBytes(_diagnostics, bytes, extension, material.Texture, material, _textureCodec);
+                    ModelTextureLoader.LoadBytes(_diagnostics, source.Bytes!, source.Extension, material.Texture, material, _textureCodec);
             }
             catch (Exception ex)
             {
                 _diagnostics.Warn(ModelDiagnosticCode.TextureNotLoaded, $"Failed loading glTF image {material.Texture}: {ex.Message}", material.Texture);
+            }
+        }
+
+        /// <summary>Decodes an image of the file, or reports why not and returns null</summary>
+        private ManagedImage? DecodeImage(GltfDocument doc, int imageIndex, string name)
+        {
+            try
+            {
+                if (!TryFindImage(doc, doc.Images[imageIndex], out var source)) return null;
+
+                return source.File != null
+                    ? ModelTextureLoader.DecodeFile(source.File, source.Relative, _textureCodec)
+                    : ModelTextureLoader.DecodeBytes(source.Bytes!, source.Extension, name, _textureCodec);
+            }
+            catch (Exception ex)
+            {
+                _diagnostics.Warn(ModelDiagnosticCode.TextureNotLoaded, $"Failed loading glTF image {name}: {ex.Message}", name);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Prepares the textures of the materials as the viewer prepares a glTF material's when it imports one. Each
+        /// image is decoded once however many slots and materials use it, and the same result is shared.
+        /// </summary>
+        private void LoadPbrImages(GltfDocument doc)
+        {
+            var decoded = new Dictionary<int, ManagedImage?>();
+            var made = new Dictionary<string, ModelTexture?>(StringComparer.Ordinal);
+
+            ManagedImage? Decoded(int imageIndex)
+            {
+                if (!decoded.TryGetValue(imageIndex, out var image))
+                {
+                    var name = doc.Images[imageIndex].Uri ?? "gltf-image-" + imageIndex;
+                    image = DecodeImage(doc, imageIndex, name);
+                    decoded[imageIndex] = image;
+                }
+                return image;
+            }
+
+            // A copy to change, without its alpha: the viewer drops it from all but the base color
+            ManagedImage? Copy(int imageIndex)
+            {
+                var image = Decoded(imageIndex)?.Clone();
+                if (image != null && (image.Channels & ManagedImage.ImageChannels.Alpha) != 0)
+                    image.ConvertChannels(image.Channels & ~ManagedImage.ImageChannels.Alpha);
+                return image;
+            }
+
+            ModelTexture? Make(string key, Func<ManagedImage?> prepare, bool lossless)
+            {
+                if (made.TryGetValue(key, out var done)) return done;
+
+                ModelTexture? result = null;
+                var image = prepare();
+                if (image != null)
+                {
+                    try
+                    {
+                        ModelTextureLoader.Encode(image, lossless, out var data, out var width, out var height);
+                        result = new ModelTexture { Data = data, Width = width, Height = height };
+                    }
+                    catch (Exception ex)
+                    {
+                        _diagnostics.Warn(ModelDiagnosticCode.TextureNotLoaded, $"Failed encoding a glTF material texture: {ex.Message}", key);
+                    }
+                }
+                made[key] = result;
+                return result;
+            }
+
+            void Fill(ModelTexture? slot, ModelTexture? from)
+            {
+                if (slot == null || from == null) return;
+                slot.Data = from.Data;
+                slot.Width = from.Width;
+                slot.Height = from.Height;
+            }
+
+            foreach (var record in _pbrSources)
+            {
+                var pbr = record.Pbr;
+
+                // The base color is the one the mesh uses, so it is not made twice
+                if (pbr.BaseColorTexture != null && record.Material.TextureData.Length > 0)
+                {
+                    pbr.BaseColorTexture.Name = record.Material.Texture;
+                    pbr.BaseColorTexture.Data = record.Material.TextureData;
+                    pbr.BaseColorTexture.Width = record.Material.Width;
+                    pbr.BaseColorTexture.Height = record.Material.Height;
+                }
+
+                if (record.NormalImage >= 0)
+                    Fill(pbr.NormalTexture, Make("normal:" + record.NormalImage, () => Copy(record.NormalImage), lossless: true));
+                if (record.EmissiveImage >= 0)
+                    Fill(pbr.EmissiveTexture, Make("emissive:" + record.EmissiveImage, () => Copy(record.EmissiveImage), lossless: false));
+
+                // Occlusion shares the metallic-roughness texture, in its red channel
+                if (record.MetallicRoughnessImage >= 0)
+                {
+                    int mr = record.MetallicRoughnessImage;
+                    int occlusion = record.OcclusionImage;
+                    bool distinct = record.OcclusionTexture >= 0 && record.OcclusionTexture != record.MetallicRoughnessTexture && occlusion >= 0;
+                    bool none = record.OcclusionTexture < 0;
+                    string key = "mr:" + mr + (distinct ? ":occlusion:" + occlusion : none ? ":none" : ":same");
+
+                    Fill(pbr.MetallicRoughnessTexture, Make(key, () =>
+                    {
+                        var image = Copy(mr);
+                        if (image == null) return null;
+                        if (distinct)
+                        {
+                            // Scaled to the size of the metallic-roughness map, with its red channel taken
+                            var map = Copy(occlusion);
+                            if (map != null)
+                            {
+                                map.ResizeBilinear(image.Width, image.Height);
+                                image.Red = map.Red;
+                            }
+                        }
+                        else if (none)
+                        {
+                            // Nothing occludes: red has to be all white or the surface comes out black
+                            for (int i = 0; i < image.Red.Length; i++) image.Red[i] = 255;
+                        }
+                        return image;
+                    }, lossless: false));
+                }
+                else if (record.OcclusionImage >= 0)
+                {
+                    int occlusion = record.OcclusionImage;
+                    pbr.MetallicRoughnessTexture = new ModelTexture { Name = "gltf-image-" + occlusion };
+                    Fill(pbr.MetallicRoughnessTexture, Make("mr:none:occlusion:" + occlusion, () =>
+                    {
+                        // No metallic-roughness map but an occlusion map: a white one, with the occlusion in red
+                        var map = Copy(occlusion);
+                        if (map == null) return null;
+                        var image = new ManagedImage(map.Width, map.Height, ManagedImage.ImageChannels.Color);
+                        for (int i = 0; i < image.Red.Length; i++)
+                        {
+                            image.Red[i] = map.Red[i];
+                            image.Green[i] = 255;
+                            image.Blue[i] = 255;
+                        }
+                        return image;
+                    }, lossless: false));
+                }
             }
         }
 
