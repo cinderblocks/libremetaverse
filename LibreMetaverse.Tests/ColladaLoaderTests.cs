@@ -251,6 +251,29 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
+        public void Load_YUpFile_PutsTheModelsTopAlongPositiveZ()
+        {
+            // A triangle 1 wide, 2 tall (Y) and 3 deep (Z). Y-up becomes Z-up with (x, y, z) -> (x, -z, y), so
+            // it must span Z 0..2 and Y -3..0. The sides are all different, so a flipped axis shows.
+            var xml = DaeXml.Replace("0 0 0 1 0 0 0 1 0", "0 0 0 1 0 0 0 2 3");
+            var path = Path.Combine(_tempDir, "tall.dae");
+            File.WriteAllText(path, xml);
+
+            var prim = new ColladaLoader().Load(path, loadImages: false)[0];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(prim.BoundMin.Y, Is.EqualTo(-3f).Within(1e-5f));
+                Assert.That(prim.BoundMax.Y, Is.EqualTo(0f).Within(1e-5f));
+                Assert.That(prim.BoundMin.Z, Is.EqualTo(0f).Within(1e-5f), "the top is at +Z, not -Z");
+                Assert.That(prim.BoundMax.Z, Is.EqualTo(2f).Within(1e-5f));
+                Assert.That(prim.Scale.X, Is.EqualTo(1f).Within(1e-5f));
+                Assert.That(prim.Scale.Y, Is.EqualTo(3f).Within(1e-5f));
+                Assert.That(prim.Scale.Z, Is.EqualTo(2f).Within(1e-5f));
+            });
+        }
+
+        [Test]
         public async Task Load_ThenUploadModelAsync_WiresRealTextureDimensionsIntoFeeQuote()
         {
             const string capUrl = "http://test.invalid/new-file-agent-inventory";

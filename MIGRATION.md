@@ -1,3 +1,50 @@
+# Migration Guide: Collada import moved to LibreMetaverse.ModelFormats
+
+`ColladaLoader` and the Collada 1.4 schema classes (`LibreMetaverse.ImportExport.Collada14`) now ship in
+the new `LibreMetaverse.ModelFormats` package instead of `LibreMetaverse`. Namespaces are unchanged, so
+adding a reference to the package is all that source code needs:
+
+```xml
+<PackageReference Include="LibreMetaverse.ModelFormats" Version="..." />
+```
+
+`ModelPrim`, `ModelFace`, `ModelMaterial` and `ModelUploader` stay in `LibreMetaverse`, since mesh upload
+needs them. Loaders implement `IModelLoader` (`List<ModelPrim> Load(string filename, bool loadImages)`),
+which is the extension point for other 3D formats. Assemblies compiled against the old
+`LibreMetaverse` need to be rebuilt.
+
+The package also adds `GltfLoader`, which reads glTF 2.0 `.gltf` and `.glb` files, and `ObjLoader`, which
+reads Wavefront `.obj` files with their `.mtl` material libraries:
+
+```csharp
+IModelLoader loader = Path.GetExtension(path).ToLowerInvariant() switch
+{
+    ".dae" => new ColladaLoader(new SkiaTextureCodec()),
+    ".gltf" or ".glb" => new GltfLoader(new SkiaTextureCodec()),
+    ".obj" => new ObjLoader(new SkiaTextureCodec()),
+    _ => throw new NotSupportedException()
+};
+List<ModelPrim> prims = loader.Load(path, loadImages: true);
+```
+
+`GltfLoader` reads static triangle meshes, each material's base color factor and base color texture, and
+the node hierarchy (instanced meshes become one prim per node). Skins, morph targets, animation, other
+primitive modes and Draco/meshopt/quantized meshes are not supported. Like `ColladaLoader`, it only reads
+buffers and textures from the model's directory unless `RestrictTexturesToModelDirectory` is set to false.
+PNG and JPEG textures, which glTF models normally use, need an `ITextureCodec` such as `SkiaTextureCodec`.
+
+`ObjLoader` turns each `o` object into a prim (or each `g` group, in a file with no objects) and each
+material it uses into a face. It reads the diffuse color, opacity and diffuse texture of each material, and
+fan-triangulates polygons, which is only right for convex ones. Points, lines and curves are ignored. OBJ does
+not say which way is up, so Y-up is assumed, as most exporters write it; set `YUp = false` for a Z-up model.
+All three loaders put a Y-up model's top along +Z.
+
+**Behavior change:** `ColladaLoader` used to turn a `Y_UP` Collada file's top towards -Z, so such models came
+out upside down (and facing the other way). It now rotates them upright. Files with `Z_UP` (what Blender's
+Collada export writes) are unaffected; a `Y_UP` file that you compensated for by hand will now be rotated twice.
+
+---
+
 # Migration Guide: Server certificate validation
 
 Server certificates are now checked. Previously every certificate was accepted, which let anyone

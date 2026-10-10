@@ -35,8 +35,6 @@ using System.Runtime.InteropServices;
 using System.Xml;
 using System.Linq;
 using System.Xml.Serialization;
-using CoreJ2K.Configuration;
-using CoreJ2K.Util;
 using LibreMetaverse.Imaging;
 using LibreMetaverse.ImportExport.Collada14;
 using LibreMetaverse.Rendering;
@@ -46,18 +44,8 @@ namespace LibreMetaverse.ImportExport
     /// <summary>
     /// Parsing Collada model files into data structures
     /// </summary>
-    public class ColladaLoader
+    public class ColladaLoader : IModelLoader
     {
-        static ColladaLoader()
-        {
-            // LoadImage's J2C encode requires ManagedImage to be registered with CoreJ2K's
-            // ImageFactory. AssetTexture registers it too, but nothing guarantees that type has
-            // been touched yet in a process that only uses ColladaLoader (e.g. a standalone
-            // model-upload tool), so register it here as well -- redundant, not conflicting, if
-            // AssetTexture already has.
-            ImageFactory.Register(new ManagedImageCreator());
-        }
-
         private COLLADA? Model;
         private static XmlSerializer? Serializer = null;
         private List<Node> Nodes = new List<Node>();
@@ -156,121 +144,18 @@ namespace LibreMetaverse.ImportExport
             }
         }
 
-        private bool IsInModelDirectory(string path)
-        {
-            try
-            {
-                string root = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(FileName)) ?? string.Empty;
-                if (!root.EndsWith(System.IO.Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)
-                    && !root.EndsWith(System.IO.Path.AltDirectorySeparatorChar.ToString(), StringComparison.Ordinal))
-                {
-                    root += System.IO.Path.DirectorySeparatorChar;
-                }
-
-                // GetFullPath collapses any ".." segments, so they cannot be used to climb out
-                string full = System.IO.Path.GetFullPath(path);
-                var comparison = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                    ? StringComparison.OrdinalIgnoreCase
-                    : StringComparison.Ordinal;
-                return full.StartsWith(root, comparison);
-            }
-            catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is System.IO.PathTooLongException)
-            {
-                return false;
-            }
-        }
-
         private void LoadImage(ModelMaterial material)
         {
             var fname = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(FileName) ?? string.Empty, material.Texture);
 
-            if (RestrictTexturesToModelDirectory && !IsInModelDirectory(fname))
+            if (RestrictTexturesToModelDirectory && !ModelTextureLoader.IsInModelDirectory(FileName, fname))
             {
                 Logger.Warn($"Not loading texture {material.Texture}: it is outside the model's directory " +
                             "(see ColladaLoader.RestrictTexturesToModelDirectory)");
                 return;
             }
 
-            try
-            {
-                string ext = System.IO.Path.GetExtension(material.Texture).ToLowerInvariant();
-
-                if (ext == ".jp2" || ext == ".j2c")
-                {
-                    material.TextureData = File.ReadAllBytes(fname);
-                    return;
-                }
-
-                ManagedImage image;
-                switch (ext)
-                {
-                    case ".tga":
-                    case ".targa":
-                        image = Targa.DecodeToManagedImage(fname);
-                        break;
-                    default:
-                        if (_textureCodec == null)
-                        {
-                            throw new InvalidOperationException(
-                                $"No ITextureCodec configured to decode '{fname}'. Reference " +
-                                "LibreMetaverse.Imaging.Skia (or provide your own ITextureCodec " +
-                                "implementation) and pass it to the ColladaLoader constructor.");
-                        }
-                        using (var fs = File.OpenRead(fname))
-                        {
-                            image = _textureCodec.Decode(fs);
-                        }
-                        break;
-                }
-
-                int width = image.Width;
-                int height = image.Height;
-
-                // Handle resizing to prevent excessively large images and irregular dimensions
-                if (!IsPowerOfTwo((uint)width) || !IsPowerOfTwo((uint)height) || width > 1024 || height > 1024)
-                {
-                    var origWidth = width;
-                    var origHieght = height;
-
-                    width = ClosestPowerOwTwo(width);
-                    height = ClosestPowerOwTwo(height);
-
-                    width = width > 1024 ? 1024 : width;
-                    height = height > 1024 ? 1024 : height;
-
-                    Logger.Info($"Image has irregular dimensions {origWidth}x{origHieght}. Resizing to {width}x{height}");
-
-                    image.ResizeBilinear(width, height);
-                }
-
-                material.Width = width;
-                material.Height = height;
-                material.TextureData = CompleteConfigurationPresets.Streaming.WithFileFormat(false).Encode(image);
-
-                Logger.Info($"Successfully encoded {fname}");
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn($"Failed loading {fname}: {ex.Message}");
-            }
-
-        }
-
-        private static bool IsPowerOfTwo(uint n)
-        {
-            return (n & (n - 1)) == 0 && n != 0;
-        }
-
-        private int ClosestPowerOwTwo(int n)
-        {
-            int res = 1;
-
-            while (res < n)
-            {
-                res <<= 1;
-            }
-
-            return res > 1 ? res / 2 : 1;
+            ModelTextureLoader.LoadFile(fname, material.Texture, material, _textureCodec);
         }
 
         private ModelMaterial ExtractMaterial(object diffuse)
@@ -510,7 +395,9 @@ namespace LibreMetaverse.ImportExport
             }
             else if (upAxis == UpAxisType.Y_UP)
             {
-                rotation = Matrix4.CreateFromEulers(90.0f * DEG_TO_RAD, 0.0f, 0.0f);
+                // Y goes to +Z. (This used to be CreateFromEulers(+90 degrees), which sends Y to -Z and
+                // put every Y-up model upside down.)
+                rotation = ModelAxes.YUpToZUp;
             }
 
             rotation *= transform;

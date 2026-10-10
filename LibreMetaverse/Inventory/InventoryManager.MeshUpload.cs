@@ -37,7 +37,7 @@ namespace LibreMetaverse
     public partial class InventoryManager
     {
         /// <summary>
-        /// Uploads one or more model prims (e.g. from <see cref="ColladaLoader"/>) as a single mesh
+        /// Uploads one or more model prims (e.g. from <c>ColladaLoader</c> (LibreMetaverse.ImportExport package)) as a single mesh
         /// inventory item, via the two-phase <c>NewFileAgentInventory</c> flow. Mirrors
         /// LLMeshUploadThread::requestWholeModelFee/doWholeModelUpload (llmeshrepository.cpp):
         /// phase 1 POSTs a fee-quote request (name/permissions/asset_resources) to
@@ -55,7 +55,7 @@ namespace LibreMetaverse
         /// rather than a real decomposition of the uploaded geometry.</item>
         /// <item>The fee-quote request sends only image dimensions for each texture, not the real
         /// J2C bytes (matching the reference viewer). Dimensions come from <see cref="ModelMaterial.Width"/>/
-        /// <see cref="ModelMaterial.Height"/>, which <see cref="ColladaLoader"/> fills in for any
+        /// <see cref="ModelMaterial.Height"/>, which <c>ColladaLoader</c> (LibreMetaverse.ImportExport package) fills in for any
         /// texture it decodes and re-encodes itself. A texture file that is already <c>.jp2</c>/<c>.j2c</c>
         /// is passed through unread, so its dimensions are unknown -- in that case (or any other time
         /// dimensions aren't available) the fee quote falls back to sending the real bytes for that

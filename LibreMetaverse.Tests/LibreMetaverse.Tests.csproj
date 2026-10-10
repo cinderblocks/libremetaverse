@@ -36,6 +36,7 @@
   <ItemGroup>
     <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
     <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
+    <ProjectReference Include="..\LibreMetaverse.ModelFormats\LibreMetaverse.ModelFormats.csproj" />
     <ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
     <ProjectReference Include="..\LibreMetaverse.RLV\LibreMetaverse.RLV.csproj" Condition="'$(TargetFramework)' != 'net481'" />
   </ItemGroup>
