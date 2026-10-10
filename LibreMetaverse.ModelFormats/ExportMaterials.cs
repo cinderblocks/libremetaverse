@@ -58,6 +58,7 @@ namespace LibreMetaverse.ImportExport
         }
 
         private readonly Func<UUID, ExportImage?>? _provider;
+        private readonly ModelDiagnosticCollector _diagnostics;
         private readonly Dictionary<UUID, string?> _files = new Dictionary<UUID, string?>();
         private readonly Dictionary<Key, ExportMaterial> _byKey = new Dictionary<Key, ExportMaterial>();
 
@@ -66,9 +67,10 @@ namespace LibreMetaverse.ImportExport
         /// <summary>The image files to write beside the model</summary>
         public List<ExportedFile> Images { get; } = new List<ExportedFile>();
 
-        public ExportMaterials(Func<UUID, ExportImage?>? imageProvider)
+        public ExportMaterials(Func<UUID, ExportImage?>? imageProvider, ModelDiagnosticCollector diagnostics)
         {
             _provider = imageProvider;
+            _diagnostics = diagnostics;
         }
 
         public ExportMaterial For(Face face)
@@ -100,7 +102,7 @@ namespace LibreMetaverse.ImportExport
                     string? extension = ExtensionFor(image.MimeType);
                     if (extension == null)
                     {
-                        Logger.Warn($"Not exporting texture {id}: {image.MimeType} is not PNG or JPEG");
+                        _diagnostics.Warn(ModelDiagnosticCode.TextureNotExported, $"Not exporting texture {id}: {image.MimeType} is not PNG or JPEG", id.ToString());
                     }
                     else
                     {
@@ -112,7 +114,7 @@ namespace LibreMetaverse.ImportExport
             catch (Exception ex)
             {
                 // A texture that cannot be had costs the face its texture, not the export
-                Logger.Warn($"Not exporting texture {id}: {ex.Message}");
+                _diagnostics.Warn(ModelDiagnosticCode.TextureNotExported, $"Not exporting texture {id}: {ex.Message}", id.ToString());
             }
 
             _files[id] = result;

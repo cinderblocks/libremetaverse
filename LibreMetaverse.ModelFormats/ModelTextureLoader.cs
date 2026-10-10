@@ -81,7 +81,7 @@ namespace LibreMetaverse.ImportExport
         /// Loads the texture file at <paramref name="fname"/> into <paramref name="material"/>. Failures are
         /// logged and leave the material without texture data.
         /// </summary>
-        internal static void LoadFile(string fname, string textureName, ModelMaterial material, ITextureCodec? textureCodec)
+        internal static void LoadFile(ModelDiagnosticCollector diagnostics, string fname, string textureName, ModelMaterial material, ITextureCodec? textureCodec)
         {
             try
             {
@@ -112,7 +112,7 @@ namespace LibreMetaverse.ImportExport
             }
             catch (Exception ex)
             {
-                Logger.Warn($"Failed loading {fname}: {ex.Message}");
+                diagnostics.Warn(ModelDiagnosticCode.TextureNotLoaded, $"Failed loading {fname}: {ex.Message}", textureName);
             }
         }
 
@@ -123,7 +123,7 @@ namespace LibreMetaverse.ImportExport
         /// <param name="data">The compressed image</param>
         /// <param name="extension">Lower case file extension (with the dot) that names the image format</param>
         /// <param name="description">What to call the image in log messages</param>
-        internal static void LoadBytes(byte[] data, string extension, string description,
+        internal static void LoadBytes(ModelDiagnosticCollector diagnostics, byte[] data, string extension, string description,
             ModelMaterial material, ITextureCodec? textureCodec)
         {
             try
@@ -152,7 +152,7 @@ namespace LibreMetaverse.ImportExport
             }
             catch (Exception ex)
             {
-                Logger.Warn($"Failed loading {description}: {ex.Message}");
+                diagnostics.Warn(ModelDiagnosticCode.TextureNotLoaded, $"Failed loading {description}: {ex.Message}", description);
             }
         }
 

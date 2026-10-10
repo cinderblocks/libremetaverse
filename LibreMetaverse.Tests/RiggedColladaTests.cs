@@ -843,6 +843,127 @@ namespace LibreMetaverse.Tests
 
         #endregion Hostile input
 
+        #region Diagnostics
+
+        private ModelLoadResult Diagnose(string xml, ColladaLoader? loader = null) =>
+            (loader ?? new ColladaLoader()).LoadWithDiagnostics(Write(xml), false);
+
+        [Test]
+        public void LoadWithDiagnostics_RigMadeForTheAvatar_SaysNothing()
+        {
+            var result = Diagnose(Dae());
+
+            Assert.That(result.Prims, Has.Count.EqualTo(1));
+            Assert.That(result.Diagnostics, Is.Empty);
+            Assert.That(result.HasErrors, Is.False);
+        }
+
+        [Test]
+        public void LoadWithDiagnostics_JointsTheAvatarDoesNotHave_AreListedWithTheirNames()
+        {
+            var xml = Dae(jointNames: new[] { "mTorso", "NotAJoint" }, inverseBind: new[] { Inverse(Avatar("mTorso")), NumMatrix.Identity });
+
+            var result = Diagnose(xml);
+
+            var ignored = result.Diagnostics.Single(d => d.Code == ModelDiagnosticCode.JointsIgnored);
+            Assert.That(ignored.Subject, Is.EqualTo("NotAJoint"));
+            Assert.That(ignored.Count, Is.EqualTo(1));
+            // and the one vertex that only the missing joint pulled on is counted
+            var unweighted = result.Diagnostics.Single(d => d.Code == ModelDiagnosticCode.UnweightedVertices);
+            Assert.That(unweighted.Count, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void LoadWithDiagnostics_SkinWithNoJointOfTheAvatar_SaysTheRigWasDropped()
+        {
+            var xml = Dae(jointNames: new[] { "Foo", "Bar" }, inverseBind: new[] { NumMatrix.Identity, NumMatrix.Identity });
+
+            var result = Diagnose(xml);
+
+            Assert.That(result.Prims, Has.Count.EqualTo(1));
+            Assert.That(result.Diagnostics.Select(d => d.Code), Is.EquivalentTo(new[]
+                { ModelDiagnosticCode.JointsIgnored, ModelDiagnosticCode.RigDropped }));
+            Assert.That(result.Diagnostics.Single(d => d.Code == ModelDiagnosticCode.RigDropped).Subject, Is.EqualTo("Skin"));
+        }
+
+        [Test]
+        public void LoadWithDiagnostics_ARigThatIsNotZUpInMeters_SaysItWasTakenAsItIs()
+        {
+            var result = Diagnose(Dae(upAxis: "Y_UP"));
+
+            Assert.That(result.Prims, Has.Count.EqualTo(1));
+            Assert.That(result.Diagnostics.Select(d => d.Code), Is.EqualTo(new[] { ModelDiagnosticCode.RigAxesNotApplied }));
+        }
+
+        [Test]
+        public void LoadWithDiagnostics_AJointMatrixThatCannotBeInverted_SaysTheMatricesWereUsedAsAuthored()
+        {
+            var xml = Dae(inverseBind: new[] { new NumMatrix(), Inverse(Avatar("mChest")) });
+
+            var result = Diagnose(xml);
+
+            Assert.That(result.Prims, Has.Count.EqualTo(1));
+            var approximated = result.Diagnostics.Single(d => d.Code == ModelDiagnosticCode.RigApproximated);
+            Assert.That(approximated.Subject, Is.EqualTo("mTorso"));
+            Assert.That(Diagnose(xml, new ColladaLoader { UseAvatarJointAxes = false }).Diagnostics, Is.Empty,
+                "nothing to approximate when the matrices are used as they are");
+        }
+
+        [Test]
+        public void LoadWithDiagnostics_WithoutAnAvatarSkeleton_SaysJointNamesWereNotChecked()
+        {
+            var original = AvatarSkeletonIndex.Source;
+            try
+            {
+                AvatarSkeletonIndex.Source = () => null;
+
+                var result = Diagnose(Dae(jointNames: new[] { "Foo", "Bar" }, inverseBind: new[] { NumMatrix.Identity, NumMatrix.Identity }));
+
+                Assert.That(result.Diagnostics.Select(d => d.Code), Does.Contain(ModelDiagnosticCode.SkeletonUnavailable));
+            }
+            finally
+            {
+                AvatarSkeletonIndex.Source = original;
+            }
+        }
+
+        [Test]
+        public void LoadWithDiagnostics_MoreJointsThanTheLimit_IsALimitError()
+        {
+            var result = Diagnose(Dae(), new ColladaLoader { MaxJoints = 1 });
+
+            Assert.That(result.Prims, Is.Empty);
+            Assert.That(result.HasErrors, Is.True);
+            Assert.That(result.Diagnostics.Single().Code, Is.EqualTo(ModelDiagnosticCode.LimitExceeded));
+        }
+
+        [Test]
+        public void LoadWithDiagnostics_NodesOfAControllerTheFileDoesNotDefine_AreSkipped()
+        {
+            var xml = Tweak(Dae(), "<instance_controller url=\"#Skin\">", "<instance_controller url=\"#Nowhere\">");
+
+            var result = Diagnose(xml);
+
+            Assert.That(result.Prims, Is.Empty);
+            var skipped = result.Diagnostics.Single();
+            Assert.That(skipped.Code, Is.EqualTo(ModelDiagnosticCode.NodeSkipped));
+            Assert.That(skipped.Subject, Is.EqualTo("Nowhere"));
+        }
+
+        [Test]
+        public void LoadWithDiagnostics_AnIndexBeyondThePositions_IsALoaderGapNotADamagedFile()
+        {
+            // Nothing checks this one, so it surfaces as the unexpected exception it is
+            var xml = Tweak(Dae(), "<p>0 0 0 ", "<p>99 0 0 ");
+
+            var result = Diagnose(xml);
+
+            Assert.That(result.Prims, Is.Empty);
+            Assert.That(result.Diagnostics.Single().Code, Is.EqualTo(ModelDiagnosticCode.LoaderFailed));
+        }
+
+        #endregion Diagnostics
+
         #region Upload
 
         [Test]

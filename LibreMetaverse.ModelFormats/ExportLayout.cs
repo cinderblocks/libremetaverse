@@ -100,7 +100,7 @@ namespace LibreMetaverse.ImportExport
         /// that local ID if that was added too, and otherwise it is exported on its own, with a warning. Rigged
         /// meshes are left out: they are placed by their skin, not by their prim.
         /// </summary>
-        internal static void Group(IEnumerable<FacetedMesh> meshes, out List<FacetedMesh> roots,
+        internal static void Group(IEnumerable<FacetedMesh> meshes, ModelDiagnosticCollector diagnostics, out List<FacetedMesh> roots,
             out Dictionary<uint, List<FacetedMesh>> children)
         {
             roots = new List<FacetedMesh>();
@@ -127,7 +127,7 @@ namespace LibreMetaverse.ImportExport
                 }
                 else
                 {
-                    Logger.Warn($"Exporting prim {mesh.Prim.LocalID} on its own: its parent {parent} was not added, or is a rigged mesh");
+                    diagnostics.Warn(ModelDiagnosticCode.LinksetBroken, $"Exporting prim {mesh.Prim.LocalID} on its own: its parent {parent} was not added, or is a rigged mesh", NameOf(mesh));
                     roots.Add(mesh);
                 }
             }
@@ -140,10 +140,10 @@ namespace LibreMetaverse.ImportExport
         /// and size within that. A rigged mesh is put in the pose its bind shape matrix gives it, with its
         /// skin dropped.
         /// </summary>
-        internal static List<ExportPart> Parts(IEnumerable<FacetedMesh> meshes)
+        internal static List<ExportPart> Parts(IEnumerable<FacetedMesh> meshes, ModelDiagnosticCollector diagnostics)
         {
             var all = new List<FacetedMesh>(meshes);
-            Group(all, out var roots, out var children);
+            Group(all, diagnostics, out var roots, out var children);
             var parts = new List<ExportPart>();
 
             foreach (var root in roots)
@@ -164,8 +164,8 @@ namespace LibreMetaverse.ImportExport
             {
                 if (!IsRigged(mesh)) continue;
 
-                Logger.Warn($"{NameOf(mesh)} is a rigged mesh, and this format cannot hold a skin: " +
-                            "it is exported as it stands in the pose its bind shape gives it");
+                diagnostics.Warn(ModelDiagnosticCode.RigFlattened, $"{NameOf(mesh)} is a rigged mesh, and this format cannot hold a skin: " +
+                            "it is exported as it stands in the pose its bind shape gives it", NameOf(mesh));
                 parts.Add(Part(mesh, RiggedSkinMath.FloatsToMatrix(mesh.SkinData!.BindShapeMatrix), rigged: true));
             }
 
@@ -192,7 +192,7 @@ namespace LibreMetaverse.ImportExport
         /// Checks that a face can be written: it has vertices and triangles, the triangles only use vertices
         /// it has, and no position is infinite or not a number.
         /// </summary>
-        internal static bool CanExport(Face face, string owner, int faceIndex)
+        internal static bool CanExport(Face face, string owner, int faceIndex, ModelDiagnosticCollector diagnostics)
         {
             if (face.Vertices == null || face.Indices == null) return false;
             int vertexCount = face.Vertices.Count;
@@ -202,7 +202,7 @@ namespace LibreMetaverse.ImportExport
             {
                 if (index >= vertexCount)
                 {
-                    Logger.Warn($"Not exporting face {faceIndex} of {owner}: a triangle refers to a missing vertex");
+                    diagnostics.Warn(ModelDiagnosticCode.FaceSkipped, $"Not exporting face {faceIndex} of {owner}: a triangle refers to a missing vertex", owner);
                     return false;
                 }
             }
@@ -210,7 +210,7 @@ namespace LibreMetaverse.ImportExport
             {
                 if (!vertex.Position.IsFinite())
                 {
-                    Logger.Warn($"Not exporting face {faceIndex} of {owner}: a vertex position is not a number");
+                    diagnostics.Warn(ModelDiagnosticCode.FaceSkipped, $"Not exporting face {faceIndex} of {owner}: a vertex position is not a number", owner);
                     return false;
                 }
             }

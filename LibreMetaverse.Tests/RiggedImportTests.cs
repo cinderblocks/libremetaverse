@@ -608,6 +608,47 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
+        public void LoadWithDiagnostics_FourInfluencesIsAllSecondLifeTakes_SaysSo()
+        {
+            var doc = ForeignSkinned(d =>
+            {
+                d.Meshes[0].Primitives[0].Attributes["JOINTS_1"] = AddAccessor(d, new byte[16],
+                    GltfComponentType.UnsignedByte, GltfAccessorType.Vec4, 4);
+                d.Meshes[0].Primitives[0].Attributes["WEIGHTS_1"] = AddAccessor(d, Bytes(new float[16]),
+                    GltfComponentType.Float, GltfAccessorType.Vec4, 4);
+            });
+
+            var result = new GltfLoader().LoadWithDiagnostics(Write(doc), false);
+
+            Assert.That(result.Prims, Has.Count.EqualTo(1));
+            Assert.That(result.Diagnostics.Select(d => d.Code), Is.EqualTo(new[] { ModelDiagnosticCode.InfluencesIgnored }));
+        }
+
+        [Test]
+        public void LoadWithDiagnostics_JointsTheAvatarDoesNotHave_AreListed()
+        {
+            var doc = ForeignSkinned(jointNames: new[] { "mTorso", "NotAJoint" });
+
+            var result = new GltfLoader().LoadWithDiagnostics(Write(doc), false);
+
+            var ignored = result.Diagnostics.Single(d => d.Code == ModelDiagnosticCode.JointsIgnored);
+            Assert.That(ignored.Subject, Is.EqualTo("NotAJoint"));
+            Assert.That(ignored.Severity, Is.EqualTo(ModelDiagnosticSeverity.Warning));
+        }
+
+        [Test]
+        public void LoadWithDiagnostics_SkinWithNoJointOfTheAvatar_SaysTheRigWasDropped()
+        {
+            var doc = ForeignSkinned(jointNames: new[] { "Foo", "Bar" });
+
+            var result = new GltfLoader().LoadWithDiagnostics(Write(doc), false);
+
+            Assert.That(result.Prims, Has.Count.EqualTo(1));
+            Assert.That(result.Diagnostics.Select(d => d.Code), Is.EquivalentTo(new[]
+                { ModelDiagnosticCode.JointsIgnored, ModelDiagnosticCode.RigDropped }));
+        }
+
+        [Test]
         public void Load_SkinnedMesh_WithTooManyJoints_IsRefused()
         {
             var path = Write(ForeignSkinned());

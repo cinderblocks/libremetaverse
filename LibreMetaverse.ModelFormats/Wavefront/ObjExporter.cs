@@ -70,6 +70,13 @@ namespace LibreMetaverse.ImportExport
         /// <summary>Number of meshes added so far</summary>
         public int Count => _meshes.Count;
 
+        private ModelDiagnosticCollector _diagnostics = new ModelDiagnosticCollector();
+
+        /// <summary>
+        /// What the last <see cref="Build"/> or <see cref="Save"/> left out or approximated. It starts empty for each one.
+        /// </summary>
+        public IReadOnlyList<ModelDiagnostic> Diagnostics => _diagnostics.Diagnostics;
+
         /// <summary>
         /// Adds a mesh or prim. A mesh whose prim has a parent is placed in the linkset of the root prim with
         /// that local ID if that was added too, and otherwise it is exported on its own, with a warning.
@@ -94,13 +101,14 @@ namespace LibreMetaverse.ImportExport
             }
 
             string mtlName = Path.ChangeExtension(fileName, ".mtl");
-            var materials = new ExportMaterials(ImageProvider);
+            _diagnostics = new ModelDiagnosticCollector();
+            var materials = new ExportMaterials(ImageProvider, _diagnostics);
             var obj = new StringBuilder();
             obj.Append("# ").Append(ExportLayout.SingleLine(Generator)).Append('\n');
             obj.Append("mtllib ").Append(ExportLayout.SingleLine(mtlName)).Append('\n');
 
             int written = 0; // vertices written so far, which the indices of the next face count from
-            foreach (var part in ExportLayout.Parts(_meshes))
+            foreach (var part in ExportLayout.Parts(_meshes, _diagnostics))
             {
                 WritePart(obj, part, materials, ref written);
             }
@@ -151,7 +159,7 @@ namespace LibreMetaverse.ImportExport
             var toFile = part.Transform * ToNumerics(ModelAxes.ZUpToYUp);
             if (!NumMatrix.Invert(toFile, out var inverse))
             {
-                Logger.Warn($"Not exporting {part.Name}: its size is zero along an axis");
+                _diagnostics.Warn(ModelDiagnosticCode.PrimitiveSkipped, $"Not exporting {part.Name}: its size is zero along an axis", part.Name);
                 return;
             }
             var normalMatrix = NumMatrix.Transpose(inverse);
@@ -164,7 +172,7 @@ namespace LibreMetaverse.ImportExport
             for (int f = 0; f < faces.Count; f++)
             {
                 var face = faces[f];
-                if (!ExportLayout.CanExport(face, part.Name, f)) continue;
+                if (!ExportLayout.CanExport(face, part.Name, f, _diagnostics)) continue;
                 if (SkipTransparentFaces && face.TextureFace != null && face.TextureFace.RGBA.A < 0.01f) continue;
 
                 if (!header)

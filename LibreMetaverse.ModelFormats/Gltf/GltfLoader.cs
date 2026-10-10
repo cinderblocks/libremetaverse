@@ -53,7 +53,7 @@ namespace LibreMetaverse.ImportExport
     /// The input is treated as untrusted: accessors are bounds-checked before they are decoded
     /// and the amount of geometry is capped.
     /// </remarks>
-    public class GltfLoader : IModelLoader
+    public class GltfLoader : IDiagnosticModelLoader
     {
         // ModelPrim.CreateAsset writes face indices as 16 bit values
         private const int MaxFaceVertices = ushort.MaxValue + 1;
@@ -125,13 +125,25 @@ namespace LibreMetaverse.ImportExport
         /// could not be read</returns>
         public List<ModelPrim> Load(string filename, bool loadImages)
         {
+            return new List<ModelPrim>(LoadWithDiagnostics(filename, loadImages).Prims);
+        }
+
+        /// <summary>
+        /// Parses a glTF or GLB file, and reports what it could not use
+        /// </summary>
+        /// <param name="filename">Load the model from this <c>.gltf</c> or <c>.glb</c> file</param>
+        /// <param name="loadImages">Load and decode images for uploading with model</param>
+        public ModelLoadResult LoadWithDiagnostics(string filename, bool loadImages)
+        {
+            _diagnostics = new ModelDiagnosticCollector();
+            var prims = new List<ModelPrim>();
             try
             {
                 _fileName = filename;
 
                 var info = new FileInfo(filename);
                 if (info.Length > MaxFileSize)
-                    throw new InvalidDataException($"Model file is larger than {MaxFileSize} bytes");
+                    throw new LimitExceededException($"Model file is larger than {MaxFileSize} bytes");
 
                 byte[] data = File.ReadAllBytes(filename);
                 CheckGlbStructure(data);
@@ -147,19 +159,21 @@ namespace LibreMetaverse.ImportExport
                 _skins = new Dictionary<int, SkinInfo?>();
                 _nodeParents = null;
                 var textureSources = new Dictionary<ModelMaterial, int>();
-                var prims = Parse(doc, textureSources);
+                prims = Parse(doc, textureSources);
                 if (loadImages)
                 {
                     LoadImages(doc, textureSources);
                 }
-                return prims;
             }
             catch (Exception ex)
             {
-                Logger.Error("Failed parsing glTF file: " + ex.Message, ex);
-                return new List<ModelPrim>();
+                _diagnostics.ReportFailure(ex, "glTF");
+                prims = new List<ModelPrim>();
             }
+            return new ModelLoadResult(prims, _diagnostics.Diagnostics);
         }
+
+        private ModelDiagnosticCollector _diagnostics = new ModelDiagnosticCollector();
 
         #region Scene
 
@@ -220,7 +234,7 @@ namespace LibreMetaverse.ImportExport
                 var world = ZUpToYUp * instance.World * YUpToZUp;
                 if (!world.Decompose(out var scale, out var rotation, out var position))
                 {
-                    Logger.Warn($"Skipping glTF node {instance.Name}: its transform has no volume");
+                    _diagnostics.Warn(ModelDiagnosticCode.NodeSkipped, $"Skipping glTF node {instance.Name}: its transform has no volume", instance.Name);
                     continue;
                 }
 
@@ -252,7 +266,7 @@ namespace LibreMetaverse.ImportExport
         /// Walks the default scene (or the first one, or every node nothing else parents) and
         /// returns each node that holds a mesh, with its world transform in glTF's own space.
         /// </summary>
-        private static List<MeshInstance> FindMeshInstances(GltfDocument doc)
+        private List<MeshInstance> FindMeshInstances(GltfDocument doc)
         {
             var instances = new List<MeshInstance>();
 
@@ -296,12 +310,12 @@ namespace LibreMetaverse.ImportExport
                 int index = item.Key;
                 if (index < 0 || index >= doc.Nodes.Count)
                 {
-                    Logger.Warn($"Ignoring reference to missing glTF node {index}");
+                    _diagnostics.Warn(ModelDiagnosticCode.NodeSkipped, $"Ignoring reference to missing glTF node {index}", index.ToString());
                     continue;
                 }
                 if (visited[index])
                 {
-                    Logger.Warn($"Ignoring glTF node {index}: it is reachable more than once");
+                    _diagnostics.Warn(ModelDiagnosticCode.NodeSkipped, $"Ignoring glTF node {index}: it is reachable more than once", doc.Nodes[index].Name);
                     continue;
                 }
                 visited[index] = true;
@@ -372,7 +386,7 @@ namespace LibreMetaverse.ImportExport
             {
                 if (primitive.Mode != GltfPrimitiveMode.Triangles)
                 {
-                    Logger.Warn($"Skipping glTF primitive of mesh {meshIndex}: only triangle lists are supported");
+                    _diagnostics.Warn(ModelDiagnosticCode.PrimitiveSkipped, $"Skipping glTF primitive of mesh {meshIndex}: only triangle lists are supported", doc.Meshes[meshIndex].Name);
                     continue;
                 }
 
@@ -385,12 +399,12 @@ namespace LibreMetaverse.ImportExport
 
             if (primitives.Count == 0)
             {
-                Logger.Warn($"glTF mesh {meshIndex} has no triangles to upload");
+                _diagnostics.Warn(ModelDiagnosticCode.NoGeometry, $"glTF mesh {meshIndex} has no triangles to upload", doc.Meshes[meshIndex].Name);
                 return null;
             }
             if (primitives.Count > 8)
             {
-                Logger.Warn($"glTF mesh {meshIndex} has {primitives.Count} primitives; Second Life allows 8 faces per mesh");
+                _diagnostics.Warn(ModelDiagnosticCode.TooManyFaces, $"glTF mesh {meshIndex} has {primitives.Count} primitives; Second Life allows 8 faces per mesh", doc.Meshes[meshIndex].Name, primitives.Count);
             }
 
             // Fit the vertex positions of every primitive into the identity cube -0.5 .. 0.5
@@ -478,8 +492,8 @@ namespace LibreMetaverse.ImportExport
 
                 if (face.Vertices.Count > MaxFaceVertices)
                 {
-                    Logger.Warn($"Skipping a glTF primitive of mesh {meshIndex}: it has {face.Vertices.Count} " +
-                                $"distinct vertices, and a face holds at most {MaxFaceVertices}");
+                    _diagnostics.Warn(ModelDiagnosticCode.FaceSkipped, $"Skipping a glTF primitive of mesh {meshIndex}: it has {face.Vertices.Count} " +
+                                $"distinct vertices, and a face holds at most {MaxFaceVertices}", doc.Meshes[meshIndex].Name);
                     continue;
                 }
                 template.Faces.Add(face);
@@ -606,7 +620,7 @@ namespace LibreMetaverse.ImportExport
                 throw new InvalidDataException("glTF skin has no joints");
             _vertexBudget -= count;
             if (_vertexBudget < 0)
-                throw new InvalidDataException($"glTF model is larger than the {MaxVertices} vertices allowed");
+                throw new LimitExceededException($"glTF model is larger than the {MaxVertices} vertices allowed");
 
             // Without matrices every joint's is the identity
             float[]? matrices = null;
@@ -621,7 +635,7 @@ namespace LibreMetaverse.ImportExport
 
             var avatar = AvatarSkeletonIndex.Default;
             if (avatar == null)
-                Logger.Warn("The avatar skeleton is not available, so joint names are not checked");
+                _diagnostics.Warn(ModelDiagnosticCode.SkeletonUnavailable, "The avatar skeleton is not available, so joint names are not checked");
 
             var jointNames = new List<string>(count);
             for (int j = 0; j < count; j++)
@@ -637,16 +651,16 @@ namespace LibreMetaverse.ImportExport
             var firstOf = selection.FirstOf; // the glTF joint each avatar joint was taken from
 
             if (selection.Dropped.Count > 0)
-                Logger.Warn($"Ignoring glTF joints that are not on the avatar skeleton: {string.Join(", ", selection.Dropped)}");
+                _diagnostics.Warn(ModelDiagnosticCode.JointsIgnored, $"Ignoring glTF joints that are not on the avatar skeleton: {string.Join(", ", selection.Dropped)}", string.Join(", ", selection.Dropped), selection.Dropped.Count);
 
             if (info.Names.Count == 0)
             {
-                Logger.Warn("None of the joints of the glTF skin are on the avatar skeleton, so the mesh is loaded without a rig");
+                _diagnostics.Warn(ModelDiagnosticCode.RigDropped, "None of the joints of the glTF skin are on the avatar skeleton, so the mesh is loaded without a rig");
                 _skins[index] = null;
                 return null;
             }
             if (info.Names.Count > MaxJoints)
-                throw new InvalidDataException($"glTF skin has {info.Names.Count} joints, and a mesh may use at most {MaxJoints}");
+                throw new LimitExceededException($"glTF skin has {info.Names.Count} joints, and a mesh may use at most {MaxJoints}");
 
             // glTF's matrices are column vector and Second Life's row vector, which for these 16 floats in file order
             // is no more than reading them as rows
@@ -706,7 +720,7 @@ namespace LibreMetaverse.ImportExport
 
             if (!NumMatrix.Invert(bound[0], out var inverseReference))
             {
-                Logger.Warn("The glTF skin puts its mesh through a matrix that cannot be inverted, so its inverse bind matrices are used as authored");
+                _diagnostics.Warn(ModelDiagnosticCode.RigApproximated, "The glTF skin puts its mesh through a matrix that cannot be inverted, so its inverse bind matrices are used as authored");
                 return false;
             }
 
@@ -790,7 +804,7 @@ namespace LibreMetaverse.ImportExport
                 throw new InvalidDataException("glTF primitive of a skinned mesh has no JOINTS_0 and WEIGHTS_0");
 
             if (primitive.Attributes.ContainsKey("JOINTS_1"))
-                Logger.Warn("Ignoring glTF influences beyond the first four of each vertex: Second Life takes four");
+                _diagnostics.Warn(ModelDiagnosticCode.InfluencesIgnored, "Ignoring glTF influences beyond the first four of each vertex: Second Life takes four");
 
             int jointCount = CheckAccessor(doc, jointsAccessor, GltfAccessorType.Vec4, "JOINTS_0",
                 c => c == GltfComponentType.UnsignedByte || c == GltfComponentType.UnsignedShort, false);
@@ -832,7 +846,7 @@ namespace LibreMetaverse.ImportExport
             }
 
             if (unweighted > 0)
-                Logger.Warn($"{unweighted} vertices have no weight to a joint of the avatar and follow the first joint instead");
+                _diagnostics.Warn(ModelDiagnosticCode.UnweightedVertices, $"{unweighted} vertices have no weight to a joint of the avatar and follow the first joint instead", null, unweighted);
             return result;
         }
 
@@ -869,7 +883,7 @@ namespace LibreMetaverse.ImportExport
             if (accessor.Count < 0)
                 throw new InvalidDataException($"glTF {what} accessor has a negative count");
             if (accessor.Count > _vertexBudget)
-                throw new InvalidDataException($"glTF model is larger than the {MaxVertices} vertices allowed");
+                throw new LimitExceededException($"glTF model is larger than the {MaxVertices} vertices allowed");
             _vertexBudget -= accessor.Count;
 
             if (accessor.BufferView < 0 || accessor.BufferView >= doc.BufferViews.Count)
@@ -927,7 +941,7 @@ namespace LibreMetaverse.ImportExport
                 if (textureIndex >= doc.Textures.Count ||
                     doc.Textures[textureIndex].Source < 0 || doc.Textures[textureIndex].Source >= doc.Images.Count)
                 {
-                    Logger.Warn($"glTF material {material.ID} refers to a missing texture");
+                    _diagnostics.Warn(ModelDiagnosticCode.TextureNotLoaded, $"glTF material {material.ID} refers to a missing texture", material.ID);
                 }
                 else
                 {
@@ -945,7 +959,7 @@ namespace LibreMetaverse.ImportExport
                     }
                     catch (InvalidDataException ex)
                     {
-                        Logger.Warn($"Not loading texture for glTF material {material.ID}: {ex.Message}");
+                        _diagnostics.Warn(ModelDiagnosticCode.TextureNotLoaded, $"Not loading texture for glTF material {material.ID}: {ex.Message}", material.ID);
                     }
                 }
             }
@@ -988,13 +1002,13 @@ namespace LibreMetaverse.ImportExport
 
                     if (RestrictTexturesToModelDirectory && !ModelTextureLoader.IsInModelDirectory(_fileName, fname))
                     {
-                        Logger.Warn($"Not loading texture {relative}: it is outside the model's directory " +
-                                    "(see GltfLoader.RestrictTexturesToModelDirectory)");
+                        _diagnostics.Warn(ModelDiagnosticCode.TextureOutsideModelDirectory, $"Not loading texture {relative}: it is outside the model's directory " +
+                                    "(see GltfLoader.RestrictTexturesToModelDirectory)", relative);
                         return;
                     }
 
                     CheckFileSize(fname);
-                    ModelTextureLoader.LoadFile(fname, relative, material, _textureCodec);
+                    ModelTextureLoader.LoadFile(_diagnostics, fname, relative, material, _textureCodec);
                     return;
                 }
 
@@ -1010,11 +1024,11 @@ namespace LibreMetaverse.ImportExport
                     bytes = ReadBufferView(doc, image.BufferView);
                 }
 
-                ModelTextureLoader.LoadBytes(bytes, extension, material.Texture, material, _textureCodec);
+                ModelTextureLoader.LoadBytes(_diagnostics, bytes, extension, material.Texture, material, _textureCodec);
             }
             catch (Exception ex)
             {
-                Logger.Warn($"Failed loading glTF image {material.Texture}: {ex.Message}");
+                _diagnostics.Warn(ModelDiagnosticCode.TextureNotLoaded, $"Failed loading glTF image {material.Texture}: {ex.Message}", material.Texture);
             }
         }
 
@@ -1099,7 +1113,7 @@ namespace LibreMetaverse.ImportExport
         private void CheckFileSize(string fname)
         {
             if (new FileInfo(fname).Length > MaxFileSize)
-                throw new InvalidDataException($"{fname} is larger than {MaxFileSize} bytes");
+                throw new LimitExceededException($"{fname} is larger than {MaxFileSize} bytes");
         }
 
         /// <summary>

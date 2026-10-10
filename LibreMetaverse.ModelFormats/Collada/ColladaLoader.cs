@@ -46,7 +46,7 @@ namespace LibreMetaverse.ImportExport
     /// <summary>
     /// Parsing Collada model files into data structures
     /// </summary>
-    public class ColladaLoader : IModelLoader
+    public class ColladaLoader : IDiagnosticModelLoader
     {
         private COLLADA? Model;
         private static XmlSerializer? Serializer = null;
@@ -109,6 +109,19 @@ namespace LibreMetaverse.ImportExport
         [RequiresUnreferencedCode("Uses XmlSerializer with runtime-reflected COLLADA types. Not AOT-safe.")]
         public List<ModelPrim> Load(string filename, bool loadImages)
         {
+            return new List<ModelPrim>(LoadWithDiagnostics(filename, loadImages).Prims);
+        }
+
+        /// <summary>
+        /// Parses Collada document, and reports what it could not use
+        /// </summary>
+        /// <param name="filename">Load .dae model from this file</param>
+        /// <param name="loadImages">Load and decode images for uploading with model</param>
+        [RequiresUnreferencedCode("Uses XmlSerializer with runtime-reflected COLLADA types. Not AOT-safe.")]
+        public ModelLoadResult LoadWithDiagnostics(string filename, bool loadImages)
+        {
+            _diagnostics = new ModelDiagnosticCollector();
+            var prims = new List<ModelPrim>();
             try
             {
                 // Create an instance of the XmlSerializer specifying type and namespace.
@@ -135,19 +148,21 @@ namespace LibreMetaverse.ImportExport
                 {
                     throw new InvalidOperationException("Failed to deserialize COLLADA document");
                 }
-                var prims = Parse();
+                prims = Parse();
                 if (loadImages)
                 {
                     LoadImages(prims);
                 }
-                return prims;
             }
             catch (Exception ex)
             {
-                Logger.Error("Failed parsing collada file: " + ex.Message, ex);
-                return new List<ModelPrim>();
+                _diagnostics.ReportFailure(ex, "collada");
+                prims = new List<ModelPrim>();
             }
+            return new ModelLoadResult(prims, _diagnostics.Diagnostics);
         }
+
+        private ModelDiagnosticCollector _diagnostics = new ModelDiagnosticCollector();
 
         private void LoadImages(IEnumerable<ModelPrim> prims)
         {
@@ -169,12 +184,12 @@ namespace LibreMetaverse.ImportExport
 
             if (RestrictTexturesToModelDirectory && !ModelTextureLoader.IsInModelDirectory(FileName, fname))
             {
-                Logger.Warn($"Not loading texture {material.Texture}: it is outside the model's directory " +
-                            "(see ColladaLoader.RestrictTexturesToModelDirectory)");
+                _diagnostics.Warn(ModelDiagnosticCode.TextureOutsideModelDirectory, $"Not loading texture {material.Texture}: it is outside the model's directory " +
+                            "(see ColladaLoader.RestrictTexturesToModelDirectory)", material.Texture);
                 return;
             }
 
-            ModelTextureLoader.LoadFile(fname, material.Texture, material, _textureCodec);
+            ModelTextureLoader.LoadFile(_diagnostics, fname, material.Texture, material, _textureCodec);
         }
 
         private ModelMaterial ExtractMaterial(object diffuse)
@@ -591,7 +606,7 @@ namespace LibreMetaverse.ImportExport
                 string? geometryId = null;
                 RigTemplate? rig = null;
                 if (!controllers.TryGetValue(id, out var controller))
-                    Logger.Warn($"Collada controller {id} is not defined, so the nodes that use it are skipped");
+                    _diagnostics.Warn(ModelDiagnosticCode.NodeSkipped, $"Collada controller {id} is not defined, so the nodes that use it are skipped", id);
                 else
                     rig = BuildRig(controller, out geometryId);
 
@@ -617,7 +632,7 @@ namespace LibreMetaverse.ImportExport
             var skin = controller.Item as skin;
             if (skin == null)
             {
-                Logger.Warn($"Collada controller {controller.id} is not a skin (morph targets are not supported), so its mesh is loaded without one");
+                _diagnostics.Warn(ModelDiagnosticCode.RigDropped, $"Collada controller {controller.id} is not a skin (morph targets are not supported), so its mesh is loaded without one", controller.id);
                 return null;
             }
 
@@ -637,15 +652,15 @@ namespace LibreMetaverse.ImportExport
             }
             if (geometry == null)
             {
-                Logger.Warn($"Collada skin {controller.id} has no mesh to skin, so it is skipped");
+                _diagnostics.Warn(ModelDiagnosticCode.NodeSkipped, $"Collada skin {controller.id} has no mesh to skin, so it is skipped", controller.id);
                 geometryId = null;
                 return null;
             }
 
             if (_upAxis != UpAxisType.Z_UP || Math.Abs(_unitMeter - 1f) > 1e-6f)
             {
-                Logger.Warn("This Collada file is not Z-up in meters. A rigged mesh is taken exactly as it is in the file, " +
-                            "as the viewer does, so it will only fit the avatar if it was made for Second Life");
+                _diagnostics.Warn(ModelDiagnosticCode.RigAxesNotApplied, "This Collada file is not Z-up in meters. A rigged mesh is taken exactly as it is in the file, " +
+                            "as the viewer does, so it will only fit the avatar if it was made for Second Life", controller.id);
             }
 
             // The joints and their inverse bind matrices
@@ -665,16 +680,20 @@ namespace LibreMetaverse.ImportExport
             if (matrixValues == null || matrixValues.Length < names.Length * 16)
                 throw new InvalidDataException("Collada skin has fewer inverse bind matrices than joints");
 
-            var selection = RigImport.SelectJoints(names, AvatarSkeletonIndex.Default);
+            var avatar = AvatarSkeletonIndex.Default;
+            if (avatar == null)
+                _diagnostics.Warn(ModelDiagnosticCode.SkeletonUnavailable, "The avatar skeleton is not available, so joint names are not checked");
+            var selection = RigImport.SelectJoints(names, avatar);
             if (selection.Dropped.Count > 0)
-                Logger.Warn($"Ignoring Collada joints that are not on the avatar skeleton: {string.Join(", ", selection.Dropped)}");
+                _diagnostics.Warn(ModelDiagnosticCode.JointsIgnored, $"Ignoring Collada joints that are not on the avatar skeleton: {string.Join(", ", selection.Dropped)}",
+                    string.Join(", ", selection.Dropped), selection.Dropped.Count);
             if (selection.Names.Count == 0)
             {
-                Logger.Warn("None of the joints of the Collada skin are on the avatar skeleton, so the mesh is loaded without a rig");
+                _diagnostics.Warn(ModelDiagnosticCode.RigDropped, "None of the joints of the Collada skin are on the avatar skeleton, so the mesh is loaded without a rig", controller.id);
                 return null;
             }
             if (selection.Names.Count > MaxJoints)
-                throw new InvalidDataException($"Collada skin has {selection.Names.Count} joints, and a mesh may use at most {MaxJoints}");
+                throw new LimitExceededException($"Collada skin has {selection.Names.Count} joints, and a mesh may use at most {MaxJoints}");
 
             var bindShape = ReadBindShape(skin.bind_shape_matrix);
 
@@ -744,7 +763,7 @@ namespace LibreMetaverse.ImportExport
             {
                 if (!NumMatrix.Invert(authored[i], out var bindWorld))
                 {
-                    Logger.Warn($"The inverse bind matrix of joint {names[i]} cannot be inverted, so the matrices are used as authored");
+                    _diagnostics.Warn(ModelDiagnosticCode.RigApproximated, $"The inverse bind matrix of joint {names[i]} cannot be inverted, so the matrices are used as authored", names[i]);
                     return false;
                 }
 
@@ -819,7 +838,7 @@ namespace LibreMetaverse.ImportExport
         /// index of -1 is the bind shape matrix, which does not count. Only the four strongest influences are kept,
         /// and they are made to add up to one.
         /// </summary>
-        private static VertexWeight[] ReadWeights(skin skin, int jointCount, JointSelection selection, out int vertexCount)
+        private VertexWeight[] ReadWeights(skin skin, int jointCount, JointSelection selection, out int vertexCount)
         {
             var vw = skin.vertex_weights;
             int jointOffset = -1, weightOffset = -1, stride = 0;
@@ -881,7 +900,7 @@ namespace LibreMetaverse.ImportExport
             }
 
             if (unweighted > 0)
-                Logger.Warn($"{unweighted} vertices have no weight to a joint of the avatar and follow the first joint instead");
+                _diagnostics.Warn(ModelDiagnosticCode.UnweightedVertices, $"{unweighted} vertices have no weight to a joint of the avatar and follow the first joint instead", null, unweighted);
             return result;
         }
 

@@ -48,7 +48,7 @@ namespace LibreMetaverse.ImportExport
     /// The input is treated as untrusted: indices are range checked, the amount of geometry is capped and
     /// material and texture files are only read from the model's directory by default.
     /// </remarks>
-    public class ObjLoader : IModelLoader
+    public class ObjLoader : IDiagnosticModelLoader
     {
         // ModelPrim.CreateAsset writes face indices as 16 bit values
         private const int MaxFaceVertices = ushort.MaxValue + 1;
@@ -108,6 +108,18 @@ namespace LibreMetaverse.ImportExport
         /// could not be read</returns>
         public List<ModelPrim> Load(string filename, bool loadImages)
         {
+            return new List<ModelPrim>(LoadWithDiagnostics(filename, loadImages).Prims);
+        }
+
+        /// <summary>
+        /// Parses an OBJ file, and reports what it could not use
+        /// </summary>
+        /// <param name="filename">Load the model from this <c>.obj</c> file</param>
+        /// <param name="loadImages">Load and decode images for uploading with model</param>
+        public ModelLoadResult LoadWithDiagnostics(string filename, bool loadImages)
+        {
+            _diagnostics = new ModelDiagnosticCollector();
+            var prims = new List<ModelPrim>();
             try
             {
                 _fileName = filename;
@@ -122,20 +134,22 @@ namespace LibreMetaverse.ImportExport
                     LoadMaterialLibrary(library, materials, textureFiles);
                 }
 
-                var prims = BuildPrims(model, materials);
+                prims = BuildPrims(model, materials);
 
                 if (loadImages)
                 {
                     LoadImages(textureFiles);
                 }
-                return prims;
             }
             catch (Exception ex)
             {
-                Logger.Error("Failed parsing OBJ file: " + ex.Message, ex);
-                return new List<ModelPrim>();
+                _diagnostics.ReportFailure(ex, "OBJ");
+                prims = new List<ModelPrim>();
             }
+            return new ModelLoadResult(prims, _diagnostics.Diagnostics);
         }
+
+        private ModelDiagnosticCollector _diagnostics = new ModelDiagnosticCollector();
 
         #region Parsing
 
@@ -257,7 +271,7 @@ namespace LibreMetaverse.ImportExport
             }
 
             if (skippedFaces > 0)
-                Logger.Warn($"Ignored {skippedFaces} OBJ faces that have fewer than three corners");
+                _diagnostics.Warn(ModelDiagnosticCode.FaceSkipped, $"Ignored {skippedFaces} OBJ faces that have fewer than three corners", null, skippedFaces);
 
             return model;
         }
@@ -349,7 +363,7 @@ namespace LibreMetaverse.ImportExport
         {
             _budget -= amount;
             if (_budget < 0)
-                throw new InvalidDataException($"Model has more than {MaxVertices} vertices and triangle corners");
+                throw new LimitExceededException($"Model has more than {MaxVertices} vertices and triangle corners");
         }
 
         private static string StripComment(string line)
@@ -369,7 +383,7 @@ namespace LibreMetaverse.ImportExport
         private void CheckFileSize(string path)
         {
             if (new FileInfo(path).Length > MaxFileSize)
-                throw new InvalidDataException($"File {Path.GetFileName(path)} is larger than {MaxFileSize} bytes");
+                throw new LimitExceededException($"File {Path.GetFileName(path)} is larger than {MaxFileSize} bytes");
         }
 
         /// <summary>
@@ -426,7 +440,7 @@ namespace LibreMetaverse.ImportExport
                     }
 
                     if (sb.Length >= MaxLineLength)
-                        throw new InvalidDataException($"line {LineNumber + 1}: longer than {MaxLineLength} characters");
+                        throw new LimitExceededException($"line {LineNumber + 1}: longer than {MaxLineLength} characters");
                     sb.Append((char)c);
                 }
             }
@@ -492,11 +506,11 @@ namespace LibreMetaverse.ImportExport
             {
                 try
                 {
-                    var path = ResolveFile(name, quiet: false);
+                    var path = ResolveFile(name, quiet: false, library: true);
                     if (path == null) continue;
                     if (!File.Exists(path))
                     {
-                        Logger.Warn($"OBJ material library {name} was not found");
+                        _diagnostics.Warn(ModelDiagnosticCode.MaterialLibraryNotLoaded, $"OBJ material library {name} was not found", name);
                         continue;
                     }
                     CheckFileSize(path);
@@ -505,7 +519,7 @@ namespace LibreMetaverse.ImportExport
                 catch (Exception ex)
                 {
                     // A broken library costs the model its materials, not its geometry
-                    Logger.Warn($"Failed loading OBJ material library {name}: {ex.Message}");
+                    _diagnostics.Warn(ModelDiagnosticCode.MaterialLibraryNotLoaded, $"Failed loading OBJ material library {name}: {ex.Message}", name);
                 }
             }
         }
@@ -531,7 +545,7 @@ namespace LibreMetaverse.ImportExport
                     {
                         var name = Rest(line);
                         if (materials.Count + builders.Count >= MaxMaterials)
-                            throw new InvalidDataException($"More than {MaxMaterials} materials");
+                            throw new LimitExceededException($"More than {MaxMaterials} materials");
                         current = new MaterialBuilder { Material = new ModelMaterial { ID = name } };
                         builders.Add(current);
                         continue;
@@ -629,14 +643,15 @@ namespace LibreMetaverse.ImportExport
         /// Finds the file a model names, or null if it cannot or may not be read. The name is relative
         /// to the model's directory, and uses either kind of path separator.
         /// </summary>
-        private string? ResolveFile(string name, bool quiet)
+        private string? ResolveFile(string name, bool quiet, bool library = false)
         {
             try
             {
                 name = name.Trim().Replace('\\', '/');
                 if (name.Length == 0 || name.IndexOf('\0') >= 0 || UriScheme.IsMatch(name))
                 {
-                    if (!quiet) Logger.Warn($"Not loading OBJ file reference '{name}': it is not a local file");
+                    if (!quiet) _diagnostics.Warn(library ? ModelDiagnosticCode.MaterialLibraryNotLoaded : ModelDiagnosticCode.TextureNotLoaded,
+                        $"Not loading OBJ file reference '{name}': it is not a local file", name);
                     return null;
                 }
 
@@ -645,14 +660,16 @@ namespace LibreMetaverse.ImportExport
 
                 if (RestrictTexturesToModelDirectory && !ModelTextureLoader.IsInModelDirectory(_fileName, path))
                 {
-                    if (!quiet) Logger.Warn($"Not loading OBJ file reference '{name}': it is outside the model's directory");
+                    if (!quiet) _diagnostics.Warn(library ? ModelDiagnosticCode.MaterialLibraryNotLoaded : ModelDiagnosticCode.TextureOutsideModelDirectory,
+                        $"Not loading OBJ file reference '{name}': it is outside the model's directory", name);
                     return null;
                 }
                 return path;
             }
             catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is PathTooLongException)
             {
-                if (!quiet) Logger.Warn($"Not loading OBJ file reference '{name}': {ex.Message}");
+                if (!quiet) _diagnostics.Warn(library ? ModelDiagnosticCode.MaterialLibraryNotLoaded : ModelDiagnosticCode.TextureNotLoaded,
+                        $"Not loading OBJ file reference '{name}': {ex.Message}", name);
                 return null;
             }
         }
@@ -681,10 +698,10 @@ namespace LibreMetaverse.ImportExport
                 }
                 catch (Exception ex)
                 {
-                    Logger.Warn($"Failed loading {file}: {ex.Message}");
+                    _diagnostics.Warn(ModelDiagnosticCode.TextureNotLoaded, $"Failed loading {file}: {ex.Message}", material.Texture);
                     continue;
                 }
-                ModelTextureLoader.LoadFile(file, material.Texture, material, _textureCodec);
+                ModelTextureLoader.LoadFile(_diagnostics, file, material.Texture, material, _textureCodec);
             }
         }
 
@@ -724,7 +741,7 @@ namespace LibreMetaverse.ImportExport
             }
 
             if (prims.Count == 0)
-                Logger.Warn("OBJ file has no triangles to upload");
+                _diagnostics.Warn(ModelDiagnosticCode.NoGeometry, "OBJ file has no triangles to upload");
             return prims;
         }
 
@@ -825,8 +842,8 @@ namespace LibreMetaverse.ImportExport
 
                 if (face.Vertices.Count > MaxFaceVertices)
                 {
-                    Logger.Warn($"Skipping the faces of OBJ object '{part.Name}' that use material '{group.Material}': " +
-                                $"they have {face.Vertices.Count} distinct vertices, and a face holds at most {MaxFaceVertices}");
+                    _diagnostics.Warn(ModelDiagnosticCode.FaceSkipped, $"Skipping the faces of OBJ object '{part.Name}' that use material '{group.Material}': " +
+                                $"they have {face.Vertices.Count} distinct vertices, and a face holds at most {MaxFaceVertices}", part.Name);
                     continue;
                 }
                 prim.Faces.Add(face);
@@ -835,7 +852,7 @@ namespace LibreMetaverse.ImportExport
             if (prim.Faces.Count == 0) return null;
             if (prim.Faces.Count > 8)
             {
-                Logger.Warn($"OBJ object '{part.Name}' uses {prim.Faces.Count} materials; Second Life allows 8 faces per mesh");
+                _diagnostics.Warn(ModelDiagnosticCode.TooManyFaces, $"OBJ object '{part.Name}' uses {prim.Faces.Count} materials; Second Life allows 8 faces per mesh", part.Name, prim.Faces.Count);
             }
 
             prim.Position = assetOffset;

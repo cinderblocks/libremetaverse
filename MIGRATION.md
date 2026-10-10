@@ -27,6 +27,26 @@ IModelLoader loader = Path.GetExtension(path).ToLowerInvariant() switch
 List<ModelPrim> prims = loader.Load(path, loadImages: true);
 ```
 
+The loaders can also say what they left out. `GltfLoader`, `ObjLoader` and `ColladaLoader` implement
+`IDiagnosticModelLoader`, whose `LoadWithDiagnostics` gives the prims along with a list of `ModelDiagnostic` entries,
+and `Load` is the same call with the diagnostics thrown away (they are still written to the log, once each, as they
+were before):
+
+```csharp
+ModelLoadResult result = loader.LoadWithDiagnostics(path, loadImages: true);
+if (result.HasErrors)                                  // nothing usable came out; the diagnostic says why
+    Show(result.Diagnostics.First().Code);             // FileUnreadable, FileMalformed, FileUnsupported, LimitExceeded, LoaderFailed
+foreach (var d in result.Diagnostics)
+    if (d.Code == ModelDiagnosticCode.TextureOutsideModelDirectory)
+        Offer("Allow textures from other folders?");   // RestrictTexturesToModelDirectory
+```
+
+Switch on `Code`, not on the message. `Subject` is text from the file (an object, joint or texture name), and `Count` is how
+many times a counted thing happened (skipped faces, vertices without a weight) so there is one entry for them, not one each.
+A bad texture or material library is a warning, because it costs only that; an error means the file gave nothing.
+`GltfExporter`, `ObjExporter` and `ColladaExporter` have a `Diagnostics` property that holds what the last `Build` or `Save`
+left out, and starts empty each time. `IModelLoader` itself is unchanged, so existing implementations keep compiling.
+
 `GltfLoader` reads triangle meshes, each material's base color factor and base color texture, the node
 hierarchy (instanced meshes become one prim per node) and skins. A skinned mesh becomes a rigged prim: its
 `ModelPrim.Skin` and the per-vertex `ModelFace.Weights` are written into the mesh asset by `CreateAsset`, so

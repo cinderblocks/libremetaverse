@@ -73,6 +73,13 @@ namespace LibreMetaverse.ImportExport
         /// <summary>Number of meshes added so far</summary>
         public int Count => _meshes.Count;
 
+        private ModelDiagnosticCollector _diagnostics = new ModelDiagnosticCollector();
+
+        /// <summary>
+        /// What the last <see cref="Build"/> or <see cref="Save"/> left out or approximated. It starts empty for each one.
+        /// </summary>
+        public IReadOnlyList<ModelDiagnostic> Diagnostics => _diagnostics.Diagnostics;
+
         /// <summary>
         /// Adds a mesh or prim. A mesh whose prim has a parent is placed in the linkset of the root prim with
         /// that local ID if that was added too, and otherwise it is exported on its own, with a warning.
@@ -94,10 +101,11 @@ namespace LibreMetaverse.ImportExport
                 throw new ArgumentException("The file name must be a name ending in .dae, with no directory", nameof(fileName));
             }
 
-            var materials = new ExportMaterials(ImageProvider);
+            _diagnostics = new ModelDiagnosticCollector();
+            var materials = new ExportMaterials(ImageProvider, _diagnostics);
             var geometries = new List<Geometry>();
             int number = 0;
-            foreach (var part in ExportLayout.Parts(_meshes))
+            foreach (var part in ExportLayout.Parts(_meshes, _diagnostics))
             {
                 var geometry = BuildGeometry(part, "prim" + number, materials);
                 if (geometry == null) continue;
@@ -174,7 +182,7 @@ namespace LibreMetaverse.ImportExport
             for (int f = 0; f < faces.Count; f++)
             {
                 var face = faces[f];
-                if (!ExportLayout.CanExport(face, part.Name, f)) continue;
+                if (!ExportLayout.CanExport(face, part.Name, f, _diagnostics)) continue;
                 if (SkipTransparentFaces && face.TextureFace != null && face.TextureFace.RGBA.A < 0.01f) continue;
 
                 bool allNormals = true;
@@ -218,7 +226,7 @@ namespace LibreMetaverse.ImportExport
 
             if (geometry.Runs.Count == 0)
             {
-                Logger.Warn($"Not exporting {part.Name}: it has no triangles");
+                _diagnostics.Warn(ModelDiagnosticCode.NoGeometry, $"Not exporting {part.Name}: it has no triangles", part.Name);
                 return null;
             }
             return geometry;

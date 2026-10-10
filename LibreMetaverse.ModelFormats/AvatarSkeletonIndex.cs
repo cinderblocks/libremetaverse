@@ -43,8 +43,11 @@ namespace LibreMetaverse.ImportExport
         private readonly Dictionary<string, string> _canonical = new Dictionary<string, string>(StringComparer.Ordinal);
         private readonly Dictionary<string, string> _parent = new Dictionary<string, string>(StringComparer.Ordinal);
 
+        /// <summary>Where <see cref="Default"/> comes from; tests replace it to see what a loader does without a skeleton</summary>
+        internal static Func<AvatarSkeletonIndex?> Source = () => DefaultIndex.Value;
+
         /// <summary>The index of the default avatar skeleton, or null if it could not be loaded</summary>
-        internal static AvatarSkeletonIndex? Default => DefaultIndex.Value;
+        internal static AvatarSkeletonIndex? Default => Source();
 
         /// <summary>The name of the joint all the others hang from</summary>
         internal string RootName { get; private set; } = string.Empty;

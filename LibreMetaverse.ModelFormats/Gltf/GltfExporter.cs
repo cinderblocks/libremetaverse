@@ -89,8 +89,17 @@ namespace LibreMetaverse.ImportExport
         /// <summary>Builds the glTF document</summary>
         public GltfDocument Build()
         {
+            _diagnostics = new ModelDiagnosticCollector();
             return new Builder(this).Run();
         }
+
+        private ModelDiagnosticCollector _diagnostics = new ModelDiagnosticCollector();
+
+        /// <summary>
+        /// What the last <see cref="Build"/>, <see cref="ToGlb"/> or <see cref="Save"/> left out or approximated.
+        /// It starts empty for each one.
+        /// </summary>
+        public IReadOnlyList<ModelDiagnostic> Diagnostics => _diagnostics.Diagnostics;
 
         /// <summary>Builds the model as a binary <c>.glb</c></summary>
         public byte[] ToGlb()
@@ -189,7 +198,7 @@ namespace LibreMetaverse.ImportExport
 
             private void AddLinksets(int axes)
             {
-                ExportLayout.Group(_owner._meshes, out var roots, out var children);
+                ExportLayout.Group(_owner._meshes, _owner._diagnostics, out var roots, out var children);
 
                 foreach (var root in roots)
                 {
@@ -247,7 +256,7 @@ namespace LibreMetaverse.ImportExport
 
                 if (mesh.Primitives.Count == 0)
                 {
-                    Logger.Warn($"Not exporting {mesh.Name}: it has no triangles");
+                    _owner._diagnostics.Warn(ModelDiagnosticCode.NoGeometry, $"Not exporting {mesh.Name}: it has no triangles", mesh.Name);
                     return -1;
                 }
 
@@ -266,7 +275,7 @@ namespace LibreMetaverse.ImportExport
                 {
                     if (index >= vertexCount)
                     {
-                        Logger.Warn($"Not exporting face {faceIndex} of {NameOf(source)}: a triangle refers to a missing vertex");
+                        _owner._diagnostics.Warn(ModelDiagnosticCode.FaceSkipped, $"Not exporting face {faceIndex} of {NameOf(source)}: a triangle refers to a missing vertex", NameOf(source));
                         return null;
                     }
                 }
@@ -277,7 +286,7 @@ namespace LibreMetaverse.ImportExport
                     if (NumMatrix.Invert(bindShape.Value, out var inverse))
                         normalMatrix = NumMatrix.Transpose(inverse);
                     else
-                        Logger.Warn($"The bind shape matrix of {NameOf(source)} cannot be inverted, so its normals are left as they are");
+                        _owner._diagnostics.Warn(ModelDiagnosticCode.RigApproximated, $"The bind shape matrix of {NameOf(source)} cannot be inverted, so its normals are left as they are", NameOf(source));
                 }
 
                 var positions = new float[vertexCount * 3];
@@ -292,7 +301,7 @@ namespace LibreMetaverse.ImportExport
                     var vertex = face.Vertices[v];
                     if (!vertex.Position.IsFinite())
                     {
-                        Logger.Warn($"Not exporting face {faceIndex} of {NameOf(source)}: a vertex position is not a number");
+                        _owner._diagnostics.Warn(ModelDiagnosticCode.FaceSkipped, $"Not exporting face {faceIndex} of {NameOf(source)}: a vertex position is not a number", NameOf(source));
                         return null;
                     }
 
@@ -310,7 +319,7 @@ namespace LibreMetaverse.ImportExport
                         vertexNormal = new Vector3(n.X, n.Z, -n.Y);
                         if (!position.IsFinite())
                         {
-                            Logger.Warn($"Not exporting face {faceIndex} of {NameOf(source)}: its bind shape matrix gives a position that is not a number");
+                            _owner._diagnostics.Warn(ModelDiagnosticCode.FaceSkipped, $"Not exporting face {faceIndex} of {NameOf(source)}: its bind shape matrix gives a position that is not a number", NameOf(source));
                             return null;
                         }
                     }
@@ -478,7 +487,7 @@ namespace LibreMetaverse.ImportExport
                         if (NumMatrix.Invert(inverseBind[i], out var world))
                             worlds[name] = world;
                         else
-                            Logger.Warn($"Joint {name} of {NameOf(mesh)} has an inverse bind matrix that cannot be inverted");
+                            _owner._diagnostics.Warn(ModelDiagnosticCode.RigApproximated, $"Joint {name} of {NameOf(mesh)} has an inverse bind matrix that cannot be inverted", name);
                     }
 
                     var set = sets.FirstOrDefault(candidate =>
@@ -495,7 +504,7 @@ namespace LibreMetaverse.ImportExport
                     setOf[mesh] = set;
                 }
                 if (sets.Count > 1)
-                    Logger.Warn($"The rigged meshes disagree about where joints rest, so they are exported with {sets.Count} sets of joints");
+                    _owner._diagnostics.Warn(ModelDiagnosticCode.RigApproximated, $"The rigged meshes disagree about where joints rest, so they are exported with {sets.Count} sets of joints", null, sets.Count);
 
                 foreach (var mesh in rigged)
                 {
@@ -510,7 +519,7 @@ namespace LibreMetaverse.ImportExport
                     {
                         int node = GetJointNode(set, Canonical(jointName));
                         if (!seen.Add(node))
-                            Logger.Warn($"{NameOf(mesh)} lists joint {jointName} more than once");
+                            _owner._diagnostics.Warn(ModelDiagnosticCode.RigApproximated, $"{NameOf(mesh)} lists joint {jointName} more than once", jointName);
                         gltfSkin.Joints.Add(node);
                     }
 
@@ -593,10 +602,10 @@ namespace LibreMetaverse.ImportExport
                 if (NumMatrix.Invert(parentWorld, out var inverseParent))
                     local = world * inverseParent;
                 else
-                    Logger.Warn($"Joint {name} has a parent that cannot be inverted; it is placed relative to the origin");
+                    _owner._diagnostics.Warn(ModelDiagnosticCode.RigApproximated, $"Joint {name} has a parent that cannot be inverted; it is placed relative to the origin", name);
 
                 if (!NumMatrix.Decompose(local, out _, out _, out _))
-                    Logger.Warn($"The rest transform of joint {name} cannot be split into translation, rotation and scale; some programs will not read it");
+                    _owner._diagnostics.Warn(ModelDiagnosticCode.RigApproximated, $"The rest transform of joint {name} cannot be split into translation, rotation and scale; some programs will not read it", name);
 
                 // The joint's transform in Y-up
                 int index = AddNode(new GltfNode { Name = name, Matrix = ToNodeMatrix(YUpToZUp * local * ZUpToYUp) });
@@ -707,7 +716,7 @@ namespace LibreMetaverse.ImportExport
                 catch (Exception ex)
                 {
                     // A texture that cannot be had costs the face its texture, not the export
-                    Logger.Warn($"Not exporting texture {id}: {ex.Message}");
+                    _owner._diagnostics.Warn(ModelDiagnosticCode.TextureNotExported, $"Not exporting texture {id}: {ex.Message}", id.ToString());
                 }
 
                 _textures[id] = result;
