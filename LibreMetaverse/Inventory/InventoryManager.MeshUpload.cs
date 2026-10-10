@@ -77,7 +77,12 @@ namespace LibreMetaverse
         /// If <c>null</c>, the upload always proceeds.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <param name="progress">Optional upload progress reporter.</param>
-        public async Task<CreateItemFromAssetResult> UploadModelAsync(
+        /// <returns>
+        /// The outcome. Before anything is sent the model is run through <see cref="ModelUploadChecks"/>; if that finds
+        /// an error nothing is sent, <c>Success</c> is false and <c>Status</c> is <c>invalid_model</c>.
+        /// <see cref="ModelUploadResult.Diagnostics"/> says what it found, and also carries warnings for an upload that went ahead.
+        /// </returns>
+        public async Task<ModelUploadResult> UploadModelAsync(
             IReadOnlyList<ModelPrim> prims, string name, string description, UUID folderID,
             Permissions permissions, Func<int, bool>? confirmCost = null,
             CancellationToken cancellationToken = default, IProgress<HttpCapsClient.ProgressReport>? progress = null)
@@ -85,15 +90,26 @@ namespace LibreMetaverse
             if (prims == null) { throw new ArgumentNullException(nameof(prims)); }
             if (prims.Count == 0) { throw new ArgumentException("At least one ModelPrim is required", nameof(prims)); }
 
-            var result = new CreateItemFromAssetResult
+            var diagnostics = new List<ModelDiagnostic>(ModelUploadChecks.Check(prims));
+            var result = new ModelUploadResult
             {
                 Success = false,
                 Status = "",
                 ItemID = UUID.Zero,
                 AssetID = UUID.Zero,
                 Error = null,
-                RawResult = null
+                RawResult = null,
+                Diagnostics = diagnostics
             };
+
+            // What the grid would refuse or mangle is found here, without contacting it
+            var firstError = diagnostics.FirstOrDefault(d => d.Severity == ModelDiagnosticSeverity.Error);
+            if (firstError != null)
+            {
+                result.Status = "invalid_model";
+                result.Error = new InvalidOperationException(firstError.Message);
+                return result;
+            }
 
             var cap = GetCapabilityURI("NewFileAgentInventory", false);
             if (cap == null)
@@ -103,6 +119,7 @@ namespace LibreMetaverse
                 return result;
             }
 
+            bool building = true;
             try
             {
                 // mesh_list/instance_list are identical for both phases and built once; texture_list
@@ -113,6 +130,7 @@ namespace LibreMetaverse
                 // bytes for the quote too -- the reference viewer's fallback is to measure the actual
                 // texture rather than ever quote against width=0/height=0.
                 var assetResources = BuildAssetResources(prims, Client.Self.AgentID, out var texturesInOrder);
+                building = false;
                 var haveAllDimensions = texturesInOrder.All(m => m.Width > 0 && m.Height > 0);
                 ApplyTextureList(assetResources, texturesInOrder, includeTextures: !haveAllDimensions);
 
@@ -199,6 +217,10 @@ namespace LibreMetaverse
             catch (OperationCanceledException) { throw; }
             catch (Exception ex)
             {
+                // The checks should have caught whatever building the mesh refuses, so this is a gap in them
+                if (building)
+                    diagnostics.Add(new ModelDiagnostic(ModelDiagnosticSeverity.Error, ModelDiagnosticCode.InvalidModel, ex.Message));
+
                 result.Success = false;
                 result.Error = ex;
                 result.Status = ex.Message;

@@ -49,7 +49,7 @@ namespace LibreMetaverse.ImportExport
         /// <param name="format">What to call the format in the message and the log</param>
         internal static void ReportFailure(this ModelDiagnosticCollector diagnostics, Exception ex, string format)
         {
-            diagnostics.Error(Classify(ex), $"Failed parsing {format} file: {ex.Message}", null, ex);
+            diagnostics.Error(Classify(ex), $"Failed parsing {format} file: {ex.Message}", exception: ex);
         }
 
         internal static ModelDiagnosticCode Classify(Exception ex)

@@ -47,6 +47,29 @@ A bad texture or material library is a warning, because it costs only that; an e
 `GltfExporter`, `ObjExporter` and `ColladaExporter` have a `Diagnostics` property that holds what the last `Build` or `Save`
 left out, and starts empty each time. `IModelLoader` itself is unchanged, so existing implementations keep compiling.
 
+`InventoryManager.UploadModelAsync` now checks the model before it contacts the grid, using `ModelUploadChecks`, and reports
+through `ModelUploadResult` (a `CreateItemFromAssetResult` with a `Diagnostics` list and `HasErrors`). An error means nothing
+was sent: `Success` is false and `Status` is `invalid_model`. Call `ModelUploadChecks.Check(prims)` yourself to tell the user
+sooner. The errors are what the reference viewer would not upload either, or what would have been written into the mesh wrongly:
+
+- more than 8 faces on a prim (`TooManyFaces`);
+- a face with more than 65534 vertices, which a 16-bit index cannot reach (`LimitExceeded`; this is also the limit the OBJ and
+  glTF loaders now use, where it used to be 65536);
+- more than 110 joints in a skin (`LimitExceeded`);
+- a prim with no faces, or a face with no triangles (`NoGeometry`);
+- a triangle that uses a vertex the face does not have, a position, normal, texture coordinate or placement that is not a
+  number, or a skin whose matrices or weights do not fit its joints and vertices (`InvalidModel`).
+
+A texture whose size is not known is a warning (`TextureSizeUnknown`), because the upload goes ahead and the fee is quoted from the whole
+texture. Every other status (`capability_missing`, `cost_rejected`, the grid's own states) is as it was.
+
+**Behavior change:** `UploadModelAsync` used to send a prim with more than 8 faces, or a triangle that used a vertex the face did
+not have, and leave the grid to refuse it (an index past 65535 was cut to 16 bits without a word). A skin that did not fit its weights was refused by the mesh builder, with the
+exception's text as `Status`. All of these are now refused first, with a code. The OBJ and glTF loaders still only warn about more than 8
+faces and return the prim; it is the upload that refuses.
+The return type is now `Task<ModelUploadResult>`, which is source compatible with code that assigns it to a variable or to a
+`CreateItemFromAssetResult`; a variable declared as `Task<CreateItemFromAssetResult>` needs changing.
+
 `GltfLoader` reads triangle meshes, each material's base color factor and base color texture, the node
 hierarchy (instanced meshes become one prim per node) and skins. A skinned mesh becomes a rigged prim: its
 `ModelPrim.Skin` and the per-vertex `ModelFace.Weights` are written into the mesh asset by `CreateAsset`, so

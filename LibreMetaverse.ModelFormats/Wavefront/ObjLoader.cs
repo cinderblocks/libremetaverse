@@ -51,7 +51,7 @@ namespace LibreMetaverse.ImportExport
     public class ObjLoader : IDiagnosticModelLoader
     {
         // ModelPrim.CreateAsset writes face indices as 16 bit values
-        private const int MaxFaceVertices = ushort.MaxValue + 1;
+        private const int MaxFaceVertices = ModelPrim.MaxVerticesPerFace;
 
         // A face statement lists one corner per vertex, so this also bounds how large one can get
         private const int MaxLineLength = 1 << 20;
@@ -850,7 +850,7 @@ namespace LibreMetaverse.ImportExport
             }
 
             if (prim.Faces.Count == 0) return null;
-            if (prim.Faces.Count > 8)
+            if (prim.Faces.Count > ModelPrim.MaxFaces)
             {
                 _diagnostics.Warn(ModelDiagnosticCode.TooManyFaces, $"OBJ object '{part.Name}' uses {prim.Faces.Count} materials; Second Life allows 8 faces per mesh", part.Name, prim.Faces.Count);
             }

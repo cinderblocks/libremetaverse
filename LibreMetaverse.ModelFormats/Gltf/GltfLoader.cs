@@ -56,7 +56,7 @@ namespace LibreMetaverse.ImportExport
     public class GltfLoader : IDiagnosticModelLoader
     {
         // ModelPrim.CreateAsset writes face indices as 16 bit values
-        private const int MaxFaceVertices = ushort.MaxValue + 1;
+        private const int MaxFaceVertices = ModelPrim.MaxVerticesPerFace;
 
         // glTF is Y-up, Second Life is Z-up
         private static readonly Matrix4 YUpToZUp = ModelAxes.YUpToZUp;
@@ -402,7 +402,7 @@ namespace LibreMetaverse.ImportExport
                 _diagnostics.Warn(ModelDiagnosticCode.NoGeometry, $"glTF mesh {meshIndex} has no triangles to upload", doc.Meshes[meshIndex].Name);
                 return null;
             }
-            if (primitives.Count > 8)
+            if (primitives.Count > ModelPrim.MaxFaces)
             {
                 _diagnostics.Warn(ModelDiagnosticCode.TooManyFaces, $"glTF mesh {meshIndex} has {primitives.Count} primitives; Second Life allows 8 faces per mesh", doc.Meshes[meshIndex].Name, primitives.Count);
             }

@@ -200,6 +200,16 @@ namespace LibreMetaverse.ImportExport
 
     public class ModelPrim
     {
+        /// <summary>Most faces a mesh may have, which is the reference viewer's limit</summary>
+        public const int MaxFaces = 8;
+
+        /// <summary>
+        /// Most vertices a face may have. The viewer refuses a face that reaches 65535, because its triangles are
+        /// indexed with 16 bits. This is stricter than <see cref="FacetedMesh.MaxVerticesPerFace"/>, which is how many
+        /// vertices a downloaded mesh may have before it is distrusted.
+        /// </summary>
+        public const int MaxVerticesPerFace = 65534;
+
         public List<Vector3> Positions = new List<Vector3>();
         public Vector3 BoundMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
         public Vector3 BoundMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);

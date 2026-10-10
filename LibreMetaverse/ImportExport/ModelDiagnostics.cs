@@ -54,13 +54,16 @@ namespace LibreMetaverse.ImportExport
         /// <summary>The file is valid but needs something the loader does not support, such as a required glTF extension</summary>
         FileUnsupported,
 
-        /// <summary>The file is bigger than the loader's limits allow (file size, vertices, materials, joints, line length)</summary>
+        /// <summary>
+        /// Something is bigger than a limit allows: the loader's (file size, vertices, materials, joints, line length)
+        /// or the upload's (vertices in a face, joints in a skin)
+        /// </summary>
         LimitExceeded,
 
         /// <summary>The loader failed on something it did not expect. The file is refused, but this is a gap in the loader</summary>
         LoaderFailed,
 
-        /// <summary>A mesh or prim has no triangles, so there is nothing to load or export</summary>
+        /// <summary>A mesh or prim has no triangles, so there is nothing to load, export or upload</summary>
         NoGeometry,
 
         /// <summary>A whole piece of geometry was left out: a primitive that is not a triangle list, or a prim that has no size</summary>
@@ -69,7 +72,10 @@ namespace LibreMetaverse.ImportExport
         /// <summary>A face was left out because it is unusable (too many vertices, too few corners, a broken triangle or a position that is not a number)</summary>
         FaceSkipped,
 
-        /// <summary>A mesh has more faces than Second Life allows, which is eight</summary>
+        /// <summary>
+        /// A mesh has more faces than Second Life allows, which is eight. A loader warns, since it can still give you
+        /// the mesh; <see cref="ModelUploadChecks"/> makes it an error, because the viewer cannot upload one.
+        /// </summary>
         TooManyFaces,
 
         /// <summary>A node or object was left out of the model</summary>
@@ -115,7 +121,13 @@ namespace LibreMetaverse.ImportExport
         RigFlattened,
 
         /// <summary>A texture could not be exported, so the faces that use it have none</summary>
-        TextureNotExported
+        TextureNotExported,
+
+        /// <summary>Geometry or rig data that cannot be uploaded: an index past the vertices, a number that is not a number, or weights that do not fit the skin</summary>
+        InvalidModel,
+
+        /// <summary>A texture's pixel size is not known, so the upload fee is quoted from the whole texture</summary>
+        TextureSizeUnknown
     }
 
     /// <summary>One thing a loader or exporter wants you to know about</summary>
@@ -183,9 +195,9 @@ namespace LibreMetaverse.ImportExport
         }
 
         /// <summary>Reports that the file yielded nothing usable</summary>
-        public void Error(ModelDiagnosticCode code, string message, string? subject = null, Exception? exception = null)
+        public void Error(ModelDiagnosticCode code, string message, string? subject = null, int count = 1, Exception? exception = null)
         {
-            Add(new ModelDiagnostic(ModelDiagnosticSeverity.Error, code, message, subject));
+            Add(new ModelDiagnostic(ModelDiagnosticSeverity.Error, code, message, subject, count));
             if (exception != null)
                 Logger.Error(message, exception);
             else
