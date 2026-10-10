@@ -43,6 +43,25 @@ All three loaders put a Y-up model's top along +Z.
 out upside down (and facing the other way). It now rotates them upright. Files with `Z_UP` (what Blender's
 Collada export writes) are unaffected; a `Y_UP` file that you compensated for by hand will now be rotated twice.
 
+`GltfExporter` goes the other way: it writes decoded `FacetedMesh` objects (downloaded meshes, or prims
+tessellated by a renderer) as a `.glb` or a self-contained `.gltf`:
+
+```csharp
+var exporter = new GltfExporter
+{
+    // glTF cannot hold JPEG2000, so hand back PNG or JPEG bytes; return null to leave a face untextured
+    ImageProvider = textureId => LoadAsPng(textureId) is { } png ? new ExportImage(png, "image/png") : null
+};
+foreach (var mesh in linkset) exporter.Add(mesh);   // root and children together
+exporter.Save("model.glb");
+```
+
+A linkset keeps its layout (the root's rotation, each prim's own position, rotation and size), and the
+root's world position is dropped. A rigged mesh becomes a glTF skin: the joints are arranged as the default
+avatar skeleton but rest where the mesh's own bind pose puts them, and every vertex keeps its weights. Face color, opacity and texture are exported; texture repeats,
+offsets and rotation, glow, shininess, bump maps and full bright are not (colors are written unconverted), and neither are a rigged mesh's
+pelvis offset, alternate inverse bind matrices and lock-scale flag, which glTF cannot express.
+
 ---
 
 # Migration Guide: Server certificate validation

@@ -2,7 +2,7 @@
   <PropertyGroup>
     <AssemblyName>LibreMetaverse.ModelFormats</AssemblyName>
     <PackageId>LibreMetaverse.ModelFormats</PackageId>
-    <Description>3D model format importers for LibreMetaverse. Loads Collada (.dae), glTF 2.0 (.gltf, .glb) and Wavefront OBJ (.obj) models into the ModelPrim structures used for Second Life mesh upload, behind a common IModelLoader interface.</Description>
+    <Description>3D model format importers for LibreMetaverse. Loads Collada (.dae), glTF 2.0 (.gltf, .glb) and Wavefront OBJ (.obj) models into the ModelPrim structures used for Second Life mesh upload, behind a common IModelLoader interface. Also exports decoded meshes, including rigged ones, as glTF.</Description>
     <RootNamespace>LibreMetaverse.ImportExport</RootNamespace>
     <OutputType>Library</OutputType>
     <TargetFrameworks>netstandard2.1;net481;net8.0;net9.0;net10.0</TargetFrameworks>
