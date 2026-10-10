@@ -37,22 +37,6 @@ using Path = System.IO.Path;
 
 namespace LibreMetaverse.ImportExport
 {
-    /// <summary>An encoded image (PNG or JPEG) to embed in an exported model</summary>
-    public sealed class ExportImage
-    {
-        /// <summary>The compressed image file</summary>
-        public byte[] Data { get; }
-
-        /// <summary><c>image/png</c> or <c>image/jpeg</c>, the only formats glTF allows</summary>
-        public string MimeType { get; }
-
-        public ExportImage(byte[] data, string mimeType)
-        {
-            Data = data ?? throw new ArgumentNullException(nameof(data));
-            MimeType = mimeType ?? throw new ArgumentNullException(nameof(mimeType));
-        }
-    }
-
     /// <summary>
     /// Writes decoded Second Life meshes and prims (<see cref="FacetedMesh"/>) out as glTF 2.0, as a
     /// <c>.glb</c> or a self-contained <c>.gltf</c>.
@@ -205,34 +189,7 @@ namespace LibreMetaverse.ImportExport
 
             private void AddLinksets(int axes)
             {
-                var roots = new List<FacetedMesh>();
-                var children = new Dictionary<uint, List<FacetedMesh>>();
-                var known = new HashSet<uint>();
-
-                foreach (var mesh in _owner._meshes)
-                {
-                    if (!IsRigged(mesh) && mesh.Prim.ParentID == 0) known.Add(mesh.Prim.LocalID);
-                }
-                foreach (var mesh in _owner._meshes)
-                {
-                    if (IsRigged(mesh)) continue;
-
-                    uint parent = mesh.Prim.ParentID;
-                    if (parent == 0)
-                    {
-                        roots.Add(mesh);
-                    }
-                    else if (known.Contains(parent))
-                    {
-                        if (!children.TryGetValue(parent, out var list)) children[parent] = list = new List<FacetedMesh>();
-                        list.Add(mesh);
-                    }
-                    else
-                    {
-                        Logger.Warn($"Exporting prim {mesh.Prim.LocalID} on its own: its parent {parent} was not added, or is a rigged mesh");
-                        roots.Add(mesh);
-                    }
-                }
+                ExportLayout.Group(_owner._meshes, out var roots, out var children);
 
                 foreach (var root in roots)
                 {
@@ -272,11 +229,7 @@ namespace LibreMetaverse.ImportExport
                 }));
             }
 
-            private static string NameOf(FacetedMesh mesh)
-            {
-                var name = mesh.Prim.Properties?.Name;
-                return !string.IsNullOrEmpty(name) ? name! : "prim" + mesh.Prim.LocalID;
-            }
+            private static string NameOf(FacetedMesh mesh) => ExportLayout.NameOf(mesh);
 
             #endregion Scene
 
@@ -488,10 +441,7 @@ namespace LibreMetaverse.ImportExport
 
             private const float RestTolerance = 1e-3f;
 
-            private static bool IsRigged(FacetedMesh mesh)
-            {
-                return mesh.SkinData != null && mesh.SkinData.JointNames != null && mesh.SkinData.JointNames.Length > 0;
-            }
+            private static bool IsRigged(FacetedMesh mesh) => ExportLayout.IsRigged(mesh);
 
             private static bool Agree(NumMatrix a, NumMatrix b)
             {

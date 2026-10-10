@@ -78,6 +78,17 @@ bind matrices themselves, so `GltfLoader` reads it back to the same skin. Face c
 offsets and rotation, glow, shininess, bump maps and full bright are not (colors are written unconverted), and neither are a rigged mesh's
 pelvis offset, alternate inverse bind matrices and lock-scale flag, which glTF cannot express.
 
+`ObjExporter` and `ColladaExporter` take the same meshes and the same `ImageProvider`, and lay a linkset out the
+same way (they share the code that does it with `GltfExporter`). They write several files, because both
+formats refer to their textures by file name, so `Save("house.obj")` also writes `house.mtl` and a PNG or JPEG
+named after each texture's asset ID next to it. `Build("house.obj")` returns the same files as byte arrays
+(`ExportedFile`) if you want to put them somewhere else. The OBJ is Y-up with every prim already in place, as
+OBJ has no transforms, and the COLLADA is Z-up with one node per prim. Neither can hold a skin, so a rigged mesh is
+written as it stands in the pose its bind shape matrix gives it, and the skin is dropped. A COLLADA material has
+the texture or the color, not both, because the format allows one for the diffuse. Texture repeats, offsets and
+rotation are not applied (call the renderer's `TransformTexCoords` on a copy first if you want them baked in).
+`SkipTransparentFaces` leaves out faces with an alpha under 1/100, as Radegast's export does.
+
 ---
 
 # Migration Guide: Server certificate validation
