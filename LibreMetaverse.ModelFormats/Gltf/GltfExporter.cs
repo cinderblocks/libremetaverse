@@ -64,9 +64,11 @@ namespace LibreMetaverse.ImportExport
     /// The root prim's world position is dropped, so an export sits at the origin.
     /// A rigged mesh is exported as a glTF skin: its vertices are put through the bind shape matrix, the
     /// joints become nodes (arranged as the default avatar skeleton, each at the rest position its own inverse
-    /// bind matrix implies; meshes that disagree about that get joints of their own) and every vertex keeps its weights. It sits under the top node rather than in a
-    /// linkset, because glTF ignores the transform of a skinned mesh, and Second Life draws rigged meshes in
-    /// avatar space too. The pelvis offset, alternate inverse bind matrices and the lock-scale flag cannot be
+    /// bind matrix implies; meshes that disagree about that get joints of their own) and every vertex keeps its
+    /// weights. It is not part of a linkset, because glTF ignores the transform of a skinned mesh and Second Life
+    /// draws rigged meshes in avatar space too. The whole rig is turned from Z-up to Y-up the way Blender's glTF
+    /// exporter turns a rig, by converting the vertices, joint transforms and inverse bind matrices themselves
+    /// rather than putting a rotated node above them, which is what <see cref="GltfLoader"/> expects. The pelvis offset, alternate inverse bind matrices and the lock-scale flag cannot be
     /// expressed in glTF and are dropped.
     /// Only each face's color, opacity and texture are exported. Texture repeats, offsets and rotation,
     /// glow, shininess, bump maps, full bright and the other prim parameters are not. Colors are written as they
@@ -136,6 +138,17 @@ namespace LibreMetaverse.ImportExport
             private readonly GltfDocument _doc = new GltfDocument();
             private readonly MemoryStream _buffer = new MemoryStream();
 
+            // Y-up to Z-up as a row vector matrix: (x, y, z) -> (x, -z, y). A rig is converted the other way by
+            // conjugating with it: a transform T in Z-up becomes R * T * R^-1 in Y-up.
+            private static readonly NumMatrix YUpToZUp = new NumMatrix(
+                1, 0, 0, 0,
+                0, 0, 1, 0,
+                0, -1, 0, 0,
+                0, 0, 0, 1);
+            private static readonly NumMatrix ZUpToYUp = NumMatrix.Transpose(YUpToZUp);
+
+            private readonly List<int> _sceneRoots = new List<int>();
+
             private readonly Dictionary<UUID, int> _textures = new Dictionary<UUID, int>();
             private readonly Dictionary<MaterialKey, int> _materials = new Dictionary<MaterialKey, int>();
 
@@ -167,10 +180,11 @@ namespace LibreMetaverse.ImportExport
                 });
 
                 AddLinksets(axes);
-                AddRiggedMeshes(axes);
+                AddRiggedMeshes();
 
                 var scene = new GltfScene { Name = "Scene" };
                 scene.Nodes.Add(axes);
+                scene.Nodes.AddRange(_sceneRoots);
                 _doc.Scenes.Add(scene);
                 _doc.DefaultScene = 0;
 
@@ -304,6 +318,15 @@ namespace LibreMetaverse.ImportExport
                     }
                 }
 
+                var normalMatrix = NumMatrix.Identity;
+                if (bindShape.HasValue)
+                {
+                    if (NumMatrix.Invert(bindShape.Value, out var inverse))
+                        normalMatrix = NumMatrix.Transpose(inverse);
+                    else
+                        Logger.Warn($"The bind shape matrix of {NameOf(source)} cannot be inverted, so its normals are left as they are");
+                }
+
                 var positions = new float[vertexCount * 3];
                 var normals = new float[vertexCount * 3];
                 var texCoords = new float[vertexCount * 2];
@@ -327,9 +350,11 @@ namespace LibreMetaverse.ImportExport
                         // Rigged vertices are in the mesh's own space until the bind shape matrix, a row vector
                         // matrix, takes them to the space the inverse bind matrices expect
                         var q = NumVector3.Transform(new NumVector3(position.X, position.Y, position.Z), bindShape.Value);
-                        position = new Vector3(q.X, q.Y, q.Z);
-                        var n = NumVector3.TransformNormal(new NumVector3(vertexNormal.X, vertexNormal.Y, vertexNormal.Z), bindShape.Value);
-                        vertexNormal = new Vector3(n.X, n.Y, n.Z);
+                        position = new Vector3(q.X, q.Z, -q.Y); // and on to Y-up
+                        // A normal turns with the inverse transpose, which only differs from the matrix itself when
+                        // the bind shape scales unevenly (and the viewer does the same)
+                        var n = NumVector3.TransformNormal(new NumVector3(vertexNormal.X, vertexNormal.Y, vertexNormal.Z), normalMatrix);
+                        vertexNormal = new Vector3(n.X, n.Z, -n.Y);
                         if (!position.IsFinite())
                         {
                             Logger.Warn($"Not exporting face {faceIndex} of {NameOf(source)}: its bind shape matrix gives a position that is not a number");
@@ -446,12 +471,7 @@ namespace LibreMetaverse.ImportExport
 
             #region Rig
 
-            private LindenSkeleton? _skeleton;
-            private bool _skeletonLoaded;
-            private readonly Dictionary<string, string> _canonicalNames = new Dictionary<string, string>(StringComparer.Ordinal);
-            private readonly Dictionary<string, string> _parentOf = new Dictionary<string, string>(StringComparer.Ordinal);
-            private Dictionary<string, NumMatrix> _defaultWorld = new Dictionary<string, NumMatrix>(StringComparer.Ordinal);
-            private string? _skeletonRoot;
+            private AvatarSkeletonIndex? _skeleton;
 
             /// <summary>
             /// A set of joint nodes that rigged meshes share. A joint rests where a mesh's inverse bind matrix
@@ -483,12 +503,12 @@ namespace LibreMetaverse.ImportExport
                        Math.Abs(a.M42 - b.M42) < RestTolerance && Math.Abs(a.M43 - b.M43) < RestTolerance;
             }
 
-            private void AddRiggedMeshes(int axes)
+            private void AddRiggedMeshes()
             {
                 var rigged = _owner._meshes.Where(IsRigged).ToList();
                 if (rigged.Count == 0) return;
 
-                LoadSkeleton();
+                _skeleton = AvatarSkeletonIndex.Default;
 
                 // First decide which joints each mesh can share, and where every one of them rests, before any
                 // node is made: a joint that one mesh skins to and another only passes through has to be
@@ -538,14 +558,14 @@ namespace LibreMetaverse.ImportExport
                     var seen = new HashSet<int>();
                     foreach (var jointName in skin.JointNames)
                     {
-                        int node = GetJointNode(set, axes, Canonical(jointName));
+                        int node = GetJointNode(set, Canonical(jointName));
                         if (!seen.Add(node))
                             Logger.Warn($"{NameOf(mesh)} lists joint {jointName} more than once");
                         gltfSkin.Joints.Add(node);
                     }
 
                     // The skeleton node has to be an ancestor of every joint, or the file is invalid
-                    if (_skeletonRoot != null && set.Nodes.TryGetValue(_skeletonRoot, out var rootNode) &&
+                    if (_skeleton != null && set.Nodes.TryGetValue(_skeleton.RootName, out var rootNode) &&
                         gltfSkin.Joints.All(joint => IsSameOrDescendant(rootNode, joint)))
                     {
                         gltfSkin.Skeleton = rootNode;
@@ -557,7 +577,7 @@ namespace LibreMetaverse.ImportExport
                     var matrixData = new float[inverseBind.Length * 16];
                     for (int i = 0; i < inverseBind.Length; i++)
                     {
-                        var m = inverseBind[i];
+                        var m = YUpToZUp * inverseBind[i] * ZUpToYUp;
                         float[] values =
                         {
                             m.M11, m.M12, m.M13, m.M14, m.M21, m.M22, m.M23, m.M24,
@@ -569,7 +589,7 @@ namespace LibreMetaverse.ImportExport
                     gltfSkin.InverseBindMatrices = AddAccessor(matrixData, GltfAccessorType.Mat4, inverseBind.Length, target: -1);
 
                     _doc.Skins.Add(gltfSkin);
-                    _doc.Nodes[axes].Children.Add(AddNode(new GltfNode
+                    _sceneRoots.Add(AddNode(new GltfNode
                     {
                         Name = NameOf(mesh),
                         Mesh = meshIndex,
@@ -593,75 +613,28 @@ namespace LibreMetaverse.ImportExport
                 }
             }
 
-            private void LoadSkeleton()
-            {
-                if (_skeletonLoaded) return;
-                _skeletonLoaded = true;
-
-                try
-                {
-                    _skeleton = LindenSkeleton.Load();
-                    _skeletonRoot = _skeleton.bone.name;
-                    _defaultWorld = AvatarBoneMath.BuildBoneWorldMatrices(_skeleton, new Dictionary<string, BoneTransform>());
-                    IndexJoint(_skeleton.bone, null);
-                }
-                catch (Exception ex)
-                {
-                    // Without the skeleton the joints are just laid out flat, each at its own rest position
-                    Logger.Warn($"Not arranging joints as the avatar skeleton: {ex.Message}");
-                    _skeleton = null;
-                    _skeletonRoot = null;
-                    _canonicalNames.Clear();
-                    _parentOf.Clear();
-                }
-            }
-
-            private void IndexJoint(Joint joint, string? parent)
-            {
-                if (string.IsNullOrEmpty(joint.name)) return;
-
-                _canonicalNames[joint.name] = joint.name;
-                foreach (var alias in joint.GetAliasesList())
-                {
-                    if (!_canonicalNames.ContainsKey(alias)) _canonicalNames[alias] = joint.name;
-                }
-                if (parent != null) _parentOf[joint.name] = parent;
-
-                // Collision volumes are joints too, as far as fitted mesh is concerned
-                foreach (var volume in joint.collision_volume ?? Array.Empty<CollisionVolume>())
-                {
-                    if (volume == null || string.IsNullOrEmpty(volume.name)) continue;
-                    _canonicalNames[volume.name] = volume.name;
-                    _parentOf[volume.name] = joint.name;
-                }
-                foreach (var child in joint.bone ?? Array.Empty<Joint>())
-                {
-                    IndexJoint(child, joint.name);
-                }
-            }
-
             private string Canonical(string name)
             {
-                return _canonicalNames.TryGetValue(name, out var canonical) ? canonical : name;
+                return _skeleton != null && _skeleton.TryGetCanonical(name, out var canonical) ? canonical : name;
             }
 
             /// <summary>The node for a joint in a set, made (with the joints above it) if need be</summary>
-            private int GetJointNode(RigSet set, int axes, string name)
+            private int GetJointNode(RigSet set, string name)
             {
                 if (set.Nodes.TryGetValue(name, out var existing)) return existing;
 
-                int parentNode = axes;
+                int parentNode = -1;
                 var parentWorld = NumMatrix.Identity;
-                if (_parentOf.TryGetValue(name, out var parent))
+                if (_skeleton != null && _skeleton.TryGetParent(name, out var parent))
                 {
-                    parentNode = GetJointNode(set, axes, parent);
+                    parentNode = GetJointNode(set, parent);
                     parentWorld = set.Rest[parent];
                 }
 
                 if (!set.Pinned.TryGetValue(name, out var world))
                 {
                     // Not skinned to by any mesh: it only has to be somewhere sensible
-                    world = _defaultWorld.TryGetValue(name, out var fallback) ? fallback : parentWorld;
+                    world = _skeleton != null && _skeleton.DefaultWorld.TryGetValue(name, out var fallback) ? fallback : parentWorld;
                 }
                 set.Rest[name] = world;
 
@@ -675,8 +648,12 @@ namespace LibreMetaverse.ImportExport
                 if (!NumMatrix.Decompose(local, out _, out _, out _))
                     Logger.Warn($"The rest transform of joint {name} cannot be split into translation, rotation and scale; some programs will not read it");
 
-                int index = AddNode(new GltfNode { Name = name, Matrix = ToNodeMatrix(local) });
-                _doc.Nodes[parentNode].Children.Add(index);
+                // The joint's transform in Y-up
+                int index = AddNode(new GltfNode { Name = name, Matrix = ToNodeMatrix(YUpToZUp * local * ZUpToYUp) });
+                if (parentNode >= 0)
+                    _doc.Nodes[parentNode].Children.Add(index);
+                else
+                    _sceneRoots.Add(index);
                 set.Nodes[name] = index;
                 return index;
             }

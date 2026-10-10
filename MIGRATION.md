@@ -27,9 +27,17 @@ IModelLoader loader = Path.GetExtension(path).ToLowerInvariant() switch
 List<ModelPrim> prims = loader.Load(path, loadImages: true);
 ```
 
-`GltfLoader` reads static triangle meshes, each material's base color factor and base color texture, and
-the node hierarchy (instanced meshes become one prim per node). Skins, morph targets, animation, other
-primitive modes and Draco/meshopt/quantized meshes are not supported. Like `ColladaLoader`, it only reads
+`GltfLoader` reads triangle meshes, each material's base color factor and base color texture, the node
+hierarchy (instanced meshes become one prim per node) and skins. A skinned mesh becomes a rigged prim: its
+`ModelPrim.Skin` and the per-vertex `ModelFace.Weights` are written into the mesh asset by `CreateAsset`, so
+`UploadModelAsync` uploads it as a rigged mesh. Joints are matched by node name against the avatar skeleton
+(`mPelvis`, `mTorso`, ..., collision volumes, and the skeleton's aliases); joints it does not have are dropped,
+and so are influences beyond a vertex's strongest four. By default only each joint's position is taken from the file and its axes are the avatar's
+(`UseAvatarJointAxes`), because the avatar's bones have no rotation while a rig from a modelling program such as
+Blender usually gives its bones axes of their own, which would turn the mesh around each joint on the avatar; set
+it to false to carry the inverse bind matrices over exactly as authored. Joint position overrides are not imported. A
+skinned mesh is placed by its joints, so its node's transform is ignored, as glTF says. Morph targets,
+animation, other primitive modes and Draco/meshopt/quantized meshes are not supported. Like `ColladaLoader`, it only reads
 buffers and textures from the model's directory unless `RestrictTexturesToModelDirectory` is set to false.
 PNG and JPEG textures, which glTF models normally use, need an `ITextureCodec` such as `SkiaTextureCodec`.
 
@@ -58,7 +66,9 @@ exporter.Save("model.glb");
 
 A linkset keeps its layout (the root's rotation, each prim's own position, rotation and size), and the
 root's world position is dropped. A rigged mesh becomes a glTF skin: the joints are arranged as the default
-avatar skeleton but rest where the mesh's own bind pose puts them, and every vertex keeps its weights. Face color, opacity and texture are exported; texture repeats,
+avatar skeleton but rest where the mesh's own bind pose puts them, and every vertex keeps its weights. The
+rig is turned to Y-up the way Blender's glTF exporter does it, in the vertices, joint transforms and inverse
+bind matrices themselves, so `GltfLoader` reads it back to the same skin. Face color, opacity and texture are exported; texture repeats,
 offsets and rotation, glow, shininess, bump maps and full bright are not (colors are written unconverted), and neither are a rigged mesh's
 pelvis offset, alternate inverse bind matrices and lock-scale flag, which glTF cannot express.
 

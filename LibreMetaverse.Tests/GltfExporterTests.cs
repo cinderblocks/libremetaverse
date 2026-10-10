@@ -628,6 +628,11 @@ namespace LibreMetaverse.Tests
 
         #region Rig
 
+        // (x, y, z) -> (x, -z, y) as a row vector matrix; a rig goes from Z-up to Y-up by conjugating with it
+        private static readonly NumMatrix YUpToZUpRows = new NumMatrix(1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1);
+
+        private static NumMatrix Transpose(NumMatrix m) => NumMatrix.Transpose(m);
+
         private static float Rad(float degrees) => degrees * (float)Math.PI / 180f;
 
         // Where the two joints rest in avatar space (row vectors). Asymmetric on purpose: rotations about
@@ -779,7 +784,9 @@ namespace LibreMetaverse.Tests
             // rest, so its pose in avatar space is the delta applied first and then where it rests.
             var delta = NumMatrix.CreateRotationY(Rad(25)) * NumMatrix.CreateTranslation(0.2f, -0.1f, 0.5f);
             var posedChest = delta * RestChest;
-            SetNodeMatrix(root, "mChest", delta * GetNodeMatrix(root, "mChest"));
+            // The node holds its transform in Y-up, so the delta is turned into Y-up too
+            var deltaYUp = YUpToZUpRows * delta * Transpose(YUpToZUpRows);
+            SetNodeMatrix(root, "mChest", deltaYUp * GetNodeMatrix(root, "mChest"));
 
             for (int v = 0; v < 4; v++)
             {
@@ -793,6 +800,45 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
+        public void Build_RiggedMesh_NormalsStayPerpendicularToTheSurfaceAfterAnUnevenBindShape()
+        {
+            // BindShape scales unevenly, so turning normals with the matrix itself would tilt them off the
+            // surface. Every face of this tetrahedron has a normal; check each stays square to its edges.
+            var face = TetraFace();
+            var positions = TetraPositions;
+            for (int i = 0; i < face.Vertices.Count; i++)
+            {
+                var v = face.Vertices[i];
+                v.Normal = Vector3.Zero;
+                face.Vertices[i] = v;
+            }
+            // one flat triangle in a slanted plane, so its normal is not along an axis
+            var slanted = new Face
+            {
+                Vertices = new List<Vertex>(),
+                Indices = new List<ushort> { 0, 1, 2 },
+                TextureFace = new Primitive.TextureEntryFace(null),
+                Weights = new List<VertexWeight> { TetraWeights[0], TetraWeights[1], TetraWeights[2] }
+            };
+            var a = new Vector3(0, 0, 0); var b = new Vector3(1, 0, 0.5f); var c = new Vector3(0, 1, 1f);
+            var n = Vector3.Normalize(Vector3.Cross(b - a, c - a));
+            foreach (var p in new[] { a, b, c }) slanted.Vertices.Add(new Vertex { Position = p, Normal = n });
+
+            var doc = Export(RiggedMesh(face: slanted));
+            var exportedPositions = doc.GetPositions(doc.Meshes[0].Primitives[0]);
+            var exportedNormals = doc.GetNormals(doc.Meshes[0].Primitives[0]);
+
+            var e1 = exportedPositions[1] - exportedPositions[0];
+            var e2 = exportedPositions[2] - exportedPositions[0];
+            Assert.Multiple(() =>
+            {
+                Assert.That(Vector3.Dot(exportedNormals[0], e1), Is.EqualTo(0f).Within(1e-4f));
+                Assert.That(Vector3.Dot(exportedNormals[0], e2), Is.EqualTo(0f).Within(1e-4f));
+                Assert.That(exportedNormals[0].Length(), Is.EqualTo(1f).Within(1e-5f));
+            });
+        }
+
+        [Test]
         public void Build_RiggedMesh_IsSkinnedAtTheTopAndIgnoresPrimScale()
         {
             var doc = Export(RiggedMesh());
@@ -800,7 +846,7 @@ namespace LibreMetaverse.Tests
             var node = doc.Nodes.First(n => n.Skin >= 0);
             Assert.Multiple(() =>
             {
-                Assert.That(doc.Nodes[0].Children, Does.Contain(doc.Nodes.IndexOf(node)), "directly under the top node");
+                Assert.That(doc.Scenes[0].Nodes, Does.Contain(doc.Nodes.IndexOf(node)), "a root of the scene, not part of a linkset");
                 Assert.That(node.Scale, Is.EqualTo(Vector3.One));
                 Assert.That(doc.Skins[0].Joints.Select(j => doc.Nodes[j].Name), Is.EqualTo(new[] { "mTorso", "mChest" }), "in the mesh's own order");
                 Assert.That(doc.Skins[0].InverseBindMatrices, Is.GreaterThanOrEqualTo(0));
@@ -824,8 +870,8 @@ namespace LibreMetaverse.Tests
             {
                 Assert.That(chain, Does.Contain("mTorso"));
                 Assert.That(chain.IndexOf("mTorso"), Is.LessThan(chain.IndexOf("mPelvis")), "the torso is below the pelvis");
-                Assert.That(chain.Last(), Is.EqualTo("SecondLife"), "all the way up to the top node");
-                Assert.That(chain[chain.Count - 2], Is.EqualTo("mPelvis"), "the skeleton root is directly under it");
+                Assert.That(chain.Last(), Is.EqualTo("mPelvis"), "all the way up to the skeleton root");
+                Assert.That(doc.Scenes[0].Nodes, Does.Contain(Index("mPelvis")), "which is a root of the scene");
                 Assert.That(doc.Nodes[doc.Skins[0].Skeleton].Name, Is.EqualTo("mPelvis"));
                 Assert.That(doc.Skins[0].Joints, Does.Not.Contain(Index("mPelvis")), "ancestors are nodes, not joints of the skin");
             });
@@ -926,7 +972,7 @@ namespace LibreMetaverse.Tests
             var expected = Apply(WorldMatrix(root, NodeIndex(root, "customBone")), Vector3.Zero);
             var restOrigin = NumVector3.Transform(NumVector3.Zero, RestChest);
             AssertClose(expected, ToYUp(restOrigin), "customBone origin");
-            Assert.That(doc.Nodes[0].Children, Does.Contain(doc.Nodes.FindIndex(n => n.Name == "customBone")));
+            Assert.That(doc.Scenes[0].Nodes, Does.Contain(doc.Nodes.FindIndex(n => n.Name == "customBone")));
             Assert.That(doc.Skins[0].Skeleton, Is.EqualTo(-1), "mPelvis is not an ancestor of customBone, so it cannot be the skeleton root");
         }
 

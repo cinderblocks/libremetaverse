@@ -31,6 +31,8 @@ using System.Text.RegularExpressions;
 using LibreMetaverse.Assets.Gltf;
 using LibreMetaverse.Imaging;
 using LibreMetaverse.Rendering;
+using NumMatrix = System.Numerics.Matrix4x4;
+using NumVector3 = System.Numerics.Vector3;
 using Path = System.IO.Path;
 
 namespace LibreMetaverse.ImportExport
@@ -40,8 +42,12 @@ namespace LibreMetaverse.ImportExport
     /// <c>.glb</c>) into <see cref="ModelPrim"/> structures for mesh upload.
     /// </summary>
     /// <remarks>
-    /// Only static triangle meshes are read: skins, morph targets, animation, cameras and
-    /// lights are ignored, as are primitives that are not plain triangle lists. Only the base
+    /// Triangle meshes and skins are read; morph targets, animation, cameras and lights are
+    /// ignored, as are primitives that are not plain triangle lists. A skinned mesh becomes a rigged prim:
+    /// its weights go to the avatar joints the skin's nodes are named after (up to four a vertex, strongest
+    /// first), its inverse bind matrices are carried over, and the node's own transform is ignored, as the
+    /// glTF specification says. Joints whose names are not on the avatar skeleton are dropped, as are
+    /// influences beyond the fourth. Joint position overrides are not imported. Only the base
     /// color factor and base color texture of each material are used. Meshes compressed with
     /// Draco or meshopt, or quantized with KHR_mesh_quantization, are rejected.
     /// The input is treated as untrusted: accessors are bounds-checked before they are decoded
@@ -68,6 +74,8 @@ namespace LibreMetaverse.ImportExport
         private readonly ITextureCodec? _textureCodec;
         private string _fileName = string.Empty;
         private long _vertexBudget;
+        private Dictionary<int, SkinInfo?> _skins = new Dictionary<int, SkinInfo?>();
+        private int[]? _nodeParents;
 
         /// <summary>
         /// Only load external buffers and textures from the directory of the model file and its
@@ -79,6 +87,20 @@ namespace LibreMetaverse.ImportExport
 
         /// <summary>Largest model, buffer or texture file that will be read, in bytes</summary>
         public long MaxFileSize { get; set; } = 256L * 1024 * 1024;
+
+        /// <summary>
+        /// How the joints of a skin are read. The bones of the avatar skeleton have no rotation at rest, but the
+        /// joints of a rig made in a modelling program often do (Blender turns a bone's axis to run along the
+        /// bone), and a mesh bound to those axes comes out turned around each joint on the avatar. When true,
+        /// the default, only each joint's position is taken from the file and its axes are the avatar's, which
+        /// is right for both kinds of rig. When false the inverse bind matrices are carried over exactly as they
+        /// are authored, which is right only for a rig whose joints have no rotation either.
+        /// </summary>
+        public bool UseAvatarJointAxes { get; set; } = true;
+
+        /// <summary>Most joints a skinned mesh may be weighted to (after those the avatar skeleton does not
+        /// have are dropped). The reference viewer ignores any beyond 110.</summary>
+        public int MaxJoints { get; set; } = ModelSkin.MaxJoints;
 
         /// <summary>Largest number of vertex attribute and index elements a model may contain in total</summary>
         public int MaxVertices { get; set; } = 4_000_000;
@@ -122,6 +144,8 @@ namespace LibreMetaverse.ImportExport
                 }
 
                 _vertexBudget = MaxVertices;
+                _skins = new Dictionary<int, SkinInfo?>();
+                _nodeParents = null;
                 var textureSources = new Dictionary<ModelMaterial, int>();
                 var prims = Parse(doc, textureSources);
                 if (loadImages)
@@ -143,6 +167,7 @@ namespace LibreMetaverse.ImportExport
         {
             public string Name = string.Empty;
             public int Mesh;
+            public int Skin = -1;
             public Matrix4 World;
         }
 
@@ -151,23 +176,45 @@ namespace LibreMetaverse.ImportExport
             public ModelPrim Template = new ModelPrim();
             public Vector3 AssetScale;
             public Vector3 AssetOffset;
+            public bool Skinned;
         }
 
         private List<ModelPrim> Parse(GltfDocument doc, Dictionary<ModelMaterial, int> textureSources)
         {
             var prims = new List<ModelPrim>();
-            var built = new Dictionary<int, BuiltMesh?>();
+            var built = new Dictionary<long, BuiltMesh?>();
             var materials = new Dictionary<int, ModelMaterial>();
             var defaultMaterial = new ModelMaterial { ID = "default" };
 
             foreach (var instance in FindMeshInstances(doc))
             {
-                if (!built.TryGetValue(instance.Mesh, out var mesh))
+                // The same mesh skinned two ways is two different assets
+                long key = instance.Mesh + ((instance.Skin + 1L) << 32);
+                if (!built.TryGetValue(key, out var mesh))
                 {
-                    mesh = BuildMesh(doc, instance.Mesh, materials, defaultMaterial, textureSources);
-                    built[instance.Mesh] = mesh;
+                    mesh = BuildMesh(doc, instance.Mesh, instance.Skin, materials, defaultMaterial, textureSources);
+                    built[key] = mesh;
                 }
                 if (mesh == null) continue;
+
+                if (mesh.Skinned)
+                {
+                    // A skinned mesh is placed by its joints, and its node's transform is not used. The prim
+                    // is sized like any other, to match the unit cube it was fitted into.
+                    prims.Add(new ModelPrim
+                    {
+                        ID = instance.Name,
+                        Asset = mesh.Template.Asset,
+                        BoundMin = mesh.Template.BoundMin,
+                        BoundMax = mesh.Template.BoundMax,
+                        Positions = mesh.Template.Positions,
+                        Faces = mesh.Template.Faces,
+                        Skin = mesh.Template.Skin,
+                        Position = mesh.AssetOffset,
+                        Scale = mesh.AssetScale
+                    });
+                    continue;
+                }
 
                 // Second Life is Z-up too, so move the node's world transform into that space
                 var world = ZUpToYUp * instance.World * YUpToZUp;
@@ -268,6 +315,7 @@ namespace LibreMetaverse.ImportExport
                     {
                         Name = string.IsNullOrEmpty(node.Name) ? "node" + index : node.Name!,
                         Mesh = node.Mesh,
+                        Skin = node.Skin,
                         World = world
                     });
                 }
@@ -303,15 +351,19 @@ namespace LibreMetaverse.ImportExport
             public Vector3[]? Normals;
             public Vector2[]? TexCoords;
             public uint[]? Indices;
+            public VertexWeight[]? Weights;
             public int TriangleCount;
             public ModelMaterial Material = new ModelMaterial();
         }
 
-        private BuiltMesh? BuildMesh(GltfDocument doc, int meshIndex, Dictionary<int, ModelMaterial> materials,
+        private BuiltMesh? BuildMesh(GltfDocument doc, int meshIndex, int skinIndex, Dictionary<int, ModelMaterial> materials,
             ModelMaterial defaultMaterial, Dictionary<ModelMaterial, int> textureSources)
         {
             if (meshIndex < 0 || meshIndex >= doc.Meshes.Count)
                 throw new InvalidDataException($"Node refers to missing glTF mesh {meshIndex}");
+
+            // A skin none of whose joints the avatar has leaves a mesh that is just a mesh
+            var skin = skinIndex >= 0 ? ReadSkin(doc, skinIndex) : null;
 
             var gltfMesh = doc.Meshes[meshIndex];
             var primitives = new List<PrimitiveData>();
@@ -324,7 +376,7 @@ namespace LibreMetaverse.ImportExport
                     continue;
                 }
 
-                var data = ReadPrimitive(doc, primitive);
+                var data = ReadPrimitive(doc, primitive, skin);
                 if (data.TriangleCount == 0) continue;
 
                 data.Material = GetMaterial(doc, primitive.Material, materials, defaultMaterial, textureSources);
@@ -356,6 +408,15 @@ namespace LibreMetaverse.ImportExport
             var result = new BuiltMesh();
             result.AssetScale = boundMax - boundMin;
             result.AssetOffset = boundMin + (result.AssetScale / 2);
+            result.Skinned = skin != null;
+
+            // The unit cube the vertices are fitted into has to be undone before the skin sees them, so the
+            // bind shape matrix carries the scale and offset (a flat axis has nothing to scale). Normals
+            // are put through its inverse transpose when drawn, so they are stored scaled the other way.
+            var fit = new Vector3(
+                result.AssetScale.X == 0 ? 1f : result.AssetScale.X,
+                result.AssetScale.Y == 0 ? 1f : result.AssetScale.Y,
+                result.AssetScale.Z == 0 ? 1f : result.AssetScale.Z);
             var template = result.Template;
             template.BoundMin = boundMin;
             template.BoundMax = boundMax;
@@ -393,10 +454,12 @@ namespace LibreMetaverse.ImportExport
 
                     foreach (var index in corners)
                     {
+                        var normal = p.Normals != null ? p.Normals[index] : flat;
+                        if (skin != null) normal = SafeNormalize(normal * fit);
                         var vertex = new Vertex
                         {
                             Position = normalized[index],
-                            Normal = p.Normals != null ? p.Normals[index] : flat
+                            Normal = normal
                         };
                         if (p.TexCoords != null)
                         {
@@ -404,7 +467,10 @@ namespace LibreMetaverse.ImportExport
                             var uv = p.TexCoords[index];
                             vertex.TexCoord = new Vector2(uv.X, 1f - uv.Y);
                         }
-                        face.AddVertex(vertex);
+                        if (skin != null)
+                            face.AddVertex(vertex, p.Weights![index]);
+                        else
+                            face.AddVertex(vertex);
                     }
                 }
 
@@ -419,11 +485,26 @@ namespace LibreMetaverse.ImportExport
 
             if (template.Faces.Count == 0) return null;
 
+            if (skin != null)
+            {
+                var bind = Matrix4.CreateScale(fit) * Matrix4.CreateTranslation(result.AssetOffset);
+                template.Skin = new ModelSkin
+                {
+                    JointNames = skin.Names,
+                    InverseBindMatrices = skin.InverseBind,
+                    BindShapeMatrix = new[]
+                    {
+                        bind.M11, bind.M12, bind.M13, bind.M14, bind.M21, bind.M22, bind.M23, bind.M24,
+                        bind.M31, bind.M32, bind.M33, bind.M34, bind.M41, bind.M42, bind.M43, bind.M44
+                    }
+                };
+            }
+
             template.CreateAsset(UUID.Zero);
             return result;
         }
 
-        private PrimitiveData ReadPrimitive(GltfDocument doc, GltfPrimitive primitive)
+        private PrimitiveData ReadPrimitive(GltfDocument doc, GltfPrimitive primitive, SkinInfo? skin)
         {
             if (!primitive.Attributes.TryGetValue(GltfPrimitive.ATTR_POSITION, out var posAccessor))
                 throw new InvalidDataException("glTF primitive has no POSITION attribute");
@@ -441,7 +522,7 @@ namespace LibreMetaverse.ImportExport
             {
                 if (!positions[i].IsFinite())
                     throw new InvalidDataException("glTF POSITION data contains a value that is not a number");
-                data.Positions[i] = Vector3.Transform(positions[i], YUpToZUp);
+                data.Positions[i] = Vector3.Transform(positions[i], skin != null ? skin.MeshToSl : YUpToZUp);
             }
 
             if (primitive.Attributes.TryGetValue(GltfPrimitive.ATTR_NORMAL, out var norAccessor))
@@ -455,7 +536,7 @@ namespace LibreMetaverse.ImportExport
                 data.Normals = new Vector3[vertexCount];
                 for (int i = 0; i < vertexCount; i++)
                 {
-                    data.Normals[i] = SafeNormalize(Vector3.TransformNormal(normals[i], YUpToZUp));
+                    data.Normals[i] = SafeNormalize(Vector3.TransformNormal(normals[i], skin != null ? skin.NormalToSl : YUpToZUp));
                 }
             }
 
@@ -486,8 +567,337 @@ namespace LibreMetaverse.ImportExport
             }
 
             data.TriangleCount = indexCount / 3;
+            if (skin != null) data.Weights = ReadWeights(doc, primitive, vertexCount, skin);
             return data;
         }
+
+        #region Skins
+
+        private sealed class SkinInfo
+        {
+            /// <summary>Avatar joint names, each once, in the order the weights index them</summary>
+            public List<string> Names = new List<string>();
+
+            /// <summary>For each joint of the glTF skin, its index in <see cref="Names"/>, or -1 if the avatar has no such joint</summary>
+            public int[] Map = Array.Empty<int>();
+
+            /// <summary>One inverse bind matrix per entry of <see cref="Names"/>: 16 floats, row-major, row vector, in Second Life's axes</summary>
+            public float[] InverseBind = Array.Empty<float>();
+
+            /// <summary>Takes the mesh's vertices to Second Life's axes, as the bind shape sees them</summary>
+            public Matrix4 MeshToSl = Matrix4.Identity;
+
+            /// <summary>Takes the mesh's normals to Second Life's axes (the inverse transpose of <see cref="MeshToSl"/>)</summary>
+            public Matrix4 NormalToSl = Matrix4.Identity;
+        }
+
+        /// <returns>The skin, or null if none of its joints are joints of the avatar</returns>
+        private SkinInfo? ReadSkin(GltfDocument doc, int index)
+        {
+            if (_skins.TryGetValue(index, out var cached)) return cached;
+            if (index < 0 || index >= doc.Skins.Count)
+                throw new InvalidDataException($"Node refers to missing glTF skin {index}");
+
+            var skin = doc.Skins[index];
+            int count = skin.Joints.Count;
+            if (count == 0)
+                throw new InvalidDataException("glTF skin has no joints");
+            _vertexBudget -= count;
+            if (_vertexBudget < 0)
+                throw new InvalidDataException($"glTF model is larger than the {MaxVertices} vertices allowed");
+
+            // Without matrices every joint's is the identity
+            float[]? matrices = null;
+            if (skin.InverseBindMatrices >= 0)
+            {
+                int available = CheckAccessor(doc, skin.InverseBindMatrices, GltfAccessorType.Mat4, "inverse bind matrix",
+                    c => c == GltfComponentType.Float, false);
+                if (available < count)
+                    throw new InvalidDataException("glTF skin has fewer inverse bind matrices than joints");
+                matrices = ReadMatrices(doc, skin.InverseBindMatrices, count);
+            }
+
+            var avatar = AvatarSkeletonIndex.Default;
+            if (avatar == null)
+                Logger.Warn("The avatar skeleton is not available, so joint names are not checked");
+
+            var info = new SkinInfo { Map = new int[count] };
+            var firstOf = new List<int>(); // the glTF joint each avatar joint was taken from
+            var dropped = new List<string>();
+            for (int j = 0; j < count; j++)
+            {
+                int node = skin.Joints[j];
+                if (node < 0 || node >= doc.Nodes.Count)
+                    throw new InvalidDataException($"glTF skin refers to missing joint node {node}");
+
+                string name = doc.Nodes[node].Name ?? string.Empty;
+                string canonical = name;
+                if (avatar != null && !avatar.TryGetCanonical(name, out canonical))
+                {
+                    info.Map[j] = -1;
+                    dropped.Add(name);
+                    continue;
+                }
+
+                int existing = info.Names.IndexOf(canonical);
+                if (existing >= 0)
+                {
+                    // Two glTF joints that are the same avatar joint share the first one's matrix
+                    info.Map[j] = existing;
+                    continue;
+                }
+
+                info.Map[j] = info.Names.Count;
+                info.Names.Add(canonical);
+                firstOf.Add(j);
+            }
+
+            if (dropped.Count > 0)
+                Logger.Warn($"Ignoring glTF joints that are not on the avatar skeleton: {string.Join(", ", dropped)}");
+
+            if (info.Names.Count == 0)
+            {
+                Logger.Warn("None of the joints of the glTF skin are on the avatar skeleton, so the mesh is loaded without a rig");
+                _skins[index] = null;
+                return null;
+            }
+            if (info.Names.Count > MaxJoints)
+                throw new InvalidDataException($"glTF skin has {info.Names.Count} joints, and a mesh may use at most {MaxJoints}");
+
+            // glTF's matrices are column vector and Second Life's row vector, which for these 16 floats in file order
+            // is no more than reading them as rows
+            Func<int, NumMatrix> fileMatrix = j => matrices == null
+                ? NumMatrix.Identity
+                : new NumMatrix(
+                    matrices[j * 16], matrices[j * 16 + 1], matrices[j * 16 + 2], matrices[j * 16 + 3],
+                    matrices[j * 16 + 4], matrices[j * 16 + 5], matrices[j * 16 + 6], matrices[j * 16 + 7],
+                    matrices[j * 16 + 8], matrices[j * 16 + 9], matrices[j * 16 + 10], matrices[j * 16 + 11],
+                    matrices[j * 16 + 12], matrices[j * 16 + 13], matrices[j * 16 + 14], matrices[j * 16 + 15]);
+
+            var result = new List<NumMatrix>();
+            if (!UseAvatarJointAxes || !TryAlignToAvatar(doc, skin, firstOf, fileMatrix, info, result))
+            {
+                // As authored. The file's axes are Y-up where the vertices are turned into Z-up, so each matrix
+                // is conjugated by the same turn
+                info.MeshToSl = YUpToZUp;
+                info.NormalToSl = YUpToZUp;
+                result.Clear();
+                foreach (var j in firstOf)
+                {
+                    result.Add(ToNumerics(ZUpToYUp * ToLibre(fileMatrix(j)) * YUpToZUp));
+                }
+            }
+
+            var inverseBind = new List<float>();
+            foreach (var m in result)
+            {
+                var values = new[]
+                {
+                    m.M11, m.M12, m.M13, m.M14, m.M21, m.M22, m.M23, m.M24,
+                    m.M31, m.M32, m.M33, m.M34, m.M41, m.M42, m.M43, m.M44
+                };
+                foreach (var value in values)
+                {
+                    if (!Utils.IsFinite(value))
+                        throw new InvalidDataException("glTF skin gives an inverse bind matrix that is not finite");
+                }
+                inverseBind.AddRange(values);
+            }
+
+            info.InverseBind = inverseBind.ToArray();
+            _skins[index] = info;
+            return info;
+        }
+
+        private static NumMatrix ToNumerics(Matrix4 m) => new NumMatrix(
+            m.M11, m.M12, m.M13, m.M14, m.M21, m.M22, m.M23, m.M24,
+            m.M31, m.M32, m.M33, m.M34, m.M41, m.M42, m.M43, m.M44);
+
+        private static Matrix4 ToLibre(NumMatrix m) => new Matrix4(
+            m.M11, m.M12, m.M13, m.M14, m.M21, m.M22, m.M23, m.M24,
+            m.M31, m.M32, m.M33, m.M34, m.M41, m.M42, m.M43, m.M44);
+
+        /// <summary>
+        /// Rebuilds the inverse bind matrices with the avatar's own joint axes: each joint keeps the position the file
+        /// puts it at, and has the rotation and scale the avatar's joint has there. Everything the file's axes did to the mesh is moved into where the mesh
+        /// itself sits, so the mesh looks the same at rest. See <see cref="UseAvatarJointAxes"/>.
+        /// </summary>
+        /// <returns>False if it cannot be done, and the matrices should be used as they are</returns>
+        private bool TryAlignToAvatar(GltfDocument doc, GltfSkin skin, List<int> joints, Func<int, NumMatrix> fileMatrix,
+            SkinInfo info, List<NumMatrix> result)
+        {
+            // M takes the mesh as it is in the file to where the file's scene puts it at rest
+            var worlds = new List<NumMatrix>();
+            var bound = new List<NumMatrix>();
+            foreach (var j in joints)
+            {
+                var world = ToNumerics(NodeWorld(doc, skin.Joints[j]));
+                worlds.Add(world);
+                bound.Add(fileMatrix(j) * world);
+            }
+
+            if (!NumMatrix.Invert(bound[0], out var inverseReference))
+            {
+                Logger.Warn("The glTF skin puts its mesh through a matrix that cannot be inverted, so its inverse bind matrices are used as authored");
+                return false;
+            }
+
+            var toSl = ToNumerics(YUpToZUp);
+            var fromSl = ToNumerics(ZUpToYUp);
+            var meshToSl = bound[0] * toSl;
+            if (!NumMatrix.Invert(meshToSl, out var inverseMeshToSl))
+                return false;
+
+            info.MeshToSl = ToLibre(meshToSl);
+            info.NormalToSl = ToLibre(NumMatrix.Transpose(inverseMeshToSl));
+
+            var defaults = AvatarSkeletonIndex.Default?.DefaultWorld;
+            for (int i = 0; i < joints.Count; i++)
+            {
+                // The joint's position from the file, with the avatar's own axes and size at that joint. The skeleton's
+                // bones have no rotation or scale; its collision volumes (which fitted mesh is weighted to) have both.
+                var origin = NumVector3.Transform(new NumVector3(worlds[i].M41, worlds[i].M42, worlds[i].M43), toSl);
+                var avatarWorld = NumMatrix.CreateTranslation(origin);
+                if (defaults != null && defaults.TryGetValue(info.Names[i], out var atRest))
+                {
+                    avatarWorld = atRest;
+                    avatarWorld.M41 = origin.X;
+                    avatarWorld.M42 = origin.Y;
+                    avatarWorld.M43 = origin.Z;
+                }
+                if (!NumMatrix.Invert(avatarWorld, out var inverseAvatarWorld))
+                    return false;
+
+                result.Add(fromSl * inverseReference * bound[i] * toSl * inverseAvatarWorld);
+            }
+            return true;
+        }
+
+        /// <summary>A node's transform in the scene, from its own and its parents' (row vector, glTF's axes)</summary>
+        private Matrix4 NodeWorld(GltfDocument doc, int node)
+        {
+            if (_nodeParents == null)
+            {
+                _nodeParents = new int[doc.Nodes.Count];
+                for (int i = 0; i < _nodeParents.Length; i++) _nodeParents[i] = -1;
+                for (int i = 0; i < doc.Nodes.Count; i++)
+                {
+                    foreach (var child in doc.Nodes[i].Children)
+                    {
+                        if (child >= 0 && child < _nodeParents.Length) _nodeParents[child] = i;
+                    }
+                }
+            }
+
+            var world = LocalTransform(doc.Nodes[node]);
+            int steps = 0;
+            for (int parent = _nodeParents[node]; parent >= 0; parent = _nodeParents[parent])
+            {
+                // A node cannot be its own ancestor
+                if (++steps > doc.Nodes.Count)
+                    throw new InvalidDataException("glTF nodes form a loop");
+                world = world * LocalTransform(doc.Nodes[parent]);
+            }
+            return world;
+        }
+
+        /// <summary>Reads <paramref name="count"/> MAT4 elements whose accessor has been through <see cref="CheckAccessor"/></summary>
+        private static float[] ReadMatrices(GltfDocument doc, int accessorIndex, int count)
+        {
+            var accessor = doc.Accessors[accessorIndex];
+            var view = doc.BufferViews[accessor.BufferView];
+            var buffer = doc.Buffers[view.Buffer].Data!;
+            long stride = view.ByteStride > 0 ? view.ByteStride : accessor.DefaultStride;
+            long start = (long)view.ByteOffset + accessor.ByteOffset;
+
+            var result = new float[count * 16];
+            for (int i = 0; i < count; i++)
+            {
+                for (int k = 0; k < 16; k++)
+                {
+                    float value = BitConverter.ToSingle(buffer, (int)(start + i * stride + k * 4));
+                    if (!Utils.IsFinite(value))
+                        throw new InvalidDataException("glTF inverse bind matrix contains a value that is not a number");
+                    result[i * 16 + k] = value;
+                }
+            }
+            return result;
+        }
+
+        private VertexWeight[] ReadWeights(GltfDocument doc, GltfPrimitive primitive, int vertexCount, SkinInfo skin)
+        {
+            if (!primitive.Attributes.TryGetValue(GltfPrimitive.ATTR_JOINTS_0, out var jointsAccessor) ||
+                !primitive.Attributes.TryGetValue(GltfPrimitive.ATTR_WEIGHTS_0, out var weightsAccessor))
+                throw new InvalidDataException("glTF primitive of a skinned mesh has no JOINTS_0 and WEIGHTS_0");
+
+            if (primitive.Attributes.ContainsKey("JOINTS_1"))
+                Logger.Warn("Ignoring glTF influences beyond the first four of each vertex: Second Life takes four");
+
+            int jointCount = CheckAccessor(doc, jointsAccessor, GltfAccessorType.Vec4, "JOINTS_0",
+                c => c == GltfComponentType.UnsignedByte || c == GltfComponentType.UnsignedShort, false);
+            int weightCount = CheckAccessor(doc, weightsAccessor, GltfAccessorType.Vec4, "WEIGHTS_0",
+                c => c == GltfComponentType.Float, true);
+            if (jointCount != vertexCount || weightCount != vertexCount)
+                throw new InvalidDataException("glTF JOINTS_0, WEIGHTS_0 and POSITION counts differ");
+
+            var joints = doc.GetJoints(primitive);
+            var weights = doc.GetWeights(primitive);
+            var result = new VertexWeight[vertexCount];
+            var influences = new List<KeyValuePair<int, float>>(4);
+            int unweighted = 0;
+
+            for (int v = 0; v < vertexCount; v++)
+            {
+                influences.Clear();
+                int[] j = { joints[v].j0, joints[v].j1, joints[v].j2, joints[v].j3 };
+                float[] w = { weights[v].X, weights[v].Y, weights[v].Z, weights[v].W };
+
+                for (int k = 0; k < 4; k++)
+                {
+                    if (!Utils.IsFinite(w[k]) || w[k] < 0f)
+                        throw new InvalidDataException("glTF WEIGHTS_0 contains a value that is not a weight");
+                    if (w[k] == 0f) continue;
+                    if (j[k] >= skin.Map.Length)
+                        throw new InvalidDataException("glTF JOINTS_0 refers to a joint the skin does not have");
+
+                    int joint = skin.Map[j[k]];
+                    if (joint < 0) continue;
+
+                    int existing = influences.FindIndex(e => e.Key == joint);
+                    if (existing >= 0)
+                        influences[existing] = new KeyValuePair<int, float>(joint, influences[existing].Value + w[k]);
+                    else
+                        influences.Add(new KeyValuePair<int, float>(joint, w[k]));
+                }
+
+                // Strongest first, and they add up to one
+                influences.Sort((a, b) => b.Value.CompareTo(a.Value));
+                float total = 0f;
+                foreach (var influence in influences) total += influence.Value;
+
+                var weight = new VertexWeight();
+                if (influences.Count == 0 || !(total > 0f))
+                {
+                    // Nothing it is weighted to is a joint of the avatar: it follows the first one
+                    weight.Weight0 = 1f;
+                    unweighted++;
+                }
+                else
+                {
+                    weight.Joint0 = influences[0].Key; weight.Weight0 = influences[0].Value / total;
+                    if (influences.Count > 1) { weight.Joint1 = influences[1].Key; weight.Weight1 = influences[1].Value / total; }
+                    if (influences.Count > 2) { weight.Joint2 = influences[2].Key; weight.Weight2 = influences[2].Value / total; }
+                    if (influences.Count > 3) { weight.Joint3 = influences[3].Key; weight.Weight3 = influences[3].Value / total; }
+                }
+                result[v] = weight;
+            }
+
+            if (unweighted > 0)
+                Logger.Warn($"{unweighted} vertices have no weight to a joint of the avatar and follow the first joint instead");
+            return result;
+        }
+
+        #endregion Skins
 
         private static Vector3 SafeNormalize(Vector3 v)
         {
