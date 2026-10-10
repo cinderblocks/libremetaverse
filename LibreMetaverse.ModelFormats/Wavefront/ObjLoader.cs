@@ -815,7 +815,7 @@ namespace LibreMetaverse.ImportExport
                         var vertex = new Vertex
                         {
                             Position = fitted,
-                            Normal = corner.Normal >= 0 ? normals[corner.Normal] : flat
+                            Normal = UnitCubeFit.FitNormal(corner.Normal >= 0 ? normals[corner.Normal] : flat, assetScale)
                         };
                         // OBJ's UV origin is the bottom left, which is Second Life's as well
                         if (corner.TexCoord >= 0) vertex.TexCoord = model.TexCoords[corner.TexCoord];

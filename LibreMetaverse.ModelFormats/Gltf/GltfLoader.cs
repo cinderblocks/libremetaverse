@@ -455,7 +455,9 @@ namespace LibreMetaverse.ImportExport
                     foreach (var index in corners)
                     {
                         var normal = p.Normals != null ? p.Normals[index] : flat;
-                        if (skin != null) normal = SafeNormalize(normal * fit);
+                        // Fitting the mesh into the unit cube stretches it unevenly, which the stored normals
+                        // have to allow for. A skin's bind shape is exact about the scale, so it gets that one.
+                        normal = skin != null ? SafeNormalize(normal * fit) : UnitCubeFit.FitNormal(normal, result.AssetScale);
                         var vertex = new Vertex
                         {
                             Position = normalized[index],

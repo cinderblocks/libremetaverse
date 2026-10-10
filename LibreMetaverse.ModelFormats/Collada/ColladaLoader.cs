@@ -434,9 +434,9 @@ namespace LibreMetaverse.ImportExport
 
                                 foreach (var mitem in mesh.Items) {
                                     if (mitem is triangles triangles)
-                                        AddFacesFromPolyList(Triangles2Polylist(triangles), mesh, prim, transform);  // Transform is used to turn normals according to up axis
+                                        AddFacesFromPolyList(Triangles2Polylist(triangles), mesh, prim, transform, asset_scale);  // Transform is used to turn normals according to up axis
                                     if (mitem is polylist polylist)
-                                        AddFacesFromPolyList(polylist, mesh, prim, transform);
+                                        AddFacesFromPolyList(polylist, mesh, prim, transform, asset_scale);
                                 }
 
                                 prim.CreateAsset(UUID.Zero);
@@ -535,7 +535,7 @@ namespace LibreMetaverse.ImportExport
             return ret;
         }
 
-        private void AddFacesFromPolyList(polylist list, mesh mesh, ModelPrim prim, Matrix4 transform)
+        private void AddFacesFromPolyList(polylist list, mesh mesh, ModelPrim prim, Matrix4 transform, Vector3 assetScale)
         {
             source? posSrc = null;
             source? normalSrc = null;
@@ -629,7 +629,8 @@ namespace LibreMetaverse.ImportExport
 
                     if (normals != null)
                     {
-                        verts[j].Normal = normals[idx[curIdx + norOffset + (int)stride * j]];
+                        // The mesh gets fitted into the unit cube, so its normals are stored to match
+                        verts[j].Normal = UnitCubeFit.FitNormal(normals[idx[curIdx + norOffset + (int)stride * j]], assetScale);
                     }
 
                     if (uvs != null)

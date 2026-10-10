@@ -274,6 +274,33 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
+        public void Load_UnevenSize_StoresNormalsScaledByTheSizeSoTheyDrawTrue()
+        {
+            // Same 1 x 3 x 2 triangle as above, with a slanted normal. In Z-up it is (1, -1, 1), and the
+            // prim is drawn at the mesh's size, so the stored normal is that multiplied by (1, 3, 2).
+            var xml = DaeXml.Replace("0 0 0 1 0 0 0 1 0", "0 0 0 1 0 0 0 2 3")
+                            .Replace(">0 0 1</float_array>", ">1 1 1</float_array>");
+            var path = Path.Combine(_tempDir, "slanted.dae");
+            File.WriteAllText(path, xml);
+
+            var prim = new ColladaLoader().Load(path, loadImages: false)[0];
+
+            var expected = Vector3.Normalize(new Vector3(1f, -3f, 2f));
+            var stored = prim.Faces[0].Vertices[0].Normal;
+            var drawn = Vector3.Normalize(new Vector3(stored.X / prim.Scale.X, stored.Y / prim.Scale.Y, stored.Z / prim.Scale.Z));
+            var original = Vector3.Normalize(new Vector3(1f, -1f, 1f));
+            Assert.Multiple(() =>
+            {
+                Assert.That(stored.X, Is.EqualTo(expected.X).Within(1e-5f));
+                Assert.That(stored.Y, Is.EqualTo(expected.Y).Within(1e-5f));
+                Assert.That(stored.Z, Is.EqualTo(expected.Z).Within(1e-5f));
+                Assert.That(drawn.X, Is.EqualTo(original.X).Within(1e-5f));
+                Assert.That(drawn.Y, Is.EqualTo(original.Y).Within(1e-5f));
+                Assert.That(drawn.Z, Is.EqualTo(original.Z).Within(1e-5f));
+            });
+        }
+
+        [Test]
         public async Task Load_ThenUploadModelAsync_WiresRealTextureDimensionsIntoFeeQuote()
         {
             const string capUrl = "http://test.invalid/new-file-agent-inventory";

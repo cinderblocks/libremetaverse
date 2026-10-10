@@ -51,6 +51,12 @@ All three loaders put a Y-up model's top along +Z.
 out upside down (and facing the other way). It now rotates them upright. Files with `Z_UP` (what Blender's
 Collada export writes) are unaffected; a `Y_UP` file that you compensated for by hand will now be rotated twice.
 
+**Behavior change:** all three loaders now store normals the way the viewer does when it fits a model into the
+unit cube: multiplied by the model's size along each axis and renormalized, which the viewer's drawing undoes
+again. Before, a mesh that was not the same size in every direction was shaded slightly wrong, with its
+normals leaning away from the long sides. Meshes of equal size in all directions are unaffected, and nothing
+needs changing in calling code.
+
 `GltfExporter` goes the other way: it writes decoded `FacetedMesh` objects (downloaded meshes, or prims
 tessellated by a renderer) as a `.glb` or a self-contained `.gltf`:
 

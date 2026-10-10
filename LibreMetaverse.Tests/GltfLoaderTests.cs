@@ -594,6 +594,47 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
+        public void Load_UnevenSize_StoresNormalsScaledByTheSizeSoTheyDrawTrue()
+        {
+            // Y-up positions 10 x 2 x 1 become a Z-up mesh of 10 x 1 x 2. The prim is drawn at that size
+            // and normals follow the inverse transpose of it, so the stored ones are multiplied by the size.
+            var positions = new[] { new Vector3(0, 0, 0), new Vector3(10, 0, 0), new Vector3(0, 2, 0), new Vector3(0, 0, 1) };
+            var normals = new Vector3[4];
+            for (int i = 0; i < normals.Length; i++) normals[i] = Vector3.Normalize(new Vector3(1f, 1f, 1f));
+
+            var doc = new GltfDocument();
+            var primitive = new GltfPrimitive();
+            primitive.Attributes[GltfPrimitive.ATTR_POSITION] =
+                AddAccessor(doc, Bytes(Floats(positions)), GltfComponentType.Float, GltfAccessorType.Vec3, 4);
+            primitive.Attributes[GltfPrimitive.ATTR_NORMAL] =
+                AddAccessor(doc, Bytes(Floats(normals)), GltfComponentType.Float, GltfAccessorType.Vec3, 4);
+            primitive.Indices = AddAccessor(doc, Bytes(new ushort[] { 0, 1, 2, 0, 2, 3 }), GltfComponentType.UnsignedShort,
+                GltfAccessorType.Scalar, 6);
+            AddMeshNode(doc, primitive);
+            SetRoots(doc, 0);
+
+            var prim = new GltfLoader().Load(WriteGlb(doc), loadImages: false)[0];
+
+            // glTF (1, 1, 1) is (1, -1, 1) in Z-up
+            var expected = Vector3.Normalize(new Vector3(10f, -1f, 2f));
+            var stored = prim.Faces[0].Vertices[0].Normal;
+            var drawn = Vector3.Normalize(new Vector3(stored.X / prim.Scale.X, stored.Y / prim.Scale.Y, stored.Z / prim.Scale.Z));
+            var original = Vector3.Normalize(new Vector3(1f, -1f, 1f));
+            Assert.Multiple(() =>
+            {
+                Assert.That(prim.Scale.X, Is.EqualTo(10f).Within(1e-4f));
+                Assert.That(prim.Scale.Y, Is.EqualTo(1f).Within(1e-4f));
+                Assert.That(prim.Scale.Z, Is.EqualTo(2f).Within(1e-4f));
+                Assert.That(stored.X, Is.EqualTo(expected.X).Within(1e-4f));
+                Assert.That(stored.Y, Is.EqualTo(expected.Y).Within(1e-4f));
+                Assert.That(stored.Z, Is.EqualTo(expected.Z).Within(1e-4f));
+                Assert.That(drawn.X, Is.EqualTo(original.X).Within(1e-4f));
+                Assert.That(drawn.Y, Is.EqualTo(original.Y).Within(1e-4f));
+                Assert.That(drawn.Z, Is.EqualTo(original.Z).Within(1e-4f));
+            });
+        }
+
+        [Test]
         public void Load_NonTrianglePrimitive_IsSkipped()
         {
             var doc = new GltfDocument();

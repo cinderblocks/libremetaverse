@@ -425,6 +425,48 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
+        public void Load_UnevenSize_StoresNormalsScaledByTheSizeSoTheyDrawTrue()
+        {
+            // The mesh is 10 x 2 x 1. The prim is drawn at that scale, and a normal follows the inverse
+            // transpose of it, so the stored normal has to be multiplied by the size to come out unchanged.
+            var text = "v 0 0 0\nv 10 0 0\nv 0 2 0\nv 0 0 1\nvn 1 1 1\nf 1//1 2//1 3//1\nf 1//1 3//1 4//1\n";
+
+            var prim = new ObjLoader { YUp = false }.Load(Write(text), false)[0];
+
+            var expected = Vector3.Normalize(new Vector3(10f, 2f, 1f));
+            var stored = prim.Faces[0].Vertices[0].Normal;
+            var drawn = Vector3.Normalize(new Vector3(stored.X / prim.Scale.X, stored.Y / prim.Scale.Y, stored.Z / prim.Scale.Z));
+            var original = Vector3.Normalize(new Vector3(1f, 1f, 1f));
+            Assert.Multiple(() =>
+            {
+                Assert.That(prim.Scale.X, Is.EqualTo(10f).Within(1e-5f));
+                Assert.That(stored.Length(), Is.EqualTo(1f).Within(1e-5f));
+                Assert.That(stored.X, Is.EqualTo(expected.X).Within(1e-5f));
+                Assert.That(stored.Y, Is.EqualTo(expected.Y).Within(1e-5f));
+                Assert.That(stored.Z, Is.EqualTo(expected.Z).Within(1e-5f));
+                Assert.That(drawn.X, Is.EqualTo(original.X).Within(1e-5f));
+                Assert.That(drawn.Y, Is.EqualTo(original.Y).Within(1e-5f));
+                Assert.That(drawn.Z, Is.EqualTo(original.Z).Within(1e-5f));
+            });
+        }
+
+        [Test]
+        public void Load_FlatMesh_KeepsTheNormalOfThePlane()
+        {
+            // No thickness along Z: a size of zero must not scale the plane's own normal away
+            var text = "v 0 0 0\nv 10 0 0\nv 0 2 0\nvn 0 0 1\nf 1//1 2//1 3//1\n";
+
+            var stored = new ObjLoader { YUp = false }.Load(Write(text), false)[0].Faces[0].Vertices[0].Normal;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(stored.X, Is.EqualTo(0f).Within(1e-5f));
+                Assert.That(stored.Y, Is.EqualTo(0f).Within(1e-5f));
+                Assert.That(stored.Z, Is.EqualTo(1f).Within(1e-5f));
+            });
+        }
+
+        [Test]
         public void Load_MissingNormals_AreShadedFlat()
         {
             // Z-up, counter-clockwise seen from +Z, so the flat normal is +Z
