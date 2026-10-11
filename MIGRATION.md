@@ -123,6 +123,24 @@ is for making a Second Life material: `Pbr.ToAssetMaterial(texture => idYouGotBy
 viewer's own import, it leaves double sided off whatever the file says, and leaves the texture transforms out unless you pass
 `carryTextureTransforms: true` (the viewer does not read them, and which way up they are in a Second Life material has not been checked against it).
 
+`InventoryManager.CreateMaterialAsync` puts a material in inventory the way the viewer's material editor does for a new one
+(checked against `LLMaterialEditor::saveIfNeeded` and `LLObjectsMaterialItemCallback`): the textures are uploaded first and the new
+asset IDs put in the material, an empty material item is made in the Materials folder, its permissions are set (the message that makes
+an item carries only the next owner's), and the material is uploaded to it with `UpdateMaterialAgentInventory`. Give it a `ModelPbrMaterial`
+and it does all of it, or an `AssetMaterial` whose textures you have uploaded yourself and it does the last three steps:
+
+```csharp
+var loader = new GltfLoader(codec) { LoadPbrTextures = true };
+var material = loader.Load(path, loadImages: true)[0].Faces[0].Material.Pbr!;
+var result = await client.Inventory.CreateMaterialAsync(material, permissions, confirmCost: fee => Ask(fee));
+// result.ItemID, result.AssetID, and result.Textures: the asset ID of each texture that was uploaded
+```
+
+Everything that can be found out before paying is: a missing capability, or a refused fee, uploads nothing. Each texture costs the usual
+upload fee and stays in inventory if a later step fails (`result.Textures` says which), as does an empty material item if the final
+upload fails (`result.ItemID`). Pass the same `uploadedTextures` dictionary to make several materials from one model and a texture
+they share is uploaded once. A texture that was never loaded is left out and reported in `result.Diagnostics`.
+
 The textures themselves are loaded only if you set `GltfLoader.LoadPbrTextures` (off by default, because it decodes and compresses
 extra images on every load and a mesh upload ignores them) and ask for images. They are prepared as the viewer prepares a glTF
 material's: the occlusion map goes into the red channel of the metallic-roughness map (scaled to its size), a metallic-roughness map

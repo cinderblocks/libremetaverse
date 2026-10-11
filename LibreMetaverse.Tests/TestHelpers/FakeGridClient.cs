@@ -16,6 +16,18 @@ namespace LibreMetaverse.Tests.TestHelpers
         private readonly Dictionary<string, (HttpStatusCode Status, string Content, string MediaType)> _responses
             = new Dictionary<string, (HttpStatusCode, string, string)>();
 
+        // Replies given one at a time, in order, to the same URI; once they run out the fixed response (if any) is used
+        private readonly Dictionary<string, Queue<(HttpStatusCode Status, string Content, string MediaType)>> _sequences
+            = new Dictionary<string, Queue<(HttpStatusCode, string, string)>>();
+
+        /// <summary>Register replies for one URI that are given in turn, then fall back to the fixed response.</summary>
+        public void AddResponseSequence(Uri uri, IEnumerable<(HttpStatusCode Status, string Content)> replies, string mediaType = "application/json")
+        {
+            var queue = new Queue<(HttpStatusCode, string, string)>();
+            foreach (var (status, content) in replies) queue.Enqueue((status, content ?? string.Empty, mediaType));
+            _sequences[uri.ToString()] = queue;
+        }
+
         /// <summary>All requests received, in order.</summary>
         public List<(HttpMethod Method, Uri Uri, string Body)> CapturedRequests { get; } = new List<(HttpMethod, Uri, string)>();
 
@@ -54,6 +66,10 @@ namespace LibreMetaverse.Tests.TestHelpers
                 CapturedRequests.Add((request.Method, request.RequestUri, body));
                 CapturedRequestBodies.Add(bodyBytes);
             }
+
+            // One of a sequence of replies, if the URI has some left
+            if (request?.RequestUri != null && _sequences.TryGetValue(request.RequestUri.ToString(), out var queue) && queue.Count > 0)
+                return MakeResponse(queue.Dequeue());
 
             // Exact match
             if (request?.RequestUri != null && _responses.TryGetValue(request.RequestUri.ToString(), out var entry))
@@ -96,6 +112,14 @@ namespace LibreMetaverse.Tests.TestHelpers
             try { HttpCapsClient?.Dispose(); } catch { }
             _fakeHandler = new FakeHttpMessageHandler();
             HttpCapsClient = new LibreMetaverse.HttpCapsClient(_fakeHandler);
+        }
+
+        /// <summary>
+        /// Configure replies for a URI that are given one at a time, in order, before the fixed response is used.
+        /// </summary>
+        public void AddHttpResponseSequence(Uri uri, params (HttpStatusCode Status, string Content)[] replies)
+        {
+            _fakeHandler.AddResponseSequence(uri, replies);
         }
 
         /// <summary>
