@@ -70,6 +70,21 @@ faces and return the prim; it is the upload that refuses.
 The return type is now `Task<ModelUploadResult>`, which is source compatible with code that assigns it to a variable or to a
 `CreateItemFromAssetResult`; a variable declared as `Task<CreateItemFromAssetResult>` needs changing.
 
+`UploadModelAsync` also makes the lower levels of detail and a physics shape now (`ModelAssetOptions`, an optional last argument; leave it
+out for the defaults). The medium, low and lowest levels have a third, a ninth and a twenty-seventh of the triangles of the one above, the
+reference viewer's own default, made by collapsing edges cheapest first. A vertex that comes out of it is a vertex that went in, so texture coordinates, normals
+and the weights of a rigged mesh are exact, each face keeps its place and material and its last triangle, the border of a face stays where it
+was, and a collapse that would flip, fold or pinch the surface is refused. The physics shape is the convex hull of the mesh
+(at most 255 points), in place of the fixed box; a rigged mesh, or a mesh too flat to have a hull, keeps the box.
+`ModelAssetOptions.None` gives what it sent before, `LodReduction` changes the factor and `GenerateLods` and `GeneratePhysics` turn each off.
+`ModelPrim.CreateAsset(UUID)` is unchanged; `CreateAsset(UUID, ModelAssetOptions)` makes the same asset as an upload would.
+
+**Behavior change:** an uploaded mesh no longer looks the same at every distance. Its far levels are simplified, which is also what lowers
+its land impact, and its physics follows its shape and not a box. If a model looks wrong when seen from far away, or its physics is
+too tight, `GenerateLods` or `GeneratePhysics` set to false sends what was sent before. Not made: a convex decomposition of the shape (the
+hull is one piece, so a hollow shape is filled), a physics mesh, levels of detail you supply yourself, and an estimate of the land impact.
+The viewer builds its base hull from the low level and this uses the full one, so it can be a little larger.
+
 `GltfLoader` reads triangle meshes, each material's base color factor and base color texture, the node
 hierarchy (instanced meshes become one prim per node) and skins. A skinned mesh becomes a rigged prim: its
 `ModelPrim.Skin` and the per-vertex `ModelFace.Weights` are written into the mesh asset by `CreateAsset`, so

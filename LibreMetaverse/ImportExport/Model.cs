@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using LibreMetaverse.Assets;
 using LibreMetaverse.Rendering;
 using LibreMetaverse.StructuredData;
@@ -326,15 +327,87 @@ namespace LibreMetaverse.ImportExport
         /// <see cref="CreateAsset"/> together with the <see cref="ModelFace.Weights"/> of its faces.</summary>
         public ModelSkin? Skin;
 
+        /// <summary>
+        /// Builds the mesh asset: the high level of detail (the prim's own faces) and the stub physics shape, plus the
+        /// skin of a rigged prim. Use the overload with <see cref="ModelAssetOptions"/> for the lower levels of detail and a
+        /// physics shape that fits the mesh, which is what an upload wants.
+        /// </summary>
         public void CreateAsset(UUID creator)
+        {
+            BuildAsset(creator, null, null);
+        }
+
+        /// <summary>
+        /// Builds the mesh asset as <see cref="CreateAsset(UUID)"/> does, and generates what <paramref name="options"/> asks
+        /// for: the medium, low and lowest levels of detail, made by simplifying the faces, and a physics shape that
+        /// is the convex hull of the mesh. A rigged prim has no physics shape worth making and keeps the stub.
+        /// </summary>
+        public void CreateAsset(UUID creator, ModelAssetOptions options, CancellationToken cancellationToken = default)
+        {
+            if (options == null) throw new ArgumentNullException(nameof(options));
+
+            List<ModelFace>[]? lods = null;
+            if (options.GenerateLods)
+                lods = ModelLodGenerator.Generate(this, options.LodReduction, cancellationToken);
+
+            List<Vector3>? hull = null;
+            if (options.GeneratePhysics && Skin == null)
+                hull = ModelPhysics.BaseHull(this);
+
+            BuildAsset(creator, lods, hull);
+        }
+
+        /// <param name="lods">The medium, low and lowest levels of detail, or null for the high one only</param>
+        /// <param name="hull">The points of the physics hull, or null for the stub</param>
+        private void BuildAsset(UUID creator, List<ModelFace>[]? lods, List<Vector3>? hull)
         {
             OSDMap header = new OSDMap();
             header["version"] = 1;
             header["creator"] = creator;
             header["date"] = DateTime.Now;
 
+            var parts = new List<KeyValuePair<string, byte[]>>();
+            if (lods != null)
+            {
+                parts.Add(new KeyValuePair<string, byte[]>("lowest_lod", Helpers.ZCompressOSD(EncodeFaces(lods[2]))));
+                parts.Add(new KeyValuePair<string, byte[]>("low_lod", Helpers.ZCompressOSD(EncodeFaces(lods[1]))));
+                parts.Add(new KeyValuePair<string, byte[]>("medium_lod", Helpers.ZCompressOSD(EncodeFaces(lods[0]))));
+            }
+            parts.Add(new KeyValuePair<string, byte[]>("high_lod", Helpers.ZCompressOSD(EncodeFaces(Faces))));
+            parts.Add(new KeyValuePair<string, byte[]>("physics_convex", Helpers.ZCompressOSD(hull != null ? ModelPhysics.Encode(hull) : PhysicsStub())));
+            if (Skin != null)
+                parts.Add(new KeyValuePair<string, byte[]>("skin", Helpers.ZCompressOSD(Skin.ToOsd())));
+
+            int n = 0;
+            foreach (var part in parts)
+            {
+                var parms = new OSDMap();
+                parms["offset"] = n;
+                parms["size"] = part.Value.Length;
+                header[part.Key] = parms;
+                n += part.Value.Length;
+            }
+
+            byte[] headerBytes = OSDParser.SerializeLLSDBinary(header, false);
+            n += headerBytes.Length;
+
+            Asset = new byte[n];
+
+            int offset = 0;
+            Buffer.BlockCopy(headerBytes, 0, Asset, offset, headerBytes.Length);
+            offset += headerBytes.Length;
+
+            foreach (var part in parts)
+            {
+                Buffer.BlockCopy(part.Value, 0, Asset, offset, part.Value.Length);
+                offset += part.Value.Length;
+            }
+        }
+
+        private OSDArray EncodeFaces(List<ModelFace> faceList)
+        {
             OSDArray faces = new OSDArray();
-            foreach (var face in Faces)
+            foreach (var face in faceList)
             {
                 OSDMap faceMap = new OSDMap();
 
@@ -396,55 +469,7 @@ namespace LibreMetaverse.ImportExport
 
                 faces.Add(faceMap);
             }
-
-            byte[] physicStubBytes = Helpers.ZCompressOSD(PhysicsStub());
-            byte[]? skinBytes = Skin != null ? Helpers.ZCompressOSD(Skin.ToOsd()) : null;
-
-            byte[] meshBytes = Helpers.ZCompressOSD(faces);
-            int n = 0;
-
-            OSDMap lodParms = new OSDMap();
-            lodParms["offset"] = n;
-            lodParms["size"] = meshBytes.Length;
-            header["high_lod"] = lodParms;
-            n += meshBytes.Length;
-
-            lodParms = new OSDMap();
-            lodParms["offset"] = n;
-            lodParms["size"] = physicStubBytes.Length;
-            header["physics_convex"] = lodParms;
-            n += physicStubBytes.Length;
-
-            if (skinBytes != null)
-            {
-                lodParms = new OSDMap();
-                lodParms["offset"] = n;
-                lodParms["size"] = skinBytes.Length;
-                header["skin"] = lodParms;
-                n += skinBytes.Length;
-            }
-
-            byte[] headerBytes = OSDParser.SerializeLLSDBinary(header, false);
-            n += headerBytes.Length;
-
-            Asset = new byte[n];
-
-            int offset = 0;
-            Buffer.BlockCopy(headerBytes, 0, Asset, offset, headerBytes.Length);
-            offset += headerBytes.Length;
-
-            Buffer.BlockCopy(meshBytes, 0, Asset, offset, meshBytes.Length);
-            offset += meshBytes.Length;
-
-            Buffer.BlockCopy(physicStubBytes, 0, Asset, offset, physicStubBytes.Length);
-            offset += physicStubBytes.Length;
-
-            if (skinBytes != null)
-            {
-                Buffer.BlockCopy(skinBytes, 0, Asset, offset, skinBytes.Length);
-                offset += skinBytes.Length;
-            }
-
+            return faces;
         }
 
         /// <summary>
