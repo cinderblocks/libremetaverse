@@ -334,6 +334,12 @@ Pass your own `ILogContext` to tag entries with something that is not a client, 
 
 ---
 
+## 8. `Settings.LogLevel` and `Settings.ResourceDir` are properties over `ProcessSettings`
+
+The two process-wide settings that the lowest layers of the library read, the log level and the resource directory, now live in a new static class, `ProcessSettings`, which does not depend on the grid client. `Settings.LogLevel` and `Settings.ResourceDir` are still there, now as properties that read and write the same values, so `Settings.LogLevel = LogLevel.Warning;` still works and `ProcessSettings.LogLevel` then reads `Warning`. They used to be fields, which only matters if you passed one by `ref` or `out`, or compiled against 3.0 (recompile).
+
+---
+
 ## Quick checklist (3.0.0 → 3.1.0)
 
 - [ ] Add a `PackageReference` to `LibreMetaverse.Imaging.Skia` if your app decodes arbitrary (non-TGA, non-J2K) image formats anywhere
@@ -343,6 +349,7 @@ Pass your own `ILogContext` to tag entries with something that is not a client, 
 - [ ] Pass an `ITextureCodec` to `new ColladaLoader(...)` if any Collada model you load references a non-TGA/non-J2K texture
 - [ ] Remove any direct `CoreJ2K.Skia` package reference that existed solely to interoperate with LibreMetaverse's texture pipeline
 - [ ] Recompile anything that calls `Logger` with a `GridClient` or `Simulator`; the source needs no change
+- [ ] Recompile anything that uses `Settings.LogLevel` or `Settings.ResourceDir`; only a `ref` or `out` use of either needs editing
 
 ---
 

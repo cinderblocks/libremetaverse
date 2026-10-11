@@ -70,8 +70,12 @@ namespace LibreMetaverse
         /// <summary>HTTP User-Agent string reported to servers</summary>
         public static string UserAgent = "LibreMetaverse";
 
-        /// <summary>The relative directory where external resources are kept</summary>
-        public static string ResourceDir = "linden";
+        /// <summary>The relative directory where external resources are kept. This is <see cref="ProcessSettings.ResourceDir"/>.</summary>
+        public static string ResourceDir
+        {
+            get => ProcessSettings.ResourceDir;
+            set => ProcessSettings.ResourceDir = value;
+        }
 
         /// <summary>IP address the client will bind to</summary>
         public static System.Net.IPAddress BindAddress = System.Net.IPAddress.Any;
@@ -91,8 +95,12 @@ namespace LibreMetaverse
         /// <summary>Milliseconds to preserve cached simulator data when no client is connected</summary>
         public static int SimulatorPoolTimeout = 2 * 60 * 1000;
 
-        /// <summary>Minimum log level output to the console</summary>
-        public static LogLevel LogLevel = LogLevel.Debug;
+        /// <summary>Minimum log level output to the console. This is <see cref="ProcessSettings.LogLevel"/>.</summary>
+        public static LogLevel LogLevel
+        {
+            get => ProcessSettings.LogLevel;
+            set => ProcessSettings.LogLevel = value;
+        }
 
         #endregion
 

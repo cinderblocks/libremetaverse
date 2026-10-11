@@ -134,11 +134,11 @@ namespace LibreMetaverse.Rendering
         /// </summary>
         /// <param name="ladFileName">
         /// Path to avatar_lad.xml. Defaults to the linden/character directory under
-        /// <see cref="Settings.ResourceDir"/>.
+        /// <see cref="ProcessSettings.ResourceDir"/>.
         /// </param>
         /// <param name="skeletonFileName">
         /// Path to avatar_skeleton.xml. Defaults to the linden/character directory under
-        /// <see cref="Settings.ResourceDir"/>.
+        /// <see cref="ProcessSettings.ResourceDir"/>.
         /// </param>
         [RequiresUnreferencedCode("Loads avatar skeleton via XmlSerializer at runtime. Not AOT-safe.")]
         public static LindenAvatarDefinition Load(string? ladFileName = null, string? skeletonFileName = null)
@@ -146,7 +146,7 @@ namespace LibreMetaverse.Rendering
             if (ladFileName == null)
             {
                 ladFileName =
-                    System.IO.Path.Combine(Settings.ResourceDir ?? string.Empty, "character", "avatar_lad.xml");
+                    System.IO.Path.Combine(ProcessSettings.ResourceDir ?? string.Empty, "character", "avatar_lad.xml");
             }
 
             var skeleton = LindenSkeleton.Load(skeletonFileName);

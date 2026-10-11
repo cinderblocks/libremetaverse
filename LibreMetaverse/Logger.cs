@@ -73,7 +73,7 @@ namespace LibreMetaverse
                 {
                     _loggerFactory = CreateDefaultConsoleLoggerFactory();
                     _logger = _loggerFactory.CreateLogger(typeof(Logger).FullName ?? "LibreMetaverse");
-                    if (Settings.LogLevel != LogLevel.None)
+                    if (ProcessSettings.LogLevel != LogLevel.None)
                     {
                         _logger.LogInformation("Default console logger initialized");
                     }
@@ -313,10 +313,10 @@ namespace LibreMetaverse
 
             RaiseOnLogMessage(message, level);
 
-            if (Settings.LogLevel == LogLevel.None) { return; }
+            if (ProcessSettings.LogLevel == LogLevel.None) { return; }
 
             // enforce configured log level
-            if (Settings.LogLevel > level) { return; }
+            if (ProcessSettings.LogLevel > level) { return; }
 
             LogWithLevel(level, message, exception, clientName);
         }
@@ -333,13 +333,13 @@ namespace LibreMetaverse
         [System.Diagnostics.Conditional("DEBUG")]
         public static void DebugLog(object message, ILogContext? client = null)
         {
-            if (Settings.LogLevel > LogLevel.Debug) { return; }
+            if (ProcessSettings.LogLevel > LogLevel.Debug) { return; }
 
             var clientName = client?.LogClientName;
 
-            RaiseOnLogMessage(message, Settings.LogLevel);
+            RaiseOnLogMessage(message, ProcessSettings.LogLevel);
 
-            LogWithLevel(Settings.LogLevel, message, null, clientName);
+            LogWithLevel(ProcessSettings.LogLevel, message, null, clientName);
         }
 
         /// <summary>

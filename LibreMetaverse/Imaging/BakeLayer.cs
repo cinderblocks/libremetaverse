@@ -364,7 +364,7 @@ namespace LibreMetaverse.Imaging
 
             try
             {
-                Stream? stream = Helpers.GetResourceStream(fileName, Path.Combine(Settings.ResourceDir, "character"));
+                Stream? stream = Helpers.GetResourceStream(fileName, Path.Combine(ProcessSettings.ResourceDir, "character"));
                 if (stream != null)
                 {
                     using (stream)
