@@ -99,7 +99,8 @@ namespace LibreMetaverse.ImportExport
         public bool UseAvatarJointAxes { get; set; } = true;
 
         /// <summary>Most joints a skinned mesh may be weighted to (after those the avatar skeleton does not
-        /// have are dropped). The reference viewer ignores any beyond 110.</summary>
+        /// have are dropped). A glTF skin usually lists a whole armature, and a mesh only counts the joints it has
+        /// weight on. The reference viewer ignores any beyond 110.</summary>
         public int MaxJoints { get; set; } = ModelSkin.MaxJoints;
 
         /// <summary>Largest number of vertex attribute and index elements a model may contain in total</summary>
@@ -419,6 +420,10 @@ namespace LibreMetaverse.ImportExport
                 _diagnostics.Warn(ModelDiagnosticCode.TooManyFaces, $"glTF mesh {meshIndex} has {primitives.Count} primitives; Second Life allows 8 faces per mesh", doc.Meshes[meshIndex].Name, primitives.Count);
             }
 
+            // A skin lists every joint of the file's armature, which is far more than any one mesh is weighted to. The
+            // asset keeps just the ones this mesh uses, as a COLLADA controller does, and the limit applies to those.
+            var meshJoints = skin != null ? UsedJoints(skin, primitives) : null;
+
             // Fit the vertex positions of every primitive into the identity cube -0.5 .. 0.5
             var boundMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
             var boundMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
@@ -518,8 +523,8 @@ namespace LibreMetaverse.ImportExport
                 var bind = Matrix4.CreateScale(fit) * Matrix4.CreateTranslation(result.AssetOffset);
                 template.Skin = new ModelSkin
                 {
-                    JointNames = skin.Names,
-                    InverseBindMatrices = skin.InverseBind,
+                    JointNames = meshJoints!.Names,
+                    InverseBindMatrices = meshJoints.InverseBind,
                     BindShapeMatrix = new[]
                     {
                         bind.M11, bind.M12, bind.M13, bind.M14, bind.M21, bind.M22, bind.M23, bind.M24,
@@ -671,9 +676,6 @@ namespace LibreMetaverse.ImportExport
                 _skins[index] = null;
                 return null;
             }
-            if (info.Names.Count > MaxJoints)
-                throw new LimitExceededException($"glTF skin has {info.Names.Count} joints, and a mesh may use at most {MaxJoints}");
-
             // glTF's matrices are column vector and Second Life's row vector, which for these 16 floats in file order
             // is no more than reading them as rows
             Func<int, NumMatrix> fileMatrix = j => matrices == null
@@ -710,6 +712,61 @@ namespace LibreMetaverse.ImportExport
         private static Matrix4 ToLibre(NumMatrix m) => new Matrix4(
             m.M11, m.M12, m.M13, m.M14, m.M21, m.M22, m.M23, m.M24,
             m.M31, m.M32, m.M33, m.M34, m.M41, m.M42, m.M43, m.M44);
+
+        /// <summary>The joints and inverse bind matrices of a skin that a mesh actually uses</summary>
+        private sealed class MeshJoints
+        {
+            public List<string> Names = new List<string>();
+            public float[] InverseBind = Array.Empty<float>();
+        }
+
+        /// <summary>
+        /// Narrows <paramref name="skin"/> to the joints that carry weight on <paramref name="primitives"/>, in the skin's
+        /// order, and renumbers the weights to match.
+        /// </summary>
+        /// <exception cref="LimitExceededException">The mesh uses more than <see cref="MaxJoints"/> joints</exception>
+        private MeshJoints UsedJoints(SkinInfo skin, List<PrimitiveData> primitives)
+        {
+            var used = new bool[skin.Names.Count];
+            foreach (var p in primitives)
+            {
+                foreach (var w in p.Weights!)
+                {
+                    if (w.Weight0 > 0f) used[w.Joint0] = true;
+                    if (w.Weight1 > 0f) used[w.Joint1] = true;
+                    if (w.Weight2 > 0f) used[w.Joint2] = true;
+                    if (w.Weight3 > 0f) used[w.Joint3] = true;
+                }
+            }
+
+            var remap = new int[used.Length];
+            var result = new MeshJoints();
+            var matrices = new List<float>();
+            for (int i = 0; i < used.Length; i++)
+            {
+                if (!used[i]) continue;
+                remap[i] = result.Names.Count;
+                result.Names.Add(skin.Names[i]);
+                for (int k = 0; k < 16; k++) matrices.Add(skin.InverseBind[i * 16 + k]);
+            }
+            if (result.Names.Count > MaxJoints)
+                throw new LimitExceededException($"glTF mesh is weighted to {result.Names.Count} joints, and a mesh may use at most {MaxJoints}");
+            result.InverseBind = matrices.ToArray();
+
+            foreach (var p in primitives)
+            {
+                for (int v = 0; v < p.Weights!.Length; v++)
+                {
+                    var w = p.Weights[v];
+                    w.Joint0 = w.Weight0 > 0f ? remap[w.Joint0] : 0;
+                    w.Joint1 = w.Weight1 > 0f ? remap[w.Joint1] : 0;
+                    w.Joint2 = w.Weight2 > 0f ? remap[w.Joint2] : 0;
+                    w.Joint3 = w.Weight3 > 0f ? remap[w.Joint3] : 0;
+                    p.Weights[v] = w;
+                }
+            }
+            return result;
+        }
 
         /// <summary>
         /// Rebuilds the inverse bind matrices with the avatar's own joint axes: each joint keeps the position the file

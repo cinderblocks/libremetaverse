@@ -55,7 +55,7 @@ sooner. The errors are what the reference viewer would not upload either, or wha
 - more than 8 faces on a prim (`TooManyFaces`);
 - a face with more than 65534 vertices, which a 16-bit index cannot reach (`LimitExceeded`; this is also the limit the OBJ and
   glTF loaders now use, where it used to be 65536);
-- more than 110 joints in a skin (`LimitExceeded`);
+- more than 110 joints in a skin (`LimitExceeded`; a glTF mesh counts only the joints it is weighted to, not every joint of the file's skin);
 - a prim with no faces, or a face with no triangles (`NoGeometry`);
 - a triangle that uses a vertex the face does not have, a position, normal, texture coordinate or placement that is not a
   number, or a skin whose matrices or weights do not fit its joints and vertices (`InvalidModel`).
