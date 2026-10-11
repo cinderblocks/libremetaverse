@@ -123,6 +123,46 @@ namespace LibreMetaverse.Tests
 
         private static string BaseName(string name) => Regex.Replace(name, @"\.\d+$", "");
 
+        /// <summary>The positions each mesh of a COLLADA file draws, by mesh name, read from the text</summary>
+        private static Dictionary<string, List<NumVector3>> ReadVertices(string text)
+        {
+            var raw = new Dictionary<string, List<NumVector3>>();
+            foreach (Match m in Regex.Matches(text, "<geometry id=\"[^\"]*\" name=\"([^\"]*)\">\\s*<mesh>\\s*<source id=\"[^\"]*\">\\s*<float_array id=\"[^\"]*\" count=\"(\\d+)\">([^<]*)<"))
+            {
+                var f = m.Groups[3].Value.Split(new[] { ' ', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(v => float.Parse(v, CultureInfo.InvariantCulture)).ToArray();
+                Assert.That(f, Has.Length.EqualTo(int.Parse(m.Groups[2].Value)));
+                raw[BaseName(m.Groups[1].Value)] = Enumerable.Range(0, f.Length / 3).Select(i => new NumVector3(f[i * 3], f[i * 3 + 1], f[i * 3 + 2])).ToList();
+            }
+            return raw;
+        }
+
+        /// <summary>
+        /// Where each skinned joint sits according to the file: the inverse of its inverse bind matrix, whose last
+        /// column is the origin. A COLLADA matrix is written a row at a time and takes column vectors.
+        /// </summary>
+        private static Dictionary<string, NumVector3> ReadJointOrigins(string text)
+        {
+            var origins = new Dictionary<string, NumVector3>();
+            foreach (Match c in Regex.Matches(text, "<controller [^>]*>.*?</controller>", RegexOptions.Singleline))
+            {
+                var names = Regex.Match(c.Value, "<Name_array[^>]*>([^<]*)<").Groups[1].Value.Split(new[] { ' ', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                var poses = Regex.Match(c.Value, "<float_array id=\"[^\"]*poses-array\"[^>]*>([^<]*)<").Groups[1].Value
+                    .Split(new[] { ' ', '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(v => float.Parse(v, CultureInfo.InvariantCulture)).ToArray();
+                for (int j = 0; j < names.Length; j++)
+                {
+                    var columnVector = new NumMatrix(
+                        poses[j * 16 + 0], poses[j * 16 + 4], poses[j * 16 + 8], poses[j * 16 + 12],
+                        poses[j * 16 + 1], poses[j * 16 + 5], poses[j * 16 + 9], poses[j * 16 + 13],
+                        poses[j * 16 + 2], poses[j * 16 + 6], poses[j * 16 + 10], poses[j * 16 + 14],
+                        poses[j * 16 + 3], poses[j * 16 + 7], poses[j * 16 + 11], poses[j * 16 + 15]);
+                    Assert.That(NumMatrix.Invert(columnVector, out var world), Is.True);
+                    origins[names[j]] = new NumVector3(world.M41, world.M42, world.M43);
+                }
+            }
+            return origins;
+        }
+
         #endregion Helpers
 
         [TestCaseSource(nameof(Variants))]
@@ -202,35 +242,9 @@ namespace LibreMetaverse.Tests
             // and where it draws each vertex, are read here straight from the COLLADA text.
             var text = File.ReadAllText(FixturePath(variant + ".dae"));
 
-            var raw = new Dictionary<string, List<NumVector3>>();
-            foreach (Match m in Regex.Matches(text, "<geometry id=\"[^\"]*\" name=\"([^\"]*)\">\\s*<mesh>\\s*<source id=\"[^\"]*\">\\s*<float_array id=\"[^\"]*\" count=\"(\\d+)\">([^<]*)<"))
-            {
-                var f = m.Groups[3].Value.Split(new[] { ' ', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(v => float.Parse(v, CultureInfo.InvariantCulture)).ToArray();
-                Assert.That(f, Has.Length.EqualTo(int.Parse(m.Groups[2].Value)));
-                raw[BaseName(m.Groups[1].Value)] = Enumerable.Range(0, f.Length / 3).Select(i => new NumVector3(f[i * 3], f[i * 3 + 1], f[i * 3 + 2])).ToList();
-            }
+            var raw = ReadVertices(text);
             Assert.That(raw, Has.Count.EqualTo(8));
-
-            // A COLLADA matrix is written a row at a time and takes column vectors, so the joint's origin is the
-            // last column of the inverse of its inverse bind matrix
-            var origins = new Dictionary<string, NumVector3>();
-            foreach (Match c in Regex.Matches(text, "<controller [^>]*>.*?</controller>", RegexOptions.Singleline))
-            {
-                var names = Regex.Match(c.Value, "<Name_array[^>]*>([^<]*)<").Groups[1].Value.Split(new[] { ' ', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                var poses = Regex.Match(c.Value, "<float_array id=\"[^\"]*poses-array\"[^>]*>([^<]*)<").Groups[1].Value
-                    .Split(new[] { ' ', '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(v => float.Parse(v, CultureInfo.InvariantCulture)).ToArray();
-                for (int j = 0; j < names.Length; j++)
-                {
-                    var columnVector = new NumMatrix(
-                        poses[j * 16 + 0], poses[j * 16 + 4], poses[j * 16 + 8], poses[j * 16 + 12],
-                        poses[j * 16 + 1], poses[j * 16 + 5], poses[j * 16 + 9], poses[j * 16 + 13],
-                        poses[j * 16 + 2], poses[j * 16 + 6], poses[j * 16 + 10], poses[j * 16 + 14],
-                        poses[j * 16 + 3], poses[j * 16 + 7], poses[j * 16 + 11], poses[j * 16 + 15]);
-                    Assert.That(NumMatrix.Invert(columnVector, out var world), Is.True);
-                    origins[names[j]] = new NumVector3(world.M41, world.M42, world.M43);
-                }
-            }
+            var origins = ReadJointOrigins(text);
 
             var skeleton = DefaultSkeleton();
             var live = new Dictionary<string, NumMatrix>(skeleton);
@@ -299,5 +313,78 @@ namespace LibreMetaverse.Tests
             }
             Assert.That(anythingMoved, Is.True, "the pose should move something, or the test shows nothing");
         }
+
+        #region Exported for Second Life
+
+        // The same scene exported from Blender 4.5.10 with the "sl+open sim rigged" preset and Apply under Global
+        // Orientation, Forward -X and Up Z, which is how the README says to export for Second Life. The avatar
+        // faces +X here, as Second Life's does, and the file's skeleton is the stock one.
+        private const string SecondLifeExport = "sl-open-sim-rigged";
+
+        [Test]
+        public void Export_for_Second_Life_loads_every_mesh_rigged()
+        {
+            var result = new ColladaLoader().LoadWithDiagnostics(FixturePath(SecondLifeExport + ".dae"), false);
+
+            Assert.That(result.HasErrors, Is.False);
+            Assert.That(result.Diagnostics, Is.Empty);
+            Assert.That(result.Prims, Has.Count.EqualTo(8));
+            Assert.That(result.Prims.Select(p => p.Skin!.JointNames.Count).OrderBy(n => n), Is.EqualTo(new[] { 1, 1, 1, 2, 2, 6, 7, 12 }));
+        }
+
+        [Test]
+        public void Export_for_Second_Life_faces_forward_on_the_stock_skeleton()
+        {
+            var text = File.ReadAllText(FixturePath(SecondLifeExport + ".dae"));
+            var stock = DefaultSkeleton();
+
+            var eyelashes = ReadVertices(text)["eyelashMesh"];
+            Assert.That(eyelashes.Average(v => v.X), Is.GreaterThan(0.05f), "the face is toward +X");
+            Assert.That(eyelashes.Average(v => v.Y), Is.EqualTo(0f).Within(0.01f));
+
+            foreach (var joint in ReadJointOrigins(text))
+            {
+                var expected = new NumVector3(stock[joint.Key].M41, stock[joint.Key].M42, stock[joint.Key].M43);
+                AssertClose(joint.Value, expected, joint.Key);
+            }
+        }
+
+        [Test]
+        public void Export_for_Second_Life_at_rest_on_the_stock_skeleton_is_where_the_file_draws_it()
+        {
+            // Nothing is moved to suit the file this time: the viewer's own skeleton at rest must put every vertex
+            // of every mesh where the file has it. The file's joints are a couple of millimetres from the stock
+            // ones, so the tolerance is a little looser than when the file's own joints are used.
+            var raw = ReadVertices(File.ReadAllText(FixturePath(SecondLifeExport + ".dae")));
+            var stock = DefaultSkeleton();
+
+            var prims = new ColladaLoader().LoadWithDiagnostics(FixturePath(SecondLifeExport + ".dae"), false).Prims;
+            Assert.That(prims.Select(p => BaseName(p.ID)).OrderBy(n => n), Is.EqualTo(raw.Keys.OrderBy(n => n)));
+            foreach (var prim in prims)
+            {
+                var cloud = raw[BaseName(prim.ID)];
+                Assert.That(Skinned(Decode(prim), stock).Max(p => DistanceToCloud(p, cloud)), Is.LessThan(4e-3f), prim.ID);
+            }
+        }
+
+        [Test]
+        public void Export_for_Second_Life_is_the_Blender_scene_turned_to_face_forward()
+        {
+            // The same scene as the Blender-oriented files, so every vertex is the same point with the avatar turned
+            // from facing -Y to facing +X: (x, y) in the Blender file is (-y, x) here. Each mesh keeps its size
+            // and its joints, and nothing else changes.
+            var blender = ReadVertices(File.ReadAllText(FixturePath("default-blender-deform-bones.dae")));
+            var secondLife = ReadVertices(File.ReadAllText(FixturePath(SecondLifeExport + ".dae")));
+            Assert.That(secondLife.Keys, Is.EquivalentTo(blender.Keys));
+
+            foreach (var name in blender.Keys)
+            {
+                var turned = blender[name].Select(v => new NumVector3(-v.Y, v.X, v.Z)).ToList();
+                Assert.That(secondLife[name], Has.Count.EqualTo(turned.Count), name);
+                Assert.That(secondLife[name].Max(p => DistanceToCloud(p, turned)), Is.LessThan(Tolerance), name);
+            }
+        }
+
+        #endregion Exported for Second Life
     }
 }
