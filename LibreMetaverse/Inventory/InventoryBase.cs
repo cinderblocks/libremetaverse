@@ -315,7 +315,7 @@ namespace LibreMetaverse
                 invType = InventoryType.Attachment;
             }
 
-            InventoryItem item = InventoryManager.CreateInventoryItem(invType, descItem["item_id"]);
+            InventoryItem item = InventoryHelpers.CreateInventoryItem(invType, descItem["item_id"]);
 
             item.ParentUUID = descItem["parent_id"];
             item.Name = descItem["name"];
@@ -378,7 +378,7 @@ namespace LibreMetaverse
             }
             if (data.ContainsKey("shadow_id"))
             {
-                    AssetUUID = InventoryManager.DecryptShadowID(data["shadow_id"].AsUUID());
+                    AssetUUID = InventoryHelpers.DecryptShadowID(data["shadow_id"].AsUUID());
             }
             if (data.ContainsKey("asset_id"))
             {

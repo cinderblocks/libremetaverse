@@ -1083,7 +1083,7 @@ namespace LibreMetaverse
                 {
                     type = InventoryType.Attachment;
                 }
-                InventoryItem item = InventoryManager.CreateInventoryItem(type, link["item_id"]);
+                InventoryItem item = InventoryHelpers.CreateInventoryItem(type, link["item_id"]);
 
                 item.ParentUUID = link["parent_id"];
                 item.Name = link["name"];

@@ -923,15 +923,6 @@ namespace LibreMetaverse
         /// </summary>
         public int ChildCount;
 
-        public virtual IEnumerable<Primitive> GetChildren(GridClient client)
-        {
-            var sim = client.Network.FindSimulator(RegionHandle);
-            return sim != null 
-                ? sim.ObjectsPrimitives.Where(p => p.Value.ParentID == LocalID)
-                    .Select(p => p.Value) 
-                : Array.Empty<Primitive>();
-        }
-
         #endregion Public Members
 
         #region Properties

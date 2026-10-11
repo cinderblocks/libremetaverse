@@ -109,7 +109,7 @@ namespace LibreMetaverse.Assets
                     }
                     else
                     {
-                        output.Append("\t\tshadow_id\t" + InventoryManager.EncryptAssetID(item.AssetUUID) + "\n");
+                        output.Append("\t\tshadow_id\t" + InventoryHelpers.EncryptAssetID(item.AssetUUID) + "\n");
                     }
                     
                     output.Append("\t\ttype\t" + Utils.AssetTypeToString(item.AssetType) + "\n");
@@ -344,7 +344,7 @@ namespace LibreMetaverse.Assets
                             creationDate = Utils.UnixTimeToDateTime(int.Parse(val));
                         }
                     }
-                    InventoryItem finalEmbedded = InventoryManager.CreateInventoryItem(inventoryType, uuid);
+                    InventoryItem finalEmbedded = InventoryHelpers.CreateInventoryItem(inventoryType, uuid);
 
                     finalEmbedded.CreatorID = creatorID;
                     finalEmbedded.OwnerID = ownerID;

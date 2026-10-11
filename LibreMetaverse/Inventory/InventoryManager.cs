@@ -44,7 +44,7 @@ namespace LibreMetaverse
     public partial class InventoryManager : IDisposable
     {
         /// <summary>Used for converting shadow_id to asset_id</summary>
-        public static readonly UUID MAGIC_ID = new UUID("3c115e51-04f4-523c-9fa6-98aff1034730");
+        public static readonly UUID MAGIC_ID = InventoryHelpers.MagicId;
         public static Task<List<InventoryBase>> NoResults => Task.FromResult(new List<InventoryBase>());
         /// <summary>Maximum items allowed to give</summary>
         public const int MAX_GIVE_ITEMS = 66; // viewer code says 66, but 42 in the notification
@@ -1925,25 +1925,7 @@ namespace LibreMetaverse
         /// <returns><see cref="InventoryItem"/> with the type and id passed</returns>
         public static InventoryItem CreateInventoryItem(InventoryType type, UUID id)
         {
-            switch (type)
-            {
-                case InventoryType.Texture: return new InventoryTexture(id);
-                case InventoryType.Sound: return new InventorySound(id);
-                case InventoryType.CallingCard: return new InventoryCallingCard(id);
-                case InventoryType.Landmark: return new InventoryLandmark(id);
-                case InventoryType.Object: return new InventoryObject(id);
-                case InventoryType.Notecard: return new InventoryNotecard(id);
-                case InventoryType.Category: return new InventoryCategory(id);
-                case InventoryType.LSL: return new InventoryLSL(id);
-                case InventoryType.Snapshot: return new InventorySnapshot(id);
-                case InventoryType.Attachment: return new InventoryAttachment(id);
-                case InventoryType.Wearable: return new InventoryWearable(id);
-                case InventoryType.Animation: return new InventoryAnimation(id);
-                case InventoryType.Gesture: return new InventoryGesture(id);
-                case InventoryType.Settings: return new InventorySettings(id);
-                case InventoryType.Material: return new InventoryMaterial(id);
-                default: return new InventoryItem(type, id);
-            }
+            return InventoryHelpers.CreateInventoryItem(type, id);
         }
 
         /// <summary>
@@ -2011,7 +1993,7 @@ namespace LibreMetaverse
         /// <returns>Deobfuscated asset_id value</returns>
         public static UUID DecryptShadowID(UUID shadowID)
         {
-            return shadowID ^ MAGIC_ID;
+            return InventoryHelpers.DecryptShadowID(shadowID);
         }
 
         /// <summary>
@@ -2021,7 +2003,7 @@ namespace LibreMetaverse
         /// <returns>Obfuscated shadow_id value</returns>
         public static UUID EncryptAssetID(UUID assetID)
         {
-            return assetID ^ MAGIC_ID;
+            return InventoryHelpers.EncryptAssetID(assetID);
         }
 
         private uint RegisterItemCreatedCallback(ItemCreatedCallback callback)

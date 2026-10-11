@@ -82,8 +82,8 @@ namespace LibreMetaverse
         /// </summary>
         public static ulong RegionHandleFromGlobal(uint globalX, uint globalY)
         {
-            uint x = (globalX / Simulator.DefaultRegionSizeX) * Simulator.DefaultRegionSizeX;
-            uint y = (globalY / Simulator.DefaultRegionSizeY) * Simulator.DefaultRegionSizeY;
+            uint x = (globalX / RegionDefaults.SizeX) * RegionDefaults.SizeX;
+            uint y = (globalY / RegionDefaults.SizeY) * RegionDefaults.SizeY;
             return Utils.UIntsToLong(x, y);
         }
 

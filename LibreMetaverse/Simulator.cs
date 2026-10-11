@@ -315,8 +315,8 @@ namespace LibreMetaverse
         #region Public Members        
 
         // Default legacy simulator/region size
-        public const uint DefaultRegionSizeX = 256;
-        public const uint DefaultRegionSizeY = 256;
+        public const uint DefaultRegionSizeX = RegionDefaults.SizeX;
+        public const uint DefaultRegionSizeY = RegionDefaults.SizeY;
 
         /// <summary>A public reference to the client that this Simulator object is attached to</summary>
         public GridClient Client;

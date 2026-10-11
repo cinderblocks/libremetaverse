@@ -340,6 +340,19 @@ The two process-wide settings that the lowest layers of the library read, the lo
 
 ---
 
+## 9. Pieces taken out of the managers
+
+Some code that needed no connection has been moved out of the managers so it can be used on its own. The old names still work, except where noted.
+
+- **`RegionDefaults.SizeX` / `SizeY`** hold the 256 metre default region size. `Simulator.DefaultRegionSizeX` and `DefaultRegionSizeY` are the same constants.
+- **`InventoryHelpers`** holds `CreateInventoryItem`, `EncryptAssetID`, `DecryptShadowID` and `MagicId`. The methods of the same names on `InventoryManager`, and `InventoryManager.MAGIC_ID`, call or equal these.
+- **`Animation`** (the struct that was declared in `AvatarManager.cs`) and **`AvatarTextureIndex`** (declared in `AppearanceManager.cs`) are now in files of their own. Same namespace, same members, same values.
+- **`Primitive.GetChildren(GridClient)`** is now an extension method, `PrimitiveClientExtensions.GetChildren`, because `Primitive` no longer refers to the grid client. Calls like `prim.GetChildren(client)` compile as before. It was a `virtual` method that nothing in the library overrode; a subclass of your own that overrode it no longer can. It also throws `ArgumentNullException` for a null client, where it used to throw `NullReferenceException`.
+
+Code compiled against 3.0 needs recompiling, because `GetChildren` is now a static method of another class.
+
+---
+
 ## Quick checklist (3.0.0 → 3.1.0)
 
 - [ ] Add a `PackageReference` to `LibreMetaverse.Imaging.Skia` if your app decodes arbitrary (non-TGA, non-J2K) image formats anywhere
@@ -350,6 +363,7 @@ The two process-wide settings that the lowest layers of the library read, the lo
 - [ ] Remove any direct `CoreJ2K.Skia` package reference that existed solely to interoperate with LibreMetaverse's texture pipeline
 - [ ] Recompile anything that calls `Logger` with a `GridClient` or `Simulator`; the source needs no change
 - [ ] Recompile anything that uses `Settings.LogLevel` or `Settings.ResourceDir`; only a `ref` or `out` use of either needs editing
+- [ ] If you override `Primitive.GetChildren`, do that another way; `prim.GetChildren(client)` calls need no change
 
 ---
 

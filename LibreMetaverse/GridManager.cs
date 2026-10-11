@@ -160,10 +160,10 @@ namespace LibreMetaverse
         public uint GlobalY;
 
         /// <summary>Get the Local X position of the item</summary>
-        public uint LocalX => GlobalX % Simulator.DefaultRegionSizeX;
+        public uint LocalX => GlobalX % RegionDefaults.SizeX;
 
         /// <summary>Get the Local Y position of the item</summary>
-        public uint LocalY => GlobalY % Simulator.DefaultRegionSizeY;
+        public uint LocalY => GlobalY % RegionDefaults.SizeY;
 
         /// <summary>Get the Handle of the region</summary>
         public ulong RegionHandle => PositionHelper.RegionHandleFromGlobal(GlobalX, GlobalY);

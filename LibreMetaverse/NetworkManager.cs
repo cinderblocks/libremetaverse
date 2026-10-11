@@ -590,7 +590,7 @@ namespace LibreMetaverse
         /// <returns></returns>
         public Simulator? Connect(IPAddress ip, ushort port, ulong handle, bool setDefault, Uri? seedcaps)
         {
-            return Connect(ip, port, handle, setDefault, seedcaps, Simulator.DefaultRegionSizeX, Simulator.DefaultRegionSizeY);
+            return Connect(ip, port, handle, setDefault, seedcaps, RegionDefaults.SizeX, RegionDefaults.SizeY);
         }
         /// <summary>
         /// Connect to a simulator
@@ -621,7 +621,7 @@ namespace LibreMetaverse
         /// <param name="seedcaps"></param>
         /// <returns></returns>
         public Simulator? Connect(IPEndPoint endPoint, ulong handle, bool setDefault, Uri? seedcaps) {
-            return Connect(endPoint, handle, setDefault, seedcaps, Simulator.DefaultRegionSizeX, Simulator.DefaultRegionSizeY);
+            return Connect(endPoint, handle, setDefault, seedcaps, RegionDefaults.SizeX, RegionDefaults.SizeY);
         }
         /// <summary>
         /// Connect to a simulator

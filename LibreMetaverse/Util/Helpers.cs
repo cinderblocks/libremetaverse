@@ -141,8 +141,8 @@ namespace LibreMetaverse
         /// <returns>A 64-bit region handle that can be used to teleport to</returns>
         public static ulong GlobalPosToRegionHandle(float globalX, float globalY, out float localX, out float localY)
         {
-            uint x = ((uint)globalX / Simulator.DefaultRegionSizeX) * Simulator.DefaultRegionSizeX;
-            uint y = ((uint)globalY / Simulator.DefaultRegionSizeY) * Simulator.DefaultRegionSizeY;
+            uint x = ((uint)globalX / RegionDefaults.SizeX) * RegionDefaults.SizeX;
+            uint y = ((uint)globalY / RegionDefaults.SizeY) * RegionDefaults.SizeY;
             localX = globalX - (float)x;
             localY = globalY - (float)y;
             return Utils.UIntsToLong(x, y);

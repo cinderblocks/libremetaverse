@@ -133,20 +133,6 @@ namespace LibreMetaverse
     }
 
     /// <summary>
-    /// Contains an animation currently being played by an agent
-    /// </summary>
-    public struct Animation
-    {
-        /// <summary>The ID of the animation asset</summary>
-        public UUID AnimationID;
-        /// <summary>A number to indicate start order of currently playing animations</summary>
-        /// <remarks>On Linden Grids this number is unique per region, with OpenSim it is per client</remarks>
-        public int AnimationSequence;
-        /// <summary></summary>
-        public UUID AnimationSourceObjectID;
-    }
-
-    /// <summary>
     /// Holds group information on an individual profile pick
     /// </summary>
     public struct ProfilePick

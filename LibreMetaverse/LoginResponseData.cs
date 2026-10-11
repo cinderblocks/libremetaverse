@@ -595,8 +595,8 @@ namespace LibreMetaverse
             RegionX = adapter.GetUInt(Keys.RegionX);
             RegionY = adapter.GetUInt(Keys.RegionY);
 
-            RegionSizeX = adapter.HasKeyAndUInt(Keys.RegionSizeX) ? adapter.GetUInt(Keys.RegionSizeX) : Simulator.DefaultRegionSizeX;
-            RegionSizeY = adapter.HasKeyAndUInt(Keys.RegionSizeY) ? adapter.GetUInt(Keys.RegionSizeY) : Simulator.DefaultRegionSizeY;
+            RegionSizeX = adapter.HasKeyAndUInt(Keys.RegionSizeX) ? adapter.GetUInt(Keys.RegionSizeX) : RegionDefaults.SizeX;
+            RegionSizeY = adapter.HasKeyAndUInt(Keys.RegionSizeY) ? adapter.GetUInt(Keys.RegionSizeY) : RegionDefaults.SizeY;
 
             SimPort = (ushort)adapter.GetUInt(Keys.SimPort);
             var simIP = adapter.GetString(Keys.SimIP);

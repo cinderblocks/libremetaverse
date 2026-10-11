@@ -115,8 +115,8 @@ namespace LibreMetaverse.Messages.Linden
             IP = MessageUtils.ToIP(blockMap["SimIP"]) ?? IPAddress.None;
             Port = blockMap["SimPort"].AsInteger();
             Flags = (TeleportFlags)blockMap["TeleportFlags"].AsUInteger();
-            RegionSizeX = blockMap.ContainsKey("RegionSizeX") ? blockMap["RegionSizeX"].AsUInteger() : Simulator.DefaultRegionSizeX;
-            RegionSizeY = blockMap.ContainsKey("RegionSizeY") ? blockMap["RegionSizeY"].AsUInteger() : Simulator.DefaultRegionSizeY;
+            RegionSizeX = blockMap.ContainsKey("RegionSizeX") ? blockMap["RegionSizeX"].AsUInteger() : RegionDefaults.SizeX;
+            RegionSizeY = blockMap.ContainsKey("RegionSizeY") ? blockMap["RegionSizeY"].AsUInteger() : RegionDefaults.SizeY;
         }
     }
 
@@ -270,8 +270,8 @@ namespace LibreMetaverse.Messages.Linden
             SeedCapability = regionDataMap["SeedCapability"].AsUri() ?? new Uri("about:blank");
             IP = MessageUtils.ToIP(regionDataMap["SimIP"]) ?? IPAddress.None;
             Port = regionDataMap["SimPort"].AsInteger();
-            RegionSizeX = regionDataMap.ContainsKey("RegionSizeX") ? regionDataMap["RegionSizeX"].AsUInteger() : Simulator.DefaultRegionSizeX;
-            RegionSizeY = regionDataMap.ContainsKey("RegionSizeY") ? regionDataMap["RegionSizeY"].AsUInteger() : Simulator.DefaultRegionSizeY;
+            RegionSizeX = regionDataMap.ContainsKey("RegionSizeX") ? regionDataMap["RegionSizeX"].AsUInteger() : RegionDefaults.SizeX;
+            RegionSizeY = regionDataMap.ContainsKey("RegionSizeY") ? regionDataMap["RegionSizeY"].AsUInteger() : RegionDefaults.SizeY;
         }
     }
 
@@ -332,8 +332,8 @@ namespace LibreMetaverse.Messages.Linden
                     RegionHandle = blockMap["Handle"].AsULong(),
                     IP = MessageUtils.ToIP(blockMap["IP"]),
                     Port = blockMap["Port"].AsInteger(),
-                    RegionSizeX = blockMap.ContainsKey("RegionSizeX") ? blockMap["RegionSizeX"].AsUInteger() : Simulator.DefaultRegionSizeX,
-                    RegionSizeY = blockMap.ContainsKey("RegionSizeY") ? blockMap["RegionSizeY"].AsUInteger() : Simulator.DefaultRegionSizeY,
+                    RegionSizeX = blockMap.ContainsKey("RegionSizeX") ? blockMap["RegionSizeX"].AsUInteger() : RegionDefaults.SizeX,
+                    RegionSizeY = blockMap.ContainsKey("RegionSizeY") ? blockMap["RegionSizeY"].AsUInteger() : RegionDefaults.SizeY,
                 };
                 Simulators[i] = block;
             }

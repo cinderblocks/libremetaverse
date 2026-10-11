@@ -167,7 +167,7 @@ namespace LibreMetaverse
         public static LayerDataPacket CreateLandPacket(float[] heightmap, int[] patches)
         {
             var layerType = TerrainPatch.LayerType.Land;
-            if (heightmap.Length > Simulator.DefaultRegionSizeY *  Simulator.DefaultRegionSizeY)
+            if (heightmap.Length > RegionDefaults.SizeY *  RegionDefaults.SizeY)
                 layerType = TerrainPatch.LayerType.LandExtended;
             LayerDataPacket layer = new LayerDataPacket {LayerID = {Type = (byte) layerType}};
 

@@ -42,60 +42,6 @@ namespace LibreMetaverse
     #region Enums
 
     /// <summary>
-    /// Index of TextureEntry slots for avatar appearances
-    /// </summary>
-    public enum AvatarTextureIndex
-    {
-        Unknown = -1,
-        HeadBodypaint = 0,
-        UpperShirt,
-        LowerPants,
-        EyesIris,
-        Hair,
-        UpperBodypaint,
-        LowerBodypaint,
-        LowerShoes,
-        HeadBaked,  // pre-composited
-        UpperBaked, // pre-composited
-        LowerBaked, // pre-composited
-        EyesBaked,  // pre-composited
-        LowerSocks,
-        UpperJacket,
-        LowerJacket,
-        UpperGloves,
-        UpperUndershirt,
-        LowerUnderpants,
-        Skirt,
-        SkirtBaked, // pre-composited
-        HairBaked,  // pre-composited
-        LowerAlpha,
-        UpperAlpha,
-        HeadAlpha,
-        EyesAlpha,
-        HairAlpha,
-        HeadTattoo,
-        UpperTattoo,
-        LowerTattoo,
-        HeadUniversalTattoo,
-        UpperUniversalTattoo,
-        LowerUniversalTattoo,
-        SkirtTattoo,
-        HairTattoo,
-        EyesTattoo,
-        LeftArmTattoo,
-        LeftLegTattoo,
-        Aux1Tattoo,
-        Aux2Tattoo,
-        Aux3Tattoo,
-        LeftArmBaked,   // pre-composited
-        LegLegBaked,    // pre-composited
-        Aux1Baked,  // pre-composited
-        Aux2Baked,  // pre-composited
-        Aux3Baked,  // pre-composited
-        NumberOfEntries
-    }
-
-    /// <summary>
     /// Bake layers for avatar appearance
     /// </summary>
     public enum BakeType

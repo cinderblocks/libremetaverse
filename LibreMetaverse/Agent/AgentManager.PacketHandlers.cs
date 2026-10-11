@@ -907,7 +907,7 @@ namespace LibreMetaverse
                 // Note: We don't have region handle in this message, so we need to handle that gracefully
                 // The sim will get the handle when it connects
                 sim = Client.Network.Connect(endPoint, 0, false, msg.SeedCapability, 
-                    Simulator.DefaultRegionSizeX, Simulator.DefaultRegionSizeY);
+                    RegionDefaults.SizeX, RegionDefaults.SizeY);
                 
                 if (sim == null)
                 {

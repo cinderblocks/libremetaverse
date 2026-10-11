@@ -124,7 +124,7 @@ namespace LibreMetaverse
 
         private bool BeginRegionCrossing(Simulator? oldSim, ulong regionHandle, IPEndPoint endPoint,
             Uri seedCap, Vector3 position, Vector3 lookAt,
-            uint regionSizeX = Simulator.DefaultRegionSizeX, uint regionSizeY = Simulator.DefaultRegionSizeY)
+            uint regionSizeX = RegionDefaults.SizeX, uint regionSizeY = RegionDefaults.SizeY)
         {
             if (endPoint == null || seedCap == null)
             {
