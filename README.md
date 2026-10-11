@@ -159,7 +159,7 @@ Some tests target Windows-only frameworks; run the cross-platform tests using th
 dotnet test LibreMetaverse.Tests/LibreMetaverse.Tests.csproj -c Release
 ```
 
-The model loaders and exporters have their own project, `LibreMetaverse.ModelFormats.Tests`, and `dotnet test LibreMetaverse.sln` runs all of them.
+The model loaders and exporters have their own project, `LibreMetaverse.ModelFormats.Tests`, and region archives have `LibreMetaverse.Archiving.Tests`; `dotnet test LibreMetaverse.sln` runs all of them.
 
 ## Troubleshooting
 

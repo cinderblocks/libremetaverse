@@ -112,7 +112,7 @@ namespace LibreMetaverse.Assets
             var textWriter = new StringWriter();
             using (XmlTextWriter xmlWriter = new XmlTextWriter(textWriter))
             {
-                OarFile.SOGToXml2(xmlWriter, this);
+                SceneObjectGroupXmlWriter.Write(xmlWriter, this);
                 xmlWriter.Flush();
                 return textWriter.ToString();
             }

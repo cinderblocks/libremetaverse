@@ -353,6 +353,18 @@ Code compiled against 3.0 needs recompiling, because `GetChildren` is now a stat
 
 ---
 
+## 10. Region archives (`OarFile`) moved to `LibreMetaverse.Archiving`
+
+Reading and writing OpenSim region archives is used by few applications, so it is no longer part of the `LibreMetaverse` package. `OarFile`, `TarArchiveReader`, `TarArchiveWriter`, `ArchiveConstants`, `AssetsArchiver` and `RegionSettings` are now in the new **`LibreMetaverse.Archiving`** package. Their namespace is still `LibreMetaverse.Assets` and nothing in them changed, so the only edit is to reference the package:
+
+```xml
+<PackageReference Include="LibreMetaverse.Archiving" Version="3.1.*" />
+```
+
+`OarFile.SOGToXml2` is kept, and forwards to the new `SceneObjectGroupXmlWriter.Write` in `LibreMetaverse`, which is what `AssetPrim.EncodeXml` now uses, so `AssetPrim` does not need the archive package.
+
+---
+
 ## Quick checklist (3.0.0 → 3.1.0)
 
 - [ ] Add a `PackageReference` to `LibreMetaverse.Imaging.Skia` if your app decodes arbitrary (non-TGA, non-J2K) image formats anywhere
@@ -364,6 +376,7 @@ Code compiled against 3.0 needs recompiling, because `GetChildren` is now a stat
 - [ ] Recompile anything that calls `Logger` with a `GridClient` or `Simulator`; the source needs no change
 - [ ] Recompile anything that uses `Settings.LogLevel` or `Settings.ResourceDir`; only a `ref` or `out` use of either needs editing
 - [ ] If you override `Primitive.GetChildren`, do that another way; `prim.GetChildren(client)` calls need no change
+- [ ] Add a `PackageReference` to `LibreMetaverse.Archiving` if you use `OarFile` or the tar archive classes
 
 ---
 
