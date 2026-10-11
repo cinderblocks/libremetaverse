@@ -283,8 +283,8 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="message">The log message</param>
         /// <param name="level">The severity of the log entry</param>
-        /// <param name="client">Instance of the client</param>
-        public static void Log(object message, LogLevel level, GridClient? client = null)
+        /// <param name="client">The log context, usually the grid client, whose name may be included in the log</param>
+        public static void Log(object message, LogLevel level, ILogContext? client = null)
         {
             Log(message, level, client, null);
         }
@@ -305,11 +305,11 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="message">The log message</param>
         /// <param name="level">The severity of the log entry</param>
-        /// <param name="client">Instance of the client</param>
+        /// <param name="client">The log context, usually the grid client, whose name may be included in the log</param>
         /// <param name="exception">Exception that was raised</param>
-        public static void Log(object message, LogLevel level, GridClient? client, Exception? exception)
+        public static void Log(object message, LogLevel level, ILogContext? client, Exception? exception)
         {
-            var clientName = (client != null && client.Settings.Logging.LogNames) ? client.Self?.Name : null;
+            var clientName = client?.LogClientName;
 
             RaiseOnLogMessage(message, level);
 
@@ -329,13 +329,13 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="message">The message to log at the TRACE level to the
         /// current logging engine</param>
-        /// <param name="client">Instance of the client</param>
+        /// <param name="client">The log context, usually the grid client, whose name may be included in the log</param>
         [System.Diagnostics.Conditional("DEBUG")]
-        public static void DebugLog(object message, GridClient? client = null)
+        public static void DebugLog(object message, ILogContext? client = null)
         {
             if (Settings.LogLevel > LogLevel.Debug) { return; }
 
-            var clientName = (client != null && client.Settings.Logging.LogNames) ? client.Self?.Name : null;
+            var clientName = client?.LogClientName;
 
             RaiseOnLogMessage(message, Settings.LogLevel);
 
@@ -362,7 +362,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Begin a logging scope containing client context (Client name) if available.
         /// </summary>
-        public static IDisposable BeginClientScope(GridClient client)
+        public static IDisposable BeginClientScope(ILogContext client)
         {
             var logger = _logger;
             if (logger == null) return NoopScope.Instance;
@@ -370,8 +370,7 @@ namespace LibreMetaverse
             string? clientName = null;
             try
             {
-                if (client?.Settings != null && client.Settings.Logging.LogNames)
-                    clientName = client.Self?.Name;
+                clientName = client?.LogClientName;
             }
             catch
             {
@@ -396,7 +395,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Begin a logging scope containing region context (Region name/handle) if available.
         /// </summary>
-        public static IDisposable BeginRegionScope(Simulator simulator)
+        public static IDisposable BeginRegionScope(ILogContext simulator)
         {
             var logger = _logger;
             if (logger == null) return NoopScope.Instance;
@@ -404,11 +403,7 @@ namespace LibreMetaverse
             string? regionName = null;
             try
             {
-                if (simulator != null)
-                {
-                    // Prefer human readable name, fall back to handle
-                    regionName = !string.IsNullOrEmpty(simulator.Name) ? simulator.Name : simulator.Handle.ToString();
-                }
+                regionName = simulator?.LogRegionName;
             }
             catch
             {
@@ -434,7 +429,7 @@ namespace LibreMetaverse
         /// Run an async action inside a logging scope containing client context (if available).
         /// Ensures the scope is disposed even if the action throws.
         /// </summary>
-        public static async Task UseClientScopeAsync(GridClient client, Func<Task> action)
+        public static async Task UseClientScopeAsync(ILogContext client, Func<Task> action)
         {
             if (action == null) { throw new ArgumentNullException(nameof(action)); }
 
@@ -454,7 +449,7 @@ namespace LibreMetaverse
         /// Run an async action inside a logging scope containing region context (if available).
         /// Ensures the scope is disposed even if the action throws.
         /// </summary>
-        public static async Task UseRegionScopeAsync(Simulator simulator, Func<Task> action)
+        public static async Task UseRegionScopeAsync(ILogContext simulator, Func<Task> action)
         {
             if (action == null) { throw new ArgumentNullException(nameof(action)); }
 
@@ -528,8 +523,8 @@ namespace LibreMetaverse
         /// Convenience method for Trace level logging.
         /// </summary>
         /// <param name="message">Message object to log.</param>
-        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
-        public static void Trace(object message, GridClient? client = null)
+        /// <param name="client">Optional log context, usually the grid client, whose name may be included in the log.</param>
+        public static void Trace(object message, ILogContext? client = null)
         {
             Log(message, LogLevel.Trace, client, null);
         }
@@ -539,8 +534,8 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="message">Message object to log.</param>
         /// <param name="exception">Exception to include with the log entry.</param>
-        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
-        public static void Trace(object message, Exception exception, GridClient? client = null)
+        /// <param name="client">Optional log context, usually the grid client, whose name may be included in the log.</param>
+        public static void Trace(object message, Exception exception, ILogContext? client = null)
         {
             Log(message, LogLevel.Trace, client, exception);
         }
@@ -570,8 +565,8 @@ namespace LibreMetaverse
         /// Convenience method for Debug level logging.
         /// </summary>
         /// <param name="message">Message object to log.</param>
-        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
-        public static void Debug(object message, GridClient? client = null)
+        /// <param name="client">Optional log context, usually the grid client, whose name may be included in the log.</param>
+        public static void Debug(object message, ILogContext? client = null)
         {
             Log(message, LogLevel.Debug, client, null);
         }
@@ -581,8 +576,8 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="message">Message object to log.</param>
         /// <param name="exception">Exception to include with the log entry.</param>
-        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
-        public static void Debug(object message, Exception exception, GridClient? client = null)
+        /// <param name="client">Optional log context, usually the grid client, whose name may be included in the log.</param>
+        public static void Debug(object message, Exception exception, ILogContext? client = null)
         {
             Log(message, LogLevel.Debug, client, exception);
         }
@@ -612,8 +607,8 @@ namespace LibreMetaverse
         /// Convenience method for Information (Info) level logging.
         /// </summary>
         /// <param name="message">Message object to log.</param>
-        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
-        public static void Info(object message, GridClient? client = null)
+        /// <param name="client">Optional log context, usually the grid client, whose name may be included in the log.</param>
+        public static void Info(object message, ILogContext? client = null)
         {
             Log(message, LogLevel.Information, client, null);
         }
@@ -623,8 +618,8 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="message">Message object to log.</param>
         /// <param name="exception">Exception to include with the log entry.</param>
-        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
-        public static void Info(object message, Exception exception, GridClient? client = null)
+        /// <param name="client">Optional log context, usually the grid client, whose name may be included in the log.</param>
+        public static void Info(object message, Exception exception, ILogContext? client = null)
         {
             Log(message, LogLevel.Information, client, exception);
         }
@@ -654,8 +649,8 @@ namespace LibreMetaverse
         /// Convenience method for Warning (Warn) level logging.
         /// </summary>
         /// <param name="message">Message object to log.</param>
-        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
-        public static void Warn(object message, GridClient? client = null)
+        /// <param name="client">Optional log context, usually the grid client, whose name may be included in the log.</param>
+        public static void Warn(object message, ILogContext? client = null)
         {
             Log(message, LogLevel.Warning, client, null);
         }
@@ -665,8 +660,8 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="message">Message object to log.</param>
         /// <param name="exception">Exception to include with the log entry.</param>
-        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
-        public static void Warn(object message, Exception exception, GridClient? client = null)
+        /// <param name="client">Optional log context, usually the grid client, whose name may be included in the log.</param>
+        public static void Warn(object message, Exception exception, ILogContext? client = null)
         {
             Log(message, LogLevel.Warning, client, exception);
         }
@@ -696,8 +691,8 @@ namespace LibreMetaverse
         /// Convenience method for Error level logging.
         /// </summary>
         /// <param name="message">Message object to log.</param>
-        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
-        public static void Error(object message, GridClient? client = null)
+        /// <param name="client">Optional log context, usually the grid client, whose name may be included in the log.</param>
+        public static void Error(object message, ILogContext? client = null)
         {
             Log(message, LogLevel.Error, client, null);
         }
@@ -707,8 +702,8 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="message">Message object to log.</param>
         /// <param name="exception">Exception to include with the log entry.</param>
-        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
-        public static void Error(object message, Exception exception, GridClient? client = null)
+        /// <param name="client">Optional log context, usually the grid client, whose name may be included in the log.</param>
+        public static void Error(object message, Exception exception, ILogContext? client = null)
         {
             Log(message, LogLevel.Error, client, exception);
         }
@@ -738,8 +733,8 @@ namespace LibreMetaverse
         /// Convenience method for Critical level logging.
         /// </summary>
         /// <param name="message">Message object to log.</param>
-        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
-        public static void Critical(object message, GridClient? client = null)
+        /// <param name="client">Optional log context, usually the grid client, whose name may be included in the log.</param>
+        public static void Critical(object message, ILogContext? client = null)
         {
             Log(message, LogLevel.Critical, client, null);
         }
@@ -749,8 +744,8 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="message">Message object to log.</param>
         /// <param name="exception">Exception to include with the log entry.</param>
-        /// <param name="client">Optional GridClient whose name may be included in the log.</param>
-        public static void Critical(object message, Exception exception, GridClient? client = null)
+        /// <param name="client">Optional log context, usually the grid client, whose name may be included in the log.</param>
+        public static void Critical(object message, Exception exception, ILogContext? client = null)
         {
             Log(message, LogLevel.Critical, client, exception);
         }

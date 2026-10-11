@@ -76,7 +76,7 @@ namespace LibreMetaverse
     /// }
     /// </code>
     /// </example>
-    public partial class GridClient : IGridClient
+    public partial class GridClient : IGridClient, ILogContext
 #if NET8_0_OR_GREATER
         , IAsyncDisposable
 #endif
@@ -234,6 +234,15 @@ namespace LibreMetaverse
         {
             return Self.Name;
         }
+
+        #region ILogContext
+
+        /// <summary>The avatar's name, when <see cref="Settings"/> asks for names in the log</summary>
+        string? ILogContext.LogClientName => Settings != null && Settings.Logging.LogNames ? Self?.Name : null;
+
+        string? ILogContext.LogRegionName => null;
+
+        #endregion ILogContext
 
         #region IDisposable
         private bool _disposed;

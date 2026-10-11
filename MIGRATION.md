@@ -326,6 +326,14 @@ If a model references a non-TGA, non-JPEG2000 texture and no codec was supplied,
 
 ---
 
+## 7. `Logger` takes an `ILogContext`, not a `GridClient` or `Simulator`
+
+The `Logger.Log`, `Trace`, `Debug`, `Info`, `Warn`, `Error`, `Critical`, `BeginClientScope`, `BeginRegionScope`, `UseClientScopeAsync` and `UseRegionScopeAsync` methods used to take a `GridClient` or a `Simulator`. They now take an `ILogContext`, which says what the logger needs: a name to tag entries with (`LogClientName`) and a region name for scopes (`LogRegionName`). `GridClient` and `Simulator` both implement it, so calls like `Logger.Info("text", client)` and `Logger.BeginRegionScope(simulator)` compile as before and log the same things. Code compiled against 3.0 needs recompiling, because the parameter types changed.
+
+Pass your own `ILogContext` to tag entries with something that is not a client, such as a bot's name. The interface is implemented explicitly on `GridClient` and `Simulator`, so their public members are unchanged.
+
+---
+
 ## Quick checklist (3.0.0 → 3.1.0)
 
 - [ ] Add a `PackageReference` to `LibreMetaverse.Imaging.Skia` if your app decodes arbitrary (non-TGA, non-J2K) image formats anywhere
@@ -334,6 +342,7 @@ If a model references a non-TGA, non-JPEG2000 texture and no codec was supplied,
 - [ ] Replace `Targa.Decode(...)`/`Targa.Encode(SKBitmap)` with `Targa.DecodeToManagedImage(...)`/`Targa.Encode(ManagedImage)`
 - [ ] Pass an `ITextureCodec` to `new ColladaLoader(...)` if any Collada model you load references a non-TGA/non-J2K texture
 - [ ] Remove any direct `CoreJ2K.Skia` package reference that existed solely to interoperate with LibreMetaverse's texture pipeline
+- [ ] Recompile anything that calls `Logger` with a `GridClient` or `Simulator`; the source needs no change
 
 ---
 

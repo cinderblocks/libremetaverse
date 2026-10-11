@@ -155,7 +155,7 @@ namespace LibreMetaverse
     /// <summary>
     /// Simulator class encapsulates the idea of what Linden Lab calls a "Region" not a "Simulator", per se.
     /// </summary>
-    public class Simulator : UDPBase, IDisposable
+    public class Simulator : UDPBase, IDisposable, ILogContext
     {
         #region Structs
         /// <summary>
@@ -556,6 +556,15 @@ namespace LibreMetaverse
         public bool HandshakeComplete => handshakeComplete;
 
         #endregion Properties
+
+        #region ILogContext
+
+        string? ILogContext.LogClientName => ((ILogContext?)Client)?.LogClientName;
+
+        /// <summary>The region's name, or its handle until the name is known</summary>
+        string? ILogContext.LogRegionName => !string.IsNullOrEmpty(Name) ? Name : Handle.ToString();
+
+        #endregion ILogContext
 
         #region Internal/Private Members
         /// <summary>Used internally to track sim disconnections</summary>
