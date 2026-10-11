@@ -19,6 +19,7 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="LibreMetaverse.Tests" />
+    <InternalsVisibleTo Include="LibreMetaverse.ModelFormats.Tests" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CoreJ2K" />
