@@ -13,13 +13,13 @@ Each guide below takes you from one release to the next. If you are several rele
 
 Three things in this release can affect an application:
 
-1. **The library is split into more packages.** Namespaces and type names do not change, so source needs few edits, but types now live in other assemblies: everything compiled against 3.1 must be recompiled, and a couple of packages must be added.
+1. **The library is split into more packages.** Namespaces and type names do not change, so source needs few edits. `LibreMetaverse` forwards the types that moved, so an application already built against 3.1 keeps loading without a recompile, except for four members that changed (see section 2) and the Collada and region archive types, which need a package reference.
 2. **Model import has its own package** and gained glTF and OBJ loaders, exporters, rigged meshes and PBR materials.
 3. **`UploadModelAsync` checks a model before it contacts the grid**, and makes levels of detail and a physics shape.
 
 ## What to do
 
-- [ ] Recompile everything that was built against 3.1.
+- [ ] Recompile what you built against 3.1 if it calls `Logger` with a `GridClient` or `Simulator`, uses `Settings.LogLevel` or `Settings.ResourceDir`, calls `Primitive.GetChildren`, or calls `UploadModelAsync`; nothing else needs one (see section 2). The source needs no change.
 - [ ] Add `LibreMetaverse.ModelFormats` if you use `ColladaLoader` or the Collada schema classes.
 - [ ] Add `LibreMetaverse.Archiving` if you use `OarFile` or the tar archive classes.
 - [ ] If you reference `LibreMetaverse.ModelFormats`, `LibreMetaverse.Rendering.MeshFoundry` or `LibreMetaverse.Rendering.Simple` and relied on it to bring in `LibreMetaverse` (for `GridClient` and the managers), reference `LibreMetaverse` yourself.
@@ -44,7 +44,9 @@ Much of `LibreMetaverse` needs no connection to a grid, so it is now in packages
 | `LibreMetaverse.ModelFormats` *(new)* | `ColladaLoader` and the Collada schema classes, `GltfLoader`, `ObjLoader`, and the glTF, OBJ and Collada exporters | Assets, Types |
 | `LibreMetaverse.Rendering.Simple`, `LibreMetaverse.Rendering.MeshFoundry` | renderers | Assets (no longer `LibreMetaverse`) |
 
-Namespaces are unchanged (the archive classes are still in `LibreMetaverse.Assets`). `Pfim`, `OggVorbisEncoder`, `zlib.net` and `ZLogger` follow the code that uses them, and reach `LibreMetaverse` through `Assets`.
+Namespaces are unchanged (the archive classes are still in `LibreMetaverse.Assets`).
+
+**Binary compatibility.** About 820 public types moved out of `LibreMetaverse.dll` into `Types`, `Assets` and `Protocol`. `LibreMetaverse.dll` carries a type forwarder for each, so an application compiled against 3.1 finds them where they are now. A test in the repository checks every public type of 3.1.8 against this. The types that moved to `ModelFormats` and `Archiving` (`ColladaLoader`, the Collada schema classes, `OarFile` and the archive classes) are not forwarded, because `LibreMetaverse` cannot refer to those packages; an application that uses them needs the package reference and a recompile. The members of types that stayed that are no longer binary compatible are listed in section 2. `Pfim`, `OggVorbisEncoder`, `zlib.net` and `ZLogger` follow the code that uses them, and reach `LibreMetaverse` through `Assets`.
 
 `Archiving` is separate because few applications read or write OpenSim region archives:
 
@@ -61,6 +63,8 @@ Namespaces are unchanged (the archive classes are still in `LibreMetaverse.Asset
 `PacketDecoder` used to print seven fields by the flag names of enums that are nested in managers (`DirectoryManager.EventFlags`, `DirFindFlags`, `ClassifiedQueryFlags`, `ClassifiedFlags`, `SearchTypeFlags` and `AgentManager.ControlFlags`). The protocol assembly cannot name them, so `PacketDecoder` has `RegisterFieldDecoder(key, decoder)` and `UnregisterFieldDecoder(key)`, and `LibreMetaverse` registers its decoders for those fields when the assembly is first used. Applications that use the client see the same output as before. An application that uses only `LibreMetaverse.Protocol` sees those fields as plain numbers unless it registers decoders of its own. A decoder registered for a key is used instead of a built-in one.
 
 ## 2. Smaller API changes
+
+Four of these change a member in a way that breaks a binary built against 3.1, though not the source: the `Logger` overloads, `Settings.LogLevel` and `Settings.ResourceDir`, `Primitive.GetChildren`, and the return type of `UploadModelAsync`. Recompile what uses them. Comparing the public members of the 3.1.8 `LibreMetaverse.dll` with the new assemblies finds no other member that was removed or changed.
 
 **`Logger` takes an `ILogContext`**, not a `GridClient` or `Simulator`. `ILogContext` says what the logger needs: a name to tag entries with (`LogClientName`) and a region name for scopes (`LogRegionName`). `GridClient` and `Simulator` both implement it, explicitly, so calls such as `Logger.Info("text", client)` and `Logger.BeginRegionScope(simulator)` compile as before and log the same things. Pass your own `ILogContext` to tag entries with something that is not a client, such as a bot's name.
 
