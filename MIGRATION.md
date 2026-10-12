@@ -1,20 +1,115 @@
-# Migration Guide: Collada import moved to LibreMetaverse.ModelFormats
+# Migration Guides
 
-`ColladaLoader` and the Collada 1.4 schema classes (`LibreMetaverse.ImportExport.Collada14`) now ship in
-the new `LibreMetaverse.ModelFormats` package instead of `LibreMetaverse`. Namespaces are unchanged, so
-adding a reference to the package is all that source code needs:
+Each guide below takes you from one release to the next. If you are several releases behind, apply the guides for every step between your version and the new one, newest first.
+
+- [3.1.x → 3.2.0](#migration-guide-31x--320): the library is split into more packages; model import, export and upload
+- [3.1.7 → 3.1.8](#migration-guide-317--318-server-certificate-validation): server certificate validation
+- [3.0.0 → 3.1.0](#migration-guide-300--310): SkiaSharp is no longer a dependency
+- [2.6.x → 3.0](#migration-guide-26x--30)
+
+---
+
+# Migration Guide: 3.1.x → 3.2.0
+
+Three things in this release can affect an application:
+
+1. **The library is split into more packages.** Namespaces and type names do not change, so source needs few edits, but types now live in other assemblies: everything compiled against 3.1 must be recompiled, and a couple of packages must be added.
+2. **Model import has its own package** and gained glTF and OBJ loaders, exporters, rigged meshes and PBR materials.
+3. **`UploadModelAsync` checks a model before it contacts the grid**, and makes levels of detail and a physics shape.
+
+## What to do
+
+- [ ] Recompile everything that was built against 3.1.
+- [ ] Add `LibreMetaverse.ModelFormats` if you use `ColladaLoader` or the Collada schema classes.
+- [ ] Add `LibreMetaverse.Archiving` if you use `OarFile` or the tar archive classes.
+- [ ] If you reference `LibreMetaverse.ModelFormats`, `LibreMetaverse.Rendering.MeshFoundry` or `LibreMetaverse.Rendering.Simple` and relied on it to bring in `LibreMetaverse` (for `GridClient` and the managers), reference `LibreMetaverse` yourself.
+- [ ] Change a variable declared `Task<CreateItemFromAssetResult>` that holds the result of `UploadModelAsync` to `Task<ModelUploadResult>` (or use `var`).
+- [ ] Read [Behavior changes](#3-behavior-changes) if you upload models or load Collada files.
+- [ ] If you subclass `Primitive` and override `GetChildren`, do that another way.
+- [ ] If you pass `Settings.LogLevel` or `Settings.ResourceDir` by `ref` or `out`, use `ProcessSettings` instead.
+- [ ] If you use the protocol package without the client and print packets, see [`PacketDecoder`](#packetdecoder-and-the-manager-enums).
+
+## 1. Package layout
+
+Much of `LibreMetaverse` needs no connection to a grid, so it is now in packages of its own that you can use without the client. If you reference `LibreMetaverse` you get `Types`, `StructuredData`, `Assets` and `Protocol` with it and need no change.
+
+| Package | Holds | Depends on |
+|---|---|---|
+| `LibreMetaverse.Types` | `UUID`, vectors, quaternions, colors and the other basic types; the `LibreMetaverse.Threading` locks, events and semaphore; `ObservableDictionary`, `DisposalHelper`, `EventSubscriptionHelper`, `Repeat`, `FileHelper` | nothing |
+| `LibreMetaverse.StructuredData` | LLSD and OSD | Types |
+| `LibreMetaverse.Assets` *(new)* | the offline data model: asset types (`AssetTexture`, `AssetMesh`, `AssetNotecard`, `AssetPrim`, …), glTF documents, `Primitive`, `TextureEntry` and the particle and media types, inventory item classes, `Permissions`, `InventoryHelpers`, the avatar skeleton and appearance data (`LindenSkeleton`, `VisualParams`, the tree and grass definitions), `FacetedMesh` and the other rendering types, model data and its checks (`ModelPrim`, `ModelUploadChecks`, the LOD and physics generators), `BVHDecoder`, `AnimationTrack`, `AnimeshPlayer`, `Logger`, `ILogContext`, `ProcessSettings`, `Helpers`, `Targa` | StructuredData, Types, Imaging.Abstractions |
+| `LibreMetaverse.Protocol` *(new)* | the UDP packet classes, `Packet`, `PacketDecoder`, the capability event-queue messages (`LibreMetaverse.Messages`), `TerrainCompressor` | Assets, StructuredData, Types |
+| `LibreMetaverse` | `GridClient`, `Simulator`, `NetworkManager`, the UDP transport and the managers | Protocol, Assets, StructuredData, Types, Imaging.Abstractions |
+| `LibreMetaverse.Archiving` *(new)* | `OarFile`, `TarArchiveReader`, `TarArchiveWriter`, `ArchiveConstants`, `AssetsArchiver`, `RegionSettings` | LibreMetaverse, Types |
+| `LibreMetaverse.ModelFormats` *(new)* | `ColladaLoader` and the Collada schema classes, `GltfLoader`, `ObjLoader`, and the glTF, OBJ and Collada exporters | Assets, Types |
+| `LibreMetaverse.Rendering.Simple`, `LibreMetaverse.Rendering.MeshFoundry` | renderers | Assets (no longer `LibreMetaverse`) |
+
+Namespaces are unchanged (the archive classes are still in `LibreMetaverse.Assets`). `Pfim`, `OggVorbisEncoder`, `zlib.net` and `ZLogger` follow the code that uses them, and reach `LibreMetaverse` through `Assets`.
+
+`Archiving` is separate because few applications read or write OpenSim region archives:
 
 ```xml
-<PackageReference Include="LibreMetaverse.ModelFormats" Version="..." />
+<PackageReference Include="LibreMetaverse.Archiving" Version="3.2.*" />
 ```
 
-`ModelPrim`, `ModelFace`, `ModelMaterial` and `ModelUploader` stay in `LibreMetaverse`, since mesh upload
-needs them. Loaders implement `IModelLoader` (`List<ModelPrim> Load(string filename, bool loadImages)`),
-which is the extension point for other 3D formats. Assemblies compiled against the old
-`LibreMetaverse` need to be rebuilt.
+`OarFile.SOGToXml2` is kept and forwards to the new `SceneObjectGroupXmlWriter.Write` in `Assets`, which is what `AssetPrim.EncodeXml` uses, so `AssetPrim` does not need the archive package.
 
-The package also adds `GltfLoader`, which reads glTF 2.0 `.gltf` and `.glb` files, and `ObjLoader`, which
-reads Wavefront `.obj` files with their `.mtl` material libraries:
+**Not moved.** `ModelUploader`, `ModelUploadResult` and `MaterialUploadResult` stay in `LibreMetaverse`, because they upload through the client. So do `Baker` and `BakeLayer`.
+
+### `PacketDecoder` and the manager enums
+
+`PacketDecoder` used to print seven fields by the flag names of enums that are nested in managers (`DirectoryManager.EventFlags`, `DirFindFlags`, `ClassifiedQueryFlags`, `ClassifiedFlags`, `SearchTypeFlags` and `AgentManager.ControlFlags`). The protocol assembly cannot name them, so `PacketDecoder` has `RegisterFieldDecoder(key, decoder)` and `UnregisterFieldDecoder(key)`, and `LibreMetaverse` registers its decoders for those fields when the assembly is first used. Applications that use the client see the same output as before. An application that uses only `LibreMetaverse.Protocol` sees those fields as plain numbers unless it registers decoders of its own. A decoder registered for a key is used instead of a built-in one.
+
+## 2. Smaller API changes
+
+**`Logger` takes an `ILogContext`**, not a `GridClient` or `Simulator`. `ILogContext` says what the logger needs: a name to tag entries with (`LogClientName`) and a region name for scopes (`LogRegionName`). `GridClient` and `Simulator` both implement it, explicitly, so calls such as `Logger.Info("text", client)` and `Logger.BeginRegionScope(simulator)` compile as before and log the same things. Pass your own `ILogContext` to tag entries with something that is not a client, such as a bot's name.
+
+**`Settings.LogLevel` and `Settings.ResourceDir` are properties** over a new static class, `ProcessSettings`, which does not depend on the client. `Settings.LogLevel = LogLevel.Warning;` still works and `ProcessSettings.LogLevel` then reads `Warning`. They were fields, which only matters if you passed one by `ref` or `out`.
+
+**`Primitive.GetChildren(GridClient)` is an extension method** (`PrimitiveClientExtensions.GetChildren`), because `Primitive` no longer refers to the client. `prim.GetChildren(client)` compiles as before. It was a `virtual` method that nothing in the library overrode; a subclass can no longer override it. A null client now throws `ArgumentNullException`, where it used to throw `NullReferenceException`.
+
+**Constants and helpers that needed no connection** are available on their own types. The old names still work: `RegionDefaults.SizeX` and `SizeY` (the 256 metre default region size, also `Simulator.DefaultRegionSizeX` and `DefaultRegionSizeY`), and `InventoryHelpers` (`CreateInventoryItem`, `EncryptAssetID`, `DecryptShadowID`, `MagicId`; also the methods of the same names on `InventoryManager`, and `InventoryManager.MAGIC_ID`).
+
+## 3. Behavior changes
+
+### `UploadModelAsync`
+
+It now checks the model before it contacts the grid, using `ModelUploadChecks`, and reports through `ModelUploadResult` (a `CreateItemFromAssetResult` with a `Diagnostics` list and `HasErrors`). An error means nothing was sent: `Success` is false and `Status` is `invalid_model`. Call `ModelUploadChecks.Check(prims)` yourself to tell the user sooner. The errors are what the reference viewer would not upload either, or what would have been written into the mesh wrongly:
+
+- more than 8 faces on a prim (`TooManyFaces`);
+- a face with more than 65534 vertices, which a 16-bit index cannot reach (`LimitExceeded`);
+- more than 110 joints in a skin (`LimitExceeded`; a glTF mesh counts only the joints it is weighted to, not every joint of the file's skin);
+- a prim with no faces, or a face with no triangles (`NoGeometry`);
+- a triangle that uses a vertex the face does not have, a position, normal, texture coordinate or placement that is not a number, or a skin whose matrices or weights do not fit its joints and vertices (`InvalidModel`).
+
+A texture whose size is not known is a warning (`TextureSizeUnknown`), because the upload goes ahead and the fee is quoted from the whole texture. Every other status (`capability_missing`, `cost_rejected`, the grid's own states) is as it was.
+
+`UploadModelAsync` used to send a prim with more than 8 faces, or a triangle that used a vertex the face did not have, and leave the grid to refuse it (an index past 65535 was cut to 16 bits without a word). All of these are now refused first, with a code. The loaders only warn about more than 8 faces and return the prim; it is the upload that refuses.
+
+The return type is now `Task<ModelUploadResult>`, which is source compatible with code that assigns it to a variable or to a `CreateItemFromAssetResult`; a variable declared as `Task<CreateItemFromAssetResult>` needs changing.
+
+It also makes the lower levels of detail and a physics shape now (`ModelAssetOptions`, an optional last argument; leave it out for the defaults). The medium, low and lowest levels have a third, a ninth and a twenty-seventh of the triangles of the one above, the reference viewer's own default, made by collapsing edges cheapest first. A vertex that comes out of it is a vertex that went in, so texture coordinates, normals and the weights of a rigged mesh are exact, each face keeps its place and material and its last triangle, the border of a face stays where it was, and a collapse that would flip, fold or pinch the surface is refused. The physics shape is the convex hull of the mesh (at most 255 points), in place of the fixed box; a rigged mesh, or a mesh too flat to have a hull, keeps the box. `ModelAssetOptions.None` gives what it sent before, `LodReduction` changes the factor and `GenerateLods` and `GeneratePhysics` turn each off. `ModelPrim.CreateAsset(UUID)` is unchanged; `CreateAsset(UUID, ModelAssetOptions)` makes the same asset as an upload would.
+
+An uploaded mesh therefore no longer looks the same at every distance. Its far levels are simplified, which is also what lowers its land impact, and its physics follows its shape and not a box. If a model looks wrong when seen from far away, or its physics is too tight, set `GenerateLods` or `GeneratePhysics` to false to send what was sent before. Not made: a convex decomposition of the shape (the hull is one piece, so a hollow shape is filled), a physics mesh, levels of detail you supply yourself, and an estimate of the land impact. The viewer builds its base hull from the low level and this uses the full one, so it can be a little larger.
+
+### `ColladaLoader`
+
+- **Y-up files are turned upright.** It used to turn the top of a `Y_UP` file towards -Z, so such models came out upside down (and facing the other way). Files with `Z_UP` (what Blender's Collada export writes) are unaffected; a `Y_UP` file that you compensated for by hand will now be rotated twice.
+- **Array parsing.** White space before the first value or after the last of a `float_array` or `Name_array` was read as values of their own, so a pretty-printed array was read shifted by one. It is ignored now. A mesh with a position that is not a number is refused, rather than loading with every vertex scaled by the bad one.
+- **Normals** are stored the way the viewer does when it fits a model into the unit cube: multiplied by the model's size along each axis and renormalized, which the viewer's drawing undoes again. Before, a mesh that was not the same size in every direction was shaded slightly wrong, with its normals leaning away from the long sides. Meshes of equal size in all directions are unaffected. The new loaders do the same.
+- **Skins are read.** A node that instances a controller was ignored; it now becomes a rigged prim (see [Rigged meshes](#rigged-meshes)), which `UploadModelAsync` uploads as a rigged mesh.
+
+## 4. Model import, export and materials
+
+### Loaders
+
+`ColladaLoader` and the Collada 1.4 schema classes (`LibreMetaverse.ImportExport.Collada14`) ship in `LibreMetaverse.ModelFormats` instead of `LibreMetaverse`. Namespaces are unchanged, so adding a reference to the package is all that source code needs:
+
+```xml
+<PackageReference Include="LibreMetaverse.ModelFormats" Version="3.2.*" />
+```
+
+`ModelPrim`, `ModelFace` and `ModelMaterial` are in `LibreMetaverse.Assets`, and `ModelUploader` stays in `LibreMetaverse`. Loaders implement the new `IModelLoader` (`List<ModelPrim> Load(string filename, bool loadImages)`), which is the extension point for other 3D formats. The package also adds `GltfLoader`, which reads glTF 2.0 `.gltf` and `.glb` files, and `ObjLoader`, which reads Wavefront `.obj` files with their `.mtl` material libraries:
 
 ```csharp
 IModelLoader loader = Path.GetExtension(path).ToLowerInvariant() switch
@@ -27,10 +122,13 @@ IModelLoader loader = Path.GetExtension(path).ToLowerInvariant() switch
 List<ModelPrim> prims = loader.Load(path, loadImages: true);
 ```
 
-The loaders can also say what they left out. `GltfLoader`, `ObjLoader` and `ColladaLoader` implement
-`IDiagnosticModelLoader`, whose `LoadWithDiagnostics` gives the prims along with a list of `ModelDiagnostic` entries,
-and `Load` is the same call with the diagnostics thrown away (they are still written to the log, once each, as they
-were before):
+`ObjLoader` turns each `o` object into a prim (or each `g` group, in a file with no objects) and each material it uses into a face. It reads the diffuse color, opacity and diffuse texture of each material, and fan-triangulates polygons, which is only right for convex ones. Points, lines and curves are ignored. OBJ does not say which way is up, so Y-up is assumed, as most exporters write it; set `YUp = false` for a Z-up model. All three loaders put a Y-up model's top along +Z.
+
+`GltfLoader` reads triangle meshes, each material's base color factor and base color texture, the node hierarchy (instanced meshes become one prim per node) and skins. Morph targets, animation, other primitive modes and Draco/meshopt/quantized meshes are not supported. Like `ColladaLoader`, it only reads buffers and textures from the model's directory unless `RestrictTexturesToModelDirectory` is set to false. PNG and JPEG textures, which glTF models normally use, need an `ITextureCodec` such as `SkiaTextureCodec`.
+
+### Diagnostics
+
+The loaders can say what they left out. `GltfLoader`, `ObjLoader` and `ColladaLoader` implement `IDiagnosticModelLoader`, whose `LoadWithDiagnostics` gives the prims along with a list of `ModelDiagnostic` entries, and `Load` is the same call with the diagnostics thrown away (they are also written to the log, once each):
 
 ```csharp
 ModelLoadResult result = loader.LoadWithDiagnostics(path, loadImages: true);
@@ -41,93 +139,21 @@ foreach (var d in result.Diagnostics)
         Offer("Allow textures from other folders?");   // RestrictTexturesToModelDirectory
 ```
 
-Switch on `Code`, not on the message. `Subject` is text from the file (an object, joint or texture name), and `Count` is how
-many times a counted thing happened (skipped faces, vertices without a weight) so there is one entry for them, not one each.
-A bad texture or material library is a warning, because it costs only that; an error means the file gave nothing.
-`GltfExporter`, `ObjExporter` and `ColladaExporter` have a `Diagnostics` property that holds what the last `Build` or `Save`
-left out, and starts empty each time. `IModelLoader` itself is unchanged, so existing implementations keep compiling.
+Switch on `Code`, not on the message. `Subject` is text from the file (an object, joint or texture name), and `Count` is how many times a counted thing happened (skipped faces, vertices without a weight) so there is one entry for them, not one each. A bad texture or material library is a warning, because it costs only that; an error means the file gave nothing. `GltfExporter`, `ObjExporter` and `ColladaExporter` have a `Diagnostics` property that holds what the last `Build` or `Save` left out, and starts empty each time.
 
-`InventoryManager.UploadModelAsync` now checks the model before it contacts the grid, using `ModelUploadChecks`, and reports
-through `ModelUploadResult` (a `CreateItemFromAssetResult` with a `Diagnostics` list and `HasErrors`). An error means nothing
-was sent: `Success` is false and `Status` is `invalid_model`. Call `ModelUploadChecks.Check(prims)` yourself to tell the user
-sooner. The errors are what the reference viewer would not upload either, or what would have been written into the mesh wrongly:
+### Rigged meshes
 
-- more than 8 faces on a prim (`TooManyFaces`);
-- a face with more than 65534 vertices, which a 16-bit index cannot reach (`LimitExceeded`; this is also the limit the OBJ and
-  glTF loaders now use, where it used to be 65536);
-- more than 110 joints in a skin (`LimitExceeded`; a glTF mesh counts only the joints it is weighted to, not every joint of the file's skin);
-- a prim with no faces, or a face with no triangles (`NoGeometry`);
-- a triangle that uses a vertex the face does not have, a position, normal, texture coordinate or placement that is not a
-  number, or a skin whose matrices or weights do not fit its joints and vertices (`InvalidModel`).
+A skinned mesh becomes a rigged prim: its `ModelPrim.Skin` and the per-vertex `ModelFace.Weights` are written into the mesh asset by `CreateAsset`, so `UploadModelAsync` uploads it as a rigged mesh.
 
-A texture whose size is not known is a warning (`TextureSizeUnknown`), because the upload goes ahead and the fee is quoted from the whole
-texture. Every other status (`capability_missing`, `cost_rejected`, the grid's own states) is as it was.
+**glTF.** Joints are matched by node name against the avatar skeleton (`mPelvis`, `mTorso`, …, collision volumes, and the skeleton's aliases); joints it does not have are dropped, and so are influences beyond a vertex's strongest four. By default only each joint's position is taken from the file and its axes are the avatar's (`UseAvatarJointAxes`), because the avatar's bones have no rotation while a rig from a modelling program such as Blender usually gives its bones axes of their own, which would turn the mesh around each joint on the avatar; set it to false to carry the inverse bind matrices over exactly as authored. Joint position overrides are not imported. A skinned mesh is placed by its joints, so its node's transform is ignored, as glTF says.
 
-**Behavior change:** `UploadModelAsync` used to send a prim with more than 8 faces, or a triangle that used a vertex the face did
-not have, and leave the grid to refuse it (an index past 65535 was cut to 16 bits without a word). A skin that did not fit its weights was refused by the mesh builder, with the
-exception's text as `Status`. All of these are now refused first, with a code. The OBJ and glTF loaders still only warn about more than 8
-faces and return the prim; it is the upload that refuses.
-The return type is now `Task<ModelUploadResult>`, which is source compatible with code that assigns it to a variable or to a
-`CreateItemFromAssetResult`; a variable declared as `Task<CreateItemFromAssetResult>` needs changing.
+**Collada.** Read the way the viewer reads it: the joint names come from the skin's `JOINT` source (through the avatar's aliases), the inverse bind matrices and bind shape matrix are taken as they are in the file, and only the four strongest weights of a vertex are kept. By default (`UseAvatarJointAxes`) each joint keeps the position and size its inverse bind matrix gives it and takes the rotation the avatar's joint has there. A rig made for Second Life has those already, at whatever shape it was bound (a collision volume's scale follows the wearer's shape), and does not notice; a rig from a modelling program with bones turned about axes of their own needs it. Set it to false to carry the matrices over exactly, as the viewer's uploader does. The file's up axis and unit are not applied to a rig, as in the viewer, and a warning says so when the file is not Z-up in meters. Joint position overrides are not imported, a skin with no joint of the avatar loads as an ordinary mesh, and morph targets are not supported.
 
-`UploadModelAsync` also makes the lower levels of detail and a physics shape now (`ModelAssetOptions`, an optional last argument; leave it
-out for the defaults). The medium, low and lowest levels have a third, a ninth and a twenty-seventh of the triangles of the one above, the
-reference viewer's own default, made by collapsing edges cheapest first. A vertex that comes out of it is a vertex that went in, so texture coordinates, normals
-and the weights of a rigged mesh are exact, each face keeps its place and material and its last triangle, the border of a face stays where it
-was, and a collapse that would flip, fold or pinch the surface is refused. The physics shape is the convex hull of the mesh
-(at most 255 points), in place of the fixed box; a rigged mesh, or a mesh too flat to have a hull, keeps the box.
-`ModelAssetOptions.None` gives what it sent before, `LodReduction` changes the factor and `GenerateLods` and `GeneratePhysics` turn each off.
-`ModelPrim.CreateAsset(UUID)` is unchanged; `CreateAsset(UUID, ModelAssetOptions)` makes the same asset as an upload would.
+### Materials
 
-**Behavior change:** an uploaded mesh no longer looks the same at every distance. Its far levels are simplified, which is also what lowers
-its land impact, and its physics follows its shape and not a box. If a model looks wrong when seen from far away, or its physics is
-too tight, `GenerateLods` or `GeneratePhysics` set to false sends what was sent before. Not made: a convex decomposition of the shape (the
-hull is one piece, so a hollow shape is filled), a physics mesh, levels of detail you supply yourself, and an estimate of the land impact.
-The viewer builds its base hull from the low level and this uses the full one, so it can be a little larger.
+`GltfLoader` also reads the physically based material of each face. `ModelMaterial.Pbr` (null for OBJ and COLLADA) holds the factors exactly as the file has them (nothing clamped), the alpha mode and cutoff, double sided, the normal scale and occlusion strength, and a `ModelTexture` for each of the base color, normal, metallic-roughness and emissive maps with its name, texture coordinate set and `KHR_texture_transform`. A mesh upload cannot carry any of this (a mesh face has a color and one texture), so it is for making a Second Life material: `Pbr.ToAssetMaterial(texture => idYouGotByUploadingIt)` gives the `AssetMaterial`. Like the viewer's own import, it leaves double sided off whatever the file says, and leaves the texture transforms out unless you pass `carryTextureTransforms: true` (the viewer does not read them, and which way up they are in a Second Life material has not been checked against it).
 
-`GltfLoader` reads triangle meshes, each material's base color factor and base color texture, the node
-hierarchy (instanced meshes become one prim per node) and skins. A skinned mesh becomes a rigged prim: its
-`ModelPrim.Skin` and the per-vertex `ModelFace.Weights` are written into the mesh asset by `CreateAsset`, so
-`UploadModelAsync` uploads it as a rigged mesh. Joints are matched by node name against the avatar skeleton
-(`mPelvis`, `mTorso`, ..., collision volumes, and the skeleton's aliases); joints it does not have are dropped,
-and so are influences beyond a vertex's strongest four. By default only each joint's position is taken from the file and its axes are the avatar's
-(`UseAvatarJointAxes`), because the avatar's bones have no rotation while a rig from a modelling program such as
-Blender usually gives its bones axes of their own, which would turn the mesh around each joint on the avatar; set
-it to false to carry the inverse bind matrices over exactly as authored. Joint position overrides are not imported. A
-skinned mesh is placed by its joints, so its node's transform is ignored, as glTF says. Morph targets,
-animation, other primitive modes and Draco/meshopt/quantized meshes are not supported. Like `ColladaLoader`, it only reads
-buffers and textures from the model's directory unless `RestrictTexturesToModelDirectory` is set to false.
-PNG and JPEG textures, which glTF models normally use, need an `ITextureCodec` such as `SkiaTextureCodec`.
-
-`ColladaLoader` now reads skins too. A node that instances a controller becomes a rigged prim, read the way
-the viewer reads it: the joint names come from the skin's `JOINT` source (through the avatar's aliases),
-the inverse bind matrices and bind shape matrix are taken as they are in the file, and only the four strongest
-weights of a vertex are kept. By default (`UseAvatarJointAxes`) each joint keeps the position and size its inverse
-bind matrix gives it and takes the rotation the avatar's joint has there. A rig made for Second Life has those already,
-at whatever shape it was bound (a collision volume's scale follows the wearer's shape), and does not notice; a rig from a
-modelling program with bones turned about axes of their own needs it. Set it to false to carry the matrices over exactly,
-as the viewer's uploader does. The file's up axis and unit are
-not applied to a rig, as in the viewer, and a warning says so when the file is not Z-up in meters. Joint position
-overrides are not imported, a skin with no joint of the avatar loads as an ordinary mesh, and morph targets are not supported.
-
-**Behavior change:** the Collada parser used to turn white space before the first value or after the last of a
-`float_array` or `Name_array` into values of their own, so a pretty-printed array was read shifted by one. They are
-ignored now. A Collada mesh with a position that is not a number is also refused now, rather than loading with
-every vertex scaled by the bad one.
-
-`GltfLoader` also reads the physically based material of each face. `ModelMaterial.Pbr` (null for OBJ and COLLADA) holds the
-factors exactly as the file has them (nothing clamped), the alpha mode and cutoff, double sided, the normal scale and occlusion
-strength, and a `ModelTexture` for each of the base color, normal, metallic-roughness and emissive maps with its name, texture
-coordinate set and `KHR_texture_transform`. A mesh upload cannot carry any of this (a mesh face has a color and one texture), so it
-is for making a Second Life material: `Pbr.ToAssetMaterial(texture => idYouGotByUploadingIt)` gives the `AssetMaterial`. Like the
-viewer's own import, it leaves double sided off whatever the file says, and leaves the texture transforms out unless you pass
-`carryTextureTransforms: true` (the viewer does not read them, and which way up they are in a Second Life material has not been checked against it).
-
-`InventoryManager.CreateMaterialAsync` puts a material in inventory the way the viewer's material editor does for a new one
-(checked against `LLMaterialEditor::saveIfNeeded` and `LLObjectsMaterialItemCallback`): the textures are uploaded first and the new
-asset IDs put in the material, an empty material item is made in the Materials folder, its permissions are set (the message that makes
-an item carries only the next owner's), and the material is uploaded to it with `UpdateMaterialAgentInventory`. Give it a `ModelPbrMaterial`
-and it does all of it, or an `AssetMaterial` whose textures you have uploaded yourself and it does the last three steps:
+`InventoryManager.CreateMaterialAsync` puts a material in inventory the way the viewer's material editor does for a new one (checked against `LLMaterialEditor::saveIfNeeded` and `LLObjectsMaterialItemCallback`): the textures are uploaded first and the new asset IDs put in the material, an empty material item is made in the Materials folder, its permissions are set (the message that makes an item carries only the next owner's), and the material is uploaded to it with `UpdateMaterialAgentInventory`. Give it a `ModelPbrMaterial` and it does all of it, or an `AssetMaterial` whose textures you have uploaded yourself and it does the last three steps:
 
 ```csharp
 var loader = new GltfLoader(codec) { LoadPbrTextures = true };
@@ -136,39 +162,13 @@ var result = await client.Inventory.CreateMaterialAsync(material, permissions, c
 // result.ItemID, result.AssetID, and result.Textures: the asset ID of each texture that was uploaded
 ```
 
-Everything that can be found out before paying is: a missing capability, or a refused fee, uploads nothing. Each texture costs the usual
-upload fee and stays in inventory if a later step fails (`result.Textures` says which), as does an empty material item if the final
-upload fails (`result.ItemID`). Pass the same `uploadedTextures` dictionary to make several materials from one model and a texture
-they share is uploaded once. A texture that was never loaded is left out and reported in `result.Diagnostics`.
+Everything that can be found out before paying is: a missing capability, or a refused fee, uploads nothing. Each texture costs the usual upload fee and stays in inventory if a later step fails (`result.Textures` says which), as does an empty material item if the final upload fails (`result.ItemID`). Pass the same `uploadedTextures` dictionary to make several materials from one model and a texture they share is uploaded once. A texture that was never loaded is left out and reported in `result.Diagnostics`.
 
-The textures themselves are loaded only if you set `GltfLoader.LoadPbrTextures` (off by default, because it decodes and compresses
-extra images on every load and a mesh upload ignores them) and ask for images. They are prepared as the viewer prepares a glTF
-material's: the occlusion map goes into the red channel of the metallic-roughness map (scaled to its size), a metallic-roughness map
-with no occlusion gets a white red channel (glTF ignores that channel and files often leave it black, which would make the surface
-black), an occlusion map with no metallic-roughness map becomes a white one with the occlusion in red, alpha is dropped from
-all but the base color, and the normal map is compressed without loss. Every image goes through the same checks as the base color
-(`RestrictTexturesToModelDirectory`, file size limits, diagnostics). The encoder this library uses writes an alpha component to every
-texture, so "no alpha" means an opaque one. With the option on, `PbrApproximated` reports what a Second Life material cannot hold:
-a second set of texture coordinates, a normal scale or occlusion strength other than 1, and `KHR_materials_*` extensions.
+The textures themselves are loaded only if you set `GltfLoader.LoadPbrTextures` (off by default, because it decodes and compresses extra images on every load and a mesh upload ignores them) and ask for images. They are prepared as the viewer prepares a glTF material's: the occlusion map goes into the red channel of the metallic-roughness map (scaled to its size), a metallic-roughness map with no occlusion gets a white red channel (glTF ignores that channel and files often leave it black, which would make the surface black), an occlusion map with no metallic-roughness map becomes a white one with the occlusion in red, alpha is dropped from all but the base color, and the normal map is compressed without loss. Every image goes through the same checks as the base color (`RestrictTexturesToModelDirectory`, file size limits, diagnostics). The encoder this library uses writes an alpha component to every texture, so "no alpha" means an opaque one. With the option on, `PbrApproximated` reports what a Second Life material cannot hold: a second set of texture coordinates, a normal scale or occlusion strength other than 1, and `KHR_materials_*` extensions.
 
-`ObjLoader` turns each `o` object into a prim (or each `g` group, in a file with no objects) and each
-material it uses into a face. It reads the diffuse color, opacity and diffuse texture of each material, and
-fan-triangulates polygons, which is only right for convex ones. Points, lines and curves are ignored. OBJ does
-not say which way is up, so Y-up is assumed, as most exporters write it; set `YUp = false` for a Z-up model.
-All three loaders put a Y-up model's top along +Z.
+### Exporters
 
-**Behavior change:** `ColladaLoader` used to turn a `Y_UP` Collada file's top towards -Z, so such models came
-out upside down (and facing the other way). It now rotates them upright. Files with `Z_UP` (what Blender's
-Collada export writes) are unaffected; a `Y_UP` file that you compensated for by hand will now be rotated twice.
-
-**Behavior change:** all three loaders now store normals the way the viewer does when it fits a model into the
-unit cube: multiplied by the model's size along each axis and renormalized, which the viewer's drawing undoes
-again. Before, a mesh that was not the same size in every direction was shaded slightly wrong, with its
-normals leaning away from the long sides. Meshes of equal size in all directions are unaffected, and nothing
-needs changing in calling code.
-
-`GltfExporter` goes the other way: it writes decoded `FacetedMesh` objects (downloaded meshes, or prims
-tessellated by a renderer) as a `.glb` or a self-contained `.gltf`:
+`GltfExporter` writes decoded `FacetedMesh` objects (downloaded meshes, or prims tessellated by a renderer) as a `.glb` or a self-contained `.gltf`:
 
 ```csharp
 var exporter = new GltfExporter
@@ -180,28 +180,13 @@ foreach (var mesh in linkset) exporter.Add(mesh);   // root and children togethe
 exporter.Save("model.glb");
 ```
 
-A linkset keeps its layout (the root's rotation, each prim's own position, rotation and size), and the
-root's world position is dropped. A rigged mesh becomes a glTF skin: the joints are arranged as the default
-avatar skeleton but rest where the mesh's own bind pose puts them, and every vertex keeps its weights. The
-rig is turned to Y-up the way Blender's glTF exporter does it, in the vertices, joint transforms and inverse
-bind matrices themselves, so `GltfLoader` reads it back to the same skin. Face color, opacity and texture are exported; texture repeats,
-offsets and rotation, glow, shininess, bump maps and full bright are not (colors are written unconverted), and neither are a rigged mesh's
-pelvis offset, alternate inverse bind matrices and lock-scale flag, which glTF cannot express.
+A linkset keeps its layout (the root's rotation, each prim's own position, rotation and size), and the root's world position is dropped. A rigged mesh becomes a glTF skin: the joints are arranged as the default avatar skeleton but rest where the mesh's own bind pose puts them, and every vertex keeps its weights. The rig is turned to Y-up the way Blender's glTF exporter does it, in the vertices, joint transforms and inverse bind matrices themselves, so `GltfLoader` reads it back to the same skin. Face color, opacity and texture are exported; texture repeats, offsets and rotation, glow, shininess, bump maps and full bright are not (colors are written unconverted), and neither are a rigged mesh's pelvis offset, alternate inverse bind matrices and lock-scale flag, which glTF cannot express.
 
-`ObjExporter` and `ColladaExporter` take the same meshes and the same `ImageProvider`, and lay a linkset out the
-same way (they share the code that does it with `GltfExporter`). They write several files, because both
-formats refer to their textures by file name, so `Save("house.obj")` also writes `house.mtl` and a PNG or JPEG
-named after each texture's asset ID next to it. `Build("house.obj")` returns the same files as byte arrays
-(`ExportedFile`) if you want to put them somewhere else. The OBJ is Y-up with every prim already in place, as
-OBJ has no transforms, and the COLLADA is Z-up with one node per prim. Neither can hold a skin, so a rigged mesh is
-written as it stands in the pose its bind shape matrix gives it, and the skin is dropped. A COLLADA material has
-the texture or the color, not both, because the format allows one for the diffuse. Texture repeats, offsets and
-rotation are not applied (call the renderer's `TransformTexCoords` on a copy first if you want them baked in).
-`SkipTransparentFaces` leaves out faces with an alpha under 1/100, as Radegast's export does.
+`ObjExporter` and `ColladaExporter` take the same meshes and the same `ImageProvider`, and lay a linkset out the same way. They write several files, because both formats refer to their textures by file name, so `Save("house.obj")` also writes `house.mtl` and a PNG or JPEG named after each texture's asset ID next to it. `Build("house.obj")` returns the same files as byte arrays (`ExportedFile`) if you want to put them somewhere else. The OBJ is Y-up with every prim already in place, as OBJ has no transforms, and the COLLADA is Z-up with one node per prim. Neither can hold a skin, so a rigged mesh is written as it stands in the pose its bind shape matrix gives it, and the skin is dropped. A COLLADA material has the texture or the color, not both, because the format allows one for the diffuse. Texture repeats, offsets and rotation are not applied (call the renderer's `TransformTexCoords` on a copy first if you want them baked in). `SkipTransparentFaces` leaves out faces with an alpha under 1/100, as Radegast's export does.
 
 ---
 
-# Migration Guide: Server certificate validation
+# Migration Guide: 3.1.7 → 3.1.8: Server certificate validation
 
 Server certificates are now checked. Previously every certificate was accepted, which let anyone
 on the network path impersonate a grid and read login credentials. Second Life's servers present
@@ -326,74 +311,6 @@ If a model references a non-TGA, non-JPEG2000 texture and no codec was supplied,
 
 ---
 
-## 7. `Logger` takes an `ILogContext`, not a `GridClient` or `Simulator`
-
-The `Logger.Log`, `Trace`, `Debug`, `Info`, `Warn`, `Error`, `Critical`, `BeginClientScope`, `BeginRegionScope`, `UseClientScopeAsync` and `UseRegionScopeAsync` methods used to take a `GridClient` or a `Simulator`. They now take an `ILogContext`, which says what the logger needs: a name to tag entries with (`LogClientName`) and a region name for scopes (`LogRegionName`). `GridClient` and `Simulator` both implement it, so calls like `Logger.Info("text", client)` and `Logger.BeginRegionScope(simulator)` compile as before and log the same things. Code compiled against 3.0 needs recompiling, because the parameter types changed.
-
-Pass your own `ILogContext` to tag entries with something that is not a client, such as a bot's name. The interface is implemented explicitly on `GridClient` and `Simulator`, so their public members are unchanged.
-
----
-
-## 8. `Settings.LogLevel` and `Settings.ResourceDir` are properties over `ProcessSettings`
-
-The two process-wide settings that the lowest layers of the library read, the log level and the resource directory, now live in a new static class, `ProcessSettings`, which does not depend on the grid client. `Settings.LogLevel` and `Settings.ResourceDir` are still there, now as properties that read and write the same values, so `Settings.LogLevel = LogLevel.Warning;` still works and `ProcessSettings.LogLevel` then reads `Warning`. They used to be fields, which only matters if you passed one by `ref` or `out`, or compiled against 3.0 (recompile).
-
----
-
-## 9. Pieces taken out of the managers
-
-Some code that needed no connection has been moved out of the managers so it can be used on its own. The old names still work, except where noted.
-
-- **`RegionDefaults.SizeX` / `SizeY`** hold the 256 metre default region size. `Simulator.DefaultRegionSizeX` and `DefaultRegionSizeY` are the same constants.
-- **`InventoryHelpers`** holds `CreateInventoryItem`, `EncryptAssetID`, `DecryptShadowID` and `MagicId`. The methods of the same names on `InventoryManager`, and `InventoryManager.MAGIC_ID`, call or equal these.
-- **`Animation`** (the struct that was declared in `AvatarManager.cs`) and **`AvatarTextureIndex`** (declared in `AppearanceManager.cs`) are now in files of their own. Same namespace, same members, same values.
-- **`Primitive.GetChildren(GridClient)`** is now an extension method, `PrimitiveClientExtensions.GetChildren`, because `Primitive` no longer refers to the grid client. Calls like `prim.GetChildren(client)` compile as before. It was a `virtual` method that nothing in the library overrode; a subclass of your own that overrode it no longer can. It also throws `ArgumentNullException` for a null client, where it used to throw `NullReferenceException`.
-
-Code compiled against 3.0 needs recompiling, because `GetChildren` is now a static method of another class.
-
----
-
-## 10. Region archives (`OarFile`) moved to `LibreMetaverse.Archiving`
-
-Reading and writing OpenSim region archives is used by few applications, so it is no longer part of the `LibreMetaverse` package. `OarFile`, `TarArchiveReader`, `TarArchiveWriter`, `ArchiveConstants`, `AssetsArchiver` and `RegionSettings` are now in the new **`LibreMetaverse.Archiving`** package. Their namespace is still `LibreMetaverse.Assets` and nothing in them changed, so the only edit is to reference the package:
-
-```xml
-<PackageReference Include="LibreMetaverse.Archiving" Version="3.1.*" />
-```
-
-`OarFile.SOGToXml2` is kept, and forwards to the new `SceneObjectGroupXmlWriter.Write` in `LibreMetaverse`, which is what `AssetPrim.EncodeXml` now uses, so `AssetPrim` does not need the archive package.
-
----
-
-## 11. The offline data model is in `LibreMetaverse.Assets`
-
-Much of `LibreMetaverse` needs no connection to a grid, and is now in a package of its own, **`LibreMetaverse.Assets`**, which the `LibreMetaverse` package references. If you reference `LibreMetaverse` you get it, with no change. Reference `LibreMetaverse.Assets` alone to work with assets and models without the networking code. It holds:
-
-- the asset types (`AssetTexture`, `AssetMesh`, `AssetNotecard`, `AssetPrim`, …), glTF documents and `Asset` itself;
-- `Primitive`, `TextureEntry` and the particle and media types;
-- inventory item classes (`InventoryItem` and its subclasses), `Permissions`, `InventoryHelpers`;
-- the avatar skeleton and appearance data (`LindenSkeleton`, `LindenAvatarDefinition`, `AvatarBoneMath`, `VisualParams`, the tree and grass definitions) and `Rendering` types such as `FacetedMesh`;
-- model import data and its checks (`ModelPrim`, `ModelUploadChecks`, the LOD and physics generators);
-- `Logger`, `ILogContext`, `ProcessSettings`, `Helpers`, `Targa` and the J2K image creator.
-
-The namespaces and the types are unchanged, so source needs no edit, but code compiled against 3.0 needs recompiling because the types are in another assembly. `LibreMetaverse.ModelFormats`, `LibreMetaverse.Rendering.MeshFoundry` and `LibreMetaverse.Rendering.Simple` now depend on `LibreMetaverse.Assets` and no longer on `LibreMetaverse`. If your application used one of them and relied on it to bring in `LibreMetaverse` (for `GridClient` and the managers), add a reference to `LibreMetaverse` yourself. The `Pfim`, `OggVorbisEncoder`, `zlib.net` and `ZLogger` packages moved with the code that uses them, and reach `LibreMetaverse` through the new package. `Animation`, `Tree`, `Grass` and the other generated types are generated in the new assembly; `Genepool` and `LindenAttentions` are still generated in `LibreMetaverse`.
-
-`ModelUploader`, `ModelUploadResult` and `MaterialUploadResult` stay in `LibreMetaverse`, because they upload through the client.
-
----
-
-## 12. The wire protocol is in `LibreMetaverse.Protocol`
-
-The UDP packet classes (`LibreMetaverse.Packets`, generated from the message template), `Packet`, `PacketType`, `PacketDecoder`, the capability event-queue messages (`LibreMetaverse.Messages`, `MessageUtils.DecodeEvent`) and `TerrainCompressor` are now in a package of their own, **`LibreMetaverse.Protocol`**. The `LibreMetaverse` package references it, so applications that use the client need no change. Reference `LibreMetaverse.Protocol` alone to build tools that speak the protocol without the client, such as proxies and capture analysers. It depends on `LibreMetaverse.Assets`, Types and StructuredData, not on `LibreMetaverse`.
-
-- **Moved with them.** The enums and types the messages and the decoder name were declared inside manager files, and are now in the protocol assembly with the same names, namespaces and values: `TeleportFlags`, `InstantMessageDialog`, `InstantMessageOnline`, `PointAtType`, `EffectType`, `ChatType`, `ChatAudibleLevel`, `AgentState`, `AgentFlags`, `ParcelStatus`, `ParcelResult`, `ParcelFlags`, `ParcelCategory`, `LandingType`, `AccessList`, `TargetType`, `SourceType`, `ImageType`, `ImageCodec`, `ChannelType`, `GridLayerType`, `GridItemType`, `CompressedFlags`, `RegionFlags`, `SimAccess`, `GroupPowers`, `ProfileFlags` and `AgentDisplayName`.
-- **Still in `LibreMetaverse`.** The UDP transport (`UDPBase`, `UDPPacketBuffer`, `UdpThrottle`), `Simulator`, `NetworkManager` and the managers. `DirectoryManager.EventFlags`, `DirFindFlags`, `ClassifiedQueryFlags`, `ClassifiedFlags`, `SearchTypeFlags` and `AgentManager.ControlFlags` are nested in managers and stay there.
-- **`PacketDecoder` and those nested enums.** The decoder used to print the fields that carry them by the enums' flag names. It cannot name them from the protocol assembly, so it has a new `PacketDecoder.RegisterFieldDecoder(key, decoder)` (and `UnregisterFieldDecoder`), and the `LibreMetaverse` assembly registers its seven decoders for those fields when it is first used. The output is the same as before for applications that use the client. An application that uses only the protocol package sees those fields as plain numbers, unless it registers decoders of its own. A decoder registered for a key is used instead of a built-in one.
-
-Code compiled against 3.0 needs recompiling, because the types are in another assembly.
-
----
-
 ## Quick checklist (3.0.0 → 3.1.0)
 
 - [ ] Add a `PackageReference` to `LibreMetaverse.Imaging.Skia` if your app decodes arbitrary (non-TGA, non-J2K) image formats anywhere
@@ -402,12 +319,6 @@ Code compiled against 3.0 needs recompiling, because the types are in another as
 - [ ] Replace `Targa.Decode(...)`/`Targa.Encode(SKBitmap)` with `Targa.DecodeToManagedImage(...)`/`Targa.Encode(ManagedImage)`
 - [ ] Pass an `ITextureCodec` to `new ColladaLoader(...)` if any Collada model you load references a non-TGA/non-J2K texture
 - [ ] Remove any direct `CoreJ2K.Skia` package reference that existed solely to interoperate with LibreMetaverse's texture pipeline
-- [ ] Recompile anything that calls `Logger` with a `GridClient` or `Simulator`; the source needs no change
-- [ ] Recompile anything that uses `Settings.LogLevel` or `Settings.ResourceDir`; only a `ref` or `out` use of either needs editing
-- [ ] If you override `Primitive.GetChildren`, do that another way; `prim.GetChildren(client)` calls need no change
-- [ ] Add a `PackageReference` to `LibreMetaverse.Archiving` if you use `OarFile` or the tar archive classes
-- [ ] Recompile anything built against 3.0 that uses asset, primitive, inventory item or avatar skeleton types; they are now in `LibreMetaverse.Assets`
-- [ ] Recompile anything built against 3.0 that uses packets, `PacketDecoder` or the event-queue messages; they are now in `LibreMetaverse.Protocol`
 
 ---
 

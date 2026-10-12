@@ -184,7 +184,7 @@ See the repository for contribution guidelines. Keep changes small and test buil
 ## Documentation
 
 - 📖 [Quick Reference Guide](QUICK_REFERENCE.md) - Code snippets for common tasks
-- 🔀 [Migration Guide](MIGRATION.md) - Upgrading from 2.x to 3.0
+- 🔀 [Migration Guide](MIGRATION.md) - Upgrading between releases, from 2.x to the latest
 - 📁 [Examples](Programs/examples/README.md) - Sample applications
 - 🔧 [Tools](Programs/tools/README.md) - Utility programs
 - 🤝 [Contributing Guide](CONTRIBUTING.md) - How to contribute
