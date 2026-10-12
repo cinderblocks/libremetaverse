@@ -252,6 +252,7 @@ namespace LibreMetaverse.Assets
             writer.WriteElementString("EveryoneMask", ((uint)PermissionMask.All).ToString());
             writer.WriteElementString("NextOwnerMask", ((uint)PermissionMask.All).ToString());
             writer.WriteElementString("Flags", "None");
+            WriteParticleSystem(writer, prim.Particles);
             WriteUUID(writer, "SitTargetAvatar", UUID.Zero);
 
             writer.WriteEndElement();
@@ -267,6 +268,18 @@ namespace LibreMetaverse.Assets
                               || light.Color.R != 0f || light.Color.G != 0f || light.Color.B != 0f);
 
         static string Float(float value) => value.ToString(CultureInfo.InvariantCulture);
+
+        // The particle system as the simulator sends it to viewers, in base64; empty if the prim has none, as OpenSim writes it
+        static void WriteParticleSystem(XmlTextWriter writer, PrimObject.ParticlesBlock? particles)
+        {
+            writer.WriteStartElement("ParticleSystem");
+            if (particles != null && particles.IsSet)
+            {
+                byte[] data = particles.ToParticleSystem().GetBytes();
+                writer.WriteBase64(data, 0, data.Length);
+            }
+            writer.WriteEndElement();
+        }
 
         static string ColorByte(float component) =>
             ((int)Math.Round(Utils.Clamp(component, 0f, 1f) * 255f)).ToString(CultureInfo.InvariantCulture);

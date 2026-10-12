@@ -145,6 +145,7 @@ namespace LibreMetaverse.Assets
                     case "NextOwnerMask": obj.PermsNextOwner = (uint)ParseLong(Text(reader)); break;
                     case "CollisionSound": obj.CollisionSound = ReadUuid(reader); break;
                     case "CollisionSoundVolume": obj.CollisionSoundVolume = ParseFloat(Text(reader)); break;
+                    case "ParticleSystem": obj.Particles = ReadParticleSystem(Text(reader)) ?? obj.Particles; break;
 
                     case "Shape":
                         ReadChildren(reader, shapeName =>
@@ -396,6 +397,23 @@ namespace LibreMetaverse.Assets
         }
 
         private static bool IsFraction(string s) => s.IndexOfAny(new[] { '.', 'e', 'E' }) >= 0;
+
+        /// <summary>
+        /// A particle system, as the simulator sends it to viewers, in base64. An empty element is a prim without one.
+        /// </summary>
+        private static PrimObject.ParticlesBlock? ReadParticleSystem(string base64)
+        {
+            byte[] data;
+            try { data = Convert.FromBase64String(base64.Trim()); }
+            catch (FormatException) { return null; }
+
+            // The sizes of the legacy form and of the one with glow or blend functions after it; any other is not read
+            if (data.Length != Primitive.ParticleSystem.LegacyDataBlockSize
+                && !(data.Length > Primitive.ParticleSystem.LegacyDataBlockSize && data.Length <= Primitive.ParticleSystem.MaxDataBlockSize))
+                return null;
+
+            return PrimObject.ParticlesBlock.FromParticleSystem(new Primitive.ParticleSystem(data, 0));
+        }
 
         private static Primitive.TextureEntry? ReadTextureEntry(string base64)
         {

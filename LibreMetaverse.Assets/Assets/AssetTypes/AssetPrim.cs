@@ -265,6 +265,87 @@ namespace LibreMetaverse.Assets
             public Vector2 ParticleStartScale;
             public Vector2 ParticleEndScale;
 
+            /// <summary>The checksum viewers put in the particle system; kept so that one read is written back as it was</summary>
+            public uint Crc;
+            /// <summary>Glow of a particle at the start and at the end of its life, 0 to 1</summary>
+            public float ParticleStartGlow;
+            public float ParticleEndGlow;
+            /// <summary>OpenGL blend functions (<see cref="Primitive.ParticleSystem.BlendFunc"/>), source over destination alpha by default</summary>
+            public int BlendFuncSource = (int)Primitive.ParticleSystem.BlendFunc.SourceAlpha;
+            public int BlendFuncDest = (int)Primitive.ParticleSystem.BlendFunc.OneMinusSourceAlpha;
+
+            /// <summary>Converts a particle system, as it is on a prim, to the block.</summary>
+            public static ParticlesBlock FromParticleSystem(Primitive.ParticleSystem system) => new ParticlesBlock
+            {
+                Crc = system.CRC,
+                Flags = (int)system.PartFlags,
+                Pattern = (int)system.Pattern,
+                MaxAge = system.MaxAge,
+                StartAge = system.StartAge,
+                InnerAngle = system.InnerAngle,
+                OuterAngle = system.OuterAngle,
+                BurstRate = system.BurstRate,
+                BurstRadius = system.BurstRadius,
+                BurstSpeedMin = system.BurstSpeedMin,
+                BurstSpeedMax = system.BurstSpeedMax,
+                BurstParticleCount = system.BurstPartCount,
+                AngularVelocity = system.AngularVelocity,
+                Acceleration = system.PartAcceleration,
+                TextureID = system.Texture,
+                TargetID = system.Target,
+                // The two bits that say glow and blend functions follow are put back from the values when it is packed
+                DataFlags = (int)(system.PartDataFlags & ~(Primitive.ParticleSystem.ParticleDataFlags.DataGlow | Primitive.ParticleSystem.ParticleDataFlags.DataBlend)),
+                ParticleMaxAge = system.PartMaxAge,
+                ParticleStartColor = system.PartStartColor,
+                ParticleEndColor = system.PartEndColor,
+                ParticleStartScale = new Vector2(system.PartStartScaleX, system.PartStartScaleY),
+                ParticleEndScale = new Vector2(system.PartEndScaleX, system.PartEndScaleY),
+                ParticleStartGlow = system.PartStartGlow,
+                ParticleEndGlow = system.PartEndGlow,
+                BlendFuncSource = system.BlendFuncSource,
+                BlendFuncDest = system.BlendFuncDest
+            };
+
+            /// <summary>Converts the block to a particle system, as it is on a prim.</summary>
+            public Primitive.ParticleSystem ToParticleSystem() => new Primitive.ParticleSystem
+            {
+                CRC = Crc,
+                PartFlags = (uint)Flags,
+                Pattern = (Primitive.ParticleSystem.SourcePattern)Pattern,
+                MaxAge = MaxAge,
+                StartAge = StartAge,
+                InnerAngle = InnerAngle,
+                OuterAngle = OuterAngle,
+                BurstRate = BurstRate,
+                BurstRadius = BurstRadius,
+                BurstSpeedMin = BurstSpeedMin,
+                BurstSpeedMax = BurstSpeedMax,
+                BurstPartCount = (byte)BurstParticleCount,
+                AngularVelocity = AngularVelocity,
+                PartAcceleration = Acceleration,
+                Texture = TextureID,
+                Target = TargetID,
+                PartDataFlags = (Primitive.ParticleSystem.ParticleDataFlags)(uint)DataFlags
+                                & ~(Primitive.ParticleSystem.ParticleDataFlags.DataGlow | Primitive.ParticleSystem.ParticleDataFlags.DataBlend),
+                PartMaxAge = ParticleMaxAge,
+                PartStartColor = ParticleStartColor,
+                PartEndColor = ParticleEndColor,
+                PartStartScaleX = ParticleStartScale.X,
+                PartStartScaleY = ParticleStartScale.Y,
+                PartEndScaleX = ParticleEndScale.X,
+                PartEndScaleY = ParticleEndScale.Y,
+                PartStartGlow = ParticleStartGlow,
+                PartEndGlow = ParticleEndGlow,
+                BlendFuncSource = (byte)BlendFuncSource,
+                BlendFuncDest = (byte)BlendFuncDest
+            };
+
+            /// <summary>
+            /// True if there is a particle system here: the block of a prim without one is all zeros, apart from the blend functions.
+            /// </summary>
+            public bool IsSet => Pattern != 0 || Flags != 0 || DataFlags != 0 || BurstParticleCount != 0
+                                 || TextureID != UUID.Zero || TargetID != UUID.Zero;
+
             public OSDMap Serialize()
             {
                 OSDMap map = new OSDMap
@@ -289,7 +370,12 @@ namespace LibreMetaverse.Assets
                     ["particle_start_color"] = OSD.FromColor4(ParticleStartColor),
                     ["particle_end_color"] = OSD.FromColor4(ParticleEndColor),
                     ["particle_start_scale"] = OSD.FromVector2(ParticleStartScale),
-                    ["particle_end_scale"] = OSD.FromVector2(ParticleEndScale)
+                    ["particle_end_scale"] = OSD.FromVector2(ParticleEndScale),
+                    ["crc"] = OSD.FromUInteger(Crc),
+                    ["particle_start_glow"] = OSD.FromReal(ParticleStartGlow),
+                    ["particle_end_glow"] = OSD.FromReal(ParticleEndGlow),
+                    ["blend_func_source"] = OSD.FromInteger(BlendFuncSource),
+                    ["blend_func_dest"] = OSD.FromInteger(BlendFuncDest)
                 };
                 return map;
             }
@@ -316,6 +402,13 @@ namespace LibreMetaverse.Assets
                 ParticleEndColor = map["particle_end_color"].AsColor4();
                 ParticleStartScale = map["particle_start_scale"].AsVector2();
                 ParticleEndScale = map["particle_end_scale"].AsVector2();
+
+                // Not in what was serialized before these were added; the defaults are then what the block starts with
+                if (map.ContainsKey("crc")) Crc = map["crc"].AsUInteger();
+                if (map.ContainsKey("particle_start_glow")) ParticleStartGlow = (float)map["particle_start_glow"].AsReal();
+                if (map.ContainsKey("particle_end_glow")) ParticleEndGlow = (float)map["particle_end_glow"].AsReal();
+                if (map.ContainsKey("blend_func_source")) BlendFuncSource = map["blend_func_source"].AsInteger();
+                if (map.ContainsKey("blend_func_dest")) BlendFuncDest = map["blend_func_dest"].AsInteger();
             }
         }
 
@@ -804,30 +897,7 @@ namespace LibreMetaverse.Assets
             prim.OwnerID = obj.Properties?.OwnerID ?? UUID.Zero;
             prim.ParentID = obj.ParentID;
             
-            prim.Particles = new ParticlesBlock
-            {
-                AngularVelocity = obj.ParticleSys.AngularVelocity,
-                Acceleration = obj.ParticleSys.PartAcceleration,
-                BurstParticleCount = obj.ParticleSys.BurstPartCount,
-                BurstRate = obj.ParticleSys.BurstRadius
-            };
-            prim.Particles.BurstRate = obj.ParticleSys.BurstRate;
-            prim.Particles.BurstSpeedMax = obj.ParticleSys.BurstSpeedMax;
-            prim.Particles.BurstSpeedMin = obj.ParticleSys.BurstSpeedMin;
-            prim.Particles.DataFlags = (int)obj.ParticleSys.PartDataFlags;
-            prim.Particles.Flags = (int)obj.ParticleSys.PartFlags;
-            prim.Particles.InnerAngle = obj.ParticleSys.InnerAngle;
-            prim.Particles.MaxAge = obj.ParticleSys.MaxAge;
-            prim.Particles.OuterAngle = obj.ParticleSys.OuterAngle;
-            prim.Particles.ParticleEndColor = obj.ParticleSys.PartEndColor;
-            prim.Particles.ParticleEndScale = new Vector2(obj.ParticleSys.PartEndScaleX, obj.ParticleSys.PartEndScaleY);
-            prim.Particles.ParticleMaxAge = obj.ParticleSys.MaxAge;
-            prim.Particles.ParticleStartColor = obj.ParticleSys.PartStartColor;
-            prim.Particles.ParticleStartScale = new Vector2(obj.ParticleSys.PartStartScaleX, obj.ParticleSys.PartStartScaleY);
-            prim.Particles.Pattern = (int)obj.ParticleSys.Pattern;
-            prim.Particles.StartAge = obj.ParticleSys.StartAge;
-            prim.Particles.TargetID = obj.ParticleSys.Target;
-            prim.Particles.TextureID = obj.ParticleSys.Texture;
+            prim.Particles = ParticlesBlock.FromParticleSystem(obj.ParticleSys);
 
             //prim.PassTouches;
             prim.PCode = (int)obj.PrimData.PCode;
@@ -999,34 +1069,7 @@ namespace LibreMetaverse.Assets
             }
 
             if (this.Particles != null)
-            {
-                prim.ParticleSys = new Primitive.ParticleSystem
-                {
-                    AngularVelocity = this.Particles.AngularVelocity,
-                    PartAcceleration = this.Particles.Acceleration,
-                    BurstPartCount = (byte)this.Particles.BurstParticleCount,
-                    BurstRate = this.Particles.BurstRadius
-                };
-                prim.ParticleSys.BurstRate = this.Particles.BurstRate;
-                prim.ParticleSys.BurstSpeedMax = this.Particles.BurstSpeedMax;
-                prim.ParticleSys.BurstSpeedMin = this.Particles.BurstSpeedMin;
-                prim.ParticleSys.PartDataFlags = (Primitive.ParticleSystem.ParticleDataFlags)this.Particles.DataFlags;
-                prim.ParticleSys.PartFlags = (uint)this.Particles.Flags;
-                prim.ParticleSys.InnerAngle = this.Particles.InnerAngle;
-                prim.ParticleSys.MaxAge = this.Particles.MaxAge;
-                prim.ParticleSys.OuterAngle = this.Particles.OuterAngle;
-                prim.ParticleSys.PartEndColor = this.Particles.ParticleEndColor;
-                prim.ParticleSys.PartEndScaleX = this.Particles.ParticleEndScale.X;
-                prim.ParticleSys.PartEndScaleY = this.Particles.ParticleEndScale.Y;
-                prim.ParticleSys.MaxAge = this.Particles.ParticleMaxAge;
-                prim.ParticleSys.PartStartColor = this.Particles.ParticleStartColor;
-                prim.ParticleSys.PartStartScaleX = this.Particles.ParticleStartScale.X;
-                prim.ParticleSys.PartStartScaleY = this.Particles.ParticleStartScale.Y;
-                prim.ParticleSys.Pattern = (Primitive.ParticleSystem.SourcePattern)this.Particles.Pattern;
-                prim.ParticleSys.StartAge = this.Particles.StartAge;
-                prim.ParticleSys.Target = this.Particles.TargetID;
-                prim.ParticleSys.Texture = this.Particles.TextureID;
-            }
+                prim.ParticleSys = this.Particles.ToParticleSystem();
 
             if (this.Sculpt != null)
             {
