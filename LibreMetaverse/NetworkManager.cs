@@ -98,6 +98,8 @@ namespace LibreMetaverse
             public int TickCount;
             /// <summary>Type of the packet</summary>
             public PacketType Type;
+            /// <summary>The length of the datagram as it was first sent, before any acknowledgements were appended to it</summary>
+            internal int OriginalLength;
 
             public OutgoingPacket(Simulator simulator, UDPPacketBuffer buffer, PacketType type)
             {

@@ -1217,6 +1217,9 @@ namespace LibreMetaverse
             #endregion
         }
 
+        /// <summary>The most acknowledgements the viewer appends to one packet (MAX_ACKS)</summary>
+        private const uint MaxAppendedAcks = 250;
+
         internal void SendPacketFinal(NetworkManager.OutgoingPacket outgoingPacket)
         {
             using (Logger.BeginClientScope(Client))
@@ -1230,32 +1233,46 @@ namespace LibreMetaverse
                 // Keep track of when this packet was sent out (right now)
                 outgoingPacket.TickCount = Environment.TickCount;
 
-                #region ACK Appending
-
                 int dataLength = buffer.DataLength;
 
-                // Keep appending ACKs until there is no room left in the packet or there are
-                // no more ACKs to append
-                uint ackCount = 0;
-                uint ack;
-                while (dataLength + 5 < Packet.MTU && PendingAcks.TryDequeue(out ack))
+                if (isResend)
                 {
-                    Utils.UIntToBytesBig(ack, buffer.Data, dataLength);
-                    dataLength += 4;
-                    ++ackCount;
+                    // As the viewer does, send the packet again as it was first sent: without the acks that were
+                    // appended to it then, and without any that are waiting now.
+                    if (outgoingPacket.OriginalLength > 0)
+                        dataLength = outgoingPacket.OriginalLength;
+                    buffer.Data[0] = (byte)(buffer.Data[0] & ~Helpers.MSG_APPENDED_ACKS);
                 }
-
-                if (ackCount > 0)
+                else
                 {
-                    // Set the last byte of the packet equal to the number of appended ACKs
-                    buffer.Data[dataLength++] = (byte)ackCount;
-                    // Set the appended ACKs flag on this packet
-                    buffer.Data[0] |= Helpers.MSG_APPENDED_ACKS;
+                    outgoingPacket.OriginalLength = dataLength;
+
+                    #region ACK Appending
+
+                    // Keep appending ACKs until there is no room left in the packet or there are no more ACKs to
+                    // append. The viewer appends at most 250 (MAX_ACKS in message.cpp, below the 255 that the count
+                    // byte after them could hold).
+                    uint ackCount = 0;
+                    uint ack;
+                    while (ackCount < MaxAppendedAcks && dataLength + 5 < Packet.MTU && PendingAcks.TryDequeue(out ack))
+                    {
+                        Utils.UIntToBytesBig(ack, buffer.Data, dataLength);
+                        dataLength += 4;
+                        ++ackCount;
+                    }
+
+                    if (ackCount > 0)
+                    {
+                        // Set the last byte of the packet equal to the number of appended ACKs
+                        buffer.Data[dataLength++] = (byte)ackCount;
+                        // Set the appended ACKs flag on this packet
+                        buffer.Data[0] |= Helpers.MSG_APPENDED_ACKS;
+                    }
+
+                    #endregion ACK Appending
                 }
 
                 buffer.DataLength = dataLength;
-
-                #endregion ACK Appending
 
                 if (!isResend)
                 {
@@ -1312,7 +1329,8 @@ namespace LibreMetaverse
                 PingID =
                 {
                     PingID = (byte)Stats.GetAndIncrementLastPingID(),
-                    OldestUnacked = _oldestUnackedCache
+                    // With nothing unacknowledged the viewer sends the number of the last packet it sent
+                    OldestUnacked = _oldestUnackedCache != 0 ? _oldestUnackedCache : (uint)Sequence
                 },
                 Header = {Reliable = false}
             };

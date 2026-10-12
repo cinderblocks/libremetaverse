@@ -24,6 +24,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 using System;
+using System.Linq;
+using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -247,6 +249,37 @@ namespace LibreMetaverse.Tests
                 Assert.That(Enum.IsDefined(typeof(InstantMessageDialog), InstantMessageDialog.MessageFromAgent), Is.True);
                 Assert.That(new AgentDisplayName(), Is.Not.Null);
             });
+        }
+
+        [Test]
+        public void AVariableBlockIsSplitAt255Blocks_BecauseItsCountIsOneByte()
+        {
+            // PacketAck blocks are four bytes, so more than 255 fit in a datagram; the count byte would wrap and the rest be lost
+            var ack = new PacketAckPacket { Packets = Enumerable.Range(1, 300).Select(i => new PacketAckPacket.PacketsBlock { ID = (uint)i }).ToArray() };
+
+            var datagrams = ack.ToBytesMultiple();
+            var ids = new List<uint>();
+            foreach (var datagram in datagrams)
+            {
+                int end = datagram.Length - 1;
+                var rebuilt = (PacketAckPacket)Packet.BuildPacket(datagram, ref end, null);
+                ids.AddRange(rebuilt.Packets.Select(b => b.ID));
+                Assert.That(rebuilt.Packets.Length, Is.LessThanOrEqualTo(255));
+            }
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(datagrams, Has.Length.EqualTo(2));
+                Assert.That(ids, Is.EqualTo(Enumerable.Range(1, 300).Select(i => (uint)i)));
+            });
+        }
+
+        [Test]
+        public void AVariableBlockOfFewerThan255_IsNotSplitWhenItFits()
+        {
+            var ack = new PacketAckPacket { Packets = Enumerable.Range(1, 255).Select(i => new PacketAckPacket.PacketsBlock { ID = (uint)i }).ToArray() };
+
+            Assert.That(ack.ToBytesMultiple(), Has.Length.EqualTo(1));
         }
     }
 }

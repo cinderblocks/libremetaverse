@@ -670,7 +670,8 @@ namespace PacketSourceGenerator
                         {
                             var sanitizedName = block.Name == "Header" ? "_" + block.Name : block.Name;
                             Append(sb, 4, $"i = {sanitizedName}Start;");
-                            Append(sb, 4, $"while (fixedLength + variableLength + acksLength < Packet.MTU && i < {sanitizedName}.Length) {{");
+                            // The count of a variable block is one byte on the wire, so a packet holds at most 255 of them however small they are
+                            Append(sb, 4, $"while (fixedLength + variableLength + acksLength < Packet.MTU && i < {sanitizedName}.Length && {sanitizedName}Count < 255) {{");
                             Append(sb, 5, "int blockLength = " + sanitizedName + "[i].Length;");
                             Append(sb, 5, $"if (fixedLength + variableLength + blockLength + acksLength <= MTU || i == {sanitizedName}Start) {{");
                             Append(sb, 6, "variableLength += blockLength;");
