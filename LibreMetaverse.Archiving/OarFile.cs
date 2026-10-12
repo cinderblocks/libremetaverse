@@ -42,14 +42,34 @@ namespace LibreMetaverse.Assets
         public delegate void TerrainLoadedCallback(float[,] terrain, long bytesRead, long totalBytes);
         public delegate void SceneObjectLoadedCallback(AssetPrim linkset, long bytesRead, long totalBytes);
         public delegate void SettingsLoadedCallback(string regionName, RegionSettings settings);
+        public delegate void ArchiveInfoLoadedCallback(ArchiveInfo info);
 
         #region Archive Loading
 
         public static void UnpackageArchive(string filename, AssetLoadedCallback assetCallback, TerrainLoadedCallback terrainCallback,
             SceneObjectLoadedCallback objectCallback, SettingsLoadedCallback settingsCallback)
         {
+            UnpackageArchive(filename, assetCallback, terrainCallback, objectCallback, settingsCallback, null);
+        }
+
+        /// <summary>
+        /// Reads a region archive and gives its parts to the callbacks as they are met.
+        /// </summary>
+        /// <param name="filename">The archive, a gzipped tar</param>
+        /// <param name="assetCallback">Called with each asset</param>
+        /// <param name="terrainCallback">Called with each terrain</param>
+        /// <param name="objectCallback">Called with each linkset</param>
+        /// <param name="settingsCallback">Called with the region settings</param>
+        /// <param name="infoCallback">Called with what the archive's <c>archive.xml</c> says about it (see
+        /// <see cref="ArchiveInfo"/>), if the archive has one that can be read. An archive of a newer format than
+        /// <see cref="ArchiveInfo.SupportedMajorVersion"/>.<see cref="ArchiveInfo.SupportedMinorVersion"/> is logged
+        /// and read as that format, and not refused.</param>
+        public static void UnpackageArchive(string filename, AssetLoadedCallback assetCallback, TerrainLoadedCallback terrainCallback,
+            SceneObjectLoadedCallback objectCallback, SettingsLoadedCallback settingsCallback, ArchiveInfoLoadedCallback? infoCallback)
+        {
             int successfulAssetRestores = 0;
             int failedAssetRestores = 0;
+            int failedObjectFiles = 0;
 
             try
             {
@@ -65,11 +85,33 @@ namespace LibreMetaverse.Assets
 
                         while ((data = archive.ReadEntry(out filePath, out entryType)) != null)
                         {
-                            if (filePath.StartsWith(ArchiveConstants.OBJECTS_PATH))
+                            if (filePath == ArchiveConstants.CONTROL_FILE_PATH)
+                            {
+                                LoadControlFile(data!, infoCallback);
+                            }
+                            else if (filePath.StartsWith(ArchiveConstants.OBJECTS_PATH))
                             {
                                 // Deserialize the XML bytes
                                 if (objectCallback != null)
-                                    LoadObjects(data!, objectCallback, fileStream.Position, fileStream.Length);
+                                {
+                                    // One unreadable object file must not lose the rest of the archive. The
+                                    // callback is called outside the try, so an exception from it is not taken
+                                    // for an unreadable file.
+                                    List<AssetPrim> linksets;
+                                    try
+                                    {
+                                        linksets = ParseObjects(data!, filePath);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Logger.Warn($"[OarFile] Failed to read {filePath}: {ex.Message}");
+                                        failedObjectFiles++;
+                                        continue;
+                                    }
+
+                                    foreach (AssetPrim linkset in linksets)
+                                        objectCallback(linkset, fileStream.Position, fileStream.Length);
+                                }
                             }
                             else if (filePath.StartsWith(ArchiveConstants.ASSETS_PATH))
                             {
@@ -105,6 +147,59 @@ namespace LibreMetaverse.Assets
 
             if (failedAssetRestores > 0)
                 Logger.Warn($"[OarFile]: Failed to load {failedAssetRestores} assets");
+
+            if (failedObjectFiles > 0)
+                Logger.Warn($"[OarFile]: Failed to load {failedObjectFiles} object files");
+        }
+
+        /// <summary>
+        /// Reads the control file of an archive, <c>archive.xml</c>. OpenSim writes it first, so this does not read
+        /// the rest of the archive unless the file is somewhere else.
+        /// </summary>
+        /// <returns>What the archive says about itself, or null if the file cannot be read, has no control file, or
+        /// the control file does not say what version it is</returns>
+        public static ArchiveInfo? ReadArchiveInfo(string filename)
+        {
+            try
+            {
+                using (var fileStream = new FileStream(filename, FileMode.Open, FileAccess.Read))
+                using (var loadStream = new GZipStream(fileStream, CompressionMode.Decompress))
+                {
+                    var archive = new TarArchiveReader(loadStream);
+                    byte[]? data;
+
+                    while ((data = archive.ReadEntry(out string filePath, out TarArchiveReader.TarEntryType _)) != null)
+                    {
+                        if (filePath == ArchiveConstants.CONTROL_FILE_PATH)
+                            return ArchiveInfo.FromBytes(data);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Error("[OarFile] Error reading OAR file: " + e.Message);
+            }
+
+            return null;
+        }
+
+        private static void LoadControlFile(byte[] data, ArchiveInfoLoadedCallback? infoCallback)
+        {
+            ArchiveInfo? info = ArchiveInfo.FromBytes(data);
+            if (info == null)
+            {
+                Logger.Warn("[OarFile] The archive's archive.xml could not be read, or does not say what version it is");
+                return;
+            }
+
+            if (info.IsNewerThanSupported)
+            {
+                Logger.Warn($"[OarFile] The archive is version {info.VersionString}, which is newer than the " +
+                            $"{ArchiveInfo.SupportedMajorVersion}.{ArchiveInfo.SupportedMinorVersion} this library knows. " +
+                            "Reading it as that version; whatever is laid out differently will not be found");
+            }
+
+            infoCallback?.Invoke(info);
         }
 
         private static bool LoadAsset(string assetPath, byte[] data, AssetLoadedCallback assetCallback, long bytesRead, long totalBytes)
@@ -270,30 +365,56 @@ namespace LibreMetaverse.Assets
 
         public static void LoadObjects(byte[] objectData, SceneObjectLoadedCallback objectCallback, long bytesRead, long totalBytes)
         {
+            foreach (AssetPrim linkset in ParseObjects(objectData, null))
+                objectCallback(linkset, bytesRead, totalBytes);
+        }
+
+        /// <summary>
+        /// Reads the linksets in one object file: a single <c>SceneObjectGroup</c>, or a <c>scene</c> holding several.
+        /// A linkset that cannot be read is logged and left out; XML that cannot be parsed at all throws.
+        /// </summary>
+        private static List<AssetPrim> ParseObjects(byte[] objectData, string? source)
+        {
             XmlDocument doc = new XmlDocument();
 
-            using (XmlTextReader reader = new XmlTextReader(new MemoryStream(objectData)))
+            using (XmlTextReader reader = new XmlTextReader(ArchiveXml.OpenText(objectData)))
             {
                 reader.WhitespaceHandling = WhitespaceHandling.None;
                 doc.Load(reader);
             }
 
-            XmlNode? rootNode = doc.FirstChild;
-            if (rootNode == null) return;
+            var linksets = new List<AssetPrim>();
 
-            if (rootNode.LocalName.Equals("scene"))
+            // DocumentElement, not FirstChild: the first child is the XML declaration when there is one.
+            XmlElement? rootNode = doc.DocumentElement;
+            if (rootNode == null) return linksets;
+
+            IEnumerable<XmlNode> nodes = rootNode.LocalName.Equals("scene")
+                ? rootNode.ChildNodes.Cast<XmlNode>()
+                : new XmlNode[] { rootNode };
+
+            foreach (XmlNode node in nodes)
             {
-                foreach (XmlNode node in rootNode.ChildNodes)
+                if (node is not XmlElement) continue;
+
+                try
                 {
                     AssetPrim linkset = new AssetPrim(node.OuterXml);
-                    objectCallback(linkset, bytesRead, totalBytes);
+                    if (linkset.Parent == null)
+                    {
+                        Logger.Warn($"[OarFile] No object found in an entry of {source ?? "an object file"}");
+                        continue;
+                    }
+
+                    linksets.Add(linkset);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"[OarFile] Failed to read an object in {source ?? "an object file"}: {ex.Message}");
                 }
             }
-            else
-            {
-                AssetPrim linkset = new AssetPrim(rootNode.OuterXml);
-                objectCallback(linkset, bytesRead, totalBytes);
-            }
+
+            return linksets;
         }
 
         #endregion Archive Loading
@@ -302,12 +423,26 @@ namespace LibreMetaverse.Assets
 
         public static void PackageArchive(string directoryName, string filename)
         {
-            const string ARCHIVE_XML = "<?xml version=\"1.0\" encoding=\"utf-16\"?>\n<archive major_version=\"0\" minor_version=\"1\" />";
+            PackageArchive(directoryName, filename, null);
+        }
+
+        /// <summary>
+        /// Packs the folders of a region (assets, objects, terrains, landdata and settings) into an archive.
+        /// </summary>
+        /// <param name="directoryName">The folder that holds the region's folders</param>
+        /// <param name="filename">The archive to make</param>
+        /// <param name="info">What to put in <c>archive.xml</c>. By default, an archive made now in version
+        /// <see cref="ArchiveInfo.WrittenMajorVersion"/>.<see cref="ArchiveInfo.WrittenMinorVersion"/>, for a
+        /// 256 by 256 region, that includes assets if the assets folder has any.</param>
+        public static void PackageArchive(string directoryName, string filename, ArchiveInfo? info)
+        {
+            string assetsFolder = directoryName + "/" + ArchiveConstants.ASSETS_PATH;
+            info ??= ArchiveInfo.CreateNew(assetsIncluded: Directory.GetFiles(assetsFolder).Length > 0);
 
             TarArchiveWriter archive = new TarArchiveWriter(new GZipStream(new FileStream(filename, FileMode.Create), CompressionMode.Compress));
 
             // Create the archive.xml file
-            archive.WriteFile("archive.xml", ARCHIVE_XML);
+            archive.WriteFile(ArchiveConstants.CONTROL_FILE_PATH, info.ToXml());
 
             // Add the assets
             string[] files = Directory.GetFiles(directoryName + "/" + ArchiveConstants.ASSETS_PATH);

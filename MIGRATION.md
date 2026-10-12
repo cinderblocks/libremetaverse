@@ -99,6 +99,17 @@ An uploaded mesh therefore no longer looks the same at every distance. Its far l
 - **Normals** are stored the way the viewer does when it fits a model into the unit cube: multiplied by the model's size along each axis and renormalized, which the viewer's drawing undoes again. Before, a mesh that was not the same size in every direction was shaded slightly wrong, with its normals leaning away from the long sides. Meshes of equal size in all directions are unaffected. The new loaders do the same.
 - **Skins are read.** A node that instances a controller was ignored; it now becomes a rigged prim (see [Rigged meshes](#rigged-meshes)), which `UploadModelAsync` uploads as a rigged mesh.
 
+### Region archives and linkset XML
+
+`OarFile` now reads region archives that OpenSim wrote. Before, the first object in such an archive stopped the load (`Element 'TaskInventory' … was not found`), so no objects came back, and the region settings failed with `There is no Unicode byte order mark`. Reading is now by element name, in any order, with the elements OpenSim leaves out when they are empty (such as `TaskInventory`) treated as absent, and it also accepts the `RootPart` layout of later OpenSim versions. An object file that cannot be read is logged and skipped, and the rest of the archive still loads. The same reader is behind `AssetPrim.DecodeXml` and `AssetPrim.LoadPrim`, and `RegionSettings.FromStream` is order independent too.
+
+Two results differ from what you may have been getting:
+
+- **Hover text color.** OpenSim writes each component as a byte, 0 to 255; a value with a decimal point is read as a fraction, 0 to 1. `AssetPrim.EncodeXml` now writes bytes, as OpenSim does, and writes the alpha component from alpha (it wrote the green value). Hover text that was read as black or white from an OpenSim archive now has its real color.
+- **Sculpt, flexible and light prims keep their settings.** `AssetPrim.EncodeXml`, and so `OarFile.SavePrimsAsync`, wrote none of these, so a sculpted prim came back from an exported archive as a plain one. It now writes the sculpt texture and type, the flexible settings and the light settings, in the element order OpenSim uses. Particle systems and texture animations are still not written.
+- **Archive versions.** Every region archive says which version of the format it is in `archive.xml` (OpenSim has written `0.8` since 2012; a `1.0` format with several regions in one archive exists). `OarFile` used to ignore it. `OarFile.ReadArchiveInfo(path)` and a new `UnpackageArchive` overload with an `ArchiveInfoLoadedCallback` now give an `ArchiveInfo`: the version, when the archive was made, its ID, the region size, whether it is a megaregion and whether it includes assets. An archive with no readable control file still loads, and one of a newer version than `ArchiveInfo.SupportedMajorVersion`.`SupportedMinorVersion` (0.8) is logged and read as that version; multi-region archives are not read. `OarFile.PackageArchive` now writes a full control file, version `0.8`, with the time, an ID, a 256 by 256 region and whether assets are included, where it wrote `0.1` and nothing else. Pass an `ArchiveInfo` to `PackageArchive` to set these yourself. The existing method signatures are unchanged.
+- **Task inventory permissions.** `ItemBlock.PermsBase` is the item's base permissions. It used to end up as the `PermsMask` element, which is what a script was granted.
+
 ## 4. Model import, export and materials
 
 ### Loaders

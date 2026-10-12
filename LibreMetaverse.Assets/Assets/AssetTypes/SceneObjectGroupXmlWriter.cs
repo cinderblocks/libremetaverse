@@ -140,10 +140,11 @@ namespace LibreMetaverse.Assets
             WriteVector(writer, "Acceleration", prim.Acceleration);
             writer.WriteElementString("Description", prim.Description);
             writer.WriteStartElement("Color");
-                writer.WriteElementString("R", prim.TextColor.R.ToString(Utils.EnUsCulture));
-                writer.WriteElementString("G", prim.TextColor.G.ToString(Utils.EnUsCulture));
-                writer.WriteElementString("B", prim.TextColor.B.ToString(Utils.EnUsCulture));
-                writer.WriteElementString("A", prim.TextColor.G.ToString(Utils.EnUsCulture));
+                // OpenSim writes each component as a byte, 0 to 255
+                writer.WriteElementString("R", ColorByte(prim.TextColor.R));
+                writer.WriteElementString("G", ColorByte(prim.TextColor.G));
+                writer.WriteElementString("B", ColorByte(prim.TextColor.B));
+                writer.WriteElementString("A", ColorByte(prim.TextColor.A));
             writer.WriteEndElement();
             writer.WriteElementString("Text", prim.Text);
             writer.WriteElementString("SitName", prim.SitName);
@@ -151,7 +152,24 @@ namespace LibreMetaverse.Assets
 
             writer.WriteElementString("LinkNum", prim.LinkNumber.ToString());
             writer.WriteElementString("ClickAction", prim.ClickAction.ToString());
+            // The order is the one OpenSim writes. OpenSim applies the elements as it meets them, and
+            // ExtraParams, which is left empty here, comes before the elements that say what the prim has.
             writer.WriteStartElement("Shape");
+
+            writer.WriteElementString("ProfileCurve", prim.Shape.ProfileCurve.ToString());
+
+            writer.WriteStartElement("TextureEntry");
+
+            byte[] te;
+            if (prim.Textures != null)
+                te = prim.Textures.GetBytes();
+            else
+                te = Utils.EmptyBytes;
+
+            writer.WriteBase64(te, 0, te.Length);
+            writer.WriteEndElement();
+
+            writer.WriteStartElement("ExtraParams"); writer.WriteEndElement();
 
             writer.WriteElementString("PathBegin", Primitive.PackBeginCut(prim.Shape.PathBegin).ToString());
             writer.WriteElementString("PathCurve", prim.Shape.PathCurve.ToString());
@@ -178,21 +196,38 @@ namespace LibreMetaverse.Assets
             HoleType hole = (HoleType)(prim.Shape.ProfileCurve & 0xF0);
             writer.WriteElementString("ProfileShape", shape.ToString());
             writer.WriteElementString("HollowShape", hole.ToString());
-            writer.WriteElementString("ProfileCurve", prim.Shape.ProfileCurve.ToString());
 
-            writer.WriteStartElement("TextureEntry");
+            bool hasSculpt = prim.Sculpt != null && prim.Sculpt.Texture != UUID.Zero;
+            WriteUUID(writer, "SculptTexture", hasSculpt ? prim.Sculpt!.Texture : UUID.Zero);
+            writer.WriteElementString("SculptType", (hasSculpt ? prim.Sculpt!.Type : 0).ToString());
+            writer.WriteStartElement("SculptData"); writer.WriteEndElement();
 
-            byte[] te;
-            if (prim.Textures != null)
-                te = prim.Textures.GetBytes();
-            else
-                te = Utils.EmptyBytes;
+            // OpenSim writes the values of a flexible or light block whether the prim has one or not
+            bool hasFlexi = HasFlexible(prim.Flexible);
+            PrimObject.FlexibleBlock flexi = hasFlexi ? prim.Flexible! : new PrimObject.FlexibleBlock();
+            writer.WriteElementString("FlexiSoftness", flexi.Softness.ToString(CultureInfo.InvariantCulture));
+            writer.WriteElementString("FlexiTension", Float(flexi.Tension));
+            writer.WriteElementString("FlexiDrag", Float(flexi.Drag));
+            writer.WriteElementString("FlexiGravity", Float(flexi.Gravity));
+            writer.WriteElementString("FlexiWind", Float(flexi.Wind));
+            writer.WriteElementString("FlexiForceX", Float(flexi.Force.X));
+            writer.WriteElementString("FlexiForceY", Float(flexi.Force.Y));
+            writer.WriteElementString("FlexiForceZ", Float(flexi.Force.Z));
 
-            writer.WriteBase64(te, 0, te.Length);
-            writer.WriteEndElement();
+            bool hasLight = HasLight(prim.Light);
+            PrimObject.LightBlock light = hasLight ? prim.Light! : new PrimObject.LightBlock { Color = new Color4(0f, 0f, 0f, 1f) };
+            writer.WriteElementString("LightColorR", Float(light.Color.R));
+            writer.WriteElementString("LightColorG", Float(light.Color.G));
+            writer.WriteElementString("LightColorB", Float(light.Color.B));
+            writer.WriteElementString("LightColorA", Float(light.Color.A));
+            writer.WriteElementString("LightRadius", Float(light.Radius));
+            writer.WriteElementString("LightCutoff", Float(light.Cutoff));
+            writer.WriteElementString("LightFalloff", Float(light.Falloff));
+            writer.WriteElementString("LightIntensity", Float(light.Intensity));
 
-            // FIXME: ExtraParams
-            writer.WriteStartElement("ExtraParams"); writer.WriteEndElement();
+            writer.WriteElementString("FlexiEntry", hasFlexi ? "true" : "false");
+            writer.WriteElementString("LightEntry", hasLight ? "true" : "false");
+            writer.WriteElementString("SculptEntry", hasSculpt ? "true" : "false");
 
             writer.WriteEndElement();
 
@@ -221,6 +256,20 @@ namespace LibreMetaverse.Assets
 
             writer.WriteEndElement();
         }
+
+        // A block that is all zeros is what a prim without one has, and PrimObject starts with one of each
+        static bool HasFlexible(PrimObject.FlexibleBlock? flexible) =>
+            flexible != null && (flexible.Softness != 0 || flexible.Tension != 0f || flexible.Drag != 0f
+                                 || flexible.Gravity != 0f || flexible.Wind != 0f || flexible.Force != Vector3.Zero);
+
+        static bool HasLight(PrimObject.LightBlock? light) =>
+            light != null && (light.Intensity != 0f || light.Radius != 0f || light.Cutoff != 0f || light.Falloff != 0f
+                              || light.Color.R != 0f || light.Color.G != 0f || light.Color.B != 0f);
+
+        static string Float(float value) => value.ToString(CultureInfo.InvariantCulture);
+
+        static string ColorByte(float component) =>
+            ((int)Math.Round(Utils.Clamp(component, 0f, 1f) * 255f)).ToString(CultureInfo.InvariantCulture);
 
         static void WriteUUID(XmlTextWriter writer, string name, UUID id)
         {

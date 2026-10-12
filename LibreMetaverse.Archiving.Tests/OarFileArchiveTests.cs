@@ -251,5 +251,74 @@ namespace LibreMetaverse.Tests
 
             Assert.That(text.ToString(), Is.EqualTo(prim.EncodeXml()));
         }
+
+        private static byte[] Group(string name, UUID id) => Encoding.UTF8.GetBytes(
+            $"<SceneObjectGroup><SceneObjectPart><UUID><UUID>{id}</UUID></UUID><Name>{name}</Name></SceneObjectPart></SceneObjectGroup>");
+
+        private static List<string> LoadedNames(string file)
+        {
+            var names = new List<string>();
+            OarFile.UnpackageArchive(file, (a, _, __) => { }, (t, _, __) => { }, (linkset, _, __) => names.Add(linkset.Parent.Name), (n, s) => { });
+            return names;
+        }
+
+        [Test]
+        public void Unpackage_AnObjectFileThatCannotBeRead_DoesNotLoseTheOthers()
+        {
+            var file = WriteArchive("one-bad.oar",
+                (ArchiveConstants.OBJECTS_PATH + "a.xml", Group("A", UUID.Random())),
+                (ArchiveConstants.OBJECTS_PATH + "b.xml", Encoding.UTF8.GetBytes("<SceneObjectGroup><SceneObjectPart><Name>cut off")),
+                (ArchiveConstants.OBJECTS_PATH + "c.xml", Group("C", UUID.Random())));
+
+            Assert.That(LoadedNames(file), Is.EqualTo(new[] { "A", "C" }));
+        }
+
+        [Test]
+        public void Unpackage_AnObjectFileThatIsNotAGroup_IsLeftOut()
+        {
+            var file = WriteArchive("not-a-group.oar",
+                (ArchiveConstants.OBJECTS_PATH + "a.xml", Encoding.UTF8.GetBytes("<Something />")),
+                (ArchiveConstants.OBJECTS_PATH + "b.xml", Group("B", UUID.Random())));
+
+            Assert.That(LoadedNames(file), Is.EqualTo(new[] { "B" }));
+        }
+
+        [Test]
+        public void Unpackage_ObjectFilesWithADeclaration_AreRead()
+        {
+            // OpenSim's declarations say utf-16 over UTF-8 bytes; a byte order mark is also met
+            var declared = Encoding.UTF8.GetBytes("<?xml version=\"1.0\" encoding=\"utf-16\"?>\r\n" + Encoding.UTF8.GetString(Group("Declared", UUID.Random())));
+            var withBom = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes("<?xml version=\"1.0\" encoding=\"utf-8\"?>" + Encoding.UTF8.GetString(Group("Bom", UUID.Random())))).ToArray();
+            var file = WriteArchive("declared.oar",
+                (ArchiveConstants.OBJECTS_PATH + "a.xml", declared),
+                (ArchiveConstants.OBJECTS_PATH + "b.xml", withBom));
+
+            Assert.That(LoadedNames(file), Is.EqualTo(new[] { "Declared", "Bom" }));
+        }
+
+        [Test]
+        public void LoadObjects_ASceneOfGroups_GivesEachGroupAndLeavesOutOneThatIsEmpty()
+        {
+            var xml = "<scene>" + Encoding.UTF8.GetString(Group("One", UUID.Random())) + "<SceneObjectGroup />"
+                      + Encoding.UTF8.GetString(Group("Two", UUID.Random())) + "</scene>";
+            var names = new List<string>();
+
+            OarFile.LoadObjects(Encoding.UTF8.GetBytes(xml), (linkset, _, __) => names.Add(linkset.Parent.Name), 0, 0);
+
+            Assert.That(names, Is.EqualTo(new[] { "One", "Two" }));
+        }
+
+        [Test]
+        public void LoadObjects_XmlThatCannotBeParsed_Throws()
+        {
+            Assert.Throws<XmlException>(() => OarFile.LoadObjects(Encoding.UTF8.GetBytes("<SceneObjectGroup><oops>"), (l, _, __) => { }, 0, 0));
+        }
+
+        [Test]
+        public void LoadObjects_ACallbackThatThrows_IsNotHidden()
+        {
+            Assert.Throws<InvalidOperationException>(() => OarFile.LoadObjects(Group("A", UUID.Random()),
+                (l, _, __) => throw new InvalidOperationException("from the callback"), 0, 0));
+        }
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Xml;
@@ -41,133 +42,97 @@ namespace LibreMetaverse.Assets
 
         public static RegionSettings FromStream(Stream stream)
         {
-            RegionSettings settings = new RegionSettings();
-            System.Globalization.NumberFormatInfo nfi = Utils.EnUsCulture.NumberFormat;
+            // The names are unique across the sections, so read them all and look each one up. That
+            // does not depend on the order, on white space between the elements, or on an element being there.
+            var values = new Dictionary<string, string>();
 
-            using (XmlTextReader xtr = new XmlTextReader(stream))
+            using (XmlTextReader xtr = new XmlTextReader(ArchiveXml.OpenText(stream)))
             {
+                xtr.MoveToContent();
                 xtr.ReadStartElement("RegionSettings");
-                xtr.ReadStartElement("General");
 
-                while (xtr.Read() && xtr.NodeType != XmlNodeType.EndElement)
+                while (!xtr.EOF && xtr.NodeType != XmlNodeType.EndElement)
                 {
-                    switch (xtr.Name)
+                    if (xtr.NodeType != XmlNodeType.Element)
                     {
-                        case "AllowDamage":
-                            settings.AllowDamage = bool.Parse(xtr.ReadElementContentAsString());
-                            break;
-                        case "AllowLandResell":
-                            settings.AllowLandResell = bool.Parse(xtr.ReadElementContentAsString());
-                            break;
-                        case "AllowLandJoinDivide":
-                            settings.AllowLandJoinDivide = bool.Parse(xtr.ReadElementContentAsString());
-                            break;
-                        case "BlockFly":
-                            settings.BlockFly = bool.Parse(xtr.ReadElementContentAsString());
-                            break;
-                        case "BlockLandShowInSearch":
-                            settings.BlockLandShowInSearch = bool.Parse(xtr.ReadElementContentAsString());
-                            break;
-                        case "BlockTerraform":
-                            settings.BlockTerraform = bool.Parse(xtr.ReadElementContentAsString());
-                            break;
-                        case "DisableCollisions":
-                            settings.DisableCollisions = bool.Parse(xtr.ReadElementContentAsString());
-                            break;
-                        case "DisablePhysics":
-                            settings.DisablePhysics = bool.Parse(xtr.ReadElementContentAsString());
-                            break;
-                        case "DisableScripts":
-                            settings.DisableScripts = bool.Parse(xtr.ReadElementContentAsString());
-                            break;
-                        case "MaturityRating":
-                            settings.MaturityRating = int.Parse(xtr.ReadElementContentAsString());
-                            break;
-                        case "RestrictPushing":
-                            settings.RestrictPushing = bool.Parse(xtr.ReadElementContentAsString());
-                            break;
-                        case "AgentLimit":
-                            settings.AgentLimit = int.Parse(xtr.ReadElementContentAsString());
-                            break;
-                        case "ObjectBonus":
-                            settings.ObjectBonus = float.Parse(xtr.ReadElementContentAsString(), nfi);
-                            break;
+                        xtr.Read();
+                        continue;
                     }
-                }
 
-                xtr.ReadEndElement();
-                xtr.ReadStartElement("GroundTextures");
-
-                while (xtr.Read() && xtr.NodeType != XmlNodeType.EndElement)
-                {
-                    switch (xtr.Name)
+                    // A section such as General, GroundTextures or Terrain
+                    if (xtr.IsEmptyElement)
                     {
-                        case "Texture1":
-                            settings.TerrainDetail0 = UUID.Parse(xtr.ReadElementContentAsString());
-                            break;
-                        case "Texture2":
-                            settings.TerrainDetail1 = UUID.Parse(xtr.ReadElementContentAsString());
-                            break;
-                        case "Texture3":
-                            settings.TerrainDetail2 = UUID.Parse(xtr.ReadElementContentAsString());
-                            break;
-                        case "Texture4":
-                            settings.TerrainDetail3 = UUID.Parse(xtr.ReadElementContentAsString());
-                            break;
-                        case "ElevationLowSW":
-                            settings.TerrainStartHeight00 = float.Parse(xtr.ReadElementContentAsString(), nfi);
-                            break;
-                        case "ElevationLowNW":
-                            settings.TerrainStartHeight01 = float.Parse(xtr.ReadElementContentAsString(), nfi);
-                            break;
-                        case "ElevationLowSE":
-                            settings.TerrainStartHeight10 = float.Parse(xtr.ReadElementContentAsString(), nfi);
-                            break;
-                        case "ElevationLowNE":
-                            settings.TerrainStartHeight11 = float.Parse(xtr.ReadElementContentAsString(), nfi);
-                            break;
-                        case "ElevationHighSW":
-                            settings.TerrainHeightRange00 = float.Parse(xtr.ReadElementContentAsString(), nfi);
-                            break;
-                        case "ElevationHighNW":
-                            settings.TerrainHeightRange01 = float.Parse(xtr.ReadElementContentAsString(), nfi);
-                            break;
-                        case "ElevationHighSE":
-                            settings.TerrainHeightRange10 = float.Parse(xtr.ReadElementContentAsString(), nfi);
-                            break;
-                        case "ElevationHighNE":
-                            settings.TerrainHeightRange11 = float.Parse(xtr.ReadElementContentAsString(), nfi);
-                            break;
+                        xtr.Read();
+                        continue;
                     }
-                }
 
-                xtr.ReadEndElement();
-                xtr.ReadStartElement("Terrain");
-
-                while (xtr.Read() && xtr.NodeType != XmlNodeType.EndElement)
-                {
-                    switch (xtr.Name)
+                    xtr.ReadStartElement();
+                    while (!xtr.EOF && xtr.NodeType != XmlNodeType.EndElement)
                     {
-                        case "WaterHeight":
-                            settings.WaterHeight = float.Parse(xtr.ReadElementContentAsString(), nfi);
-                            break;
-                        case "TerrainRaiseLimit":
-                            settings.TerrainRaiseLimit = float.Parse(xtr.ReadElementContentAsString(), nfi);
-                            break;
-                        case "TerrainLowerLimit":
-                            settings.TerrainLowerLimit = float.Parse(xtr.ReadElementContentAsString(), nfi);
-                            break;
-                        case "UseEstateSun":
-                            settings.UseEstateSun = bool.Parse(xtr.ReadElementContentAsString());
-                            break;
-                        case "FixedSun":
-                            settings.FixedSun = bool.Parse(xtr.ReadElementContentAsString());
-                            break;
+                        if (xtr.NodeType == XmlNodeType.Element)
+                        {
+                            string name = xtr.Name;
+                            if (xtr.IsEmptyElement)
+                            {
+                                xtr.Read();
+                            }
+                            else
+                            {
+                                try { values[name] = xtr.ReadElementContentAsString(); }
+                                catch (XmlException) { xtr.Skip(); }
+                            }
+                        }
+                        else
+                        {
+                            xtr.Read();
+                        }
                     }
+
+                    if (xtr.NodeType == XmlNodeType.EndElement)
+                        xtr.Read();
                 }
             }
 
-            return settings;
+            bool Bool(string name) => values.TryGetValue(name, out var v) && bool.TryParse(v.Trim(), out var b) && b;
+            int Int(string name) => values.TryGetValue(name, out var v) && int.TryParse(v.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var i) ? i : 0;
+            float Float(string name) => values.TryGetValue(name, out var v) && float.TryParse(v.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var f) ? f : 0f;
+            UUID Id(string name) => values.TryGetValue(name, out var v) && UUID.TryParse(v.Trim(), out var id) ? id : UUID.Zero;
+
+            return new RegionSettings
+            {
+                AllowDamage = Bool("AllowDamage"),
+                AllowLandResell = Bool("AllowLandResell"),
+                AllowLandJoinDivide = Bool("AllowLandJoinDivide"),
+                BlockFly = Bool("BlockFly"),
+                BlockLandShowInSearch = Bool("BlockLandShowInSearch"),
+                BlockTerraform = Bool("BlockTerraform"),
+                DisableCollisions = Bool("DisableCollisions"),
+                DisablePhysics = Bool("DisablePhysics"),
+                DisableScripts = Bool("DisableScripts"),
+                MaturityRating = Int("MaturityRating"),
+                RestrictPushing = Bool("RestrictPushing"),
+                AgentLimit = Int("AgentLimit"),
+                ObjectBonus = Float("ObjectBonus"),
+
+                TerrainDetail0 = Id("Texture1"),
+                TerrainDetail1 = Id("Texture2"),
+                TerrainDetail2 = Id("Texture3"),
+                TerrainDetail3 = Id("Texture4"),
+                TerrainStartHeight00 = Float("ElevationLowSW"),
+                TerrainStartHeight01 = Float("ElevationLowNW"),
+                TerrainStartHeight10 = Float("ElevationLowSE"),
+                TerrainStartHeight11 = Float("ElevationLowNE"),
+                TerrainHeightRange00 = Float("ElevationHighSW"),
+                TerrainHeightRange01 = Float("ElevationHighNW"),
+                TerrainHeightRange10 = Float("ElevationHighSE"),
+                TerrainHeightRange11 = Float("ElevationHighNE"),
+
+                WaterHeight = Float("WaterHeight"),
+                TerrainRaiseLimit = Float("TerrainRaiseLimit"),
+                TerrainLowerLimit = Float("TerrainLowerLimit"),
+                UseEstateSun = Bool("UseEstateSun"),
+                FixedSun = Bool("FixedSun")
+            };
         }
 
         public void ToXML(string filename)
