@@ -25,7 +25,7 @@
     <PackageReference Include="CoreJ2K" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
+    <ProjectReference Include="..\LibreMetaverse.Assets\LibreMetaverse.Assets.csproj" />
     <ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>LibreMetaverse.Assets</AssemblyName>
+    <PackageId>LibreMetaverse.Assets</PackageId>
+    <Description>The data model of LibreMetaverse that needs no connection to a grid: asset types, glTF documents, primitives and their textures, inventory items, the avatar skeleton and appearance definitions, model import data and its upload checks, and logging. Pulled in by the LibreMetaverse package; reference it alone to work with assets and models offline.</Description>
+    <RootNamespace>LibreMetaverse</RootNamespace>
+    <OutputType>Library</OutputType>
+    <TargetFrameworks>netstandard2.1;net481;net8.0;net9.0;net10.0</TargetFrameworks>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
+    <NoWarn>$(NoWarn);CS0419;CS8981;CS1591;CS1574</NoWarn>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <OutputPath>..\bin\</OutputPath>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DefineConstants>TRACE</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- LibreMetaverse is the same product in another assembly, and shares a few internal members with this one -->
+    <InternalsVisibleTo Include="LibreMetaverse" />
+    <InternalsVisibleTo Include="LibreMetaverse.Tests" />
+    <InternalsVisibleTo Include="LibreMetaverse.ModelFormats.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CoreJ2K" />
+    <PackageReference Include="ZLogger" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" />
+    <PackageReference Include="MessagePack" />
+    <PackageReference Include="OggVorbisEncoder" />
+    <PackageReference Include="Pfim" />
+    <PackageReference Include="System.Collections.Immutable" />
+    <PackageReference Include="zlib.net-mutliplatform" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
+    <Reference Include="System.Net.Http" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
+    <PackageReference Include="Microsoft.Bcl.TimeProvider" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+    <PackageReference Include="Microsoft.Bcl.TimeProvider" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
+    <ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
+    <ProjectReference Include="..\LibreMetaverse.Imaging.Abstractions\LibreMetaverse.Imaging.Abstractions.csproj" />
+    <ProjectReference Include="..\SourceGenerators\SkeletonGenerator\SkeletonGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\SourceGenerators\TreesGenerator\TreesGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\SourceGenerators\VisualParamGenerator\VisualParamGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The generators read these by file name. The files stay with the LibreMetaverse package, which ships them as content. -->
+    <AdditionalFiles Include="..\LibreMetaverse\linden\character\avatar_lad.xml" />
+    <AdditionalFiles Include="..\LibreMetaverse\linden\character\avatar_skeleton.xml" />
+    <AdditionalFiles Include="..\LibreMetaverse\linden\grass.xml" />
+    <AdditionalFiles Include="..\LibreMetaverse\linden\trees.xml" />
+  </ItemGroup>
+</Project>

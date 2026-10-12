@@ -202,27 +202,4 @@ namespace LibreMetaverse.ImportExport
             return !(weight > 0f) || (joint >= 0 && joint < jointCount);
         }
     }
-
-    /// <summary>The outcome of <see cref="InventoryManager.UploadModelAsync"/></summary>
-    public class ModelUploadResult : InventoryManager.CreateItemFromAssetResult
-    {
-        /// <summary>
-        /// What was wrong with the model, or worth knowing about it. A model with an error is not sent:
-        /// <see cref="InventoryManager.CreateItemFromAssetResult.Status"/> is <c>invalid_model</c>.
-        /// </summary>
-        public IReadOnlyList<ModelDiagnostic> Diagnostics { get; set; } = Array.Empty<ModelDiagnostic>();
-
-        /// <summary>True if the model was refused because of an error in <see cref="Diagnostics"/></summary>
-        public bool HasErrors
-        {
-            get
-            {
-                foreach (var d in Diagnostics)
-                {
-                    if (d.Severity == ModelDiagnosticSeverity.Error) return true;
-                }
-                return false;
-            }
-        }
-    }
 }

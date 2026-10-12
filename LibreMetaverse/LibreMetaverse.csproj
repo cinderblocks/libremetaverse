@@ -10,7 +10,8 @@
     <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>enable</Nullable>
-    <NoWarn>$(NoWarn);CS0419;CS8981;CS1591;CS1574</NoWarn>
+    <!-- CS0436: LibreMetaverse.Assets shares its internals with this assembly, so the polyfill attributes and the generated MessagePack resolver exist in both -->
+    <NoWarn>$(NoWarn);CS0419;CS8981;CS1591;CS1574;CS0436</NoWarn>
     <TargetFrameworks>netstandard2.1;net481;net8.0;net9.0;net10.0</TargetFrameworks>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <OutputPath>..\bin\</OutputPath>
@@ -27,18 +28,14 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CoreJ2K" />
-    <PackageReference Include="ZLogger" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" />
     <PackageReference Include="MessagePack" />
     <PackageReference Include="Microsoft.Extensions.ObjectPool" />
-    <PackageReference Include="OggVorbisEncoder" />
-    <PackageReference Include="Pfim" />
     <PackageReference Include="System.Collections.Immutable" />
     <PackageReference Include="System.Threading.Channels" />
     <PackageReference Include="System.Threading.RateLimiting" />
-    <PackageReference Include="zlib.net-mutliplatform" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
     <Reference Include="System.Net.Http" />
@@ -53,12 +50,10 @@
     <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
     <ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
     <ProjectReference Include="..\LibreMetaverse.Imaging.Abstractions\LibreMetaverse.Imaging.Abstractions.csproj" />
+    <ProjectReference Include="..\LibreMetaverse.Assets\LibreMetaverse.Assets.csproj" />
     <ProjectReference Include="..\SourceGenerators\AttentionsGenerator\AttentionsGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\SourceGenerators\GenepoolGenerator\GenepoolGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\SourceGenerators\PacketSourceGenerator\PacketSourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\SourceGenerators\SkeletonGenerator\SkeletonGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\SourceGenerators\TreesGenerator\TreesGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\SourceGenerators\VisualParamGenerator\VisualParamGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="linden\**" Pack="true">
@@ -72,10 +67,6 @@
     <AdditionalFiles Include="..\data\message_template.msg" />
     <AdditionalFiles Include="linden\character\attentions.xml" />
     <AdditionalFiles Include="linden\character\attentionsN.xml" />
-    <AdditionalFiles Include="linden\character\avatar_lad.xml" />
-    <AdditionalFiles Include="linden\character\avatar_skeleton.xml" />
     <AdditionalFiles Include="linden\character\genepool.xml" />
-    <AdditionalFiles Include="linden\grass.xml" />
-    <AdditionalFiles Include="linden\trees.xml" />
   </ItemGroup>
   </Project>

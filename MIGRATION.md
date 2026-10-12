@@ -365,6 +365,23 @@ Reading and writing OpenSim region archives is used by few applications, so it i
 
 ---
 
+## 11. The offline data model is in `LibreMetaverse.Assets`
+
+Much of `LibreMetaverse` needs no connection to a grid, and is now in a package of its own, **`LibreMetaverse.Assets`**, which the `LibreMetaverse` package references. If you reference `LibreMetaverse` you get it, with no change. Reference `LibreMetaverse.Assets` alone to work with assets and models without the networking code. It holds:
+
+- the asset types (`AssetTexture`, `AssetMesh`, `AssetNotecard`, `AssetPrim`, …), glTF documents and `Asset` itself;
+- `Primitive`, `TextureEntry` and the particle and media types;
+- inventory item classes (`InventoryItem` and its subclasses), `Permissions`, `InventoryHelpers`;
+- the avatar skeleton and appearance data (`LindenSkeleton`, `LindenAvatarDefinition`, `AvatarBoneMath`, `VisualParams`, the tree and grass definitions) and `Rendering` types such as `FacetedMesh`;
+- model import data and its checks (`ModelPrim`, `ModelUploadChecks`, the LOD and physics generators);
+- `Logger`, `ILogContext`, `ProcessSettings`, `Helpers`, `Targa` and the J2K image creator.
+
+The namespaces and the types are unchanged, so source needs no edit, but code compiled against 3.0 needs recompiling because the types are in another assembly. `LibreMetaverse.ModelFormats` now depends on `LibreMetaverse.Assets` and no longer on `LibreMetaverse`. The `Pfim`, `OggVorbisEncoder`, `zlib.net` and `ZLogger` packages moved with the code that uses them, and reach `LibreMetaverse` through the new package. `Animation`, `Tree`, `Grass` and the other generated types are generated in the new assembly; `Genepool` and `LindenAttentions` are still generated in `LibreMetaverse`.
+
+`ModelUploader`, `ModelUploadResult` and `MaterialUploadResult` stay in `LibreMetaverse`, because they upload through the client.
+
+---
+
 ## Quick checklist (3.0.0 → 3.1.0)
 
 - [ ] Add a `PackageReference` to `LibreMetaverse.Imaging.Skia` if your app decodes arbitrary (non-TGA, non-J2K) image formats anywhere
@@ -377,6 +394,7 @@ Reading and writing OpenSim region archives is used by few applications, so it i
 - [ ] Recompile anything that uses `Settings.LogLevel` or `Settings.ResourceDir`; only a `ref` or `out` use of either needs editing
 - [ ] If you override `Primitive.GetChildren`, do that another way; `prim.GetChildren(client)` calls need no change
 - [ ] Add a `PackageReference` to `LibreMetaverse.Archiving` if you use `OarFile` or the tar archive classes
+- [ ] Recompile anything built against 3.0 that uses asset, primitive, inventory item or avatar skeleton types; they are now in `LibreMetaverse.Assets`
 
 ---
 
