@@ -104,7 +104,6 @@ namespace LibreMetaverse.Tests
         {
             private static readonly FieldInfo InboxField = typeof(NetworkManager).GetField("_packetInbox", BindingFlags.NonPublic | BindingFlags.Instance)!;
             private static readonly FieldInfo OutboxField = typeof(NetworkManager).GetField("_packetOutbox", BindingFlags.NonPublic | BindingFlags.Instance)!;
-            private static readonly MethodInfo ResendMethod = typeof(Simulator).GetMethod("ResendUnacked", BindingFlags.NonPublic | BindingFlags.Instance)!;
 
             public readonly GridClient Client = new GridClient();
             public readonly CircuitSimulator Sim;
@@ -139,10 +138,10 @@ namespace LibreMetaverse.Tests
             public void Tick()
             {
                 Sim.SendAcks();
-                ResendMethod.Invoke(Sim, null);
+                Sim.ResendUnacked();
             }
 
-            public void ResendOnly() => ResendMethod.Invoke(Sim, null);
+            public void ResendOnly() => Sim.ResendUnacked();
 
             public Wire? Next(int timeoutMs = 1000)
             {
@@ -173,7 +172,7 @@ namespace LibreMetaverse.Tests
 
             public List<uint> Unacked()
             {
-                lock (Sim.NeedAck) return Sim.NeedAck.Keys.ToList();
+                return Sim.Circuit.GetUnackedSequences().ToList();
             }
 
             /// <summary>Raw bytes of a datagram as the far end would send it.</summary>

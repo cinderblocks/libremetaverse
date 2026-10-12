@@ -23,6 +23,7 @@
   <ItemGroup>
     <!-- LibreMetaverse is the same product in another assembly, and shares a few internal members with this one -->
     <InternalsVisibleTo Include="LibreMetaverse" />
+    <InternalsVisibleTo Include="LibreMetaverse.Transport" />
     <InternalsVisibleTo Include="LibreMetaverse.Tests" />
     <InternalsVisibleTo Include="LibreMetaverse.Protocol.Tests" />
   </ItemGroup>
