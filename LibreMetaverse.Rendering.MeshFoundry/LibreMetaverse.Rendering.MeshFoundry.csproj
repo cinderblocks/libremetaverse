@@ -25,7 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
     <ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
-    <ProjectReference Include="..\LibreMetaverse\LibreMetaverse.csproj" />
+    <ProjectReference Include="..\LibreMetaverse.Assets\LibreMetaverse.Assets.csproj" />
     <ProjectReference Include="..\PrimMesher\LibreMetaverse.PrimMesher.csproj" />
     <ProjectReference Include="..\LibreMetaverse.Imaging.Abstractions\LibreMetaverse.Imaging.Abstractions.csproj" />
   </ItemGroup>
