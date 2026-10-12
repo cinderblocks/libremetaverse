@@ -145,6 +145,7 @@ namespace LibreMetaverse.Assets
                     case "NextOwnerMask": obj.PermsNextOwner = (uint)ParseLong(Text(reader)); break;
                     case "CollisionSound": obj.CollisionSound = ReadUuid(reader); break;
                     case "CollisionSoundVolume": obj.CollisionSoundVolume = ParseFloat(Text(reader)); break;
+                    case "TextureAnimation": obj.TextureAnimation = ReadTextureAnimation(Text(reader)) ?? obj.TextureAnimation; break;
                     case "ParticleSystem": obj.Particles = ReadParticleSystem(Text(reader)) ?? obj.Particles; break;
 
                     case "Shape":
@@ -397,6 +398,18 @@ namespace LibreMetaverse.Assets
         }
 
         private static bool IsFraction(string s) => s.IndexOfAny(new[] { '.', 'e', 'E' }) >= 0;
+
+        /// <summary>
+        /// A texture animation, as the simulator sends it to viewers (16 bytes), in base64. An empty element is a prim without one.
+        /// </summary>
+        private static Primitive.TextureAnimation? ReadTextureAnimation(string base64)
+        {
+            byte[] data;
+            try { data = Convert.FromBase64String(base64.Trim()); }
+            catch (FormatException) { return null; }
+
+            return data.Length >= 16 ? new Primitive.TextureAnimation(data, 0) : (Primitive.TextureAnimation?)null;
+        }
 
         /// <summary>
         /// A particle system, as the simulator sends it to viewers, in base64. An empty element is a prim without one.

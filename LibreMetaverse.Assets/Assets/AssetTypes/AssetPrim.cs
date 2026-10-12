@@ -693,6 +693,9 @@ namespace LibreMetaverse.Assets
         public ParticlesBlock Particles = new ParticlesBlock();
         public ShapeBlock Shape = new ShapeBlock();
         public Primitive.TextureEntry? Textures = null;
+
+        /// <summary>How the textures of the prim move (<c>llSetTextureAnim</c>), or null for a prim that has no animation</summary>
+        public Primitive.TextureAnimation? TextureAnimation = null;
         public InventoryBlock Inventory = new InventoryBlock();
 
         public OSDMap Serialize()
@@ -771,6 +774,8 @@ namespace LibreMetaverse.Assets
                 map["shape"] = Shape.Serialize();
             if (Textures != null)
                 map["textures"] = Textures.GetOSD();
+            if (TextureAnimation.HasValue)
+                map["texture_animation"] = TextureAnimation.Value.GetOSD();
             if (Inventory != null)
                 map["inventory"] = Inventory.Serialize();
 
@@ -837,6 +842,9 @@ namespace LibreMetaverse.Assets
             RezDate = map["rez_date"].AsDate();
             SalePrice = map["sale_price"].AsInteger();
             SaleType = map["sale_type"].AsInteger();
+
+            if (map.TryGetValue("texture_animation", out var animation))
+                TextureAnimation = Primitive.TextureAnimation.FromOSD(animation);
         }
 
         public static PrimObject FromPrimitive(Primitive obj)
@@ -972,6 +980,8 @@ namespace LibreMetaverse.Assets
             prim.Text = obj.Text;
             prim.TextColor = obj.TextColor;
             prim.Textures = obj.Textures;
+            if ((obj.TextureAnim.Flags & Primitive.TextureAnimMode.ANIM_ON) != 0)
+                prim.TextureAnimation = obj.TextureAnim;
             //prim.TouchName;
             prim.UsePhysics = (obj.Flags & PrimFlags.Physics) == PrimFlags.Physics;
             prim.Velocity = obj.Velocity;
@@ -1021,6 +1031,8 @@ namespace LibreMetaverse.Assets
             prim.Text = this.Text;
             prim.TextColor = this.TextColor;
             prim.Textures = this.Textures;
+            if (this.TextureAnimation.HasValue)
+                prim.TextureAnim = this.TextureAnimation.Value;
             if (this.UsePhysics) prim.Flags |= PrimFlags.Physics;
             prim.Velocity = this.Velocity;
 

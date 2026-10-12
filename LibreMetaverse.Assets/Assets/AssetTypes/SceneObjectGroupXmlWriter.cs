@@ -252,6 +252,9 @@ namespace LibreMetaverse.Assets
             writer.WriteElementString("EveryoneMask", ((uint)PermissionMask.All).ToString());
             writer.WriteElementString("NextOwnerMask", ((uint)PermissionMask.All).ToString());
             writer.WriteElementString("Flags", "None");
+            WriteUUID(writer, "CollisionSound", prim.CollisionSound);
+            writer.WriteElementString("CollisionSoundVolume", Float(prim.CollisionSoundVolume));
+            WriteTextureAnimation(writer, prim.TextureAnimation);
             WriteParticleSystem(writer, prim.Particles);
             WriteUUID(writer, "SitTargetAvatar", UUID.Zero);
 
@@ -268,6 +271,18 @@ namespace LibreMetaverse.Assets
                               || light.Color.R != 0f || light.Color.G != 0f || light.Color.B != 0f);
 
         static string Float(float value) => value.ToString(CultureInfo.InvariantCulture);
+
+        // The texture animation as the simulator sends it to viewers (16 bytes), in base64; empty if the prim has none
+        static void WriteTextureAnimation(XmlTextWriter writer, Primitive.TextureAnimation? animation)
+        {
+            writer.WriteStartElement("TextureAnimation");
+            if (animation.HasValue)
+            {
+                byte[] data = animation.Value.GetBytes();
+                writer.WriteBase64(data, 0, data.Length);
+            }
+            writer.WriteEndElement();
+        }
 
         // The particle system as the simulator sends it to viewers, in base64; empty if the prim has none, as OpenSim writes it
         static void WriteParticleSystem(XmlTextWriter writer, PrimObject.ParticlesBlock? particles)

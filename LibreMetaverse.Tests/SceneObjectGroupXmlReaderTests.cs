@@ -563,5 +563,36 @@ namespace LibreMetaverse.Tests
 
             Assert.That(read.Sculpt.Type, Is.EqualTo(0));
         }
+
+        [Test]
+        public void ACollisionSoundAndItsVolume_AreKept()
+        {
+            var sound = UUID.Parse("44444444-4444-4444-4444-444444444444");
+
+            var read = Written(new PrimObject { CollisionSound = sound, CollisionSoundVolume = 0.75f });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(read.CollisionSound, Is.EqualTo(sound));
+                Assert.That(read.CollisionSoundVolume, Is.EqualTo(0.75f));
+            });
+        }
+
+        [Test]
+        public void ThePrimWithNoCollisionSound_IsWrittenAsOpenSimWritesIt_AfterFlagsAndBeforeTheAnimation()
+        {
+            var xml = new AssetPrim(new PrimObject { ID = RootId }, new System.Collections.Generic.List<PrimObject>()).EncodeXml();
+            var part = System.Xml.Linq.XDocument.Parse(xml).Descendants("SceneObjectPart").Single();
+            var names = part.Elements().Select(e => e.Name.LocalName).ToList();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(part.Element("CollisionSound").Element("UUID").Value, Is.EqualTo(UUID.Zero.ToString()));
+                Assert.That(part.Element("CollisionSoundVolume").Value, Is.EqualTo("0"));
+                Assert.That(names.IndexOf("CollisionSound"), Is.GreaterThan(names.IndexOf("Flags")));
+                Assert.That(names.IndexOf("CollisionSoundVolume"), Is.EqualTo(names.IndexOf("CollisionSound") + 1));
+                Assert.That(names.IndexOf("TextureAnimation"), Is.EqualTo(names.IndexOf("CollisionSoundVolume") + 1));
+            });
+        }
     }
 }
