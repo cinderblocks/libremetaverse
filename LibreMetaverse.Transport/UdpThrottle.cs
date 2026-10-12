@@ -71,7 +71,7 @@ namespace LibreMetaverse
 
         private bool _disposed;
 
-        public UdpThrottle(AgentThrottle throttle)
+        public UdpThrottle(ThrottleRates throttle)
         {
             _task    = CreateBucket(throttle.Task);
             _texture = CreateBucket(throttle.Texture);
@@ -101,7 +101,7 @@ namespace LibreMetaverse
         /// Recreate the per-category buckets with rates from the updated AgentThrottle.
         /// Old limiters are disposed after the swap.
         /// </summary>
-        public void Update(AgentThrottle throttle)
+        public void Update(ThrottleRates throttle)
         {
             var oldTask    = _task;
             var oldTexture = _texture;

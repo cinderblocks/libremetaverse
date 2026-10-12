@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>LibreMetaverse.Transport</AssemblyName>
+    <PackageId>LibreMetaverse.Transport</PackageId>
+    <Description>The UDP transport of LibreMetaverse, without the client: the socket loop, the datagram buffer, the traffic throttle and the record of received packet numbers. Pulled in by the LibreMetaverse package.</Description>
+    <RootNamespace>LibreMetaverse</RootNamespace>
+    <OutputType>Library</OutputType>
+    <TargetFrameworks>netstandard2.1;net481;net8.0;net9.0;net10.0</TargetFrameworks>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <Nullable>enable</Nullable>
+    <NoWarn>$(NoWarn);CS1591;CS1574</NoWarn>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <OutputPath>..\bin\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DefineConstants>TRACE</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- LibreMetaverse is the same product in another assembly, and uses the throttle -->
+    <InternalsVisibleTo Include="LibreMetaverse" />
+    <InternalsVisibleTo Include="LibreMetaverse.Tests" />
+    <InternalsVisibleTo Include="LibreMetaverse.Transport.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" />
+    <PackageReference Include="System.Threading.Channels" />
+    <PackageReference Include="System.Threading.RateLimiting" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LibreMetaverse.Protocol\LibreMetaverse.Protocol.csproj" />
+    <ProjectReference Include="..\LibreMetaverse.Assets\LibreMetaverse.Assets.csproj" />
+    <ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
+  </ItemGroup>
+</Project>

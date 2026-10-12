@@ -1396,6 +1396,10 @@ namespace LibreMetaverse
             return !(lhs == rhs);
         }
 
+        protected override IPAddress BindAddress => Settings.BindAddress;
+
+        protected override int ReceiveQueueCapacity => Settings.UdpReceiveQueueCapacity;
+
         protected override void PacketReceived(UDPPacketBuffer buffer)
         {
             using (Logger.BeginClientScope(Client))
@@ -1670,43 +1674,6 @@ namespace LibreMetaverse
         {
             SendPing();
             Stats.IncrementSentPings();
-        }
-    }
-
-    public sealed class IncomingPacketIDCollection
-    {
-        private readonly uint[] _items;
-        private readonly HashSet<uint> hashSet;
-        private int first;
-        private int next;
-        private readonly int capacity;
-
-        public IncomingPacketIDCollection(int capacity)
-        {
-            this.capacity = capacity;
-            _items = new uint[capacity];
-            hashSet = new HashSet<uint>();
-        }
-
-        public bool TryEnqueue(uint ack)
-        {
-            lock (hashSet)
-            {
-                if (hashSet.Add(ack))
-                {
-                    _items[next] = ack;
-                    next = (next + 1) % capacity;
-                    if (next == first)
-                    {
-                        hashSet.Remove(_items[first]);
-                        first = (first + 1) % capacity;
-                    }
-
-                    return true;
-                }
-            }
-
-            return false;
         }
     }
 

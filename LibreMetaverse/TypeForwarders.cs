@@ -839,3 +839,9 @@ using System.Runtime.CompilerServices;
 [assembly: TypeForwardedTo(typeof(global::LibreMetaverse.TeleportFlags))]
 [assembly: TypeForwardedTo(typeof(global::LibreMetaverse.TerrainCompressor))]
 [assembly: TypeForwardedTo(typeof(global::LibreMetaverse.TerrainPatch))]
+
+// LibreMetaverse.Transport (3)
+
+[assembly: TypeForwardedTo(typeof(global::LibreMetaverse.IncomingPacketIDCollection))]
+[assembly: TypeForwardedTo(typeof(global::LibreMetaverse.UDPBase))]
+[assembly: TypeForwardedTo(typeof(global::LibreMetaverse.UDPPacketBuffer))]

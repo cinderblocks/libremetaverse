@@ -53,6 +53,18 @@ namespace LibreMetaverse
         /// </summary>
         protected virtual void OnPacketDropped() { }
 
+        /// <summary>
+        /// The local address the socket is bound to when it is started: every interface unless a derived class says
+        /// otherwise. Read each time the socket is started.
+        /// </summary>
+        protected virtual IPAddress BindAddress => IPAddress.Any;
+
+        /// <summary>
+        /// How many received datagrams can wait for <see cref="PacketReceived"/> before the newest are dropped.
+        /// Read each time the socket is started.
+        /// </summary>
+        protected virtual int ReceiveQueueCapacity => 512;
+
         // the port to listen on
         protected int udpPort;
 
@@ -102,7 +114,7 @@ namespace LibreMetaverse
         {
             if (!shutdownFlag) return;
 
-            IPEndPoint ipep = new IPEndPoint(Settings.BindAddress, udpPort);
+            IPEndPoint ipep = new IPEndPoint(BindAddress, udpPort);
             udpSocket = new Socket(
                 AddressFamily.InterNetwork,
                 SocketType.Dgram,
@@ -134,13 +146,14 @@ namespace LibreMetaverse
             // we're not shutting down, we're starting up
             shutdownFlag = false;
 
-            // Bounded, drop-write: when the decode loop falls behind the receive loop drops
-            // the newest packet rather than blocking the socket receive loop or growing memory
-            // without bound.  Capacity is configurable via Settings.UdpReceiveQueueCapacity.
+            // Bounded: when the decode loop falls behind, the receive loop drops the newest packet rather
+            // than blocking the socket or growing memory without bound.  Capacity is ReceiveQueueCapacity.
+            // The receive loop only ever calls TryWrite. In Wait mode that returns false when the channel is
+            // full, which is how a drop is noticed; DropWrite would discard the packet and report success.
             _rawChannel = Channel.CreateBounded<UDPPacketBuffer>(
-                new BoundedChannelOptions(Settings.UdpReceiveQueueCapacity)
+                new BoundedChannelOptions(ReceiveQueueCapacity)
                 {
-                    FullMode = BoundedChannelFullMode.DropWrite,
+                    FullMode = BoundedChannelFullMode.Wait,
                     SingleWriter = true,
                     SingleReader = true,
                 });
@@ -196,7 +209,7 @@ namespace LibreMetaverse
                         buf.DataLength = result.ReceivedBytes;
                         buf.RemoteEndPoint = result.RemoteEndPoint;
 
-                        // TryWrite returns false when the channel is full (DropWrite) or has
+                        // TryWrite returns false when the channel is full or has
                         // been completed (Stop()).  Either way the buffer goes back to the pool.
                         if (!writer.TryWrite(buf))
                         {

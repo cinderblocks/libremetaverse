@@ -73,6 +73,8 @@ namespace LibreMetaverse.Tests
         {
             public CircuitSimulator(GridClient client, IPEndPoint address) : base(client, address, 0) { }
             public void Deliver(UDPPacketBuffer buffer) => PacketReceived(buffer);
+            public IPAddress SocketBindAddress => BindAddress;
+            public int SocketReceiveQueueCapacity => ReceiveQueueCapacity;
         }
 
         /// <summary>A datagram taken off the wire at the far end.</summary>
@@ -918,54 +920,89 @@ namespace LibreMetaverse.Tests
 
         #endregion The outgoing queue
 
-        #region The archive of received sequences
+        #region The socket settings
 
         [Test]
-        public void TheArchive_AcceptsASequenceOnce()
+        public void TheSimulatorsSocket_IsBoundAndSizedAsTheStaticSettingsSay_ReadAtTheTime()
         {
-            var archive = new IncomingPacketIDCollection(10);
+            var original = (Settings.BindAddress, Settings.UdpReceiveQueueCapacity);
+            try
+            {
+                using var c = new Circuit();
+                Settings.BindAddress = IPAddress.Loopback;
+                Settings.UdpReceiveQueueCapacity = 7;
+
+                Assert.That(c.Sim.SocketBindAddress, Is.EqualTo(IPAddress.Loopback));
+                Assert.That(c.Sim.SocketReceiveQueueCapacity, Is.EqualTo(7));
+
+                Settings.BindAddress = IPAddress.Any;
+                Settings.UdpReceiveQueueCapacity = 99;
+                Assert.That(c.Sim.SocketBindAddress, Is.EqualTo(IPAddress.Any));
+                Assert.That(c.Sim.SocketReceiveQueueCapacity, Is.EqualTo(99));
+            }
+            finally
+            {
+                (Settings.BindAddress, Settings.UdpReceiveQueueCapacity) = original;
+            }
+        }
+
+        #endregion The socket settings
+
+        #region The agent throttle
+
+        [Test]
+        public void TheAgentThrottle_IsTheRatesOfTheTransport_WithTheClientsDefaultTotal()
+        {
+            var client = new GridClient();
 
             Assert.Multiple(() =>
             {
-                Assert.That(archive.TryEnqueue(5), Is.True);
-                Assert.That(archive.TryEnqueue(5), Is.False);
-                Assert.That(archive.TryEnqueue(6), Is.True);
+                Assert.That(client.Throttle, Is.InstanceOf<ThrottleRates>());
+                Assert.That(client.Throttle.Task, Is.EqualTo(360448f).Within(0.5f));
+                Assert.That(client.Throttle.Resend, Is.EqualTo(150000f), "clamped");
+                Assert.That(client.Throttle.Total, Is.EqualTo(1_328_896f).Within(1f));
             });
         }
 
         [Test]
-        public void TheArchiveHoldsOneFewerThanItsCapacity_ForgettingTheOldestFirst()
+        public void AgentThrottleSet_SendsAnAgentThrottlePacketWithTheRatesToTheSimulator()
         {
-            var archive = new IncomingPacketIDCollection(4);
-            archive.TryEnqueue(1);
-            archive.TryEnqueue(2);
-            archive.TryEnqueue(3);
-            Assert.That(archive.TryEnqueue(2), Is.False, "three fit");
+            using var c = new Circuit();
+            c.Client.Throttle.Task = 123456f;
+            c.Client.Throttle.Texture = 65432f;
 
-            archive.TryEnqueue(4);
+            c.Client.Throttle.Set(c.Sim);
+            var wire = c.All().Select(w => w.Packet).OfType<AgentThrottlePacket>().Single();
+            var rates = new ThrottleRates(wire.Throttle.Throttles, 0);
 
             Assert.Multiple(() =>
             {
-                Assert.That(archive.TryEnqueue(2), Is.False, "2 is still held");
-                Assert.That(archive.TryEnqueue(1), Is.True, "1 was forgotten when the fourth went in");
+                Assert.That(wire.Throttle.Throttles, Is.EqualTo(c.Client.Throttle.ToBytes()));
+                Assert.That(rates.Task, Is.EqualTo(123456f));
+                Assert.That(rates.Texture, Is.EqualTo(65432f));
             });
         }
 
         [Test]
-        public void TheArchive_CanBeUsedFromSeveralThreads()
+        public void AgentThrottleSet_WithNoSimulator_DoesNothing()
         {
-            var archive = new IncomingPacketIDCollection(100000);
-            int accepted = 0;
+            var client = new GridClient();
 
-            Parallel.For(0, 8, _ =>
-            {
-                for (uint i = 0; i < 5000; i++)
-                    if (archive.TryEnqueue(i)) System.Threading.Interlocked.Increment(ref accepted);
-            });
-
-            Assert.That(accepted, Is.EqualTo(5000), "each sequence was accepted by exactly one thread");
+            Assert.DoesNotThrow(() => client.Throttle.Set());
+            Assert.DoesNotThrow(() => client.Throttle.Set(null));
         }
 
-        #endregion The archive of received sequences
+        [Test]
+        public void AnAgentThrottleDecodedFromBytes_HasNoClientAndDoesNotSend()
+        {
+            var bytes = new ThrottleRates { Task = 90000f }.ToBytes();
+
+            var throttle = new AgentThrottle(bytes, 0);
+
+            Assert.That(throttle.Task, Is.EqualTo(90000f));
+            Assert.DoesNotThrow(() => throttle.Set(null));
+        }
+
+        #endregion The agent throttle
     }
 }
