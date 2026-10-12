@@ -280,6 +280,43 @@ namespace LibreMetaverse
             }
         }
 
+        /// <summary>How many times the seed capability is asked for before the system gives up</summary>
+        private const int MaxSeedAttempts = 6;
+        private int _seedAttempts;
+
+        /// <summary>
+        /// Asks for the seed capability again after a pause that doubles each time. The retry used to be made at once, and
+        /// from inside the handler of the failure, so a seed that could not be reached made the handler call itself until the
+        /// stack was full.
+        /// </summary>
+        private void ScheduleSeedRetry()
+        {
+            // A failure that arrives after the system was disconnected is the cancellation, not a reason to ask again
+            if (_HttpCts.IsCancellationRequested) return;
+
+            int attempt = Interlocked.Increment(ref _seedAttempts);
+            if (attempt >= MaxSeedAttempts)
+            {
+                Logger.Error($"The seed capability could not be reached after {attempt} attempts, capability system is giving up");
+                return;
+            }
+
+            Logger.Info($"Trying the seed capability again (attempt {attempt + 1} of {MaxSeedAttempts})");
+            _ = RetrySeedRequestAsync(TimeSpan.FromSeconds(Math.Min(30, 1 << (attempt - 1))));
+        }
+
+        private async Task RetrySeedRequestAsync(TimeSpan delay)
+        {
+            try
+            {
+                await Task.Delay(delay, _HttpCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) { return; }   // the caps system was disconnected
+            catch (ObjectDisposedException) { return; }
+
+            await MakeSeedRequestAsync().ConfigureAwait(false);
+        }
+
         private void SeedRequestCompleteHandler(HttpResponseMessage? response, byte[]? responseData, Exception? error)
         {
             if (error != null)
@@ -290,12 +327,8 @@ namespace LibreMetaverse
                 }
                 else
                 {
-                    Logger.Warn($"Seed capability returned {(response == null ? "no response" : response.StatusCode.ToString())}. Trying again.");
-                    // Retry the seed request after disposing/renewing the previous CTS to avoid using canceled token
-                    DisposalHelper.SafeCancelAndDispose(_HttpCts, (m, e) => { if (e != null) Logger.Debug(m, e); else Logger.Debug(m); });
-                    // Create a fresh CTS for retry
-                    // Note: _HttpCts is readonly, so we cannot reassign; instead, call MakeSeedRequest only if the original CTS hasn't been disposed.
-                    _ = MakeSeedRequestAsync();
+                    Logger.Warn($"Seed capability returned {(response == null ? "no response" : response.StatusCode.ToString())}.");
+                    ScheduleSeedRetry();
                 }
                 return;
             }

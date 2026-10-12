@@ -845,3 +845,13 @@ using System.Runtime.CompilerServices;
 [assembly: TypeForwardedTo(typeof(global::LibreMetaverse.IncomingPacketIDCollection))]
 [assembly: TypeForwardedTo(typeof(global::LibreMetaverse.UDPBase))]
 [assembly: TypeForwardedTo(typeof(global::LibreMetaverse.UDPPacketBuffer))]
+
+// LibreMetaverse.Protocol, the login types (7)
+
+[assembly: TypeForwardedTo(typeof(global::LibreMetaverse.AccountLevelBenefits))]
+[assembly: TypeForwardedTo(typeof(global::LibreMetaverse.BuddyListEntry))]
+[assembly: TypeForwardedTo(typeof(global::LibreMetaverse.HomeInfo))]
+[assembly: TypeForwardedTo(typeof(global::LibreMetaverse.LastExecStatus))]
+[assembly: TypeForwardedTo(typeof(global::LibreMetaverse.LoginException))]
+[assembly: TypeForwardedTo(typeof(global::LibreMetaverse.LoginResponseData))]
+[assembly: TypeForwardedTo(typeof(global::LibreMetaverse.LoginState))]

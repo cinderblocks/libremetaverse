@@ -243,6 +243,12 @@ namespace LibreMetaverse
             public const string MaxAgentGroups = "max-agent-groups";
             public const string InitialOutfit = "initial-outfit";
             public const string ItemId = "item_id";
+            public const string LoginFlags = "login-flags";
+            public const string EverLoggedIn = "ever_logged_in";
+            public const string TypeDefault = "type_default";
+            public const string ParentId = "parent_id";
+            public const string Name = "name";
+            public const string Version = "version";
 
             public static class HomeInfo
             {
@@ -326,8 +332,8 @@ namespace LibreMetaverse
         }
 
         /// <summary>
-        /// Parse login response data from an OSDMap and return a diagnostics result containing a parsed copy.
-        /// The current instance is left unchanged.
+        /// Parse login response data from an OSDMap into this instance, and return a diagnostics result that also
+        /// holds a copy of what was parsed.
         /// </summary>
         /// <param name="reply">OSDMap containing login response LLSD.</param>
         /// <returns>ParseResult containing parsed data and diagnostics.</returns>
@@ -337,12 +343,13 @@ namespace LibreMetaverse
             var result = new ParseResult();
             ParseCore(adapter, earlyReturnIfNotSuccess: false, result);
             result.Success = Success;
+            result.ParsedData = new LoginResponseData(this);
             return result;
         }
 
         /// <summary>
-        /// Parse login response data from a Hashtable and return a diagnostics result containing a parsed copy.
-        /// The current instance is left unchanged.
+        /// Parse login response data from a Hashtable into this instance, and return a diagnostics result that also
+        /// holds a copy of what was parsed.
         /// </summary>
         /// <param name="reply">Hashtable containing login response data (legacy XML-RPC style).</param>
         /// <returns>ParseResult containing parsed data and diagnostics.</returns>
@@ -352,6 +359,7 @@ namespace LibreMetaverse
             var result = new ParseResult();
             ParseCore(adapter, earlyReturnIfNotSuccess: true, result);
             result.Success = Success;
+            result.ParsedData = new LoginResponseData(this);
             return result;
         }
 
@@ -442,14 +450,22 @@ namespace LibreMetaverse
                     Login = LoginState.False;
                 }
 
-                if (Login == LoginState.Indeterminate && !adapter.IsOSD)
+                if (Login == LoginState.Indeterminate)
                 {
                     NextUrl = adapter.GetString(Keys.NextUrl);
                     NextDuration = (int)adapter.GetUInt(Keys.NextDuration);
                     NextMethod = adapter.GetString(Keys.NextMethod);
 
-                    var opts = adapter.GetArrayList(Keys.NextOptions);
-                    if (opts != null) NextOptions = opts.Cast<string>().ToArray();
+                    if (adapter.IsOSD)
+                    {
+                        var options = adapter.GetOSDArray(Keys.NextOptions);
+                        if (options != null) NextOptions = options.Select(o => o.AsString()).ToArray();
+                    }
+                    else
+                    {
+                        var opts = adapter.GetArrayList(Keys.NextOptions);
+                        if (opts != null) NextOptions = opts.Cast<string>().ToArray();
+                    }
                 }
             }
         }
@@ -767,6 +783,20 @@ namespace LibreMetaverse
             }
 
             MaxAgentGroups = adapter.HasKey(Keys.MaxAgentGroups) ? (int)adapter.GetUInt(Keys.MaxAgentGroups) : -1;
+
+            // login-flags is an array of one map; the viewer takes ever_logged_in of "N" to mean the first login
+            if (adapter.IsOSD)
+            {
+                var flags = adapter.GetOSDArray(Keys.LoginFlags);
+                if (flags != null && flags.Count > 0 && flags[0] is OSDMap flagMap && flagMap.TryGetValue(Keys.EverLoggedIn, out var ever))
+                    FirstLogin = ever.AsString() == "N";
+            }
+            else
+            {
+                var flags = adapter.GetArrayList(Keys.LoginFlags);
+                if (flags != null && flags.Count > 0 && flags[0] is Hashtable flagTable && flagTable.ContainsKey(Keys.EverLoggedIn))
+                    FirstLogin = $"{flagTable[Keys.EverLoggedIn]}" == "N";
+            }
         }
 
         private void ParseInitialOutfit(ReplyAdapter adapter)
@@ -783,6 +813,185 @@ namespace LibreMetaverse
                 if (arr != null) InitialOutfit = string.Join(",", arr.OfType<Hashtable>().Select(map => ParseString(Keys.ItemId, map)));
             }
         }
+
+        #region Serializing
+
+        /// <summary>
+        /// The response as a login server sends it, in the shape <see cref="Parse(OSDMap)"/> reads and the viewer reads
+        /// (indra/newview/llstartup.cpp): <c>login</c> is the string <c>true</c>, <c>false</c> or <c>indeterminate</c>,
+        /// <c>look_at</c> and <c>home</c> are strings in LLSD notation, and the inventory and the buddy list are arrays of maps.
+        /// A response that is not a success holds the reason and message, and for <see cref="LoginState.Indeterminate"/>
+        /// where to go next, and nothing else.
+        /// </summary>
+        public OSDMap ToOSD()
+        {
+            var map = new OSDMap
+            {
+                [Keys.Login] = OSD.FromString(Login == LoginState.True ? "true" : Login == LoginState.Indeterminate ? "indeterminate" : "false"),
+                [Keys.Message] = OSD.FromString(Message)
+            };
+
+            if (Login != LoginState.True)
+            {
+                map[Keys.Reason] = OSD.FromString(Reason);
+
+                if (Login == LoginState.Indeterminate)
+                {
+                    map[Keys.NextUrl] = OSD.FromString(NextUrl);
+                    map[Keys.NextDuration] = OSD.FromInteger(NextDuration);
+                    map[Keys.NextMethod] = OSD.FromString(NextMethod);
+                    var options = new OSDArray();
+                    foreach (string option in NextOptions) options.Add(OSD.FromString(option));
+                    map[Keys.NextOptions] = options;
+                }
+
+                return map;
+            }
+
+            if (Reason.Length > 0) map[Keys.Reason] = OSD.FromString(Reason);
+
+            map[Keys.AgentId] = OSD.FromUUID(AgentID);
+            map[Keys.SessionId] = OSD.FromUUID(SessionID);
+            map[Keys.SecureSessionId] = OSD.FromUUID(SecureSessionID);
+            map[Keys.FirstName] = OSD.FromString(FirstName);
+            map[Keys.LastName] = OSD.FromString(LastName);
+            map[Keys.StartLocation] = OSD.FromString(StartLocation);
+            map[Keys.AgentAccess] = OSD.FromString(AgentAccess);
+            map[Keys.AgentAccessMax] = OSD.FromString(AgentAccessMax);
+            map[Keys.AgentRegionAccess] = OSD.FromString(AgentRegionAccess);
+            map[Keys.LookAt] = OSD.FromString(Notation(VectorArray(LookAt)));
+
+            Utils.LongToUInts(Home.RegionHandle, out uint homeX, out uint homeY);
+            map[Keys.HomeInfo.Home] = OSD.FromString(Notation(new OSDMap
+            {
+                [Keys.HomeInfo.RegionHandle] = new OSDArray { OSD.FromReal(homeX), OSD.FromReal(homeY) },
+                [Keys.HomeInfo.Position] = VectorArray(Home.Position),
+                [Keys.HomeInfo.LookAt] = VectorArray(Home.LookAt)
+            }));
+
+            map[Keys.CircuitCode] = OSD.FromInteger(CircuitCode);
+            map[Keys.RegionX] = OSD.FromInteger(RegionX);
+            map[Keys.RegionY] = OSD.FromInteger(RegionY);
+            map[Keys.RegionSizeX] = OSD.FromInteger(RegionSizeX);
+            map[Keys.RegionSizeY] = OSD.FromInteger(RegionSizeY);
+            map[Keys.SimIP] = OSD.FromString(SimIP?.ToString() ?? string.Empty);
+            map[Keys.SimPort] = OSD.FromInteger(SimPort);
+            map[Keys.SeedCapability] = OSD.FromString(SeedCapability);
+            map[Keys.SecondsSinceEpoch] = OSD.FromInteger(SecondsSinceEpoch);
+
+            var buddies = new OSDArray();
+            foreach (BuddyListEntry buddy in BuddyList)
+            {
+                buddies.Add(new OSDMap
+                {
+                    [Keys.BuddyId] = OSD.FromString(buddy.BuddyId),
+                    [Keys.BuddyRightsGiven] = OSD.FromInteger(buddy.BuddyRightsGiven),
+                    [Keys.BuddyRightsHas] = OSD.FromInteger(buddy.BuddyRightsHas)
+                });
+            }
+            map[Keys.BuddyList] = buddies;
+
+            map[Keys.InventoryRoot] = new OSDArray { new OSDMap { [Keys.FolderId] = OSD.FromUUID(InventoryRoot) } };
+            map[Keys.InventorySkeleton] = Skeleton(InventorySkeleton);
+            map[Keys.InventoryLibOwner] = new OSDArray { new OSDMap { [Keys.AgentId] = OSD.FromUUID(LibraryOwner) } };
+            map[Keys.InventoryLibRoot] = new OSDArray { new OSDMap { [Keys.FolderId] = OSD.FromUUID(LibraryRoot) } };
+            map[Keys.InventorySkelLib] = Skeleton(LibrarySkeleton);
+
+            if (InitialOutfit.Length > 0)
+            {
+                var outfit = new OSDArray();
+                foreach (string item in InitialOutfit.Split(','))
+                    outfit.Add(new OSDMap { [Keys.ItemId] = OSD.FromString(item) });
+                map[Keys.InitialOutfit] = outfit;
+            }
+
+            if (AccountType.Length > 0) map[Keys.AccountType] = OSD.FromString(AccountType);
+            if (AgentAppearanceServiceURL.Length > 0) map[Keys.AgentAppearanceService] = OSD.FromString(AgentAppearanceServiceURL);
+            if (COFVersion != 0) map[Keys.CofVersion] = OSD.FromInteger(COFVersion);
+            if (MapServerUrl.Length > 0) map[Keys.MapServerUrl] = OSD.FromString(MapServerUrl);
+            if (OpenIDUrl.Length > 0) map[Keys.OpenIdUrl] = OSD.FromString(OpenIDUrl);
+            if (SnapshotConfigUrl.Length > 0) map[Keys.SnapshotConfigUrl] = OSD.FromString(SnapshotConfigUrl);
+            if (UDPBlacklist.Length > 0) map[Keys.UdpBlacklist] = OSD.FromString(UDPBlacklist);
+            if (MfaHash.Length > 0) map[Keys.MfaHash] = OSD.FromString(MfaHash);
+            if (MaxAgentGroups >= 0) map[Keys.MaxAgentGroups] = OSD.FromInteger(MaxAgentGroups);
+            if (AccountLevelBenefits != null) map[Keys.AccountLevelBenefits] = AccountLevelBenefits.ToOSD();
+
+            if (ClassifiedCategories.Count > 0) map[Keys.ClassifiedCategories] = ToArray(ClassifiedCategories);
+            if (EventCategories.Count > 0) map[Keys.EventCategories] = ToArray(EventCategories);
+            if (GlobalTextures.Count > 0) map[Keys.GlobalTextures] = ToArray(GlobalTextures);
+            if (UiConfig.Count > 0) map[Keys.UiConfig] = ToArray(UiConfig);
+            if (PremiumPackages.Count > 0)
+            {
+                var packages = new OSDMap();
+                foreach (var package in PremiumPackages) packages[package.Key] = ToOSDValue(package.Value);
+                map[Keys.PremiumPackages] = packages;
+            }
+
+            map[Keys.LoginFlags] = new OSDArray { new OSDMap { [Keys.EverLoggedIn] = OSD.FromString(FirstLogin ? "N" : "Y") } };
+
+            return map;
+        }
+
+        private static string Notation(OSD osd) => OSDParser.SerializeLLSDNotation(osd);
+
+        private static OSDArray VectorArray(Vector3 v) =>
+            new OSDArray { OSD.FromReal(Math.Round(v.X, 6)), OSD.FromReal(Math.Round(v.Y, 6)), OSD.FromReal(Math.Round(v.Z, 6)) };
+
+        private static OSDArray Skeleton(InventoryFolder[] folders)
+        {
+            var array = new OSDArray();
+            foreach (InventoryFolder folder in folders)
+            {
+                array.Add(new OSDMap
+                {
+                    [Keys.FolderId] = OSD.FromUUID(folder.UUID),
+                    [Keys.ParentId] = OSD.FromUUID(folder.ParentUUID),
+                    [Keys.Name] = OSD.FromString(folder.Name),
+                    [Keys.TypeDefault] = OSD.FromInteger((int)folder.PreferredType),
+                    [Keys.Version] = OSD.FromInteger(folder.Version)
+                });
+            }
+            return array;
+        }
+
+        private static OSDArray ToArray(IEnumerable<object> items)
+        {
+            var array = new OSDArray();
+            foreach (object item in items) array.Add(ToOSDValue(item));
+            return array;
+        }
+
+        /// <summary>
+        /// A value that was read from a response, as an OSD again: the entries of the lists that are kept as they were
+        /// read are OSD (from LLSD) or the values of an XML-RPC reply.
+        /// </summary>
+        private static OSD ToOSDValue(object? value)
+        {
+            switch (value)
+            {
+                case null: return new OSD();
+                case OSD osd: return osd;
+                case string text: return OSD.FromString(text);
+                case bool flag: return OSD.FromBoolean(flag);
+                case int number: return OSD.FromInteger(number);
+                case uint number: return OSD.FromInteger(number);
+                case long number: return OSD.FromReal((double)number);
+                case float number: return OSD.FromReal(number);
+                case double number: return OSD.FromReal(number);
+                case UUID id: return OSD.FromUUID(id);
+                case Hashtable table:
+                    var map = new OSDMap();
+                    foreach (DictionaryEntry entry in table) map[$"{entry.Key}"] = ToOSDValue(entry.Value);
+                    return map;
+                case IEnumerable list:
+                    var array = new OSDArray();
+                    foreach (object? item in list) array.Add(ToOSDValue(item));
+                    return array;
+                default: return OSD.FromString($"{value}");
+            }
+        }
+
+        #endregion Serializing
 
         // Adapter class to unify OSDMap and Hashtable access and provide typed getters
         private sealed class ReplyAdapter
