@@ -51,9 +51,9 @@
     <ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
     <ProjectReference Include="..\LibreMetaverse.Imaging.Abstractions\LibreMetaverse.Imaging.Abstractions.csproj" />
     <ProjectReference Include="..\LibreMetaverse.Assets\LibreMetaverse.Assets.csproj" />
+    <ProjectReference Include="..\LibreMetaverse.Protocol\LibreMetaverse.Protocol.csproj" />
     <ProjectReference Include="..\SourceGenerators\AttentionsGenerator\AttentionsGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\SourceGenerators\GenepoolGenerator\GenepoolGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\SourceGenerators\PacketSourceGenerator\PacketSourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="linden\**" Pack="true">
@@ -64,7 +64,6 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <AdditionalFiles Include="..\data\message_template.msg" />
     <AdditionalFiles Include="linden\character\attentions.xml" />
     <AdditionalFiles Include="linden\character\attentionsN.xml" />
     <AdditionalFiles Include="linden\character\genepool.xml" />

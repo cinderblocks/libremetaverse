@@ -57,38 +57,6 @@ namespace LibreMetaverse
     }
 
     /// <summary>
-    /// Bitflag field for ObjectUpdateCompressed data blocks, describing
-    /// which options are present for each object
-    /// </summary>
-    [Flags]
-    public enum CompressedFlags : uint
-    {
-        None = 0x00,
-        /// <summary>Unknown</summary>
-        ScratchPad = 0x01,
-        /// <summary>Whether the object has a TreeSpecies</summary>
-        Tree = 0x02,
-        /// <summary>Whether the object has floating text ala llSetText</summary>
-        HasText = 0x04,
-        /// <summary>Whether the object has an active particle system</summary>
-        HasParticles = 0x08,
-        /// <summary>Whether the object has sound attached to it</summary>
-        HasSound = 0x10,
-        /// <summary>Whether the object is attached to a root object or not</summary>
-        HasParent = 0x20,
-        /// <summary>Whether the object has texture animation settings</summary>
-        TextureAnimation = 0x40,
-        /// <summary>Whether the object has an angular velocity</summary>
-        HasAngularVelocity = 0x80,
-        /// <summary>Whether the object has a name value pairs string</summary>
-        HasNameValues = 0x100,
-        /// <summary>Whether the object has a Media URL set</summary>
-        MediaURL = 0x200,
-        /// <summary>Whether the object has, you guessed it, new particles</summary>
-        HasParticlesNew = 0x400
-    }
-
-    /// <summary>
     /// Specific Flags for MultipleObjectUpdate requests
     /// </summary>
     [Flags]

@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>LibreMetaverse.Protocol</AssemblyName>
+    <PackageId>LibreMetaverse.Protocol</PackageId>
+    <Description>The Second Life wire protocol for LibreMetaverse, without the client: the UDP packet classes generated from the message template, the packet decoder, the capability event-queue messages, and the enums they use. Pulled in by the LibreMetaverse package; reference it alone to build packet tools such as proxies and capture analysers.</Description>
+    <RootNamespace>LibreMetaverse</RootNamespace>
+    <OutputType>Library</OutputType>
+    <TargetFrameworks>netstandard2.1;net481;net8.0;net9.0;net10.0</TargetFrameworks>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
+    <NoWarn>$(NoWarn);CS0419;CS8981;CS1591;CS1574</NoWarn>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <OutputPath>..\bin\</OutputPath>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DefineConstants>TRACE</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- LibreMetaverse is the same product in another assembly, and shares a few internal members with this one -->
+    <InternalsVisibleTo Include="LibreMetaverse" />
+    <InternalsVisibleTo Include="LibreMetaverse.Tests" />
+    <InternalsVisibleTo Include="LibreMetaverse.Protocol.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LibreMetaverse.Assets\LibreMetaverse.Assets.csproj" />
+    <ProjectReference Include="..\LibreMetaverse.StructuredData\LibreMetaverse.StructuredData.csproj" />
+    <ProjectReference Include="..\LibreMetaverse.Types\LibreMetaverse.Types.csproj" />
+    <ProjectReference Include="..\SourceGenerators\PacketSourceGenerator\PacketSourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <AdditionalFiles Include="..\data\message_template.msg" />
+  </ItemGroup>
+</Project>

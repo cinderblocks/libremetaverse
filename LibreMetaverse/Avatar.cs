@@ -32,20 +32,6 @@ namespace LibreMetaverse
 {
     #region Enums
 
-    /// <summary>
-    /// Avatar profile flags
-    /// </summary>
-    [Flags]
-    public enum ProfileFlags : uint
-    {
-        AllowPublish = 1,
-        MaturePublish = 2,
-        Identified = 4,
-        Transacted = 8,
-        Online = 16,
-        AgeVerified = 32
-    }
-
     #endregion Enums
 
     /// <summary>

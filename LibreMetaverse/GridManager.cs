@@ -39,44 +39,6 @@ namespace LibreMetaverse
 {
     #region Enums
 
-    /// <summary>
-    /// Map layer request type
-    /// </summary>
-    public enum GridLayerType : uint
-    {
-        /// <summary>Objects and terrain are shown</summary>
-        Objects = 0,
-        /// <summary>Only the terrain is shown, no objects</summary>
-        Terrain = 1,
-        /// <summary>Overlay showing land for sale and for auction</summary>
-        LandForSale = 2
-    }
-
-    /// <summary>
-    /// Type of grid item, such as telehub, event, popular location, etc.
-    /// </summary>
-    public enum GridItemType : uint
-    {
-        /// <summary>Telehub</summary>
-        Telehub = 1,
-        /// <summary>PG rated event</summary>
-        PgEvent = 2,
-        /// <summary>Mature rated event</summary>
-        MatureEvent = 3,
-        /// <summary>Popular location</summary>
-        Popular = 4,
-        /// <summary>Locations of avatar groups in a region</summary>
-        AgentLocations = 6,
-        /// <summary>Land for sale</summary>
-        LandForSale = 7,
-        /// <summary>Classified ad</summary>
-        Classified = 8,
-        /// <summary>Adult rated event</summary>
-        AdultEvent = 9,
-        /// <summary>Adult land for sale</summary>
-        AdultLandForSale = 10
-    }
-
     #endregion Enums
 
     #region Structs

@@ -48,109 +48,11 @@ namespace LibreMetaverse
         Teleport = 1 << 12
     }
 
-    public enum InstantMessageDialog : byte
-    {
-        MessageFromAgent = 0,
-        MessageBox = 1,
-        GroupInvitation = 3,
-        InventoryOffered = 4,
-        InventoryAccepted = 5,
-        InventoryDeclined = 6,
-        GroupVote = 7,
-        TaskInventoryOffered = 9,
-        TaskInventoryAccepted = 10,
-        TaskInventoryDeclined = 11,
-        NewUserDefault = 12,
-        SessionAdd = 13,
-        SessionOfflineAdd = 14,
-        SessionGroupStart = 15,
-        SessionCardlessStart = 16,
-        SessionSend = 17,
-        SessionDrop = 18,
-        MessageFromObject = 19,
-        BusyAutoResponse = 20,
-        ConsoleAndChatHistory = 21,
-        RequestTeleport = 22,
-        AcceptTeleport = 23,
-        DenyTeleport = 24,
-        GodLikeRequestTeleport = 25,
-        RequestLure = 26,
-        GotoUrl = 28,
-        Session911Start = 29,
-        Lure911 = 30,
-        FromTaskAsAlert = 31,
-        GroupNotice = 32,
-        GroupNoticeInventoryAccepted = 33,
-        GroupNoticeInventoryDeclined = 34,
-        GroupInvitationAccept = 35,
-        GroupInvitationDecline = 36,
-        GroupNoticeRequested = 37,
-        FriendshipOffered = 38,
-        FriendshipAccepted = 39,
-        FriendshipDeclined = 40,
-        StartTyping = 41,
-        StopTyping = 42
-    }
-
-    public enum InstantMessageOnline
-    {
-        Online = 0,
-        Offline = 1
-    }
-
-    public enum ChatType : byte
-    {
-        Whisper = 0,
-        Normal = 1,
-        Shout = 2,
-        StartTyping = 4,
-        StopTyping = 5,
-        Debug = 6,
-        OwnerSay = 8,
-        RegionSayTo = 9,
-        RegionSay = byte.MaxValue,
-    }
-
     public enum ChatSourceType : byte
     {
         System = 0,
         Agent = 1,
         Object = 2
-    }
-
-    public enum ChatAudibleLevel : sbyte
-    {
-        Not = -1,
-        Barely = 0,
-        Fully = 1
-    }
-
-    public enum EffectType : byte
-    {
-        Text = 0,
-        Icon,
-        Connector,
-        FlexibleObject,
-        AnimalControls,
-        AnimationObject,
-        Cloth,
-        Beam,
-        Glow,
-        Point,
-        Trail,
-        Sphere,
-        Spiral,
-        Edit,
-        LookAt,
-        PointAt
-    }
-
-    public enum PointAtType : byte
-    {
-        None,
-        Select,
-        Grab,
-        Clear
     }
 
     public enum MoneyTransactionType : int
@@ -244,21 +146,6 @@ namespace LibreMetaverse
         MouseLookLeftButton = 1073741824
     }
 
-    [Flags]
-    public enum AgentFlags : byte
-    {
-        None = 0,
-        HideTitle = 0x01,
-    }
-
-    [Flags]
-    public enum AgentState : byte
-    {
-        None = 0x00,
-        Typing = 0x04,
-        Editing = 0x10
-    }
-
     public enum TeleportStatus
     {
         None,
@@ -267,31 +154,6 @@ namespace LibreMetaverse
         Failed,
         Finished,
         Cancelled
-    }
-
-    [Flags]
-    public enum TeleportFlags : uint
-    {
-        Default = 0,
-        SetHomeToTarget = 1 << 0,
-        SetLastToTarget = 1 << 1,
-        ViaLure = 1 << 2,
-        ViaLandmark = 1 << 3,
-        ViaLocation = 1 << 4,
-        ViaHome = 1 << 5,
-        ViaTelehub = 1 << 6,
-        ViaLogin = 1 << 7,
-        ViaGodlikeLure = 1 << 8,
-        Godlike = 1 << 9,
-        NineOneOne = 1 << 10,
-        DisableCancel = 1 << 11,
-        ViaRegionID = 1 << 12,
-        IsFlying = 1 << 13,
-        ResetHome = 1 << 14,
-        ForceRedirect = 1 << 15,
-        FinishedViaLure = 1 << 26,
-        FinishedViaNewSim = 1 << 28,
-        FinishedViaSameSim = 1 << 29
     }
 
     [Flags]

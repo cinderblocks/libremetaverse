@@ -77,11 +77,9 @@ namespace LibreMetaverse.Packets
 
                 {"SaleType", DecodeObjectSaleType},
 
-                {"ScriptControlChange.Data.Controls", DecodeScriptControls},
 
                 {"RegionFlags", DecodeRegionFlags},
                 {"SimAccess", DecodeSimAccess},
-                {"ControlFlags", DecodeControlFlags},
 
                 // AgentUpdate
                 {"AgentUpdate.AgentData.State", DecodeAgentState},
@@ -146,13 +144,8 @@ namespace LibreMetaverse.Packets
                 // SendXferPacket
                 {"DataPacket.Data", DecodeBinaryToHexString},
                 // Directory Manager
-                {"DirClassifiedQuery.QueryData.QueryFlags", DecodeDirClassifiedQueryFlags},
-                {"QueryData.QueryFlags", DecodeDirQueryFlags},
                 {"Category", DecodeCategory},
-                {"QueryData.SearchType", SearchTypeFlags},
 
-                {"ClassifiedFlags", DecodeDirClassifiedFlags},
-                {"EventFlags", DecodeEventFlags},
 
                 {"ParcelAccessListRequest.Data.Flags", DecodeParcelAcl},
                 {"ParcelAccessListReply.Data.Flags", DecodeParcelAcl},
@@ -963,30 +956,6 @@ namespace LibreMetaverse.Packets
             return $"{fieldName,30}: {fieldData,-3} {"(" + (ClickAction) (byte) fieldData + ")",-36} [ClickAction]";
         }
 
-        private static string DecodeEventFlags(string fieldName, object fieldData)
-        {
-            return
-                $"{fieldName,30}: {fieldData,-3} {"(" + (DirectoryManager.EventFlags) (uint) fieldData + ")",-36} [EventFlags]";
-        }
-
-        private static string DecodeDirQueryFlags(string fieldName, object fieldData)
-        {
-            return
-                $"{fieldName,30}: {fieldData,-10} {"(" + (DirectoryManager.DirFindFlags) (uint) fieldData + ")",-29} [DirectoryManager.DirFindFlags]";
-        }
-
-        private static string DecodeDirClassifiedQueryFlags(string fieldName, object fieldData)
-        {
-            return
-                $"{fieldName,30}: {fieldData,-10} {"(" + (DirectoryManager.ClassifiedQueryFlags) (uint) fieldData + ")",-29} [ClassifiedQueryFlags]";
-        }
-
-        private static string DecodeDirClassifiedFlags(string fieldName, object fieldData)
-        {
-            return
-                $"{fieldName,30}: {fieldData,-10} {"(" + (DirectoryManager.ClassifiedFlags) (byte) fieldData + ")",-29} [ClassifiedFlags]";
-        }
-
         private static string DecodeGroupPowers(string fieldName, object fieldData)
         {
             return $"{fieldName,30}: {fieldData,-20} {"(" + (GroupPowers) (ulong) fieldData + ")",-19} [GroupPowers]";
@@ -995,12 +964,6 @@ namespace LibreMetaverse.Packets
         private static string DecodeParcelAcl(string fieldName, object fieldData)
         {
             return $"{fieldName,30}: {fieldData,-10} {"(" + (AccessList) (uint) fieldData + ")",-29} [AccessList]";
-        }
-
-        private static string SearchTypeFlags(string fieldName, object fieldData)
-        {
-            return
-                $"{fieldName,30}: {fieldData,-10} {"(" + (DirectoryManager.SearchTypeFlags) (uint) fieldData + ")",-29} [DirectoryManager.SearchTypeFlags]";
         }
 
         private static string DecodeCategory(string fieldName, object fieldData)
@@ -1017,12 +980,6 @@ namespace LibreMetaverse.Packets
         {
             return
                 $"{fieldName,30}: {fieldData,-10} {"(" + (TeleportFlags) (uint) fieldData + ")",-29} [TeleportFlags]";
-        }
-
-        private static string DecodeScriptControls(string fieldName, object fieldData)
-        {
-            return
-                $"{fieldName,30}: {(uint) fieldData,-10} {"(" + (AgentManager.ControlFlags) (uint) fieldData + ")",-29} [AgentManager.ControlFlags]";
         }
 
         private static string DecodeColorField(string fieldName, object fieldData)
@@ -1356,12 +1313,6 @@ namespace LibreMetaverse.Packets
                 $"{fieldName,30}: {(byte) fieldData,-2} {"(" + (InstantMessageDialog) fieldData + ")",-37} [{fieldData.GetType().Name}]";
         }
 
-        private static string DecodeControlFlags(string fieldName, object fieldData)
-        {
-            return
-                $"{fieldName,30}: {fieldData,-10} {"(" + (AgentManager.ControlFlags) (uint) fieldData + ")",-29} [{fieldData.GetType().Name}]";
-        }
-
         private static string DecodePermissionMask(string fieldName, object fieldData)
         {
             return
@@ -1490,6 +1441,25 @@ namespace LibreMetaverse.Packets
             return result.ToString();
         }
 
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Func<string, object, string>> Registered =
+            new System.Collections.Concurrent.ConcurrentDictionary<string, Func<string, object, string>>();
+
+        /// <summary>
+        /// Says how to print a field. A layer above the protocol uses this for fields whose enums the protocol cannot
+        /// name, such as the flags the managers define. A decoder registered for a key is used instead of a built-in one.
+        /// </summary>
+        /// <param name="key">The field, as the built-in decoders are keyed: <c>Packet.Block.Field</c>, <c>Block.Field</c> or <c>Field</c>, without "Packet" on the packet name</param>
+        /// <param name="decoder">Given the field's name and its value, gives the line to print</param>
+        public static void RegisterFieldDecoder(string key, Func<string, object, string> decoder)
+        {
+            if (string.IsNullOrEmpty(key)) throw new ArgumentException("A decoder needs a key", nameof(key));
+            Registered[key] = decoder ?? throw new ArgumentNullException(nameof(decoder));
+        }
+
+        /// <summary>Takes back a decoder given to <see cref="RegisterFieldDecoder"/></summary>
+        /// <returns>True if there was one for the key</returns>
+        public static bool UnregisterFieldDecoder(string key) => Registered.TryRemove(key, out _);
+
         internal static bool TrySpecialDecode(string decoderKey, object? fieldData, out string result)
         {
             result = string.Empty;
@@ -1504,7 +1474,7 @@ namespace LibreMetaverse.Packets
                     return true;
                 }
 
-                if (Callbacks.Value.TryGetValue(key, out var callback))
+                if (Registered.TryGetValue(key, out var callback) || Callbacks.Value.TryGetValue(key, out callback))
                 {
                     result = callback(keys[2], fieldData ?? string.Empty);
                     return true;

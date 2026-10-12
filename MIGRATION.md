@@ -382,6 +382,18 @@ The namespaces and the types are unchanged, so source needs no edit, but code co
 
 ---
 
+## 12. The wire protocol is in `LibreMetaverse.Protocol`
+
+The UDP packet classes (`LibreMetaverse.Packets`, generated from the message template), `Packet`, `PacketType`, `PacketDecoder`, the capability event-queue messages (`LibreMetaverse.Messages`, `MessageUtils.DecodeEvent`) and `TerrainCompressor` are now in a package of their own, **`LibreMetaverse.Protocol`**. The `LibreMetaverse` package references it, so applications that use the client need no change. Reference `LibreMetaverse.Protocol` alone to build tools that speak the protocol without the client, such as proxies and capture analysers. It depends on `LibreMetaverse.Assets`, Types and StructuredData, not on `LibreMetaverse`.
+
+- **Moved with them.** The enums and types the messages and the decoder name were declared inside manager files, and are now in the protocol assembly with the same names, namespaces and values: `TeleportFlags`, `InstantMessageDialog`, `InstantMessageOnline`, `PointAtType`, `EffectType`, `ChatType`, `ChatAudibleLevel`, `AgentState`, `AgentFlags`, `ParcelStatus`, `ParcelResult`, `ParcelFlags`, `ParcelCategory`, `LandingType`, `AccessList`, `TargetType`, `SourceType`, `ImageType`, `ImageCodec`, `ChannelType`, `GridLayerType`, `GridItemType`, `CompressedFlags`, `RegionFlags`, `SimAccess`, `GroupPowers`, `ProfileFlags` and `AgentDisplayName`.
+- **Still in `LibreMetaverse`.** The UDP transport (`UDPBase`, `UDPPacketBuffer`, `UdpThrottle`), `Simulator`, `NetworkManager` and the managers. `DirectoryManager.EventFlags`, `DirFindFlags`, `ClassifiedQueryFlags`, `ClassifiedFlags`, `SearchTypeFlags` and `AgentManager.ControlFlags` are nested in managers and stay there.
+- **`PacketDecoder` and those nested enums.** The decoder used to print the fields that carry them by the enums' flag names. It cannot name them from the protocol assembly, so it has a new `PacketDecoder.RegisterFieldDecoder(key, decoder)` (and `UnregisterFieldDecoder`), and the `LibreMetaverse` assembly registers its seven decoders for those fields when it is first used. The output is the same as before for applications that use the client. An application that uses only the protocol package sees those fields as plain numbers, unless it registers decoders of its own. A decoder registered for a key is used instead of a built-in one.
+
+Code compiled against 3.0 needs recompiling, because the types are in another assembly.
+
+---
+
 ## Quick checklist (3.0.0 → 3.1.0)
 
 - [ ] Add a `PackageReference` to `LibreMetaverse.Imaging.Skia` if your app decodes arbitrary (non-TGA, non-J2K) image formats anywhere
@@ -395,6 +407,7 @@ The namespaces and the types are unchanged, so source needs no edit, but code co
 - [ ] If you override `Primitive.GetChildren`, do that another way; `prim.GetChildren(client)` calls need no change
 - [ ] Add a `PackageReference` to `LibreMetaverse.Archiving` if you use `OarFile` or the tar archive classes
 - [ ] Recompile anything built against 3.0 that uses asset, primitive, inventory item or avatar skeleton types; they are now in `LibreMetaverse.Assets`
+- [ ] Recompile anything built against 3.0 that uses packets, `PacketDecoder` or the event-queue messages; they are now in `LibreMetaverse.Protocol`
 
 ---
 
