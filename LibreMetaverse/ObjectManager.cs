@@ -37,65 +37,6 @@ using LibreMetaverse.Messages.Linden;
 
 namespace LibreMetaverse
 {
-    #region Enums
-
-    /// <summary>
-    /// Reason for submitting a request or report to the simulator
-    /// </summary>
-    public enum ReportType : uint
-    {
-        /// <summary>No report</summary>
-        None = 0,
-        /// <summary>Unknown report type</summary>
-        Unknown = 1,
-        /// <summary>Bug report</summary>
-        Bug = 2,
-        /// <summary>Complaint report</summary>
-        Complaint = 3,
-        /// <summary>Customer service report</summary>
-        CustomerServiceRequest = 4
-    }
-
-    /// <summary>
-    /// Specific Flags for MultipleObjectUpdate requests
-    /// </summary>
-    [Flags]
-    public enum UpdateType : uint
-    {
-        /// <summary>None</summary>
-        None = 0x00,
-        /// <summary>Change position of prims</summary>
-        Position = 0x01,
-        /// <summary>Change rotation of prims</summary>
-        Rotation = 0x02,
-        /// <summary>Change size of prims</summary>
-        Scale = 0x04,
-        /// <summary>Perform operation on link set</summary>
-        Linked = 0x08,
-        /// <summary>Scale prims uniformly, same as selecting ctrl+shift in the
-        /// viewer. Used in conjunction with Scale</summary>
-        Uniform = 0x10
-    }
-
-    /// <summary>
-    /// Special values in PayPriceReply. If the price is not one of these
-    /// literal value of the price should be use
-    /// </summary>
-    public enum PayPriceType : int
-    {
-        /// <summary>
-        /// Indicates that this pay option should be hidden
-        /// </summary>
-        Hide = -1,
-
-        /// <summary>
-        /// Indicates that this pay option should have the default value
-        /// </summary>
-        Default = -2
-    }
-
-    #endregion Enums
-
     #region Structs
 
     /// <summary>
@@ -1141,7 +1082,6 @@ namespace LibreMetaverse
              };
 
              Client.Network.SendPacket(grab, simulator);
-
 
             // Use async delay instead of blocking the thread; respect cancellation but always send degrab
             try
@@ -2423,8 +2363,6 @@ namespace LibreMetaverse
         }
         #endregion
 
-
-
         #region Utility Functions
 
         /// <summary>
@@ -2537,7 +2475,6 @@ namespace LibreMetaverse
 
             av.ParentID = localid;
 
-
             if (m_AvatarSitChanged != null && oldSeatID != localid)
             {
                 OnAvatarSitChanged(new AvatarSitChangedEventArgs(sim, av, localid, oldSeatID));
@@ -2553,7 +2490,6 @@ namespace LibreMetaverse
         {
             s.Stats.Dilation = dilation / 65535.0f;
         }
-
 
         /// <summary>
         /// Set the Shape data of an object
@@ -2625,7 +2561,6 @@ namespace LibreMetaverse
 
             Client.Network.SendPacket(matPacket, simulator);
         }
-
 
         #endregion Utility Functions
 

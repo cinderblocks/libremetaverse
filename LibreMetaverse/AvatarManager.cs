@@ -38,69 +38,6 @@ using LibreMetaverse.StructuredData;
 
 namespace LibreMetaverse
 {
-
-    #region Structs
-    /// <summary>
-    /// Holds group information for Avatars such as those you might find in a profile
-    /// </summary>
-    public struct AvatarGroup
-    {
-        /// <summary>true of Avatar accepts group notices</summary>
-        public bool AcceptNotices;
-        /// <summary>Groups Key</summary>
-        public UUID GroupID;
-        /// <summary>Texture Key for groups insignia</summary>
-        public UUID GroupInsigniaID;
-        /// <summary>Name of the group</summary>
-        public string GroupName;
-        /// <summary>Powers avatar has in the group</summary>
-        public GroupPowers GroupPowers;
-        /// <summary>Avatars Currently selected title</summary>
-        public string GroupTitle;
-        /// <summary>true of Avatar has chosen to list this in their profile</summary>
-        public bool ListInProfile;
-    }
-
-    /// <summary>
-    /// Holds group information on an individual profile pick
-    /// </summary>
-    public struct ProfilePick
-    {
-        public UUID PickID;
-        public UUID CreatorID;
-        public bool TopPick;
-        public UUID ParcelID;
-        public string Name;
-        public string Desc;
-        public UUID SnapshotID;
-        public string User;
-        public string OriginalName;
-        public string SimName;
-        public Vector3d PosGlobal;
-        public int SortOrder;
-        public bool Enabled;
-    }
-
-    public struct ClassifiedAd
-    {
-        public UUID ClassifiedID;
-        public UUID CreatorID;
-        public uint CreationDate;
-        public uint ExpirationDate;
-        public uint Category;
-        public UUID ParcelID;
-        public uint ParentEstate;
-        public UUID SnapShotID;
-        public Vector3d Position;
-        public string SimName;
-        public string ParcelName;
-        public byte ClassifiedFlags;
-        public int Price;
-        public string Name;
-        public string Desc;
-    }
-    #endregion
-
     /// <summary>
     /// Retrieve friend status notifications, and retrieve avatar names and
     /// profiles
@@ -980,7 +917,6 @@ namespace LibreMetaverse
                 {
                     av.Animations = signaledAnimations;
                 }
-
             }
 
             if (!found)
@@ -1803,7 +1739,6 @@ namespace LibreMetaverse
         }
     }
 
-
     public class AvatarGroupsReplyEventArgs : EventArgs
     {
         /// <summary>Get the ID of the agent</summary>
@@ -1836,7 +1771,6 @@ namespace LibreMetaverse
     {
         public UUID PickID { get; }
         public ProfilePick Pick { get; }
-
 
         public PickInfoReplyEventArgs(UUID pickid, ProfilePick pick)
         {

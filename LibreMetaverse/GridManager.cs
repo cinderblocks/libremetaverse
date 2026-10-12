@@ -37,78 +37,6 @@ using System.Collections.ObjectModel;
 
 namespace LibreMetaverse
 {
-    #region Enums
-
-    #endregion Enums
-
-    #region Structs
-
-    /// <summary>
-	/// Information about a region on the grid map
-	/// </summary>
-	public struct GridRegion
-	{
-        /// <summary>Sim X position on World Map</summary>
-		public int X;
-        /// <summary>Sim Y position on World Map</summary>
-		public int Y;
-        /// <summary>Sim Name (NOTE: In lowercase!)</summary>
-		public string Name;
-        /// <summary>Access level</summary>
-		public SimAccess Access;
-        /// <summary>Appears to always be zero (None)</summary>
-        public RegionFlags RegionFlags;
-        /// <summary>Water Height</summary>
-		public byte WaterHeight;
-        /// <summary></summary>
-		public byte Agents;
-        /// <summary>UUID of the World Map image</summary>
-		public UUID MapImageID;
-        /// <summary>Unique identifier for this region, a combination of the X 
-        /// and Y position</summary>
-		public ulong RegionHandle;
-
-
-        public override string ToString()
-        {
-            return $"{Name} ({X}/{Y}), Handle: {RegionHandle}, MapImage: {MapImageID}, Access: {Access}";
-        }
-
-        public override int GetHashCode()
-        {
-            return X.GetHashCode() ^ Y.GetHashCode();
-        }
-
-        public override bool Equals(object? obj)
-        {
-            return (obj is GridRegion region) && Equals(region);
-        }
-
-        private bool Equals(GridRegion region)
-        {
-            return this.X == region.X && this.Y == region.Y;
-        }
-	}
-
-    /// <summary>
-    /// Visual chunk of the grid map
-    /// </summary>
-    public struct GridLayer
-    {
-        public int Bottom;
-        public int Left;
-        public int Top;
-        public int Right;
-        public UUID ImageID;
-
-        public bool ContainsRegion(int x, int y)
-        {
-            return x >= Left && x <= Right && y >= Bottom && y <= Top;
-        }
-    }
-
-    #endregion Structs
-
     #region Map Item Classes
 
     /// <summary>
@@ -535,7 +463,6 @@ namespace LibreMetaverse
             };
             Client.Network.SendPacket(request);
         }
-
 
         /// <summary>Asynchronously retrieves <see cref="GridRegion"/> information using the region name</summary>
         public async Task<GridRegion?> GetGridRegionAsync(string name, GridLayerType layer, CancellationToken cancellationToken = default)

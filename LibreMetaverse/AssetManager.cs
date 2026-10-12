@@ -38,54 +38,6 @@ using LibreMetaverse.Messages.Linden;
 
 namespace LibreMetaverse
 {
-    #region Enums
-
-    public enum EstateAssetType : int
-    {
-        None = -1,
-        Covenant = 0
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    public enum StatusCode
-    {
-        /// <summary>OK</summary>
-        OK = 0,
-        /// <summary>Transfer completed</summary>
-        Done = 1,
-        /// <summary></summary>
-        Skip = 2,
-        /// <summary></summary>
-        Abort = 3,
-        /// <summary>Unknown error occurred</summary>
-        Error = -1,
-        /// <summary>Equivalent to a 404 error</summary>
-        UnknownSource = -2,
-        /// <summary>Client does not have permission for that resource</summary>
-        InsufficientPermissions = -3,
-        /// <summary>Unknown status</summary>
-        Unknown = -4
-    }
-
-    public enum TransferError : int
-    {
-        None = 0,
-        Failed = -1,
-        AssetNotFound = -3,
-        AssetNotFoundInDatabase = -4,
-        InsufficientPermissions = -5,
-        EOF = -39,
-        CannotOpenFile = -42,
-        FileNotFound = -43,
-        FileIsEmpty = -44,
-        TCPTimeout = -23016,
-        CircuitGone = -23017
-    }
-
-    #endregion Enums
-
     #region Transfer Classes
 
     /// <summary>
@@ -210,7 +162,6 @@ namespace LibreMetaverse
             Priority = priority;
             DiscardLevel = discardLevel;
         }
-
     }
     #endregion Transfer Classes
 
@@ -401,7 +352,6 @@ namespace LibreMetaverse
 
             // Simulator is responding to a request to download a file
             Client.Network.RegisterCallback(PacketType.InitiateDownload, InitiateDownloadPacketHandler);
-
         }
 
         // TODO: Probably somewhere else is a more useful place to keep this.
@@ -549,7 +499,6 @@ namespace LibreMetaverse
             {
                 RequestAssetUDP(assetID, itemID, taskID, transfer, callback);
             }
-
         }
 
         /// <summary>
@@ -622,7 +571,6 @@ namespace LibreMetaverse
         private void RequestAssetUDP(UUID assetID, UUID itemID, UUID taskID, 
             AssetDownload transfer, AssetReceivedCallback? callback, CancellationToken cancellationToken = default)
         {
-
             // Add this transfer to the dictionary
             Transfers[transfer.ID] = transfer;
 
@@ -784,7 +732,6 @@ namespace LibreMetaverse
             {
                 RequestInventoryAssetUDP(assetID, itemID, taskID, ownerID, transfer, callback);
             }
-
             
         }
 

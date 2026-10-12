@@ -551,7 +551,7 @@ namespace LibreMetaverse.Assets
             xtw.WriteElementString("OwnerID", parcel.OwnerID.ToString());
 
             xtw.WriteStartElement("ParcelAccessList");
-            foreach (ParcelManager.ParcelAccessEntry pal in parcel.AccessBlackList)
+            foreach (ParcelAccessEntry pal in parcel.AccessBlackList)
             {
                 xtw.WriteStartElement("ParcelAccessEntry");
                 xtw.WriteElementString("AgentID", pal.AgentID.ToString());
@@ -559,7 +559,7 @@ namespace LibreMetaverse.Assets
                 xtw.WriteElementString("AccessList", Convert.ToString((uint)pal.Flags));
                 xtw.WriteEndElement();
             }
-            foreach (ParcelManager.ParcelAccessEntry pal in parcel.AccessWhiteList)
+            foreach (ParcelAccessEntry pal in parcel.AccessWhiteList)
             {
                 xtw.WriteStartElement("ParcelAccessEntry");
                 xtw.WriteElementString("AgentID", pal.AgentID.ToString());

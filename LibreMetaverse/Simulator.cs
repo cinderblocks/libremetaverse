@@ -38,23 +38,6 @@ using LibreMetaverse.Packets;
 
 namespace LibreMetaverse
 {
-    #region Enums
-
-    /// <summary>
-    /// Region protocol flags
-    /// </summary>
-    [Flags]
-    public enum RegionProtocols : ulong
-    {
-        /// <summary>Nothing special</summary>
-        None = 0,
-        /// <summary>Region supports Server side Appearance</summary>
-        AgentAppearanceService = 1UL << 0,
-        /// <summary>Viewer supports Server side Appearance</summary>
-        SelfAppearanceSupport = 1UL << 2
-    }
-
-    #endregion Enums
     
     /// <summary>
     /// Simulator class encapsulates the idea of what Linden Lab calls a "Region" not a "Simulator", per se.
@@ -605,7 +588,6 @@ namespace LibreMetaverse
         }
 
         internal bool _DownloadingParcelMap = false;
-
 
         private readonly ManualResetEventSlim GotUseCircuitCodeAck = new ManualResetEventSlim(false);
         

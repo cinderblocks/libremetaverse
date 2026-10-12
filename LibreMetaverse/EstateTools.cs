@@ -40,46 +40,6 @@ using System.Threading.Tasks;
 
 namespace LibreMetaverse
 {
-    /// <summary>Describes tasks returned in LandStatReply</summary>
-    public class EstateTask
-    {
-        public Vector3 Position;
-        public float Score;
-        public float MonoScore;
-        public UUID TaskID;
-        public uint TaskLocalID;
-        public string TaskName = string.Empty;
-        public string OwnerName = string.Empty;
-    }
-
-    /// <summary>Weekday flags for a weekly region restart schedule, matching the reference viewer's
-    /// day-letter scheme (llfloaterregionrestartschedule.cpp CHECKBOX_PREFIXES: s,m,t,w,r,f,a).</summary>
-    [Flags]
-    public enum RegionRestartDays
-    {
-        None = 0,
-        Sunday = 1 << 0,
-        Monday = 1 << 1,
-        Tuesday = 1 << 2,
-        Wednesday = 1 << 3,
-        Thursday = 1 << 4,
-        Friday = 1 << 5,
-        Saturday = 1 << 6,
-        All = Sunday | Monday | Tuesday | Wednesday | Thursday | Friday | Saturday
-    }
-
-    /// <summary>A region's automatic restart schedule, as returned/set by the RegionSchedule capability.</summary>
-    public class RegionRestartSchedule
-    {
-        /// <summary>True for a daily restart; false for a weekly schedule on specific <see cref="Days"/>.</summary>
-        public bool IsDaily { get; set; }
-        /// <summary>Days of the week the region restarts on. Only meaningful when <see cref="IsDaily"/>
-        /// is false; an empty set with IsDaily false clears/disables the schedule.</summary>
-        public RegionRestartDays Days { get; set; }
-        /// <summary>Time of day the restart occurs, relative to midnight UTC.</summary>
-        public TimeSpan Time { get; set; }
-    }
-
     /// <summary>
     /// Estate level administration and utilities
     /// </summary>
@@ -256,7 +216,6 @@ namespace LibreMetaverse
             remove { lock (m_TopScriptsReply_Lock) { m_TopScriptsReply -= value; } }
         }
 
-
         /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<EstateUsersReplyEventArgs>? m_EstateUsersReply;
 
@@ -278,7 +237,6 @@ namespace LibreMetaverse
             add { lock (m_EstateUsersReply_Lock) { m_EstateUsersReply += value; } }
             remove { lock (m_EstateUsersReply_Lock) { m_EstateUsersReply -= value; } }
         }
-
 
         /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<EstateGroupsReplyEventArgs>? m_EstateGroupsReply;
@@ -390,7 +348,6 @@ namespace LibreMetaverse
             add { lock (m_EstateCovenantReply_Lock) { m_EstateCovenantReply += value; } }
             remove { lock (m_EstateCovenantReply_Lock) { m_EstateCovenantReply -= value; } }
         }
-
 
         /// <summary>The event subscribers. null if no subscribers</summary>
         private EventHandler<EstateUpdateInfoReplyEventArgs>? m_EstateUpdateInfoReply;
@@ -729,7 +686,6 @@ namespace LibreMetaverse
         public void SetRegionInfoUdp(bool blockTerraform, bool blockFly, bool allowDamage, bool allowLandResell, 
             bool restrictPushing, bool allowParcelJoinDivide, float agentLimit, float objectBonus, RegionMaturity maturity)
         {
-
             var listParams = new List<string>
             {
                 blockTerraform ? "Y" : "N",
@@ -1825,7 +1781,6 @@ namespace LibreMetaverse
             this.Timestamp = timestamp;
             this.EstateName = estateName;
             this.EstateOwnerID = estateOwnerID;
-
         }
     }
 
@@ -1866,7 +1821,6 @@ namespace LibreMetaverse
             this.EstateID = estateID;
             this.Flags = flags;
             this.SunHour = sunHour;
-
         }
     }
     #endregion

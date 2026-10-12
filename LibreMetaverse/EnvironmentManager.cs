@@ -33,24 +33,6 @@ using LibreMetaverse.StructuredData;
 namespace LibreMetaverse
 {
     /// <summary>
-    /// EEP sky altitude track indices (from llenvironment.h ETrackType).
-    /// Track 0 = water/underwater, tracks 1-4 = sky altitude bands.
-    /// </summary>
-    public enum EnvironmentTrack : int
-    {
-        /// <summary>Water / underwater environment track</summary>
-        Water = 0,
-        /// <summary>Ground-level sky track</summary>
-        Ground = 1,
-        /// <summary>Low altitude sky track (~1000 m)</summary>
-        Low = 2,
-        /// <summary>Middle altitude sky track (~2000 m)</summary>
-        Middle = 3,
-        /// <summary>High altitude sky track (~3000 m)</summary>
-        High = 4
-    }
-
-    /// <summary>
     /// Manages EEP (Extended Environment Protocol) and legacy WindLight environment settings
     /// for the current region and its parcels.
     /// Corresponds to LLEnvironment in the SL C++ viewer (llenvironment.h / llenvironment.cpp).
