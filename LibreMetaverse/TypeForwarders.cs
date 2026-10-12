@@ -915,3 +915,12 @@ using System.Runtime.CompilerServices;
 [assembly: TypeForwardedTo(typeof(global::LibreMetaverse.UpdateType))]
 [assembly: TypeForwardedTo(typeof(global::LibreMetaverse.Vote))]
 [assembly: TypeForwardedTo(typeof(global::LibreMetaverse.Parcel))]
+
+// LibreMetaverse.Types and LibreMetaverse.Assets, the small utilities that were declared in the client
+[assembly: TypeForwardedTo(typeof(global::LibreMetaverse.CoordinateFrame))]
+[assembly: TypeForwardedTo(typeof(global::LibreMetaverse.SlurlParser))]
+[assembly: TypeForwardedTo(typeof(global::LibreMetaverse.ViewerUriType))]
+[assembly: TypeForwardedTo(typeof(global::LibreMetaverse.SlappCommand))]
+[assembly: TypeForwardedTo(typeof(global::LibreMetaverse.Sounds))]
+[assembly: TypeForwardedTo(typeof(global::LibreMetaverse.Materials.LegacyMaterial))]
+[assembly: TypeForwardedTo(typeof(global::LibreMetaverse.Materials.LegacyMaterialAlphaMode))]

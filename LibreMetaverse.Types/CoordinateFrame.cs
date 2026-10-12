@@ -270,7 +270,7 @@ namespace LibreMetaverse
         {
             // Make sure the axis are orthogonal and normalized
             xAxis = Vector3.Normalize(xAxis);
-            yAxis -= xAxis * (xAxis * yAxis);
+            yAxis -= xAxis * Vector3.Dot(xAxis, yAxis);
             yAxis = Vector3.Normalize(yAxis);
             zAxis = Vector3.Cross(xAxis, yAxis);
         }
