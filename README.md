@@ -34,6 +34,41 @@ See all examples in [`Programs/examples/`](Programs/examples/) | [Examples READM
 
 See all tools in [`Programs/tools/`](Programs/tools/) | [Tools README](Programs/tools/README.md)
 
+## Packages
+
+LibreMetaverse is a family of packages. Reference the one that matches what you are building; each package's page on NuGet describes it in full.
+
+**Building a client or a bot?** Reference `LibreMetaverse`. It brings in the packages below it, and the types in them are still in the `LibreMetaverse` namespace.
+
+| Package | For |
+|---|---|
+| [`LibreMetaverse`](https://www.nuget.org/packages/LibreMetaverse) | The client: log in, move, chat, build, manage inventory, groups and land. Brings in the six packages below it. |
+| [`LibreMetaverse.Transport`](https://www.nuget.org/packages/LibreMetaverse.Transport) | The UDP circuit with no client: socket loop, reliable delivery, throttle. |
+| [`LibreMetaverse.Protocol`](https://www.nuget.org/packages/LibreMetaverse.Protocol) | The wire protocol with no client: every UDP packet, the capability messages, the login request and response. |
+| [`LibreMetaverse.Assets`](https://www.nuget.org/packages/LibreMetaverse.Assets) | The offline data model: asset types, prims and textures, inventory items, avatar data, model upload checks. |
+| [`LibreMetaverse.StructuredData`](https://www.nuget.org/packages/LibreMetaverse.StructuredData) | LLSD in XML, binary, notation, JSON and protobuf. |
+| [`LibreMetaverse.Imaging.Abstractions`](https://www.nuget.org/packages/LibreMetaverse.Imaging.Abstractions) | `ManagedImage` and the `ITextureCodec` interface. |
+| [`LibreMetaverse.Types`](https://www.nuget.org/packages/LibreMetaverse.Types) | `UUID`, vectors, quaternions, colors, the shared enums, caches and locks. |
+
+**Working with content or the protocol, with no login?** Reference only the package you need. `LibreMetaverse.Assets` reads and writes assets, `LibreMetaverse.Protocol` builds and parses packets, and `LibreMetaverse.StructuredData` reads LLSD, each without the client. Each package uses only the ones beneath it in the table.
+
+**Add-ons**, which you reference alongside the above:
+
+| Package | For |
+|---|---|
+| [`LibreMetaverse.ModelFormats`](https://www.nuget.org/packages/LibreMetaverse.ModelFormats) | Load Collada, glTF and OBJ models for upload; export meshes as glTF, OBJ or Collada. |
+| [`LibreMetaverse.Archiving`](https://www.nuget.org/packages/LibreMetaverse.Archiving) | Read and write OpenSim region archives (OAR) and tar files. |
+| [`LibreMetaverse.Utilities`](https://www.nuget.org/packages/LibreMetaverse.Utilities) | Persistent login, keeping an avatar in a region, typed-out chat. |
+| [`LibreMetaverse.Voice.WebRTC`](https://www.nuget.org/packages/LibreMetaverse.Voice.WebRTC) | Voice chat on Second Life's WebRTC voice service. |
+| [`LibreMetaverse.Voice.Vivox`](https://www.nuget.org/packages/LibreMetaverse.Voice.Vivox) | Voice chat through the older Vivox service and its `SLVoice` daemon. |
+| [`LibreMetaverse.RLV`](https://www.nuget.org/packages/LibreMetaverse.RLV) | RestrainedLove command handling. Depends on no other LibreMetaverse package. |
+| [`LibreMetaverse.Rendering.MeshFoundry`](https://www.nuget.org/packages/LibreMetaverse.Rendering.MeshFoundry) | Geometry from prims, sculpts and mesh assets, with rigging and PBR coordinates. |
+| [`LibreMetaverse.Rendering.Simple`](https://www.nuget.org/packages/LibreMetaverse.Rendering.Simple) | A stand-in renderer that returns a unit cube for every prim, for tests. |
+| [`LibreMetaverse.PrimMesher`](https://www.nuget.org/packages/LibreMetaverse.PrimMesher) | Triangles from prim and sculpt parameters. |
+| [`LibreMetaverse.Imaging.Skia`](https://www.nuget.org/packages/LibreMetaverse.Imaging.Skia) | An `ITextureCodec` for PNG, JPEG and BMP, built on SkiaSharp. |
+| [`LibreMetaverse.LslTools`](https://www.nuget.org/packages/LibreMetaverse.LslTools) | Lexer and parser toolkit for tools that read LSL. |
+| [`LibreMetaverse.PacketDump`](https://www.nuget.org/packages/LibreMetaverse.PacketDump) | A command-line tool that logs the type of every packet a grid sends. |
+
 ## Requirements
 
 - .NET SDK 8.0, 9.0, or 10.0 installed (10.0 recommended). Older SDK versions may build some projects but are not tested.
@@ -45,7 +80,7 @@ dotnet --info
 
 - On Windows you can use Visual Studio 2022 or later with .NET workloads installed. On Linux/macOS use the official .NET SDK installers.
 
-> **Upgrading from 2.x?** See [MIGRATION.md](MIGRATION.md) for a full list of breaking changes in 3.0.
+> **Upgrading?** [MIGRATION.md](MIGRATION.md) covers 3.1 to 3.2 (the package split, and the few members that changed) and 2.x to 3.0.
 
 ## Recommended quick build (CLI)
 

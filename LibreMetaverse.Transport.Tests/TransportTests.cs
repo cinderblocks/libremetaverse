@@ -402,30 +402,31 @@ namespace LibreMetaverse.Tests
         [Test]
         public async Task ABucketAllowsABurstAndThenMakesTrafficWait()
         {
-            // 4000 bits a second is 200 bytes a tenth of a second at the least, and four tenths can be saved up
+            // 4000 bits a second is 200 bytes a tenth of a second at the least, and four tenths can be saved up. The time is
+            // counted from before the throttle was made: a pause only lengthens it, and the bucket cannot refill sooner
+            var watch = Stopwatch.StartNew();
             using var throttle = new UdpThrottle(Slow());
             await throttle.AcquireAsync(UdpThrottleCategory.Task, 800, CancellationToken.None);
 
-            var watch = Stopwatch.StartNew();
             await throttle.AcquireAsync(UdpThrottleCategory.Task, 200, CancellationToken.None);
-            long waited = watch.ElapsedMilliseconds;
 
-            Assert.That(waited, Is.GreaterThanOrEqualTo(50).And.LessThan(3000));
+            Assert.That(watch.ElapsedMilliseconds, Is.GreaterThanOrEqualTo(80).And.LessThan(3000));
         }
 
         [Test]
         public async Task ABucketSavesUpFourTenthsOfASecond()
         {
             // 200 bytes a tenth of a second, so 800 can be taken at once and no more
-            using var throttle = new UdpThrottle(Slow());
             var watch = Stopwatch.StartNew();
+            using var throttle = new UdpThrottle(Slow());
 
             for (int i = 0; i < 4; i++) await throttle.AcquireAsync(UdpThrottleCategory.Task, 200, CancellationToken.None);
             long burst = watch.ElapsedMilliseconds;
             await throttle.AcquireAsync(UdpThrottleCategory.Task, 200, CancellationToken.None);
 
-            Assert.That(burst, Is.LessThan(40));
-            Assert.That(watch.ElapsedMilliseconds - burst, Is.GreaterThanOrEqualTo(50));
+            // Without the saved-up burst, four takes of 200 bytes would cost three refills (300 ms or more)
+            Assert.That(burst, Is.LessThan(250), "the four were taken at once");
+            Assert.That(watch.ElapsedMilliseconds, Is.GreaterThanOrEqualTo(80), "the fifth waited for the bucket to refill");
         }
 
         [Test]
@@ -437,7 +438,8 @@ namespace LibreMetaverse.Tests
             var watch = Stopwatch.StartNew();
             await throttle.AcquireAsync(UdpThrottleCategory.Texture, 800, CancellationToken.None);
 
-            Assert.That(watch.ElapsedMilliseconds, Is.LessThan(40), "the texture bucket was full");
+            // An empty bucket would make it wait for four refills, 400 ms
+            Assert.That(watch.ElapsedMilliseconds, Is.LessThan(250), "the texture bucket was full");
         }
 
         [Test]
@@ -484,7 +486,7 @@ namespace LibreMetaverse.Tests
             var watch = Stopwatch.StartNew();
             await throttle.AcquireAsync(UdpThrottleCategory.Task, 800, CancellationToken.None);
 
-            Assert.That(watch.ElapsedMilliseconds, Is.LessThan(40));
+            Assert.That(watch.ElapsedMilliseconds, Is.LessThan(250), "a disposed throttle does not wait");
             Assert.DoesNotThrow(() => throttle.Dispose());
         }
 

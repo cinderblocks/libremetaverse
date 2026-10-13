@@ -112,12 +112,12 @@ namespace LibreMetaverse.Tests
             public readonly Channel<NetworkManager.IncomingPacket> Inbox = Channel.CreateUnbounded<NetworkManager.IncomingPacket>();
             public readonly Channel<NetworkManager.OutgoingPacket> Outbox = Channel.CreateUnbounded<NetworkManager.OutgoingPacket>();
 
-            public Circuit(bool throttleOutgoing = false)
+            public Circuit(bool throttleOutgoing = false, int resendTimeoutMs = 100)
             {
                 Client.Settings.Packets.ThrottleOutgoing = throttleOutgoing;
                 Client.Settings.Packets.MaxPendingAcks = 1000;
                 Client.Settings.Packets.MaxResendCount = 3;
-                Client.Settings.Timing.ResendTimeout = 100;
+                Client.Settings.Timing.ResendTimeout = resendTimeoutMs;
                 Client.Settings.Logging.LogResends = false;
 
                 FarEndPoint = (IPEndPoint)FarEnd.Client.LocalEndPoint!;
@@ -155,11 +155,28 @@ namespace LibreMetaverse.Tests
                 return new Wire { Raw = raw, Packet = Packet.BuildPacket(parsed, ref end, new byte[8192]) };
             }
 
-            public List<Wire> All(int quietMs = 150)
+            /// <summary>
+            /// What the far end receives: the first datagram is waited for as long as a slow machine may need, and the rest
+            /// until nothing more has come for a while.
+            /// </summary>
+            public List<Wire> All(int quietMs = 250, int firstMs = 5000)
+            {
+                var all = new List<Wire>();
+                Wire? w = Next(firstMs);
+                while (w != null)
+                {
+                    all.Add(w);
+                    w = Next(quietMs);
+                }
+                return all;
+            }
+
+            /// <summary>What arrives in the next while, for a test that expects little or nothing.</summary>
+            public List<Wire> Quiet(int ms)
             {
                 var all = new List<Wire>();
                 Wire? w;
-                while ((w = Next(quietMs)) != null) all.Add(w);
+                while ((w = Next(ms)) != null) all.Add(w);
                 return all;
             }
 
@@ -738,14 +755,15 @@ namespace LibreMetaverse.Tests
         [Test]
         public async Task AnUnacknowledgedPacket_IsResentAfterTheTimeout_WithTheSameSequenceAndTheResentFlag()
         {
-            using var c = new Circuit();
+            // A long timeout, so that a slow machine does not make the packet overdue before it is checked
+            using var c = new Circuit(resendTimeoutMs: 400);
             c.Sim.SendPacket(Chat("again"));
             var first = c.Next()!;
 
             c.ResendOnly();
             Assert.That(c.Next(50), Is.Null, "not before the timeout");
 
-            await Task.Delay(150);
+            await Task.Delay(500);
             c.ResendOnly();
             var second = c.Next()!;
 
@@ -786,8 +804,10 @@ namespace LibreMetaverse.Tests
             {
                 await Task.Delay(150);
                 c.ResendOnly();
-                wire.AddRange(c.All(60));
+                // The first three rounds resend the packet, and the datagram is waited for; after that there is nothing
+                if (round < 3) wire.Add(c.Next(5000)!);
             }
+            wire.AddRange(c.Quiet(150));
 
             Assert.Multiple(() =>
             {
