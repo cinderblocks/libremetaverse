@@ -220,6 +220,30 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
+        public async Task ARedirectedLogin_IsNotOverUntilTheNextServerHasAnswered()
+        {
+            using var server = new LoginServer();
+            server.Respond = (path, request) =>
+            {
+                if (path == "/first")
+                    return new LoginResponseData { Login = LoginState.Indeterminate, Message = "Try the other server", NextUrl = server.Url("second"), NextMethod = "login_to_simulator", NextDuration = 0 };
+                Thread.Sleep(300);   // the second server is slow to answer
+                return new LoginResponseData { Login = LoginState.False, Reason = "presence", Message = "Second server says no" };
+            };
+            var client = NewClient();
+
+            bool ok = await client.Network.LoginAsync(Params(client, server.Url("first")));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ok, Is.False);
+                Assert.That(server.Requests.Select(r => r.Path), Is.EqualTo(new[] { "/first", "/second" }));
+                Assert.That(client.Network.LoginErrorKey, Is.EqualTo("presence"), "the login finished with the second server's answer, not before it");
+                Assert.That(client.Network.LoginMessage, Is.EqualTo("Second server says no"));
+            });
+        }
+
+        [Test]
         public async Task ASuccessfulLogin_IsReadByTheClientAsTheServerWroteIt()
         {
             using var server = new LoginServer();

@@ -895,6 +895,9 @@ namespace LibreMetaverse
                 return;
             }
 
+            // A redirect sends the login on to another server; the login is not over until that one has answered
+            bool redirected = false;
+
             OSD result = OSDParser.Deserialize(responseData);
             if (result is OSDMap resMap)
             {
@@ -940,6 +943,7 @@ namespace LibreMetaverse
                         // Ignore next_options for now
                         CurrentContext = loginParams;
 
+                        redirected = true;
                         BeginLogin();
                     }
                     else if (loginSuccess)
@@ -1010,7 +1014,7 @@ namespace LibreMetaverse
             }
 
             // set the parsed result for LoginResponseData
-            if (loginResultTcs != null)
+            if (!redirected && loginResultTcs != null)
             {
                 loginResultTcs.TrySetResult(LoginStatusCode == LoginStatus.Success ? LoginResponseData : null);
             }
