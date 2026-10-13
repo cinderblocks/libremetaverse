@@ -45,7 +45,7 @@ namespace LibreMetaverse
         /// <code>
         /// builder.Services.AddGridClient(settings =>
         /// {
-        ///     settings.UserAgent = "MyBot/1.0";
+        ///     settings.Logging.LogResends = false;
         /// });
         ///
         /// // Then inject IGridClient or GridClient in your services:

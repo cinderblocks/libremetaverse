@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>LibreMetaverse.Rendering.Simple</AssemblyName>
-    <Description>Lightweight mesh rendering library for LibreMetaverse that provides basic geometry generation for Second Life prim and sculpt assets without full Meshmerizer support.</Description>
+    <Description>A stand-in IRendering for LibreMetaverse that returns a unit cube for every prim, sculpt and mesh. For tests and for code that needs a renderer without caring about the shape; use LibreMetaverse.Rendering.MeshFoundry for real geometry.</Description>
     <PackageId>LibreMetaverse.Rendering.Simple</PackageId>
     <TargetFrameworks>netstandard2.1;net481;net8.0;net9.0;net10.0</TargetFrameworks>
     <OutputType>Library</OutputType>

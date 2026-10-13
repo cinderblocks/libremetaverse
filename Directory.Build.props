@@ -37,7 +37,9 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<None Include="$(MSBuildThisFileDirectory)LICENSE.txt" Pack="true" PackagePath="\" />
-		<None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" />
+		<!-- A package carries its own README.md when its project directory has one, and the repository README otherwise. -->
+		<None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Condition="!Exists('$(MSBuildProjectDirectory)/README.md')" />
+		<None Include="$(MSBuildProjectDirectory)/README.md" Pack="true" PackagePath="\" Condition="Exists('$(MSBuildProjectDirectory)/README.md')" />
 		<None Include="$(MSBuildThisFileDirectory)data\logo.png" Pack="true" PackagePath="\" />
 	</ItemGroup>
 	<ItemGroup>
