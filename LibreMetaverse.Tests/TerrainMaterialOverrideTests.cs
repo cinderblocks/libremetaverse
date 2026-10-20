@@ -126,9 +126,9 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        public void SetTerrainMaterialOverridesAsync_WrongLength_Throws()
+        public async Task SetTerrainMaterialOverridesAsync_WrongLength_Throws()
         {
-            Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Assert.ThrowsAsync<ArgumentException>(async () =>
                 await _client.Terrain.SetTerrainMaterialOverridesAsync(new AssetMaterial?[] { null, null }));
         }
 

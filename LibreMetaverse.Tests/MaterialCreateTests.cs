@@ -240,7 +240,7 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        public void CreateMaterialAsync_Cancelled_Throws()
+        public async Task CreateMaterialAsync_Cancelled_Throws()
         {
             _client.Inventory.CreateMaterialItemHook = async (f, n, d, p, token) =>
             {
@@ -249,7 +249,7 @@ namespace LibreMetaverse.Tests
             };
             using var cancel = new CancellationTokenSource(50);
 
-            Assert.CatchAsync<OperationCanceledException>(() => _client.Inventory.CreateMaterialAsync(new AssetMaterial(), "Wall", "", Shared, _folder, cancel.Token));
+            await Assert.CatchAsync<OperationCanceledException>(() => _client.Inventory.CreateMaterialAsync(new AssetMaterial(), "Wall", "", Shared, _folder, cancel.Token));
         }
 
         [Test]
@@ -265,10 +265,10 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        public void CreateMaterialAsync_WithNothingToMake_Throws()
+        public async Task CreateMaterialAsync_WithNothingToMake_Throws()
         {
-            Assert.ThrowsAsync<ArgumentNullException>(() => _client.Inventory.CreateMaterialAsync((AssetMaterial)null!, "Wall", "", Shared, _folder));
-            Assert.ThrowsAsync<ArgumentNullException>(() => _client.Inventory.CreateMaterialAsync((ModelPbrMaterial)null!, Shared));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => _client.Inventory.CreateMaterialAsync((AssetMaterial)null!, "Wall", "", Shared, _folder));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => _client.Inventory.CreateMaterialAsync((ModelPbrMaterial)null!, Shared));
         }
 
         #endregion A material whose textures are already uploaded

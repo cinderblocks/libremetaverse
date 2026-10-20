@@ -249,9 +249,9 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        public void UploadModelAsync_EmptyPrimList_Throws()
+        public async Task UploadModelAsync_EmptyPrimList_Throws()
         {
-            Assert.ThrowsAsync<ArgumentException>(() =>
+            await Assert.ThrowsAsync<ArgumentException>(() =>
                 _client.Inventory.UploadModelAsync(
                     new List<ModelPrim>(), "Test Model", "desc", UUID.Random(), Permissions.NoPermissions));
         }

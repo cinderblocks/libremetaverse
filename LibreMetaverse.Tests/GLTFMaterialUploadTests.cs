@@ -116,13 +116,13 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        public void RequestUpdateMaterialAgentInventoryAsync_NoCapability_Throws()
+        public async Task RequestUpdateMaterialAgentInventoryAsync_NoCapability_Throws()
         {
             var client = new FakeGridClient();
             try
             {
                 var material = new AssetMaterial();
-                Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await Assert.ThrowsAsync<InvalidOperationException>(async () =>
                     await client.Inventory.RequestUpdateMaterialAgentInventoryAsync(material, UUID.Random()));
             }
             finally

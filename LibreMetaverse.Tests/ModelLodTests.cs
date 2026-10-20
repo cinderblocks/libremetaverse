@@ -844,10 +844,10 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        public void UploadModelAsync_ReductionBelowOne_Throws()
+        public async Task UploadModelAsync_ReductionBelowOne_Throws()
         {
             using var client = new FakeGridClient();
-            Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => client.Inventory.UploadModelAsync(
+            await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => client.Inventory.UploadModelAsync(
                 new[] { Prim(Vector3.One, Sphere(8, 16)) }, "m", "d", UUID.Random(), Permissions.NoPermissions,
                 options: new ModelAssetOptions { LodReduction = 0.1f }));
         }

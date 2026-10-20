@@ -100,7 +100,7 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        public void QueueDownloadAsync_Cancellation_PropagatesToTask()
+        public async Task QueueDownloadAsync_Cancellation_PropagatesToTask()
         {
             var bytes = Encoding.UTF8.GetBytes("will cancel");
             var handler = new FakeHandler(bytes);
@@ -116,7 +116,7 @@ namespace LibreMetaverse.Tests
                 var task = dm.QueueDownloadAsync(new Uri("http://example.test/cancel"), null, null, cts.Token, retries: 1);
 
                 // Task should be canceled (registered cancellation sets the TaskCompletionSource)
-                Assert.ThrowsAsync<TaskCanceledException>(async () => await task.ConfigureAwait(false));
+                await Assert.ThrowsAsync<TaskCanceledException>(async () => await task.ConfigureAwait(false));
             }
         }
 
@@ -136,7 +136,7 @@ namespace LibreMetaverse.Tests
 
                 var completed = await Task.WhenAny(task, Task.Delay(3000)).ConfigureAwait(false);
                 Assert.That(completed, Is.SameAs(task), "Cancelling the token did not cancel the in-flight download");
-                Assert.ThrowsAsync<TaskCanceledException>(async () => await task.ConfigureAwait(false));
+                await Assert.ThrowsAsync<TaskCanceledException>(async () => await task.ConfigureAwait(false));
             }
         }
 

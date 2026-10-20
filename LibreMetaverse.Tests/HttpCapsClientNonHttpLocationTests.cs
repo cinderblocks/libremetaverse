@@ -72,7 +72,7 @@ namespace LibreMetaverse.Tests
                 using var content = new StringContent("test", Encoding.UTF8, "application/llsd+xml");
 
                 HttpResponseMessage? reply = null;
-                Assert.DoesNotThrowAsync(async () =>
+                await Assert.DoesNotThrowAsync(async () =>
                 {
                     reply = await client.HttpCapsClient.PutAsync(new Uri(prefix), content);
                 });

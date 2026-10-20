@@ -160,13 +160,13 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
-        public void CreateInventoryLinksAsync_ServerError_ThrowsHttpRequestException()
+        public async Task CreateInventoryLinksAsync_ServerError_ThrowsHttpRequestException()
         {
             using var client = MakeClientWithCap();
             var folderID = UUID.Random();
             client.AddHttpResponseForPath($"http://fake-ais3.test/ais3/category/{folderID}", HttpStatusCode.InternalServerError, string.Empty);
 
-            Assert.ThrowsAsync<HttpRequestException>(
+            await Assert.ThrowsAsync<HttpRequestException>(
                 () => client.AisClient.CreateInventoryLinksAsync(folderID, new OSDMap(), CancellationToken.None));
         }
 
