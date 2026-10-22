@@ -62,7 +62,7 @@ namespace LibreMetaverse.Appearance
         /// <summary>
         /// Maximum number of clothing layers that can be worn simultaneously
         /// </summary>
-        public int MaxClothingLayers => 60;
+        public int MaxClothingLayers => AppearanceManager.WEARABLE_COUNT_MAX;
 
         private readonly SemaphoreSlim cofInitLock = new SemaphoreSlim(1, 1);
         private Task<bool>? cofInitTask;
@@ -1145,11 +1145,31 @@ namespace LibreMetaverse.Appearance
                 }
             }
 
+            // Layers of a clothing type are ordered bottom to top, so the last one is the layer on top. The order
+            // comes from the wearables list, which is only as good as the order the COF was read in at login; layers
+            // it doesn't know about go underneath, keeping the order of the COF.
+            var layerOrder = client.Appearance.GetWearablesByType();
+            foreach (var layers in currentClothing)
+            {
+                if (!layerOrder.TryGetValue(layers.Key, out var wornLayers)) continue;
+
+                var order = wornLayers.Select((w, index) => (w.ItemID, index)).ToDictionary(k => k.ItemID, v => v.index);
+                var ordered = layers.Value.OrderBy(w => order.TryGetValue(w.UUID, out var index) ? index : -1).ToList();
+                layers.Value.Clear();
+                layers.Value.AddRange(ordered);
+            }
+            var addedThisCall = new HashSet<UUID>();
+
             var itemsToRemove = new List<InventoryItem>();
             var itemsToAdd = new List<InventoryItem>();
 
+            var isFirst = true;
             foreach (var item in requestedItemsToAdd)
             {
+                // Like the viewer, only the first item of a batch replaces; the rest are added.
+                var replaceThis = replace && isFirst;
+                isFirst = false;
+
                 var realItem = ResolveInventoryLink(item);
                 if (realItem == null)
                 {
@@ -1181,25 +1201,33 @@ namespace LibreMetaverse.Appearance
                 {
                     if (wearable.AssetType == AssetType.Clothing)
                     {
-                        if (replace)
+                        if (!currentClothing.TryGetValue(wearable.WearableType, out var currentClothingOfType))
                         {
-                            if (currentClothing.TryGetValue(wearable.WearableType, out var currentClothingOfType))
-                            {
-                                foreach (var clothingToRemove in currentClothingOfType)
-                                {
-                                    itemsToRemove.Add(clothingToRemove);
-                                }
-                            }
+                            currentClothingOfType = new List<InventoryWearable>();
+                            currentClothing[wearable.WearableType] = currentClothingOfType;
+                        }
+
+                        // Like the viewer, make room by taking off the top layer of the type only. Replacing every
+                        // layer of the type would take off all of the other alphas when wearing one. The same happens
+                        // when all layers are used up. Items added earlier in this same call are never taken off again.
+                        var displaceIndex = currentClothingOfType.FindLastIndex(w => !addedThisCall.Contains(w.UUID));
+                        var full = numClothingLayers >= MaxClothingLayers;
+                        if (displaceIndex >= 0 && (replaceThis || full))
+                        {
+                            itemsToRemove.Add(currentClothingOfType[displaceIndex]);
+                            currentClothingOfType.RemoveAt(displaceIndex);
+                        }
+                        else if (full)
+                        {
+                            continue;
                         }
                         else
                         {
-                            if (numClothingLayers >= MaxClothingLayers)
-                            {
-                                continue;
-                            }
-
                             numClothingLayers++;
                         }
+
+                        currentClothingOfType.Add(wearable);
+                        addedThisCall.Add(wearable.UUID);
                     }
                     else if (wearable.AssetType == AssetType.Bodypart)
                     {

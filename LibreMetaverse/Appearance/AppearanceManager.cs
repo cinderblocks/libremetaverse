@@ -1029,9 +1029,16 @@ namespace LibreMetaverse
 
             lock (Wearables)
             {
+                var addedThisCall = new HashSet<UUID>();
+                var isFirst = true;
+
                 // Add the given wearables to the wearables collection
                 foreach (var wearableItem in wearables)
                 {
+                    // Like the viewer, only the first item of a batch replaces; the rest are added.
+                    var replaceThis = replace && isFirst;
+                    isFirst = false;
+
                     var wd = new WearableData
                     {
                         AssetID = wearableItem.AssetUUID,
@@ -1040,13 +1047,36 @@ namespace LibreMetaverse
                         WearableType = wearableItem.WearableType
                     };
 
-                    // Bodyparts (Shape, Skin, Eyes, Hair) and Physics must always replace - they cannot be layered
-                    if (replace || wearableItem.AssetType == AssetType.Bodypart || wearableItem.WearableType == WearableType.Physics)
+                    if (wearableItem.AssetType == AssetType.Bodypart || wearableItem.WearableType == WearableType.Physics)
                     {
-                        // Dump everything from the key
+                        // Bodyparts (Shape, Skin, Eyes, Hair) and Physics must always replace - they cannot be layered
                         Wearables.Remove(wearableItem.WearableType);
                     }
+                    else
+                    {
+                        Wearables.TryGetValue(wearableItem.WearableType, out var layers);
+                        if (layers != null && layers.Any(w => w.ItemID == wearableItem.UUID))
+                        {
+                            // Already worn
+                            continue;
+                        }
+
+                        // Like the viewer, make room by taking off the top layer of the type only, so wearing one
+                        // alpha doesn't take off every other alpha. The same happens when all layers are used up.
+                        // Items added earlier in this call stay on.
+                        var displaced = layers?.LastOrDefault(w => !addedThisCall.Contains(w.ItemID));
+                        var full = Wearables.SelectMany(e => e.Value).Count(w => w.AssetType == AssetType.Clothing) >= WEARABLE_COUNT_MAX;
+                        if (displaced != null && (replaceThis || full))
+                        {
+                            Wearables.Remove(wearableItem.WearableType, displaced);
+                        }
+                        else if (full)
+                        {
+                            continue;
+                        }
+                    }
                     Wearables.Add(wearableItem.WearableType, wd);
+                    addedThisCall.Add(wearableItem.UUID);
                 }
             }
 

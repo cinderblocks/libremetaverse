@@ -30,6 +30,108 @@ namespace LibreMetaverse.Tests
             });
         }
 
+        private static InventoryWearable Alpha() => new InventoryWearable(UUID.Random())
+        {
+            AssetType = AssetType.Clothing,
+            WearableType = WearableType.Alpha,
+            AssetUUID = UUID.Random()
+        };
+
+        private static UUID[] WornAlphas(GridClient client) =>
+            client.Appearance.GetWearablesByType().TryGetValue(WearableType.Alpha, out var worn)
+                ? worn.Select(w => w.ItemID).ToArray()
+                : new UUID[0];
+
+        [Test]
+        public void AddToOutfit_Replace_TakesOffOnlyTheTopLayer()
+        {
+            var client = new GridClient();
+            var a = Alpha();
+            var b = Alpha();
+            var c = Alpha();
+            client.Appearance.AddToOutfit(new System.Collections.Generic.List<InventoryItem> { a, b }, false);
+
+            client.Appearance.AddToOutfit(c, true);
+
+            Assert.That(WornAlphas(client), Is.EqualTo(new[] { a.UUID, c.UUID }), "the other alpha stays on, the top one is replaced");
+        }
+
+        [Test]
+        public void AddToOutfit_Replace_WithNothingWornOfTheType_JustAdds()
+        {
+            var client = new GridClient();
+            var a = Alpha();
+
+            client.Appearance.AddToOutfit(a, true);
+
+            Assert.That(WornAlphas(client), Is.EqualTo(new[] { a.UUID }));
+        }
+
+        [Test]
+        public void AddToOutfit_Add_KeepsEveryLayer_UpToTheTotalLimit()
+        {
+            var client = new GridClient();
+            var layers = Enumerable.Range(0, 6).Select(_ => Alpha()).ToList();
+
+            client.Appearance.AddToOutfit(layers.Cast<InventoryItem>().ToList(), false);
+
+            Assert.That(WornAlphas(client), Is.EqualTo(layers.Select(l => l.UUID)), "there is no per-type limit below the total");
+        }
+
+        [Test]
+        public void AddToOutfit_WhenAllLayersAreUsed_TheTopLayerOfTheTypeIsGivenUp()
+        {
+            var client = new GridClient();
+            var layers = Enumerable.Range(0, AppearanceManager.WEARABLE_COUNT_MAX).Select(_ => Alpha()).ToList();
+            client.Appearance.AddToOutfit(layers.Cast<InventoryItem>().ToList(), false);
+
+            var extra = Alpha();
+            client.Appearance.AddToOutfit(extra, false);
+
+            Assert.That(WornAlphas(client), Is.EqualTo(layers.Take(layers.Count - 1).Select(l => l.UUID).Append(extra.UUID)));
+        }
+
+        [Test]
+        public void AddToOutfit_ReplaceSeveralAtOnce_OnlyTheFirstReplaces()
+        {
+            var client = new GridClient();
+            var x = Alpha();
+            var y = Alpha();
+            var n1 = Alpha();
+            var n2 = Alpha();
+            client.Appearance.AddToOutfit(new System.Collections.Generic.List<InventoryItem> { x, y }, false);
+
+            client.Appearance.AddToOutfit(new System.Collections.Generic.List<InventoryItem> { n1, n2 }, true);
+
+            Assert.That(WornAlphas(client), Is.EqualTo(new[] { x.UUID, n1.UUID, n2.UUID }), "like the viewer, the rest are added");
+        }
+
+        [Test]
+        public void AddToOutfit_AnItemThatIsAlreadyWorn_IsNotAddedAgain()
+        {
+            var client = new GridClient();
+            var a = Alpha();
+            client.Appearance.AddToOutfit(a, false);
+
+            client.Appearance.AddToOutfit(a, false);
+
+            Assert.That(WornAlphas(client), Is.EqualTo(new[] { a.UUID }));
+        }
+
+        [Test]
+        public void AddToOutfit_Bodyparts_AlwaysReplace()
+        {
+            var client = new GridClient();
+            var first = new InventoryWearable(UUID.Random()) { AssetType = AssetType.Bodypart, WearableType = WearableType.Hair, AssetUUID = UUID.Random() };
+            var second = new InventoryWearable(UUID.Random()) { AssetType = AssetType.Bodypart, WearableType = WearableType.Hair, AssetUUID = UUID.Random() };
+            client.Appearance.AddToOutfit(first, false);
+
+            client.Appearance.AddToOutfit(second, false);
+
+            var hair = client.Appearance.GetWearablesByType()[WearableType.Hair].Select(w => w.ItemID).ToArray();
+            Assert.That(hair, Is.EqualTo(new[] { second.UUID }));
+        }
+
         [Test]
         public void WearableTypeToAssetType_BodypartsAndClothing_ReturnsExpected()
         {
