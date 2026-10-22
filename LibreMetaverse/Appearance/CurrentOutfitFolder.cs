@@ -30,6 +30,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using LibreMetaverse.StructuredData;
 
 namespace LibreMetaverse.Appearance
 {
@@ -466,16 +467,7 @@ namespace LibreMetaverse.Appearance
 
         protected async Task AddLink(InventoryItem item, CancellationToken cancellationToken = default)
         {
-            if (item is InventoryWearable wearableItem && !IsBodyPart(item))
-            {
-                var layer = 0;
-                var description = $"{(int)wearableItem.WearableType}{layer:00}";
-                await AddLink(item, description, cancellationToken);
-            }
-            else
-            {
-                await AddLink(item, string.Empty, cancellationToken);
-            }
+            await AddLink(item, GetCofLinkDescription(item), cancellationToken);
         }
 
         protected async Task AddLink(InventoryItem item, string newDescription, CancellationToken cancellationToken = default)
@@ -496,11 +488,37 @@ namespace LibreMetaverse.Appearance
             }
         }
 
-        internal string GetCofLinkDescription(InventoryItem item)
+        /// <summary>Marks a COF link description as layer ordering information, as the viewer does</summary>
+        private const char OrderNumberSeparator = '@';
+
+        /// <summary>
+        /// The description the viewer expects on the COF link of a clothing layer: "@" followed by
+        /// <c>wearable type * 100 + layer index</c>, e.g. "@1301" for the second alpha. Anything else is treated
+        /// as invalid, and the viewer then reorders the layers by item name.
+        /// </summary>
+        internal string GetCofLinkDescription(InventoryItem item, int layer = 0)
         {
             if (item is InventoryWearable wearable && !IsBodyPart(item))
-                return $"{(int)wearable.WearableType}00";
+                return $"{OrderNumberSeparator}{(int)wearable.WearableType * 100 + layer}";
             return string.Empty;
+        }
+
+        /// <summary>
+        /// Reads the layer ordering information of a COF link description written by <see cref="GetCofLinkDescription"/>
+        /// </summary>
+        internal static bool TryParseCofLinkDescription(string description, out WearableType type, out int layer)
+        {
+            type = WearableType.Invalid;
+            layer = 0;
+            if (string.IsNullOrEmpty(description) || description[0] != OrderNumberSeparator ||
+                !int.TryParse(description.Substring(1), out var order) || order < 0 || order / 100 >= (int)WearableType.Invalid)
+            {
+                return false;
+            }
+
+            type = (WearableType)(order / 100);
+            layer = order % 100;
+            return true;
         }
 
         /// <summary>
@@ -518,14 +536,124 @@ namespace LibreMetaverse.Appearance
             var cofLinks = await GetCurrentOutfitLinksAsync(cancellationToken);
             var existingAssetIds = new HashSet<UUID>(cofLinks.Select(l => l.AssetUUID));
 
-            var linksToCreate = items
-                .Where(item => !existingAssetIds.Contains(item.UUID))
-                .Select(item => ((InventoryBase)item, GetCofLinkDescription(item)))
-                .ToList();
+            var newItems = items.Where(item => !existingAssetIds.Contains(item.UUID)).ToList();
+
+            await RenumberLayerLinksAsync(cofLinks,
+                new HashSet<WearableType>(newItems.OfType<InventoryWearable>().Where(w => !IsBodyPart(w)).Select(w => w.WearableType)),
+                cancellationToken).ConfigureAwait(false);
+
+            // New layers go on top of the ones already linked
+            var nextLayer = NextLayerIndexes(cofLinks);
+
+            var linksToCreate = new List<(InventoryBase, string)>();
+            foreach (var item in newItems)
+            {
+                var layer = 0;
+                if (item is InventoryWearable wearable && !IsBodyPart(item))
+                {
+                    nextLayer.TryGetValue(wearable.WearableType, out layer);
+                    nextLayer[wearable.WearableType] = layer + 1;
+                }
+                linksToCreate.Add((item, GetCofLinkDescription(item, layer)));
+            }
 
             if (linksToCreate.Count == 0) return;
 
             await client.Inventory.CreateLinksAsync(COF.UUID, linksToCreate, null, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>The layer index a new link of each wearable type should get, after the ones already linked</summary>
+        internal static Dictionary<WearableType, int> NextLayerIndexes(IEnumerable<InventoryItem> cofLinks)
+        {
+            var nextLayer = new Dictionary<WearableType, int>();
+            foreach (var link in cofLinks)
+            {
+                if (TryParseCofLinkDescription(link.Description, out var type, out var layer) &&
+                    (!nextLayer.TryGetValue(type, out var next) || layer >= next))
+                {
+                    nextLayer[type] = layer + 1;
+                }
+            }
+            return nextLayer;
+        }
+
+        /// <summary>
+        /// The order the viewer would give the layers of one type: links with an order string first, by that string,
+        /// then the ones without by how they are worn, then by name
+        /// </summary>
+        internal static List<InventoryItem> OrderLayerLinks(IEnumerable<(InventoryItem Link, bool Valid, int Layer, int WornIndex)> layers)
+        {
+            return layers
+                .OrderBy(l => l.Valid ? 0 : 1)
+                .ThenBy(l => l.Layer)
+                .ThenBy(l => l.WornIndex)
+                .ThenBy(l => l.Link.Name, StringComparer.Ordinal)
+                .Select(l => l.Link)
+                .ToList();
+        }
+
+        /// <summary>
+        /// Gives the clothing links of the given types descriptions the viewer accepts, keeping their current order.
+        /// Links written before we used the viewer's format have none, and the viewer sorts those above every link that
+        /// has one, so a new link could not be placed on top of them without renumbering them first.
+        /// </summary>
+        private async Task RenumberLayerLinksAsync(List<InventoryItem> cofLinks, ISet<WearableType> types, CancellationToken cancellationToken)
+        {
+            if (types.Count == 0) return;
+
+            var worn = client.Appearance.GetWearablesByType();
+            foreach (var type in types)
+            {
+                var layers = new List<(InventoryItem Link, bool Valid, int Layer, int WornIndex)>();
+                foreach (var link in cofLinks)
+                {
+                    var valid = TryParseCofLinkDescription(link.Description, out var linkType, out var layer);
+                    var wornIndex = int.MaxValue;
+                    if (!valid)
+                    {
+                        if (!(ResolveInventoryLink(link) is InventoryWearable target) || target.AssetType != AssetType.Clothing)
+                        {
+                            continue;
+                        }
+
+                        linkType = target.WearableType;
+                        if (worn.TryGetValue(type, out var wornOfType))
+                        {
+                            var index = wornOfType.Select(w => w.ItemID).ToList().IndexOf(target.UUID);
+                            if (index >= 0) wornIndex = index;
+                        }
+                    }
+
+                    if (linkType == type)
+                    {
+                        layers.Add((link, valid, layer, wornIndex));
+                    }
+                }
+
+                if (layers.All(l => l.Valid)) continue;
+
+                var ordered = OrderLayerLinks(layers);
+                for (var i = 0; i < ordered.Count; i++)
+                {
+                    var link = ordered[i];
+                    var description = $"{OrderNumberSeparator}{(int)type * 100 + i}";
+                    if (link.Description == description) continue;
+
+                    if (client.AisClient.IsAvailable)
+                    {
+                        if (!await client.AisClient.UpdateItemAsync(link.UUID, new OSDMap { ["desc"] = description }, cancellationToken).ConfigureAwait(false))
+                        {
+                            continue;
+                        }
+                        link.Description = description;
+                    }
+                    else
+                    {
+                        link.Description = description;
+                        client.Inventory.RequestUpdateItem(link);
+                    }
+                }
+            }
         }
 
         protected async Task RemoveLinksToByActualId(IEnumerable<UUID> actualItemIdsToRemoveLinksTo, CancellationToken cancellationToken = default)

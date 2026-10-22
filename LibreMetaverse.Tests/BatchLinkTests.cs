@@ -82,7 +82,7 @@ namespace LibreMetaverse.Tests
         // ─── GetCofLinkDescription ─────────────────────────────────────────────────
 
         [Test]
-        public void GetCofLinkDescription_ClothingWearable_ReturnsWearableTypeAndZeroLayer()
+        public void GetCofLinkDescription_ClothingWearable_IsTheViewersOrderString()
         {
             using var cof = new CurrentOutfitFolder(new GridClient());
             var shirt = new InventoryWearable(UUID.Random())
@@ -92,7 +92,80 @@ namespace LibreMetaverse.Tests
                 InventoryType = InventoryType.Wearable,
                 Name = "Test Shirt"
             };
-            Assert.That(cof.GetCofLinkDescription(shirt), Is.EqualTo($"{(int)WearableType.Shirt}00"));
+            Assert.That(cof.GetCofLinkDescription(shirt), Is.EqualTo($"@{(int)WearableType.Shirt}00"));
+            Assert.That(cof.GetCofLinkDescription(shirt, 2), Is.EqualTo($"@{(int)WearableType.Shirt}02"));
+        }
+
+        [Test]
+        public void GetCofLinkDescription_SecondAlpha_IsAtThirteenZeroOne()
+        {
+            using var cof = new CurrentOutfitFolder(new GridClient());
+            var alpha = new InventoryWearable(UUID.Random())
+            {
+                AssetType = AssetType.Clothing,
+                WearableType = WearableType.Alpha,
+                InventoryType = InventoryType.Wearable
+            };
+            Assert.That(cof.GetCofLinkDescription(alpha, 1), Is.EqualTo("@1301"));
+        }
+
+        [TestCase("@1301", true, WearableType.Alpha, 1)]
+        [TestCase("@400", true, WearableType.Shirt, 0)]
+        [TestCase("400", false, WearableType.Invalid, 0)]
+        [TestCase("", false, WearableType.Invalid, 0)]
+        [TestCase("@", false, WearableType.Invalid, 0)]
+        [TestCase("@x", false, WearableType.Invalid, 0)]
+        public void TryParseCofLinkDescription_ReadsTheOrderString(string description, bool valid, WearableType type, int layer)
+        {
+            Assert.That(CurrentOutfitFolder.TryParseCofLinkDescription(description, out var parsedType, out var parsedLayer), Is.EqualTo(valid));
+            if (!valid) return;
+            Assert.That(parsedType, Is.EqualTo(type));
+            Assert.That(parsedLayer, Is.EqualTo(layer));
+        }
+
+        private static InventoryItem Link(string name, string description) =>
+            new InventoryItem(UUID.Random()) { Name = name, Description = description };
+
+        [Test]
+        public void NextLayerIndexes_GoOnTopOfTheLinkedLayers()
+        {
+            var next = CurrentOutfitFolder.NextLayerIndexes(new[]
+            {
+                Link("a", "@1300"), Link("b", "@1301"), Link("c", "@400"), Link("d", "")
+            });
+
+            Assert.That(next[WearableType.Alpha], Is.EqualTo(2));
+            Assert.That(next[WearableType.Shirt], Is.EqualTo(1));
+            Assert.That(next.ContainsKey(WearableType.Pants), Is.False);
+        }
+
+        [Test]
+        public void NextLayerIndexes_IgnoreLinksWithoutAnOrderString()
+        {
+            var next = CurrentOutfitFolder.NextLayerIndexes(new[] { Link("a", "1300"), Link("b", "") });
+
+            Assert.That(next, Is.Empty);
+        }
+
+        [Test]
+        public void OrderLayerLinks_OrderStringsFirst_ThenWornOrder_ThenName()
+        {
+            var valid = Link("valid", "@1300");
+            var wornFirst = Link("zzz", "1300");
+            var wornSecond = Link("aaa", "1300");
+            var unworn = Link("bbb", "1300");
+            var unworn2 = Link("aaa2", "1300");
+
+            var ordered = CurrentOutfitFolder.OrderLayerLinks(new[]
+            {
+                (unworn, false, 0, int.MaxValue),
+                (wornSecond, false, 0, 1),
+                (valid, true, 0, int.MaxValue),
+                (wornFirst, false, 0, 0),
+                (unworn2, false, 0, int.MaxValue)
+            });
+
+            Assert.That(ordered, Is.EqualTo(new[] { valid, wornFirst, wornSecond, unworn2, unworn }));
         }
 
         [Test]
