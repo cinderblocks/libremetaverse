@@ -822,7 +822,7 @@ namespace LibreMetaverse.Appearance
             }
 
             var newOutfitItemMap = new Dictionary<UUID, InventoryItem>();
-            var existingBodypartLinks = new List<InventoryItem>();
+            var existingBodypartLinks = new List<(InventoryItem Link, InventoryItem Target)>();
             var bodypartsToWear = new Dictionary<WearableType, InventoryWearable>();
             var gesturesToActivate = new Dictionary<UUID, InventoryItem>();
             var numClothingLayers = 0;
@@ -897,11 +897,8 @@ namespace LibreMetaverse.Appearance
                 newOutfitItemMap[inventoryItem.UUID] = inventoryItem;
             }
 
-            var existingLinkTargets = currentOutfitContents
-                .OfType<InventoryItem>()
-                .Where(n => !n.IsLink())
-                .ToDictionary(k => k.UUID, v => v);
             var linksToRemove = new List<InventoryItem>();
+            var keptTargets = new HashSet<UUID>();
             var gesturesToDeactivate = new HashSet<UUID>();
 
             foreach (var item in currentOutfitContents)
@@ -916,7 +913,12 @@ namespace LibreMetaverse.Appearance
                     continue;
                 }
 
-                if (!existingLinkTargets.TryGetValue(itemLink.AssetUUID, out var realItem))
+                // The COF only holds links, so the item a link points at has to come from the inventory store.
+                // Looking for it among the COF's own contents never finds anything, which made every outfit change
+                // strip all of the links and put them back, rather than leaving the ones that are still wanted.
+                // Folder links (the link to the outfit folder itself) are always replaced.
+                var realItem = itemLink.AssetType == AssetType.Link ? ResolveInventoryLink(itemLink) : null;
+                if (realItem == null)
                 {
                     linksToRemove.Add(itemLink);
                     continue;
@@ -926,12 +928,17 @@ namespace LibreMetaverse.Appearance
                 {
                     // We're already wearing the item that exists in the new outfit, don't re-add links to it
                     itemsBeingAdded.Remove(realItem.UUID);
+                    if (!keptTargets.Add(realItem.UUID))
+                    {
+                        // A second link to the same item adds nothing
+                        linksToRemove.Add(itemLink);
+                    }
                     continue;
                 }
 
                 if (realItem.AssetType == AssetType.Bodypart)
                 {
-                    existingBodypartLinks.Add(itemLink);
+                    existingBodypartLinks.Add((itemLink, realItem));
                     continue;
                 }
 
@@ -959,31 +966,38 @@ namespace LibreMetaverse.Appearance
                 client.Self.ActivateGesture(item.UUID, item.AssetUUID);
             }
 
-            // Replace bodyparts, but keep old bodyparts if new outfit lacks them
-            foreach (var existingLink in existingBodypartLinks)
+            // Replace bodyparts, but keep old bodyparts if new outfit lacks them. A kept bodypart keeps its
+            // existing link, so it must not be added again below.
+            var keptBodypartTypes = new HashSet<WearableType>();
+            foreach (var (existingLink, existingTarget) in existingBodypartLinks)
             {
-                if (existingLinkTargets.TryGetValue(existingLink.AssetUUID, out var realItem))
+                if (existingTarget is InventoryWearable wornBodypart &&
+                    bodypartsToWear.TryGetValue(wornBodypart.WearableType, out var wantedBodypart) &&
+                    wantedBodypart.UUID == wornBodypart.UUID &&
+                    keptBodypartTypes.Add(wornBodypart.WearableType))
                 {
-                    if (realItem is InventoryWearable existingBodypart)
-                    {
-                        if (!bodypartsToWear.ContainsKey(existingBodypart.WearableType))
-                        {
-                            bodypartsToWear[existingBodypart.WearableType] = existingBodypart;
-                            continue;
-                        }
-                    }
-
-                    itemsBeingRemoved[realItem.UUID] = realItem;
+                    // Already wearing this exact body part: leave its link alone, so the COF is never without one
+                    bodypartsToWear.Remove(wornBodypart.WearableType);
+                    continue;
                 }
 
+                if (existingTarget is InventoryWearable existingBodypart &&
+                    !bodypartsToWear.ContainsKey(existingBodypart.WearableType) &&
+                    keptBodypartTypes.Add(existingBodypart.WearableType))
+                {
+                    continue;
+                }
+
+                itemsBeingRemoved[existingTarget.UUID] = existingTarget;
                 linksToRemove.Add(existingLink);
             }
 
             // Bare minimum outfit check
-            if (!bodypartsToWear.ContainsKey(WearableType.Shape) ||
-                !bodypartsToWear.ContainsKey(WearableType.Skin) ||
-                !bodypartsToWear.ContainsKey(WearableType.Eyes) ||
-                !bodypartsToWear.ContainsKey(WearableType.Hair))
+            bool HasBodypart(WearableType type) => bodypartsToWear.ContainsKey(type) || keptBodypartTypes.Contains(type);
+            if (!HasBodypart(WearableType.Shape) ||
+                !HasBodypart(WearableType.Skin) ||
+                !HasBodypart(WearableType.Eyes) ||
+                !HasBodypart(WearableType.Hair))
             {
                 Logger.Error("New outfit must contain a Shape, Skin, Eyes, and Hair", client);
                 return false;
@@ -995,7 +1009,7 @@ namespace LibreMetaverse.Appearance
                 .Distinct();
             await client.Inventory.RemoveItemsAsync(toRemoveIds, cancellationToken);
 
-            // Add body parts from current outfit to new outfit if it's lacking those essential body parts
+            // Link the new outfit's body parts; kept body parts already have their links
             foreach (var item in bodypartsToWear)
             {
                 itemsBeingAdded.Add(item.Value.UUID, item.Value);
