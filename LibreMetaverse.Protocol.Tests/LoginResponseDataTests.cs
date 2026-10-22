@@ -50,6 +50,8 @@ namespace LibreMetaverse.Tests
         internal static readonly UUID LibraryOwnerId = UUID.Parse("66666666-6666-6666-6666-666666666666");
         internal static readonly UUID BuddyId = UUID.Parse("77777777-7777-7777-7777-777777777777");
         internal static readonly UUID OutfitItemId = UUID.Parse("88888888-8888-8888-8888-888888888888");
+        internal static readonly UUID GestureItemId = UUID.Parse("99999999-9999-9999-9999-999999999999");
+        internal static readonly UUID GestureAssetId = UUID.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
 
         private static OSDMap Folder(string name, UUID id, UUID parent, int type, int version) => new OSDMap
         {
@@ -111,6 +113,7 @@ namespace LibreMetaverse.Tests
                     new OSDMap { ["buddy_id"] = OSD.FromString(BuddyId.ToString()), ["buddy_rights_given"] = OSD.FromInteger(3), ["buddy_rights_has"] = OSD.FromInteger(1) }
                 },
                 ["initial-outfit"] = new OSDArray { new OSDMap { ["item_id"] = OSD.FromString(OutfitItemId.ToString()) } },
+                ["gestures"] = new OSDArray { new OSDMap { ["item_id"] = OSD.FromUUID(GestureItemId), ["asset_id"] = OSD.FromUUID(GestureAssetId) } },
                 ["classified_categories"] = new OSDArray { new OSDMap { ["category_id"] = OSD.FromInteger(1), ["category_name"] = OSD.FromString("Shopping") } },
                 ["event_categories"] = new OSDArray { new OSDMap { ["category_id"] = OSD.FromInteger(2), ["category_name"] = OSD.FromString("Music") } },
                 ["global-textures"] = new OSDArray { new OSDMap { ["cloud_texture_id"] = OSD.FromUUID(UUID.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")) } },
@@ -253,6 +256,24 @@ namespace LibreMetaverse.Tests
                 Assert.That(d.BuddyList[0].BuddyRightsHas, Is.EqualTo(1));
                 Assert.That(d.InitialOutfit, Is.EqualTo(OutfitItemId.ToString()));
             });
+        }
+
+        [Test]
+        public void TheActiveGestures_AreRead()
+        {
+            var d = Parsed(SuccessResponse());
+
+            Assert.That(d.Gestures, Has.Count.EqualTo(1));
+            Assert.That(d.Gestures[GestureItemId], Is.EqualTo(GestureAssetId));
+        }
+
+        [Test]
+        public void AReplyWithoutGestures_HasNone()
+        {
+            var response = SuccessResponse();
+            response.Remove("gestures");
+
+            Assert.That(Parsed(response).Gestures, Is.Empty);
         }
 
         [Test]
@@ -446,7 +467,8 @@ namespace LibreMetaverse.Tests
             {
                 new Hashtable { ["buddy_id"] = BuddyId.ToString(), ["buddy_rights_given"] = 3, ["buddy_rights_has"] = 1 }
             },
-            ["initial-outfit"] = new ArrayList { new Hashtable { ["item_id"] = OutfitItemId.ToString() } }
+            ["initial-outfit"] = new ArrayList { new Hashtable { ["item_id"] = OutfitItemId.ToString() } },
+            ["gestures"] = new ArrayList { new Hashtable { ["item_id"] = GestureItemId.ToString(), ["asset_id"] = GestureAssetId.ToString() } }
         };
 
         [Test]
@@ -470,6 +492,7 @@ namespace LibreMetaverse.Tests
                 Assert.That(d.InventorySkeleton.Single().Name, Is.EqualTo("My Inventory"));
                 Assert.That(d.BuddyList.Single().BuddyId, Is.EqualTo(BuddyId.ToString()));
                 Assert.That(d.InitialOutfit, Is.EqualTo(OutfitItemId.ToString()));
+                Assert.That(d.Gestures[GestureItemId], Is.EqualTo(GestureAssetId));
             });
         }
 

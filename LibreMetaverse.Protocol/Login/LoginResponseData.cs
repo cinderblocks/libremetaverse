@@ -243,6 +243,8 @@ namespace LibreMetaverse
             public const string MaxAgentGroups = "max-agent-groups";
             public const string InitialOutfit = "initial-outfit";
             public const string ItemId = "item_id";
+            public const string Gestures = "gestures";
+            public const string AssetId = "asset_id";
             public const string LoginFlags = "login-flags";
             public const string EverLoggedIn = "ever_logged_in";
             public const string TypeDefault = "type_default";
@@ -406,6 +408,7 @@ namespace LibreMetaverse
                 target.ParseRegionAndCircuit(adapter);
                 target.ParseBuddyList(adapter);
                 target.ParseInventory(adapter);
+                target.ParseGestures(adapter);
                 target.ParseOptionalAndLists(adapter);
                 target.ParseInitialOutfit(adapter);
             }
@@ -799,6 +802,41 @@ namespace LibreMetaverse
             }
         }
 
+        /// <summary>
+        /// Read the gestures that were active when the agent last logged out, as inventory item id to asset id.
+        /// The server only sends them when "gestures" was among the requested login options.
+        /// </summary>
+        private void ParseGestures(ReplyAdapter adapter)
+        {
+            var gestures = new Dictionary<UUID, UUID>();
+            if (adapter.IsOSD)
+            {
+                var arr = adapter.GetOSDArray(Keys.Gestures);
+                if (arr != null)
+                {
+                    foreach (var map in arr.OfType<OSDMap>())
+                    {
+                        var itemId = ParseUUID(Keys.ItemId, map);
+                        if (itemId != UUID.Zero) gestures[itemId] = ParseUUID(Keys.AssetId, map);
+                    }
+                }
+            }
+            else
+            {
+                var arr = adapter.GetArrayList(Keys.Gestures);
+                if (arr != null)
+                {
+                    foreach (var table in arr.OfType<Hashtable>())
+                    {
+                        var itemId = ParseUUID(Keys.ItemId, table);
+                        if (itemId != UUID.Zero) gestures[itemId] = ParseUUID(Keys.AssetId, table);
+                    }
+                }
+            }
+
+            Gestures = gestures;
+        }
+
         private void ParseInitialOutfit(ReplyAdapter adapter)
         {
             InitialOutfit = string.Empty;
@@ -903,6 +941,20 @@ namespace LibreMetaverse
                 foreach (string item in InitialOutfit.Split(','))
                     outfit.Add(new OSDMap { [Keys.ItemId] = OSD.FromString(item) });
                 map[Keys.InitialOutfit] = outfit;
+            }
+
+            if (Gestures.Count > 0)
+            {
+                var gestures = new OSDArray();
+                foreach (var gesture in Gestures)
+                {
+                    gestures.Add(new OSDMap
+                    {
+                        [Keys.ItemId] = OSD.FromUUID(gesture.Key),
+                        [Keys.AssetId] = OSD.FromUUID(gesture.Value)
+                    });
+                }
+                map[Keys.Gestures] = gestures;
             }
 
             if (AccountType.Length > 0) map[Keys.AccountType] = OSD.FromString(AccountType);
