@@ -345,10 +345,15 @@ namespace LibreMetaverse.StructuredData
                 else if ((char)character == kommaNotationDelimiter)
                     continue;
                 else if ((char)character == arrayEndNotationMarker)
-                    break;
+                    return (OSD)osdArray;
+                else
+                    throw new OSDException("Notation LLSD parsing: Invalid delimiter in array.");
             }
             if (character < 0)
                 throw new OSDException("Notation LLSD parsing: Unexpected end of array discovered.");
+
+            // An empty array, or a trailing comma, leaves the closing bracket peeked but unread
+            reader.Read();
 
             return (OSD)osdArray;
         }
@@ -381,10 +386,15 @@ namespace LibreMetaverse.StructuredData
                 else if ((char)character == kommaNotationDelimiter)
                     continue;
                 else if ((char)character == mapEndNotationMarker)
-                    break;
+                    return (OSD)osdMap;
+                else
+                    throw new OSDException("Notation LLSD parsing: Invalid delimiter in map.");
             }
             if (character < 0)
                 throw new OSDException("Notation LLSD parsing: Unexpected end of map discovered.");
+
+            // An empty map, or a trailing comma, leaves the closing brace peeked but unread
+            reader.Read();
 
             return (OSD)osdMap;
         }
