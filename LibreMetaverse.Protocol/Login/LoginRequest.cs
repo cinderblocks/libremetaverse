@@ -81,6 +81,7 @@ namespace LibreMetaverse
 
         /// <summary>
         /// The password as it goes to a login server: the MD5 hash of it, as <c>$1$</c> and 32 hex digits, unless it is that already.
+        /// Only the first <see cref="MaxPasswordLength"/> characters are hashed, as the login server only reads that many.
         /// </summary>
         public static string HashPassword(string password)
         {
@@ -89,8 +90,11 @@ namespace LibreMetaverse
             // As a client has always decided it: 35 characters, or the $1$ prefix, means it is hashed already
             return password.Length == 35 || password.StartsWith("$1$", StringComparison.Ordinal)
                 ? password
-                : Utils.MD5(password);
+                : Utils.MD5(password.Length > MaxPasswordLength ? password.Substring(0, MaxPasswordLength) : password);
         }
+
+        /// <summary>How many characters of a password a login server takes into account, as a client has always hashed no more of it</summary>
+        public const int MaxPasswordLength = 16;
 
         /// <summary>The request as the LLSD map a client posts</summary>
         public OSDMap ToOSD()

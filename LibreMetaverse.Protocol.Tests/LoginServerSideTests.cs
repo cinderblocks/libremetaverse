@@ -477,8 +477,20 @@ namespace LibreMetaverse.Tests
                 Assert.That(LoginRequest.HashPassword(hashed), Is.EqualTo(hashed), "not hashed twice");
                 Assert.That(LoginRequest.HashPassword("$1$already"), Is.EqualTo("$1$already"));
                 Assert.That(LoginRequest.HashPassword(new string('x', 35)), Is.EqualTo(new string('x', 35)), "35 characters is taken for a hash, as a client always has");
-                Assert.That(LoginRequest.HashPassword(new string('x', 34)), Is.EqualTo(Utils.MD5(new string('x', 34))));
+                Assert.That(LoginRequest.HashPassword(new string('x', 34)), Is.EqualTo(Utils.MD5(new string('x', LoginRequest.MaxPasswordLength))));
                 Assert.That(LoginRequest.HashPassword(string.Empty), Is.EqualTo(Utils.MD5(string.Empty)));
+            });
+        }
+
+        [TestCase("Parting3-Regally-Unending")]
+        [TestCase("Python-Nearest-Snooper8")]
+        public void OnlyTheFirstSixteenCharactersOfThePasswordAreHashed(string password)
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(LoginRequest.HashPassword(password), Is.EqualTo(Utils.MD5(password.Substring(0, 16))));
+                Assert.That(LoginRequest.HashPassword("My-Password-here4"), Is.EqualTo(Utils.MD5("My-Password-here")));
+                Assert.That(LoginRequest.HashPassword(new string('x', 16)), Is.EqualTo(Utils.MD5(new string('x', 16))));
             });
         }
 
