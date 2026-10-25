@@ -226,6 +226,7 @@ namespace LibreMetaverse
             "RequestTextureDownload",
             "ResourceCostSelected",
             "RetrieveNavMeshSrc",
+            "ScriptDefinitions",
             "SearchStatRequest",
             "SearchStatTracking",
             "SendPostcard",

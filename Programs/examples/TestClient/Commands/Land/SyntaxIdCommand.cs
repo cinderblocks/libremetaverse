@@ -22,6 +22,12 @@ namespace TestClient.Commands.Land
             {
                 output.AppendLine(token);
             }
+            output.AppendLine();
+            output.AppendLine("Lua Tokens:");
+            foreach (var token in LslSyntax.LuaKeywords.Keys)
+            {
+                output.AppendLine(token);
+            }
             return output.ToString();
         }
     }

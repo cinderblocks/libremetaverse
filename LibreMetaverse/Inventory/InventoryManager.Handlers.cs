@@ -295,22 +295,39 @@ namespace LibreMetaverse
                     if (contents.ContainsKey("new_asset"))
                     {
                         RequestFetchInventory(itemId, Client.Self.AgentID);
-                        List<string>? compileErrors = null;
-                        if (contents.TryGetValue("errors", out var errContent))
-                        {
-                            var errors = (OSDArray)errContent;
-                            compileErrors = errors.Select(t => t.AsString()).ToList();
-                        }
-                        return (true, state, contents["compiled"].AsBoolean(), compileErrors, itemId, contents["new_asset"].AsUUID());
+                        return (true, state, contents["compiled"].AsBoolean(), ReadCompileErrors(contents), itemId, contents["new_asset"].AsUUID());
                     }
                     return (false, "Failed to parse asset UUID", false, null, UUID.Zero, UUID.Zero);
                 }
                 else
                 {
-                    return (false, state, false, null, UUID.Zero, UUID.Zero);
+                    return (false, ScriptUploadFailure(contents, state), false, null, UUID.Zero, UUID.Zero);
                 }
             }
             return (false, "Unrecognized or empty response", false, null, UUID.Zero, UUID.Zero);
+        }
+
+        /// <summary>
+        /// The errors the simulator found compiling a script, one string each in the form <c>(row, column) : ERROR : message</c>.
+        /// In a script written in Lua the row counts from 1, in LSL from 0.
+        /// </summary>
+        /// <returns>The errors, or null if the response has none</returns>
+        internal static List<string>? ReadCompileErrors(OSDMap response)
+        {
+            return response.TryGetValue("errors", out var errors) && errors is OSDArray array
+                ? array.Select(e => e.AsString()).ToList()
+                : null;
+        }
+
+        /// <summary>
+        /// Why an upload did not go on, from a response which is neither the uploader to send the script to nor the
+        /// completed upload: the message the grid gives, otherwise the state it is in
+        /// </summary>
+        internal static string ScriptUploadFailure(OSDMap response, string state)
+        {
+            return response.TryGetValue("message", out var message) && !string.IsNullOrEmpty(message.AsString())
+                ? message.AsString()
+                : state;
         }
 
         private void Network_OnLoginResponse(bool loginSuccess, bool redirect, string message, string reason,

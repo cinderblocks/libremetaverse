@@ -357,5 +357,37 @@ namespace LibreMetaverse.Tests
         }
 
         #endregion Simulator features
+
+        [Test]
+        public void ReadCompileErrors_GivesTheErrorsAsStrings()
+        {
+            var response = new OSDMap
+            {
+                ["compiled"] = OSD.FromBoolean(false),
+                ["errors"] = new OSDArray { OSD.FromString("(3, 7) : ERROR : Syntax error"), OSD.FromString("(4, 1) : ERROR : Unexpected end") }
+            };
+
+            Assert.That(InventoryManager.ReadCompileErrors(response),
+                Is.EqualTo(new[] { "(3, 7) : ERROR : Syntax error", "(4, 1) : ERROR : Unexpected end" }));
+        }
+
+        [Test]
+        public void ReadCompileErrors_ErrorsWhichAreNotAnArrayAreNoErrors()
+        {
+            // a script which compiled can have errors as nothing, and that must not fail the upload
+            Assert.That(InventoryManager.ReadCompileErrors(new OSDMap { ["compiled"] = OSD.FromBoolean(true) }), Is.Null);
+            Assert.That(InventoryManager.ReadCompileErrors(new OSDMap { ["errors"] = new OSD() }), Is.Null);
+            Assert.That(InventoryManager.ReadCompileErrors(new OSDMap { ["errors"] = OSD.FromString("oops") }), Is.Null);
+        }
+
+        [Test]
+        public void ScriptUploadFailure_IsTheMessageOfTheGridOtherwiseTheState()
+        {
+            var withMessage = new OSDMap { ["state"] = OSD.FromString("error"), ["message"] = OSD.FromString("Lua is not enabled in this region") };
+
+            Assert.That(InventoryManager.ScriptUploadFailure(withMessage, "error"), Is.EqualTo("Lua is not enabled in this region"));
+            Assert.That(InventoryManager.ScriptUploadFailure(new OSDMap { ["state"] = OSD.FromString("error") }, "error"), Is.EqualTo("error"));
+            Assert.That(InventoryManager.ScriptUploadFailure(new OSDMap(), string.Empty), Is.EqualTo(string.Empty));
+        }
     }
 }
