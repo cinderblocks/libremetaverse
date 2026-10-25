@@ -163,6 +163,40 @@ namespace LibreMetaverse.Tests
             });
         }
 
+        private const string LongPassword = "Parting3-Regally-Unending";
+
+        private static async Task<string> PasswordSentFor(bool? truncatePassword)
+        {
+            using var server = new LoginServer();
+            var client = NewClient();
+            var loginParams = new LoginParams(client, "Test", "Resident", LongPassword, "My Viewer", "1.2.3", server.Url("login"))
+            {
+                TruncatePassword = truncatePassword
+            };
+
+            await client.Network.LoginAsync(loginParams);
+
+            return server.Requests.Single().Request.Password;
+        }
+
+        [Test]
+        public async Task OnAGridThatIsNotSecondLife_TheWholePasswordIsHashed()
+        {
+            Assert.That(await PasswordSentFor(null), Is.EqualTo(Utils.MD5(LongPassword)));
+        }
+
+        [Test]
+        public async Task AClientCanAskForTheFirstSixteenCharactersToBeHashedOnAnyGrid()
+        {
+            Assert.That(await PasswordSentFor(true), Is.EqualTo(Utils.MD5(LongPassword.Substring(0, LoginRequest.MaxPasswordLength))));
+        }
+
+        [Test]
+        public async Task AClientCanAskForTheWholePasswordToBeHashed()
+        {
+            Assert.That(await PasswordSentFor(false), Is.EqualTo(Utils.MD5(LongPassword)));
+        }
+
         [Test]
         public async Task AClientThatDoesMultiFactor_SendsTheTokenAndTheHash()
         {

@@ -494,6 +494,48 @@ namespace LibreMetaverse.Tests
             });
         }
 
+        [TestCase("Parting3-Regally-Unending")]
+        [TestCase("Python-Nearest-Snooper8")]
+        public void TheWholePasswordIsHashedWhenNotTruncating(string password)
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(LoginRequest.HashPassword(password, false), Is.EqualTo(Utils.MD5(password)));
+                Assert.That(LoginRequest.HashPassword(password, false), Is.Not.EqualTo(LoginRequest.HashPassword(password, true)));
+                Assert.That(LoginRequest.HashPassword(password, true), Is.EqualTo(LoginRequest.HashPassword(password)));
+            });
+        }
+
+        [Test]
+        public void AHashedPasswordIsNeverHashedAgainWhetherOrNotTruncating()
+        {
+            var hashed = Utils.MD5("Parting3-Regally-Unending");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(LoginRequest.HashPassword(hashed, false), Is.EqualTo(hashed));
+                Assert.That(LoginRequest.HashPassword(hashed, true), Is.EqualTo(hashed));
+                Assert.That(LoginRequest.HashPassword(null, false), Is.EqualTo(string.Empty));
+            });
+        }
+
+        [TestCase("https://login.agni.lindenlab.com/cgi-bin/login.cgi", true)]
+        [TestCase("https://login.aditi.lindenlab.com/cgi-bin/login.cgi", true)]
+        [TestCase("https://LOGIN.AGNI.LINDENLAB.COM/cgi-bin/login.cgi", true)]
+        [TestCase("https://login.secondlife.com/cgi-bin/login.cgi", true)]
+        [TestCase("http://127.0.0.1:9000/", false)]
+        [TestCase("http://localhost:9000/", false)]
+        [TestCase("https://login.osgrid.org/", false)]
+        [TestCase("https://notlindenlab.com/", false)]
+        [TestCase("https://lindenlab.com.example.org/", false)]
+        [TestCase("login.agni.lindenlab.com", false)]
+        [TestCase("", false)]
+        [TestCase(null, false)]
+        public void SecondLifeLoginServersAreRecognized(string loginUri, bool expected)
+        {
+            Assert.That(LoginRequest.IsSecondLifeLoginServer(loginUri), Is.EqualTo(expected));
+        }
+
         #endregion The request
     }
 }

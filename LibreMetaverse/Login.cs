@@ -94,8 +94,14 @@ namespace LibreMetaverse
         /// <summary>The Agents Last name</summary>
         public string LastName = string.Empty;
         /// <summary>A md5 hashed password</summary>
-        /// <remarks>plaintext password will be automatically hashed</remarks>
+        /// <remarks>plaintext password will be automatically hashed, see <see cref="TruncatePassword"/></remarks>
         public string Password = string.Empty;
+        /// <summary>Whether a plaintext <see cref="Password"/> is hashed from only its first
+        /// <see cref="LoginRequest.MaxPasswordLength"/> characters, which is all that Second Life's login server reads.</summary>
+        /// <remarks>Leave it null to truncate on Second Life (<see cref="URI"/> is one of Linden Lab's login servers) and
+        /// to hash the whole password on any other grid, such as OpenSim. Set it to override that. It has no effect on a
+        /// password that is hashed already.</remarks>
+        public bool? TruncatePassword;
         /// <summary>The user's entered Time based One Time Password (TOTP) token.</summary>
         /// <remarks>This should be the empty string for login attempts that are not responding to an MFA challenge.</remarks>
         public string Token = string.Empty;
@@ -695,7 +701,8 @@ namespace LibreMetaverse
             }
 
             // *HACK: Convert the password to MD5 if it isn't already
-            loginParams.Password = LoginRequest.HashPassword(loginParams.Password);
+            loginParams.Password = LoginRequest.HashPassword(loginParams.Password,
+                loginParams.TruncatePassword ?? LoginRequest.IsSecondLifeLoginServer(loginParams.URI));
             
             if (string.IsNullOrEmpty(loginParams.Channel))
             {

@@ -81,20 +81,47 @@ namespace LibreMetaverse
 
         /// <summary>
         /// The password as it goes to a login server: the MD5 hash of it, as <c>$1$</c> and 32 hex digits, unless it is that already.
-        /// Only the first <see cref="MaxPasswordLength"/> characters are hashed, as the login server only reads that many.
+        /// Only the first <see cref="MaxPasswordLength"/> characters are hashed, as Second Life's login server only reads that many.
+        /// Use <see cref="HashPassword(string, bool)"/> for a grid that takes the whole password.
         /// </summary>
-        public static string HashPassword(string password)
+        public static string HashPassword(string password) => HashPassword(password, true);
+
+        /// <summary>
+        /// The password as it goes to a login server: the MD5 hash of it, as <c>$1$</c> and 32 hex digits, unless it is that already.
+        /// </summary>
+        /// <param name="password">The password, or a hash of it</param>
+        /// <param name="truncate">
+        /// Whether to hash only the first <see cref="MaxPasswordLength"/> characters. Second Life's login server only reads that many,
+        /// but other grids, such as OpenSim, keep a hash of the whole password and reject a hash of its first 16 characters.
+        /// </param>
+        public static string HashPassword(string password, bool truncate)
         {
             if (password == null) return string.Empty;
 
             // As a client has always decided it: 35 characters, or the $1$ prefix, means it is hashed already
-            return password.Length == 35 || password.StartsWith("$1$", StringComparison.Ordinal)
-                ? password
-                : Utils.MD5(password.Length > MaxPasswordLength ? password.Substring(0, MaxPasswordLength) : password);
+            if (password.Length == 35 || password.StartsWith("$1$", StringComparison.Ordinal)) { return password; }
+
+            return Utils.MD5(truncate && password.Length > MaxPasswordLength ? password.Substring(0, MaxPasswordLength) : password);
         }
 
-        /// <summary>How many characters of a password a login server takes into account, as a client has always hashed no more of it</summary>
+        /// <summary>How many characters of a password Second Life's login server takes into account, as a client has always hashed no more of it</summary>
         public const int MaxPasswordLength = 16;
+
+        /// <summary>
+        /// Whether a login server is Linden Lab's, that is Second Life's main or beta grid, as opposed to an OpenSim or other grid.
+        /// </summary>
+        /// <param name="loginUri">The URL of the login server</param>
+        public static bool IsSecondLifeLoginServer(string loginUri)
+        {
+            if (!Uri.TryCreate(loginUri, UriKind.Absolute, out var uri)) return false;
+
+            var host = uri.Host;
+            return IsHostOrSubdomain(host, "lindenlab.com") || IsHostOrSubdomain(host, "secondlife.com");
+        }
+
+        private static bool IsHostOrSubdomain(string host, string domain) =>
+            host.Equals(domain, StringComparison.OrdinalIgnoreCase)
+            || host.EndsWith("." + domain, StringComparison.OrdinalIgnoreCase);
 
         /// <summary>The request as the LLSD map a client posts</summary>
         public OSDMap ToOSD()
