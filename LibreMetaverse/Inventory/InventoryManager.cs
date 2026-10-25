@@ -1520,6 +1520,24 @@ namespace LibreMetaverse
         }
 
         /// <summary>
+        /// Creates a new script in the agent's inventory, and returns it when confirmed by the server.
+        /// The language is sent as the subtype of the item, on which a grid with Lua picks the default script
+        /// of that language.
+        /// </summary>
+        /// <param name="parentFolder">The folder to create the script in</param>
+        /// <param name="name">The name of the script</param>
+        /// <param name="description">The description of the script</param>
+        /// <param name="subtype">The language of the script. <see cref="ScriptSubtype.Lua"/> only works on a grid with
+        /// Lua, see <see cref="SimulatorFeatures.LuaScriptsEnabled"/></param>
+        /// <param name="nextOwnerMask">The permissions of the next owner</param>
+        public Task<InventoryItem?> CreateScriptAsync(UUID parentFolder, string name, string description,
+            ScriptSubtype subtype, PermissionMask nextOwnerMask, CancellationToken cancellationToken = default)
+        {
+            return CreateItemAsync(parentFolder, name, description, AssetType.LSLText, UUID.Zero, InventoryType.LSL,
+                (WearableType)(byte)subtype, nextOwnerMask, cancellationToken);
+        }
+
+        /// <summary>
         /// Creates a new inventory folder
         /// </summary>
         /// <param name="parentID">ID of the folder to put this folder in</param>

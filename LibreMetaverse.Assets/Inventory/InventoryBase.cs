@@ -324,6 +324,7 @@ namespace LibreMetaverse
             item.AssetType = assetType;
             item.CreationDate = Utils.UnixTimeToDateTime(descItem["created_at"]);
             item.Flags = descItem["flags"];
+            if (item is InventoryLSL lsl) { lsl.Runtime = ScriptRuntimeFromOSD(descItem) ?? string.Empty; }
 
             OSDMap perms = (OSDMap)descItem["permissions"];
             item.OwnerID = perms["owner_id"];
@@ -338,6 +339,27 @@ namespace LibreMetaverse
             item.SaleType = (SaleType)sale["sale_type"].AsInteger();
 
             return item;
+        }
+
+        /// <summary>
+        /// The runtime of a script, as a grid puts it in an item's LLSD: <c>metadata.script.runtime</c> as an
+        /// inventory service gives it, or <c>script.runtime</c> as an inventory item itself does.
+        /// </summary>
+        /// <returns>The runtime, or null if the item has none</returns>
+        private static string? ScriptRuntimeFromOSD(OSDMap item)
+        {
+            if (item.TryGetValue("metadata", out var metadata) && metadata is OSDMap metadataMap
+                && metadataMap.TryGetValue("script", out var metadataScript) && metadataScript is OSDMap metadataScriptMap
+                && metadataScriptMap.TryGetValue("runtime", out var metadataRuntime))
+            {
+                return metadataRuntime.AsString();
+            }
+            if (item.TryGetValue("script", out var script) && script is OSDMap scriptMap
+                && scriptMap.TryGetValue("runtime", out var runtime))
+            {
+                return runtime.AsString();
+            }
+            return null;
         }
 
         /// <summary>
@@ -425,6 +447,11 @@ namespace LibreMetaverse
             if (data.TryGetValue("flags", out var flags))
             {
                 Flags = flags;
+            }
+            if (this is InventoryLSL lsl)
+            {
+                var runtime = ScriptRuntimeFromOSD(data);
+                if (runtime != null) { lsl.Runtime = runtime; }
             }
             if (data.TryGetValue("created_at", out var createdAt))
             {
@@ -653,6 +680,45 @@ namespace LibreMetaverse
             : base(UUID)
         {
             InventoryType = InventoryType.LSL;
+        }
+
+        /// <summary>
+        /// Gets or sets the language the script is written in, the lower byte of the Flags value
+        /// </summary>
+        [IgnoreMember]
+        public ScriptSubtype Subtype
+        {
+            get => (ScriptSubtype)(Flags & 0xFF);
+            set => Flags = (uint)value | (Flags & 0xFFFFFF00);
+        }
+
+        /// <summary>
+        /// True if the script is written in Lua, as opposed to LSL
+        /// </summary>
+        [IgnoreMember]
+        public bool IsLua => Subtype == ScriptSubtype.Lua;
+
+        /// <summary>
+        /// The virtual machine the script runs on, as the grid tells it: <c>lsl2</c>, <c>mono</c> or <c>luau</c>.
+        /// Empty if the grid has not said, as it has not on a grid without Luau.
+        /// </summary>
+        /// <remarks>Together with <see cref="Subtype"/> this makes up the target the script is compiled for, see
+        /// <see cref="CompileTarget"/></remarks>
+        [Key("Runtime")]
+        public string Runtime { get; set; } = string.Empty;
+
+        /// <summary>
+        /// What the script is compiled for, one of the targets of <see cref="ScriptCompileTarget"/>, or empty if that is not known
+        /// </summary>
+        [IgnoreMember]
+        public string CompileTarget
+        {
+            get
+            {
+                if (IsLua) { return ScriptCompileTarget.Luau; }
+                if (string.Equals(Runtime, "luau", StringComparison.OrdinalIgnoreCase)) { return ScriptCompileTarget.LslLuau; }
+                return Runtime;
+            }
         }
     }
 

@@ -371,14 +371,34 @@ namespace LibreMetaverse
             return OSDParser.SerializeLLSDBinary(asset);
         }
 
-        public async Task<(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string>? compileMessages, UUID itemID, UUID assetID)> RequestUpdateScriptAgentInventoryAsync(
+        /// <summary>
+        /// Upload the source of a script in the agent's inventory, to be compiled for LSL on the Mono or the older LSO2 runtime
+        /// </summary>
+        /// <param name="data">The source of the script</param>
+        /// <param name="itemID">The inventory item of the script</param>
+        /// <param name="mono">True to compile for Mono, otherwise for LSO2. To compile Lua, or for the Luau runtime,
+        /// pass a target</param>
+        public Task<(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string>? compileMessages, UUID itemID, UUID assetID)> RequestUpdateScriptAgentInventoryAsync(
             byte[] data, UUID itemID, bool mono, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
+        {
+            return RequestUpdateScriptAgentInventoryAsync(data, itemID, ScriptCompileTarget.FromMono(mono), cancellationToken, progress);
+        }
+
+        /// <summary>
+        /// Upload the source of a script in the agent's inventory, to be compiled for a target
+        /// </summary>
+        /// <param name="data">The source of the script</param>
+        /// <param name="itemID">The inventory item of the script</param>
+        /// <param name="target">What to compile for, one of the targets of <see cref="ScriptCompileTarget"/>. The source has to be
+        /// in the language of the target: Lua for <see cref="ScriptCompileTarget.Luau"/>, otherwise LSL</param>
+        public async Task<(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string>? compileMessages, UUID itemID, UUID assetID)> RequestUpdateScriptAgentInventoryAsync(
+            byte[] data, UUID itemID, string target, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
             var cap = GetCapabilityURI("UpdateScriptAgent");
             if (cap == null)
                 throw new InvalidOperationException("UpdateScriptAgent capability is not currently available");
 
-            var request = new UpdateScriptAgentRequestMessage { ItemID = itemID, Target = mono ? "mono" : "lsl2" };
+            var request = new UpdateScriptAgentRequestMessage { ItemID = itemID, Target = target };
             try
             {
                 var result = await PostCapAsync(cap, request.Serialize(), cancellationToken, progress).ConfigureAwait(false);
@@ -388,14 +408,38 @@ namespace LibreMetaverse
             catch (Exception ex) { return (false, ex.Message, false, null, UUID.Zero, UUID.Zero); }
         }
 
-        public async Task<(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string>? compileMessages, UUID itemID, UUID assetID)> RequestUpdateScriptTaskAsync(
+        /// <summary>
+        /// Upload the source of a script in an object's inventory, to be compiled for LSL on the Mono or the older LSO2 runtime
+        /// </summary>
+        /// <param name="data">The source of the script</param>
+        /// <param name="itemID">The inventory item of the script</param>
+        /// <param name="taskID">The object the script is in</param>
+        /// <param name="mono">True to compile for Mono, otherwise for LSO2. To compile Lua, or for the Luau runtime,
+        /// pass a target</param>
+        /// <param name="running">Whether the script is to run once compiled</param>
+        public Task<(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string>? compileMessages, UUID itemID, UUID assetID)> RequestUpdateScriptTaskAsync(
             byte[] data, UUID itemID, UUID taskID, bool mono, bool running, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
+        {
+            return RequestUpdateScriptTaskAsync(data, itemID, taskID, ScriptCompileTarget.FromMono(mono), running, cancellationToken, progress);
+        }
+
+        /// <summary>
+        /// Upload the source of a script in an object's inventory, to be compiled for a target
+        /// </summary>
+        /// <param name="data">The source of the script</param>
+        /// <param name="itemID">The inventory item of the script</param>
+        /// <param name="taskID">The object the script is in</param>
+        /// <param name="target">What to compile for, one of the targets of <see cref="ScriptCompileTarget"/>. The source has to be
+        /// in the language of the target: Lua for <see cref="ScriptCompileTarget.Luau"/>, otherwise LSL</param>
+        /// <param name="running">Whether the script is to run once compiled</param>
+        public async Task<(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string>? compileMessages, UUID itemID, UUID assetID)> RequestUpdateScriptTaskAsync(
+            byte[] data, UUID itemID, UUID taskID, string target, bool running, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
             var cap = GetCapabilityURI("UpdateScriptTask");
             if (cap == null)
                 throw new InvalidOperationException("UpdateScriptTask capability is not currently available");
 
-            var msg = new UpdateScriptTaskUpdateMessage { ItemID = itemID, TaskID = taskID, ScriptRunning = running, Target = mono ? "mono" : "lsl2" };
+            var msg = new UpdateScriptTaskUpdateMessage { ItemID = itemID, TaskID = taskID, ScriptRunning = running, Target = target };
             try
             {
                 var result = await PostCapAsync(cap, msg.Serialize(), cancellationToken, progress).ConfigureAwait(false);

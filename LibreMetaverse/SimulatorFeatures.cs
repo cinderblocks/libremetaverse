@@ -44,6 +44,12 @@ namespace LibreMetaverse
         }
         
         /// <summary>
+        /// True if the simulator runs Lua (SLua) scripts, so that a script can be written in Lua and compiled for the
+        /// <see cref="ScriptCompileTarget.Luau"/> or <see cref="ScriptCompileTarget.LslLuau"/> targets
+        /// </summary>
+        public bool LuaScriptsEnabled => Has("LuaScriptsEnabled");
+
+        /// <summary>
         /// Returns true if Simulator Features has a given feature and corresponding true value
         /// </summary>
         /// <param name="feature"></param>

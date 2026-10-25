@@ -73,6 +73,17 @@ namespace LibreMetaverse
     }
 
     /// <summary>
+    /// What language a script is written in, the lower byte of the Flags field of a script inventory item
+    /// </summary>
+    public enum ScriptSubtype : byte
+    {
+        /// <summary>Linden Scripting Language</summary>
+        Lsl = 0,
+        /// <summary>Lua, as SLua</summary>
+        Lua = 1
+    }
+
+    /// <summary>
     /// Upper half of the Flags field for inventory items
     /// </summary>
     [Flags]

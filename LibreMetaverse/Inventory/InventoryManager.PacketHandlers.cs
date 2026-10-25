@@ -626,7 +626,7 @@ namespace LibreMetaverse
             if (m_ScriptRunningReply != null)
             {
                 var msg = (ScriptRunningReplyMessage)message;
-                OnScriptRunningReply(new ScriptRunningReplyEventArgs(msg.ObjectID, msg.ItemID, msg.Mono, msg.Running));
+                OnScriptRunningReply(new ScriptRunningReplyEventArgs(msg.ObjectID, msg.ItemID, msg.Mono, msg.Running, msg.Luau, msg.LuauLanguage));
             }
         }
     }

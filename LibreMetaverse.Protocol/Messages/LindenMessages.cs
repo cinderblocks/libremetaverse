@@ -2270,10 +2270,18 @@ namespace LibreMetaverse.Messages.Linden
         /// <summary>True of the script is compiled/ran using the mono interpreter, false indicates it 
         /// uses the older less efficient lsl2 interpreter</summary>
         public bool Mono;
+        /// <summary>True if the script runs on the Luau virtual machine. A simulator without Luau does not send it</summary>
+        public bool Luau;
+        /// <summary>True if the script, which runs on the Luau virtual machine, is written in Lua rather than LSL.
+        /// A simulator without Luau does not send it</summary>
+        public bool LuauLanguage;
         /// <summary>The Task containing the scripts <see cref="UUID"/></summary>
         public UUID ObjectID;
         /// <summary>true of the script is in a running state</summary>
         public bool Running;
+
+        /// <summary>What the script is compiled for, one of the targets of <see cref="ScriptCompileTarget"/></summary>
+        public string CompileTarget => ScriptCompileTarget.FromReply(Mono, Luau, LuauLanguage);
 
         /// <summary>
         /// Serialize the object
@@ -2283,10 +2291,12 @@ namespace LibreMetaverse.Messages.Linden
         {
             OSDMap map = new OSDMap(2);
 
-            OSDMap scriptMap = new OSDMap(4)
+            OSDMap scriptMap = new OSDMap(6)
             {
                 ["ItemID"] = OSD.FromUUID(ItemID),
                 ["Mono"] = OSD.FromBoolean(Mono),
+                ["Luau"] = OSD.FromBoolean(Luau),
+                ["LuauLanguage"] = OSD.FromBoolean(LuauLanguage),
                 ["ObjectID"] = OSD.FromUUID(ObjectID),
                 ["Running"] = OSD.FromBoolean(Running)
             };
@@ -2310,6 +2320,8 @@ namespace LibreMetaverse.Messages.Linden
 
             ItemID = scriptMap["ItemID"].AsUUID();
             Mono = scriptMap["Mono"].AsBoolean();
+            Luau = scriptMap["Luau"].AsBoolean();
+            LuauLanguage = scriptMap["LuauLanguage"].AsBoolean();
             ObjectID = scriptMap["ObjectID"].AsUUID();
             Running = scriptMap["Running"].AsBoolean();
         }
@@ -2550,10 +2562,10 @@ namespace LibreMetaverse.Messages.Linden
         public bool ScriptRunning;
         /// <summary>The scripts InventoryItem ItemID to update</summary>
         public UUID ItemID;
-        /// <summary>A lowercase string containing either "mono" or "lsl2" which 
-        /// specifies the script is compiled and ran on the mono runtime, or the older
-        /// lsl runtime</summary>
-        public string Target; // mono or lsl2
+        /// <summary>A lowercase string which specifies what the script is compiled for, one of the
+        /// targets of <see cref="ScriptCompileTarget"/>: "mono" or "lsl2" for LSL on the Mono or the older
+        /// LSO2 runtime, "lsl-luau" for LSL on the Luau runtime, "luau" for Lua</summary>
+        public string Target; // mono, lsl2, lsl-luau or luau
         /// <summary>The tasks <see cref="UUID"/> which contains the script to update</summary>
         public UUID TaskID;
 
@@ -2668,9 +2680,10 @@ namespace LibreMetaverse.Messages.Linden
     {
         /// <summary>The existing asset if of the script in the agents inventory to replace</summary>
         public UUID ItemID;
-        /// <summary>The language of the script</summary>
-        /// <remarks>Defaults to lsl version 2, "mono" might be another possible option</remarks>
-        public string Target = "lsl2"; // lsl2
+        /// <summary>What the script is compiled for, one of the targets of <see cref="ScriptCompileTarget"/></summary>
+        /// <remarks>Defaults to "lsl2", the older LSL runtime. "mono" is LSL on the Mono runtime, "lsl-luau" is LSL on the
+        /// Luau runtime, and "luau" is Lua source</remarks>
+        public string Target = ScriptCompileTarget.Lsl2;
 
         /// <summary>
         /// Serialize the object

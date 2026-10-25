@@ -158,12 +158,28 @@ namespace LibreMetaverse
 
         public bool IsRunning { get; }
 
+        /// <summary>True if the script runs on the Luau virtual machine, which only a simulator with Luau says</summary>
+        public bool IsLuau { get; }
+
+        /// <summary>True if the script is written in Lua rather than LSL, which only a simulator with Luau says</summary>
+        public bool IsLuaLanguage { get; }
+
+        /// <summary>What the script is compiled for, one of the targets of <see cref="ScriptCompileTarget"/></summary>
+        public string CompileTarget => ScriptCompileTarget.FromReply(IsMono, IsLuau, IsLuaLanguage);
+
         public ScriptRunningReplyEventArgs(UUID objectID, UUID sctriptID, bool isMono, bool isRunning)
+            : this(objectID, sctriptID, isMono, isRunning, false, false)
+        {
+        }
+
+        public ScriptRunningReplyEventArgs(UUID objectID, UUID sctriptID, bool isMono, bool isRunning, bool isLuau, bool isLuaLanguage)
         {
             this.ObjectID = objectID;
             this.ScriptID = sctriptID;
             this.IsMono = isMono;
             this.IsRunning = isRunning;
+            this.IsLuau = isLuau;
+            this.IsLuaLanguage = isLuaLanguage;
         }
     }
 }
