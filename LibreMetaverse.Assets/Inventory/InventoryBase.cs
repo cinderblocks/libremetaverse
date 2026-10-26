@@ -368,6 +368,7 @@ namespace LibreMetaverse
         /// <param name="data">Data to update in <see cref="OSDMap"/> format</param>
         public void Update(OSDMap data)
         {
+            var previousAsset = AssetUUID;
             if (data.ContainsKey("item_id"))
             {
                 UUID = data["item_id"].AsUUID();
@@ -451,7 +452,15 @@ namespace LibreMetaverse
             if (this is InventoryLSL lsl)
             {
                 var runtime = ScriptRuntimeFromOSD(data);
-                if (runtime != null) { lsl.Runtime = runtime; }
+                if (runtime != null)
+                {
+                    lsl.Runtime = runtime;
+                }
+                else if (AssetUUID != previousAsset)
+                {
+                    // Another asset was compiled for a target which the update does not tell; better none than the old one's
+                    lsl.Runtime = string.Empty;
+                }
             }
             if (data.TryGetValue("created_at", out var createdAt))
             {

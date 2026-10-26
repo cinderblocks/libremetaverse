@@ -275,6 +275,21 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
+        public void ANewAssetWithoutARuntimeLeavesTheScriptWithNone()
+        {
+            var item = (InventoryLSL)InventoryItem.FromOSD(ScriptItem(m => m["metadata"] = Runtime("luau")));
+
+            item.Update(new OSDMap { ["asset_id"] = OSD.FromUUID(item.AssetUUID) });
+            Assert.That(item.Runtime, Is.EqualTo("luau"), "the same asset is compiled for the same target");
+
+            item.Update(new OSDMap { ["asset_id"] = OSD.FromUUID(UUID.Random()) });
+            Assert.That(item.Runtime, Is.Empty, "the old runtime is not that of the new asset");
+
+            item.Update(new OSDMap { ["asset_id"] = OSD.FromUUID(UUID.Random()), ["metadata"] = Runtime("mono") });
+            Assert.That(item.Runtime, Is.EqualTo("mono"), "unless the update gives the runtime of the new asset");
+        }
+
+        [Test]
         public void UpdatingAScriptChangesItsRuntimeOnlyWhenTheUpdateHasOne()
         {
             var item = (InventoryLSL)InventoryItem.FromOSD(ScriptItem(m => m["metadata"] = Runtime("mono")));
