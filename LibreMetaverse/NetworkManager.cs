@@ -941,40 +941,29 @@ namespace LibreMetaverse
             // Send a CloseCircuit packet to simulators if we are initiating the disconnect
             bool sendCloseCircuit = (type == DisconnectType.ClientInitiated || type == DisconnectType.NetworkTimeout);
 
+            // Take the other simulators out under the lock, and disconnect them outside it: the handlers of
+            // SimDisconnected and the teardown of a simulator should not run holding it.
+            List<Simulator> others;
             _simulatorsLock.EnterWriteLock();
             try
             {
-                // Disconnect all simulators except the current one
-                foreach (var sim in Simulators.Where(t => t != null && t != CurrentSim))
-                {
-                    bool wasConnected = sim.Connected;
-                    sim.Disconnect(sendCloseCircuit);
-
-                    // Fire the SimDisconnected event if a handler is registered
-                    if (m_SimDisconnected != null)
-                    {
-                        OnSimDisconnected(new SimDisconnectedEventArgs(sim, type, wasConnected));
-                    }
-                }
-
+                others = Simulators.Where(t => t != null && t != CurrentSim).ToList();
                 Simulators.Clear();
             }
             finally { _simulatorsLock.ExitWriteLock(); }
 
-            if (CurrentSim != null)
+            // Disconnect all simulators except the current one
+            await DisconnectSimulatorsAsync(others, type, sendCloseCircuit).ConfigureAwait(false);
+
+            // Kill the connection to the current simulator
+            var current = CurrentSim;
+            if (current != null)
             {
-                bool wasConnected = CurrentSim.Connected;
-
-                // Kill the connection to the current simulator
-                CurrentSim.Disconnect(sendCloseCircuit);
-
-                // Fire the SimDisconnected event if a handler is registered
-                if (m_SimDisconnected != null)
-                {
-                    OnSimDisconnected(new SimDisconnectedEventArgs(CurrentSim, type, wasConnected));
-                }
+                await DisconnectSimulatorsAsync(new List<Simulator> { current }, type, sendCloseCircuit).ConfigureAwait(false);
             }
-            
+
+            Logger.Debug("Shutdown: stopping the packet processors", Client);
+
             // Cancel background processors first to speed up shutdown
             if (_cts != null)
             {
@@ -997,10 +986,64 @@ namespace LibreMetaverse
             Connected = false;
 
             // Fire the disconnected callback
+            Logger.Debug($"Shutdown: raising Disconnected ({type})", Client);
             if (m_Disconnected != null)
             {
                 OnDisconnected(new DisconnectedEventArgs(type, message));
             }
+        }
+
+        /// <summary>
+        /// How long a shutdown waits for simulators to disconnect. One that is stuck, say tearing down capabilities of a
+        /// simulator which has stopped answering, must not keep <see cref="Disconnected"/> from being raised: nothing
+        /// that depends on it, such as a reconnect, could start.
+        /// </summary>
+        internal static TimeSpan SimulatorDisconnectTimeout { get; set; } = TimeSpan.FromSeconds(5);
+
+        /// <summary>
+        /// Disconnect simulators together, wait for them for no longer than <see cref="SimulatorDisconnectTimeout"/>,
+        /// and raise <see cref="SimDisconnected"/> for each
+        /// </summary>
+        private async Task DisconnectSimulatorsAsync(List<Simulator> sims, DisconnectType type, bool sendCloseCircuit)
+        {
+            if (sims.Count == 0) { return; }
+
+            var wasConnected = sims.Select(sim => sim.Connected).ToList();
+            var finished = await RunBoundedAsync(
+                sims.Select<Simulator, Action>(sim => () => sim.Disconnect(sendCloseCircuit)).ToList(),
+                SimulatorDisconnectTimeout).ConfigureAwait(false);
+
+            for (var i = 0; i < sims.Count; i++)
+            {
+                if (!finished[i])
+                {
+                    Logger.Warn($"Shutdown: {sims[i]} did not disconnect within {SimulatorDisconnectTimeout.TotalSeconds:0.#} seconds, " +
+                                "continuing without waiting for it", Client);
+                }
+
+                // Fire the SimDisconnected event if a handler is registered
+                if (m_SimDisconnected != null)
+                {
+                    OnSimDisconnected(new SimDisconnectedEventArgs(sims[i], type, wasConnected[i]));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Run actions at the same time, and wait for them for no longer than a timeout. An action which does not finish is
+        /// left running. One which throws is logged and counts as finished.
+        /// </summary>
+        /// <returns>For each action, whether it finished in time</returns>
+        internal static async Task<bool[]> RunBoundedAsync(IReadOnlyList<Action> actions, TimeSpan timeout)
+        {
+            var tasks = actions.Select(action => Task.Run(() =>
+            {
+                try { action(); }
+                catch (Exception ex) { Logger.Debug("Shutdown: an action threw", ex); }
+            })).ToArray();
+
+            await Task.WhenAny(Task.WhenAll(tasks), Task.Delay(timeout)).ConfigureAwait(false);
+            return tasks.Select(t => t.IsCompleted).ToArray();
         }
 
         internal void RemoveSimulator(Simulator simulator)

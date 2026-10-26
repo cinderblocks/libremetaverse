@@ -980,14 +980,21 @@ namespace LibreMetaverse
             if (!connected) return;
 
             connected = false;
+
+            // Log how long each step takes, to tell which one it is should a disconnect not finish
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            void Step(string what) => Logger.Debug($"Disconnecting {this}: {what} ({stopwatch.ElapsedMilliseconds} ms)", Client);
+
             // Stop background timer tasks
             StopTimerTasks();
+            Step("timer tasks stopped");
 
             // Kill the current CAPS system
             if (Caps != null)
             {
                 Caps.Disconnect(true);
                 Caps = null;
+                Step("capabilities closed");
             }
 
             if (sendCloseCircuit)
@@ -1002,6 +1009,7 @@ namespace LibreMetaverse
                     buf.DataLength = data.Length;
 
                     AsyncBeginSend(buf);
+                    Step("CloseCircuit sent");
                 }
                 else
                 {
@@ -1012,10 +1020,12 @@ namespace LibreMetaverse
             if (Client.Settings.Parcel.PoolParcelData || Client.Settings.World.CachePrimitives)
             {
                 SimulatorDataPool.SimulatorRelease(this);
+                Step("simulator data released");
             }
 
             // Shut the socket communication down
             Stop();
+            Step("socket closed");
         }
 
         /// <summary>
