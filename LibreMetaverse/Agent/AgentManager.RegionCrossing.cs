@@ -102,6 +102,10 @@ namespace LibreMetaverse
             public string FailureMessage = string.Empty;
             public Exception? LastException;
             public bool HasRestoredOldSim;
+            // The simulator whose AgentMovementComplete was handled before the state reached
+            // WaitingForComplete. Network.Connect is synchronous, and the new simulator's packet
+            // can be handled before it returns. Taken with Interlocked so it is acted on once.
+            public Simulator? EarlyMovementComplete;
             // Cancelled when this crossing is superseded or the state machine should abort
             public readonly CancellationTokenSource WorkCts = new CancellationTokenSource();
         }
@@ -298,7 +302,7 @@ namespace LibreMetaverse
                         crossing.OldSimulator.AgentMovementComplete = false;
 
                     Logger.Info($"Successfully connected to new region: {newSim.Name}", Client);
-                    return await TransitionCrossingStateAsync(CrossingState.WaitingForComplete, token).ConfigureAwait(false);
+                    return await EnterWaitingForCompleteAsync(crossing, newSim, token).ConfigureAwait(false);
                 }
 
                 crossing.FailureReason = CrossingFailureReason.ConnectionFailed;
@@ -424,10 +428,39 @@ namespace LibreMetaverse
             return false;
         }
 
+        // Moves to WaitingForComplete, then completes at once if the new simulator's
+        // AgentMovementComplete already arrived while the connection was being made.
+        private async Task<bool> EnterWaitingForCompleteAsync(CrossingInfo crossing, Simulator newSim, CancellationToken token)
+        {
+            if (!await TransitionCrossingStateAsync(CrossingState.WaitingForComplete, token).ConfigureAwait(false))
+                return false;
+
+            if (Interlocked.CompareExchange(ref crossing.EarlyMovementComplete, null, newSim) != newSim)
+                return true;
+
+            Logger.Debug($"MovementComplete for new simulator {newSim.Name} arrived while connecting", Client);
+            return await TransitionCrossingStateAsync(CrossingState.Completed, token).ConfigureAwait(false);
+        }
+
         private void NotifyMovementComplete(Simulator simulator)
         {
             var crossing = _currentCrossing;
-            if (crossing == null || crossing.State != CrossingState.WaitingForComplete) return;
+            if (crossing == null) return;
+
+            if (crossing.State is CrossingState.PreparingCross or CrossingState.Connecting)
+            {
+                // Too early to act on: NewSimulator is not set yet. Record it for
+                // EnterWaitingForCompleteAsync. If the state advanced between the check above
+                // and this write, that method has already looked, so take it back and handle
+                // it here instead.
+                Volatile.Write(ref crossing.EarlyMovementComplete, simulator);
+                if (crossing.State != CrossingState.WaitingForComplete) return;
+                if (Interlocked.CompareExchange(ref crossing.EarlyMovementComplete, null, simulator) != simulator) return;
+            }
+            else if (crossing.State != CrossingState.WaitingForComplete)
+            {
+                return;
+            }
 
             LogCrossingFaults(Task.Run(async () =>
             {

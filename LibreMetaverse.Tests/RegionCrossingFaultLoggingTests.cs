@@ -50,6 +50,38 @@ namespace LibreMetaverse.Tests
             }
         }
 
+        // AgentMovementComplete from the new simulator can be handled while Network.Connect is
+        // still running, before the state machine reaches WaitingForComplete. The crossing must
+        // still complete instead of waiting for a packet that has already come and gone.
+        [Test]
+        public async Task RegionCrossing_MovementCompleteWhileConnecting_CompletesCrossing()
+        {
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
+            var agent = _client.Self;
+            var agentType = typeof(AgentManager);
+            var infoType = agentType.GetNestedType("CrossingInfo", BindingFlags.NonPublic)!;
+            var stateType = agentType.GetNestedType("CrossingState", BindingFlags.Public)!;
+            var stateField = infoType.GetField("State", flags)!;
+
+            var sim = new Simulator(_client, new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 13000), 1UL);
+            var crossing = Activator.CreateInstance(infoType, nonPublic: true)!;
+            infoType.GetField("NewSimulator", flags)!.SetValue(crossing, sim);
+            infoType.GetField("StartTime", flags)!.SetValue(crossing, DateTime.UtcNow);
+            stateField.SetValue(crossing, Enum.Parse(stateType, "Connecting"));
+            agentType.GetField("_currentCrossing", flags)!.SetValue(agent, crossing);
+
+            agentType.GetMethod("NotifyMovementComplete", flags)!.Invoke(agent, new object[] { sim });
+            Assert.That(stateField.GetValue(crossing)!.ToString(), Is.EqualTo("Connecting"),
+                "An early MovementComplete must not change state by itself");
+
+            var entered = (Task<bool>)agentType.GetMethod("EnterWaitingForCompleteAsync", flags)!
+                .Invoke(agent, new[] { crossing, sim, (object)CancellationToken.None })!;
+            Assert.That(await entered, Is.True);
+
+            // A completed crossing is reset to Idle by OnCrossingCompleted.
+            Assert.That(stateField.GetValue(crossing)!.ToString(), Is.EqualTo("Idle"));
+        }
+
         [Test]
         public void RegionCrossing_CancelledDetachedTask_IsNotLogged()
         {
