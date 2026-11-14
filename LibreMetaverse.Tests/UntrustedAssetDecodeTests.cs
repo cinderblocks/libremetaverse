@@ -511,6 +511,26 @@ namespace LibreMetaverse.Tests
         }
 
         [Test]
+        public void Geometry_NonFiniteTextureDomain_DecodesWithFiniteCoordinates()
+        {
+            var subMesh = SubMesh();
+            subMesh["TexCoord0"] = OSD.FromBinary(U16s(1000, 2000, 3000, 4000, 5000, 6000));
+            subMesh["TexCoord0Domain"] = new OSDMap
+            {
+                ["Min"] = new OSDArray { float.NaN, float.NaN },
+                ["Max"] = new OSDArray { float.NaN, float.NaN }
+            };
+
+            Assert.That(TryDecodeGeometry(new OSDArray { subMesh }, out var mesh), Is.True);
+            Assert.That(mesh.Faces[0].Vertices.Count, Is.EqualTo(3));
+            foreach (var vertex in mesh.Faces[0].Vertices)
+            {
+                Assert.That(float.IsNaN(vertex.TexCoord.X) || float.IsInfinity(vertex.TexCoord.X), Is.False);
+                Assert.That(float.IsNaN(vertex.TexCoord.Y) || float.IsInfinity(vertex.TexCoord.Y), Is.False);
+            }
+        }
+
+        [Test]
         public void Geometry_DomainWhoseExtentOverflows_IsRefused()
         {
             Assert.That(TryDecodeGeometry(new OSDArray { SubMesh(positionDomain: Domain(-3e38f, 3e38f)) }, out _), Is.False);

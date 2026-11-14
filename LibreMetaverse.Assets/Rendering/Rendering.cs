@@ -521,9 +521,14 @@ namespace LibreMetaverse.Rendering
                             oface.NormalizedScale = new Vector3(1f, 1f, 1f);
                         }
 
-                        if (!IsFinite(oface.NormalizedScale) || !IsFinite(texPosMin) || !IsFinite(texPosMax)
-                            || !IsFinite(tex1PosMin) || !IsFinite(tex1PosMax))
-                            throw new InvalidDataException("Mesh scale or texture domain is not finite");
+                        // A mesh uploaded without texture coordinates can carry a domain of
+                        // NaN. Such a face is still drawn, with every coordinate at the origin.
+                        if (!IsFinite(oface.NormalizedScale))
+                            oface.NormalizedScale = new Vector3(1f, 1f, 1f);
+                        if (!IsFinite(texPosMin) || !IsFinite(texPosMax))
+                            texPosMin = texPosMax = Vector2.Zero;
+                        if (!IsFinite(tex1PosMin) || !IsFinite(tex1PosMax))
+                            tex1PosMin = tex1PosMax = Vector2.Zero;
 
                         // Allocate TexCoords1 list when second UV channel is present.
                         if (tex1Bytes != null)
