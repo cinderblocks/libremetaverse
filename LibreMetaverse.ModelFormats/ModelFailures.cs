@@ -46,6 +46,8 @@ namespace LibreMetaverse.ImportExport
         /// big; the rest say the loader met something it did not expect, which is still a refusal but a different thing
         /// to tell the user.
         /// </summary>
+        /// <param name="diagnostics">Where to report it</param>
+        /// <param name="ex">Why the file was refused</param>
         /// <param name="format">What to call the format in the message and the log</param>
         internal static void ReportFailure(this ModelDiagnosticCollector diagnostics, Exception ex, string format)
         {

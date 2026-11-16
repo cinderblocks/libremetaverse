@@ -378,6 +378,8 @@ namespace LibreMetaverse
         /// <param name="itemID">The inventory item of the script</param>
         /// <param name="mono">True to compile for Mono, otherwise for LSO2. To compile Lua, or for the Luau runtime,
         /// pass a target</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <param name="progress">Optional upload progress reporter</param>
         public Task<(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string>? compileMessages, UUID itemID, UUID assetID)> RequestUpdateScriptAgentInventoryAsync(
             byte[] data, UUID itemID, bool mono, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
@@ -391,6 +393,8 @@ namespace LibreMetaverse
         /// <param name="itemID">The inventory item of the script</param>
         /// <param name="target">What to compile for, one of the targets of <see cref="ScriptCompileTarget"/>. The source has to be
         /// in the language of the target: Lua for <see cref="ScriptCompileTarget.Luau"/>, otherwise LSL</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <param name="progress">Optional upload progress reporter</param>
         public async Task<(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string>? compileMessages, UUID itemID, UUID assetID)> RequestUpdateScriptAgentInventoryAsync(
             byte[] data, UUID itemID, string target, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
@@ -417,6 +421,8 @@ namespace LibreMetaverse
         /// <param name="mono">True to compile for Mono, otherwise for LSO2. To compile Lua, or for the Luau runtime,
         /// pass a target</param>
         /// <param name="running">Whether the script is to run once compiled</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <param name="progress">Optional upload progress reporter</param>
         public Task<(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string>? compileMessages, UUID itemID, UUID assetID)> RequestUpdateScriptTaskAsync(
             byte[] data, UUID itemID, UUID taskID, bool mono, bool running, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
@@ -432,6 +438,8 @@ namespace LibreMetaverse
         /// <param name="target">What to compile for, one of the targets of <see cref="ScriptCompileTarget"/>. The source has to be
         /// in the language of the target: Lua for <see cref="ScriptCompileTarget.Luau"/>, otherwise LSL</param>
         /// <param name="running">Whether the script is to run once compiled</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <param name="progress">Optional upload progress reporter</param>
         public async Task<(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string>? compileMessages, UUID itemID, UUID assetID)> RequestUpdateScriptTaskAsync(
             byte[] data, UUID itemID, UUID taskID, string target, bool running, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
@@ -773,6 +781,72 @@ namespace LibreMetaverse
         }
 
         /// <summary>
+        /// Creates a new script, notecard, or other inventory item directly inside a task
+        /// (object)'s inventory via the CreateTaskInventoryItem capability, without first
+        /// creating the item in agent inventory and copying it in. Mirrors
+        /// LLViewerObject::createInventoryItem / createInventoryItemCoro (llviewerobject.cpp):
+        /// POST {object_id, asset_type, inventory_type, sub_type, name, description,
+        /// permissions:{base,owner,everyone,group,next_owner}} to the capability. A successful
+        /// response only confirms the simulator accepted the request -- the reference viewer
+        /// itself gets the new item by re-requesting the task's inventory afterward, so callers
+        /// here should do the same via <see cref="GetTaskInventoryAsync"/> rather than expecting
+        /// the new item back from this call.
+        /// </summary>
+        /// <param name="objectID">UUID of the task (object) to create the item inside</param>
+        /// <param name="assetType">Asset type of the new item, e.g. <see cref="AssetType.LSLText"/> for a script</param>
+        /// <param name="inventoryType">Inventory type of the new item, e.g. <see cref="InventoryType.LSL"/> for a script</param>
+        /// <param name="subType">The low byte of the new item's flags; for scripts this selects the
+        /// language/VM (see <see cref="ScriptSubtype"/>), unused for other asset types</param>
+        /// <param name="name">Name of the new item</param>
+        /// <param name="description">Description of the new item</param>
+        /// <param name="permissions">Initial permissions for the new item</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>True if the simulator accepted the request</returns>
+        public async Task<bool> CreateTaskInventoryItemAsync(UUID objectID, AssetType assetType, InventoryType inventoryType,
+            byte subType, string name, string description, Permissions permissions,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var cap = GetCapabilityURI("CreateTaskInventoryItem");
+            if (cap == null) { return false; }
+
+            var body = new OSDMap
+            {
+                ["object_id"] = OSD.FromUUID(objectID),
+                ["asset_type"] = OSD.FromInteger((int)assetType),
+                ["inventory_type"] = OSD.FromInteger((int)inventoryType),
+                ["sub_type"] = OSD.FromInteger(subType),
+                ["name"] = OSD.FromString(name ?? string.Empty),
+                ["description"] = OSD.FromString(description ?? string.Empty),
+                ["permissions"] = new OSDMap
+                {
+                    ["base"] = OSD.FromInteger((uint)permissions.BaseMask),
+                    ["owner"] = OSD.FromInteger((uint)permissions.OwnerMask),
+                    ["everyone"] = OSD.FromInteger((uint)permissions.EveryoneMask),
+                    ["group"] = OSD.FromInteger((uint)permissions.GroupMask),
+                    ["next_owner"] = OSD.FromInteger((uint)permissions.NextOwnerMask)
+                }
+            };
+
+            try
+            {
+                var result = await PostCapAsync(cap, body, cancellationToken).ConfigureAwait(false);
+                var success = result is OSDMap resultMap && resultMap["success"].AsBoolean();
+                if (!success)
+                {
+                    Logger.Warn($"CreateTaskInventoryItem failed for object {objectID}: {result}", Client);
+                }
+                return success;
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error($"Failed creating task inventory item in {objectID}", ex, Client);
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Uploads a thumbnail image for an inventory item, folder, or task-inventory item via the
         /// InventoryThumbnailUpload capability. Mirrors
         /// LLFloaterSimpleSnapshot::uploadImageUploadFile / post_thumbnail_image_coro
@@ -784,7 +858,10 @@ namespace LibreMetaverse
         /// task-inventory item, {category_id} for a local folder, or bare {item_id} for an agent
         /// inventory item. The caller is responsible for J2K-encoding the image data (LibreMetaverse
         /// has no rendering/snapshot pipeline of its own); per THUMBNAIL_SNAPSHOT_DIM_MAX/MIN in the
-        /// reference viewer the image should be between 64x64 and 256x256.
+        /// reference viewer the image should be between 64x64 and 256x256. On success, the target's
+        /// <see cref="InventoryBase.ThumbnailUUID"/> is also updated in the local <see cref="Store"/>,
+        /// if it is known there (agent inventory items/folders only -- task-inventory items are not
+        /// tracked in <see cref="Store"/>).
         /// </summary>
         /// <param name="inventoryID">UUID of the item or folder to set the thumbnail on</param>
         /// <param name="taskID">UUID of the task (object) the item lives in, or <see cref="UUID.Zero"/>
@@ -837,7 +914,12 @@ namespace LibreMetaverse
                     return null;
                 }
 
-                return resultMap["new_asset"].AsUUID();
+                var newAsset = resultMap["new_asset"].AsUUID();
+                if (Store != null && Store.Contains(inventoryID))
+                {
+                    Store[inventoryID].ThumbnailUUID = newAsset;
+                }
+                return newAsset;
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
