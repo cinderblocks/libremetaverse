@@ -60,6 +60,8 @@ namespace LibreMetaverse
         /// <param name="description">Description of the new item</param>
         /// <param name="permissions">Permissions of the new item. The owner has all of them, whatever this says.</param>
         /// <param name="folderID">Where to put it. The Materials folder if <c>null</c>.</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <param name="progress">Optional upload progress reporter</param>
         public async Task<MaterialUploadResult> CreateMaterialAsync(AssetMaterial material, string name, string description,
             Permissions permissions, UUID? folderID = null, CancellationToken cancellationToken = default,
             IProgress<ProgressReport>? progress = null)
@@ -158,6 +160,8 @@ namespace LibreMetaverse
         /// <param name="textureFolderID">Where to put the textures. The Textures folder if <c>null</c>.</param>
         /// <param name="uploadedTextures">Textures that are already uploaded, and where the new ones are put</param>
         /// <param name="confirmCost">Called with what the textures will cost together, before any is uploaded. Return false to stop.</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <param name="progress">Optional upload progress reporter</param>
         public async Task<MaterialUploadResult> CreateMaterialAsync(ModelPbrMaterial pbr, Permissions permissions,
             string? name = null, string? description = null, UUID? folderID = null, UUID? textureFolderID = null,
             IDictionary<ModelTexture, UUID>? uploadedTextures = null, Func<int, bool>? confirmCost = null,

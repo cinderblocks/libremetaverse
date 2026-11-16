@@ -87,7 +87,7 @@ namespace LibreMetaverse.Tests
             using (var z = new ComponentAce.Compression.Libs.zlib.ZOutputStream(ms, 9))
             {
                 z.Write(raw, 0, raw.Length);
-                z.finish();
+                z.Finish();
                 return ms.ToArray();
             }
         }

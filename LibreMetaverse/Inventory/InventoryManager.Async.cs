@@ -378,6 +378,8 @@ namespace LibreMetaverse
         /// <param name="itemID">The inventory item of the script</param>
         /// <param name="mono">True to compile for Mono, otherwise for LSO2. To compile Lua, or for the Luau runtime,
         /// pass a target</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <param name="progress">Optional upload progress reporter</param>
         public Task<(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string>? compileMessages, UUID itemID, UUID assetID)> RequestUpdateScriptAgentInventoryAsync(
             byte[] data, UUID itemID, bool mono, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
@@ -391,6 +393,8 @@ namespace LibreMetaverse
         /// <param name="itemID">The inventory item of the script</param>
         /// <param name="target">What to compile for, one of the targets of <see cref="ScriptCompileTarget"/>. The source has to be
         /// in the language of the target: Lua for <see cref="ScriptCompileTarget.Luau"/>, otherwise LSL</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <param name="progress">Optional upload progress reporter</param>
         public async Task<(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string>? compileMessages, UUID itemID, UUID assetID)> RequestUpdateScriptAgentInventoryAsync(
             byte[] data, UUID itemID, string target, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
@@ -417,6 +421,8 @@ namespace LibreMetaverse
         /// <param name="mono">True to compile for Mono, otherwise for LSO2. To compile Lua, or for the Luau runtime,
         /// pass a target</param>
         /// <param name="running">Whether the script is to run once compiled</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <param name="progress">Optional upload progress reporter</param>
         public Task<(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string>? compileMessages, UUID itemID, UUID assetID)> RequestUpdateScriptTaskAsync(
             byte[] data, UUID itemID, UUID taskID, bool mono, bool running, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {
@@ -432,6 +438,8 @@ namespace LibreMetaverse
         /// <param name="target">What to compile for, one of the targets of <see cref="ScriptCompileTarget"/>. The source has to be
         /// in the language of the target: Lua for <see cref="ScriptCompileTarget.Luau"/>, otherwise LSL</param>
         /// <param name="running">Whether the script is to run once compiled</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <param name="progress">Optional upload progress reporter</param>
         public async Task<(bool uploadSuccess, string uploadStatus, bool compileSuccess, List<string>? compileMessages, UUID itemID, UUID assetID)> RequestUpdateScriptTaskAsync(
             byte[] data, UUID itemID, UUID taskID, string target, bool running, CancellationToken cancellationToken = default, IProgress<ProgressReport>? progress = null)
         {

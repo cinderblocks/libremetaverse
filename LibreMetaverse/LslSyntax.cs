@@ -182,6 +182,8 @@ namespace LibreMetaverse
         /// <summary>
         /// Use the definitions cached for a syntax ID
         /// </summary>
+        /// <param name="client">Whose asset cache the definitions are in</param>
+        /// <param name="syntaxId">The syntax ID the simulator gave</param>
         /// <param name="needLua">True if the cache is not complete without Lua</param>
         /// <returns>True if the cache was there, and complete</returns>
         private bool LoadCache(GridClient client, UUID syntaxId, bool needLua)
@@ -286,7 +288,9 @@ namespace LibreMetaverse
         /// <c>lsl_keywords.xml</c> and <c>lua_keywords.xml</c>. A language the simulator leaves out keeps the
         /// definitions it has.
         /// </summary>
+        /// <param name="response">The response of the capability</param>
         /// <param name="client">Where to cache the files, none if null</param>
+        /// <param name="syntaxId">The syntax ID the definitions are for</param>
         /// <returns>True if the response had definitions</returns>
         internal bool ApplyDefinitionFiles(OSDMap response, GridClient? client, UUID syntaxId)
         {
