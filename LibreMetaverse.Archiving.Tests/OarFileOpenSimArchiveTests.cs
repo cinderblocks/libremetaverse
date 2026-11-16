@@ -300,7 +300,7 @@ namespace LibreMetaverse.Tests
             // by SceneObjectGroupXmlReaderTests
             Assert.That(flexibles, Is.GreaterThan(0));
             Assert.That(lights, Is.GreaterThan(0));
-            TestContext.WriteLine($"sculpt {sculpts}, flexible {flexibles}, light {lights}");
+            TestContext.Out.WriteLine($"sculpt {sculpts}, flexible {flexibles}, light {lights}");
         }
 
         [Test]

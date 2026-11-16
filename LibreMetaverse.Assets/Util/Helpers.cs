@@ -653,7 +653,7 @@ namespace LibreMetaverse
             using (Stream inMemoryStream = new MemoryStream(OSDParser.SerializeLLSDBinary(data, false)))
             {
                 CopyStream(inMemoryStream, outZStream);
-                outZStream.finish();
+                outZStream.Finish();
                 ret = outMemoryStream.ToArray();
             }
 
@@ -698,7 +698,7 @@ namespace LibreMetaverse
             using (ZOutputStream zout = new ZOutputStream(limited))
             {
                 CopyStream(input, zout);
-                zout.finish();
+                zout.Finish();
                 output.Seek(0, SeekOrigin.Begin);
                 ret = OSDParser.DeserializeLLSDBinary(output);
             }

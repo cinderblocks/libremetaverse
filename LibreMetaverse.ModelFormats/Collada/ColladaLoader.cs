@@ -46,6 +46,12 @@ namespace LibreMetaverse.ImportExport
     /// <summary>
     /// Parsing Collada model files into data structures
     /// </summary>
+    /// <remarks>
+    /// The trimming requirement is on the class rather than on <see cref="Load"/> and
+    /// <see cref="LoadWithDiagnostics"/>, which implement interface members that the other loaders implement
+    /// without it. Constructing a ColladaLoader is what warns.
+    /// </remarks>
+    [RequiresUnreferencedCode("Uses XmlSerializer with runtime-reflected COLLADA types. Not AOT-safe.")]
     public class ColladaLoader : IDiagnosticModelLoader
     {
         private COLLADA? Model;
@@ -106,7 +112,6 @@ namespace LibreMetaverse.ImportExport
         /// <param name="filename">Load .dae model from this file</param>
         /// <param name="loadImages">Load and decode images for uploading with model</param>
         /// <returns>A list of mesh prims that were parsed from the collada file</returns>
-        [RequiresUnreferencedCode("Uses XmlSerializer with runtime-reflected COLLADA types. Not AOT-safe.")]
         public List<ModelPrim> Load(string filename, bool loadImages)
         {
             return new List<ModelPrim>(LoadWithDiagnostics(filename, loadImages).Prims);
@@ -117,7 +122,6 @@ namespace LibreMetaverse.ImportExport
         /// </summary>
         /// <param name="filename">Load .dae model from this file</param>
         /// <param name="loadImages">Load and decode images for uploading with model</param>
-        [RequiresUnreferencedCode("Uses XmlSerializer with runtime-reflected COLLADA types. Not AOT-safe.")]
         public ModelLoadResult LoadWithDiagnostics(string filename, bool loadImages)
         {
             _diagnostics = new ModelDiagnosticCollector();
