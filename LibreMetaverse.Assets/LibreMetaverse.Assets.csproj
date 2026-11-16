@@ -35,7 +35,7 @@
     <PackageReference Include="OggVorbisEncoder" />
     <PackageReference Include="Pfim" />
     <PackageReference Include="System.Collections.Immutable" />
-    <PackageReference Include="zlib.net-mutliplatform" />
+    <PackageReference Include="ZlibCore" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
     <Reference Include="System.Net.Http" />
