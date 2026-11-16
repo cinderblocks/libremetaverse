@@ -121,9 +121,12 @@ namespace LibreMetaverse.ImportExport
         /// Loads texture data that was embedded in the model file into <paramref name="material"/>.
         /// Failures are logged and leave the material without texture data.
         /// </summary>
+        /// <param name="diagnostics">Where to report a texture that could not be loaded</param>
         /// <param name="data">The compressed image</param>
         /// <param name="extension">Lower case file extension (with the dot) that names the image format</param>
         /// <param name="description">What to call the image in log messages</param>
+        /// <param name="material">The material to give the texture data to</param>
+        /// <param name="textureCodec">Decodes images other than JPEG2000 and TGA; if null, those fail to load</param>
         internal static void LoadBytes(ModelDiagnosticCollector diagnostics, byte[] data, string extension, string description,
             ModelMaterial material, ITextureCodec? textureCodec)
         {

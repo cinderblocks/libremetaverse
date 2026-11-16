@@ -191,7 +191,7 @@ namespace LibreMetaverse.Rendering
         }
 
         /// <summary>
-        /// Advance the simulation by <paramref name="dt"/> seconds.
+        /// Advance the simulation to <paramref name="time"/>.
         /// </summary>
         /// <param name="time">
         /// Monotonically increasing time in seconds (e.g. total elapsed seconds).
@@ -542,6 +542,9 @@ namespace LibreMetaverse.Rendering
         /// <param name="drivenWeights">
         /// Map from driven param ID to normalised position in [0,1] as returned by
         /// <see cref="AvatarPhysicsSimulator.Tick"/>.
+        /// </param>
+        /// <param name="vpWeights">
+        /// Not used: the offsets depend only on <paramref name="drivenWeights"/>.
         /// </param>
         /// <returns>
         /// Accumulated position offsets per collision-volume bone name.

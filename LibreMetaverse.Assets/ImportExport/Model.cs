@@ -357,6 +357,7 @@ namespace LibreMetaverse.ImportExport
             BuildAsset(creator, lods, hull);
         }
 
+        /// <param name="creator">The agent named as the creator in the asset</param>
         /// <param name="lods">The medium, low and lowest levels of detail, or null for the high one only</param>
         /// <param name="hull">The points of the physics hull, or null for the stub</param>
         private void BuildAsset(UUID creator, List<ModelFace>[]? lods, List<Vector3>? hull)

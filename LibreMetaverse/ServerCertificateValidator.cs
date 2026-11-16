@@ -151,8 +151,12 @@ namespace LibreMetaverse
                     {
                         try
                         {
-                            certs.Add(new X509Certificate2(Convert.FromBase64String(
-                                Regex.Replace(m.Groups["body"].Value, @"\s+", ""))));
+                            byte[] der = Convert.FromBase64String(Regex.Replace(m.Groups["body"].Value, @"\s+", ""));
+#if NET9_0_OR_GREATER
+                            certs.Add(X509CertificateLoader.LoadCertificate(der));
+#else
+                            certs.Add(new X509Certificate2(der));
+#endif
                         }
                         catch (Exception ex) when (ex is FormatException || ex is CryptographicException)
                         {
