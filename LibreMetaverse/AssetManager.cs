@@ -700,8 +700,9 @@ namespace LibreMetaverse
                 Callback = callback
             };
 
-            // Check asset cache first
-            if (callback != null && Cache.HasAsset(assetID))
+            // Check asset cache first. A null asset ID means the simulator didn't tell us the real one
+            // (Second Life does this for some inventory items), so there is nothing to look up under it.
+            if (callback != null && assetID != UUID.Zero && Cache.HasAsset(assetID))
             {
                 if (Cache.TryGetCachedAssetBytes(assetID, out var data) && data != null)
                 {
@@ -1725,8 +1726,12 @@ namespace LibreMetaverse
                 {
                     Logger.DebugLog($"Transfer for asset {download.AssetID} completed", Client);
 
-                    // Cache successful asset download
-                    await Cache.SaveAssetToCacheAsync(download.AssetID, download.AssetData).ConfigureAwait(false);
+                    // Cache successful asset download, unless the simulator withheld its ID: every such
+                    // inventory item would otherwise share one cache entry under UUID.Zero
+                    if (download.AssetID != UUID.Zero)
+                    {
+                        await Cache.SaveAssetToCacheAsync(download.AssetID, download.AssetData).ConfigureAwait(false);
+                    }
 
                     if (download.Callback != null)
                     {

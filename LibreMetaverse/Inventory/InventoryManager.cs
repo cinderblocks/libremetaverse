@@ -1530,6 +1530,7 @@ namespace LibreMetaverse
         /// <param name="subtype">The language of the script. <see cref="ScriptSubtype.Lua"/> only works on a grid with
         /// Lua, see <see cref="SimulatorFeatures.LuaScriptsEnabled"/></param>
         /// <param name="nextOwnerMask">The permissions of the next owner</param>
+        /// <param name="cancellationToken">Cancellation token</param>
         public Task<InventoryItem?> CreateScriptAsync(UUID parentFolder, string name, string description,
             ScriptSubtype subtype, PermissionMask nextOwnerMask, CancellationToken cancellationToken = default)
         {

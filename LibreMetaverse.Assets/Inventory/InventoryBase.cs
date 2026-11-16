@@ -67,6 +67,9 @@ namespace LibreMetaverse
         /// <summary>Item/Folder Owners <see cref="LibreMetaverse.UUID"/></summary>
         [Key("OwnerID")]
         public UUID OwnerID { get; set; }
+        /// <summary>UUID of the asset used as this item/folder's thumbnail image, or <see cref="LibreMetaverse.UUID.Zero"/> if none is set</summary>
+        [Key("ThumbnailUUID")]
+        public UUID ThumbnailUUID { get; set; }
 
         /// <summary>
         /// Constructor, takes an itemID as a parameter
@@ -77,6 +80,23 @@ namespace LibreMetaverse
             if (UUID == UUID.Zero)
                 Logger.Warn("Initializing an InventoryBase with UUID.Zero");
             this.UUID = UUID;
+        }
+
+        /// <summary>
+        /// Reads the thumbnail asset UUID out of an item or folder's OSD map, in the
+        /// "thumbnail":{"asset_id":...} shape used by AIS3 and the capabilities both
+        /// <see cref="InventoryItem"/> and <see cref="InventoryFolder"/> are parsed from (mirrors
+        /// LLInventoryObject's "thumbnail" handling in llinventory.cpp). Returns
+        /// <see cref="LibreMetaverse.UUID.Zero"/> if the map carries no thumbnail.
+        /// </summary>
+        protected static UUID ThumbnailUUIDFromOSD(OSDMap data)
+        {
+            if (data.TryGetValue("thumbnail", out var thumbnail) && thumbnail is OSDMap thumbnailMap
+                && thumbnailMap.TryGetValue("asset_id", out var assetId))
+            {
+                return assetId.AsUUID();
+            }
+            return UUID.Zero;
         }
 
         /// <summary>
@@ -338,6 +358,8 @@ namespace LibreMetaverse
             item.SalePrice = sale["sale_price"];
             item.SaleType = (SaleType)sale["sale_type"].AsInteger();
 
+            item.ThumbnailUUID = ThumbnailUUIDFromOSD(descItem);
+
             return item;
         }
 
@@ -466,6 +488,10 @@ namespace LibreMetaverse
             {
                 CreationDate = Utils.UnixTimeToDateTime(createdAt);
             }
+            if (data.ContainsKey("thumbnail"))
+            {
+                ThumbnailUUID = ThumbnailUUIDFromOSD(data);
+            }
         }
 
         /// <summary>
@@ -500,6 +526,11 @@ namespace LibreMetaverse
                 ["sale_type"] = (sbyte)SaleType
             };
             map["sale_info"] = sale;
+
+            if (ThumbnailUUID != UUID.Zero)
+            {
+                map["thumbnail"] = new OSDMap { ["asset_id"] = ThumbnailUUID };
+            }
 
             return map;
         }
@@ -980,7 +1011,8 @@ namespace LibreMetaverse
                 DescendentCount = res["descendents"],
                 OwnerID = res.TryGetValue("agent_id", out var agentId) ? agentId : res["owner_id"],
                 PreferredType = (FolderType)(sbyte)res["type_default"].AsUInteger(),
-                Name = res["name"]
+                Name = res["name"],
+                ThumbnailUUID = ThumbnailUUIDFromOSD(res)
             };
             return folder;
         }
@@ -1019,6 +1051,10 @@ namespace LibreMetaverse
             {
                 Name = data["name"].AsString();
             }
+            if (data.ContainsKey("thumbnail"))
+            {
+                ThumbnailUUID = ThumbnailUUIDFromOSD(data);
+            }
         }
 
         /// <summary>
@@ -1035,6 +1071,10 @@ namespace LibreMetaverse
                 ["type"] = (sbyte)PreferredType,
                 ["name"] = Name
             };
+            if (ThumbnailUUID != UUID.Zero)
+            {
+                res["thumbnail"] = new OSDMap { ["asset_id"] = ThumbnailUUID };
+            }
             return res;
         }
     }
