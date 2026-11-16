@@ -815,8 +815,11 @@ namespace LibreMetaverse
                     // Particle system
                     if ((flags & CompressedFlags.HasParticles) != 0)
                     {
-                        prim.ParticleSys = new Primitive.ParticleSystem(block.Data, i);
-                        i += 86;
+                        // The compressed update always carries the legacy block, followed by the rest of
+                        // the object data, so the block length has to be given rather than inferred
+                        prim.ParticleSys = new Primitive.ParticleSystem(block.Data, i,
+                            Primitive.ParticleSystem.LegacyDataBlockSize);
+                        i += Primitive.ParticleSystem.LegacyDataBlockSize;
                     }
 
                     // Extra parameters
