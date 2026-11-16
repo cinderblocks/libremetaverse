@@ -1502,6 +1502,95 @@ namespace LibreMetaverse
 
         #endregion
 
+        #region Voice Moderation
+
+        /// <summary>
+        /// Mutes or unmutes one resident's nearby (spatially-proximate) voice chat, via the
+        /// SpatialVoiceModerationRequest capability. Mirrors
+        /// LLNearbyVoiceModeration::requestMuteIndividual (llnearbyvoicemoderation.cpp):
+        /// POST {"operand":"mute"|"unmute","agent_id":&lt;uuid&gt;}. The simulator itself gates
+        /// who may call this to estate managers and parcel owners/moderators -- this library does
+        /// not duplicate that check client-side.
+        /// </summary>
+        /// <param name="agentID">UUID of the resident to mute or unmute</param>
+        /// <param name="mute">True to mute, false to unmute</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>True if the simulator accepted the request</returns>
+        public async Task<bool> SetNearbyVoiceMutedAsync(UUID agentID, bool mute, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Uri? cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("SpatialVoiceModerationRequest");
+            if (cap == null)
+            {
+                Logger.Warn("SpatialVoiceModerationRequest capability not available.", Client);
+                return false;
+            }
+
+            var body = new OSDMap
+            {
+                ["operand"] = OSD.FromString(mute ? "mute" : "unmute"),
+                ["agent_id"] = OSD.FromUUID(agentID)
+            };
+
+            try
+            {
+                var (response, _) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, body, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"SpatialVoiceModerationRequest POST non-success status: {response.StatusCode}", Client);
+                }
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error($"Failed setting nearby voice mute for {agentID}", ex, Client);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Mutes or unmutes nearby (spatially-proximate) voice chat for every resident in the
+        /// current region, via the SpatialVoiceModerationRequest capability. Mirrors
+        /// LLNearbyVoiceModeration::requestMuteAll: POST {"operand":"mute_all"|"unmute_all"}.
+        /// </summary>
+        /// <param name="mute">True to mute everyone, false to unmute everyone</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>True if the simulator accepted the request</returns>
+        public async Task<bool> SetNearbyVoiceMutedForAllAsync(bool mute, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            Uri? cap = Client.Network.CurrentSim?.Caps?.CapabilityURI("SpatialVoiceModerationRequest");
+            if (cap == null)
+            {
+                Logger.Warn("SpatialVoiceModerationRequest capability not available.", Client);
+                return false;
+            }
+
+            var body = new OSDMap
+            {
+                ["operand"] = OSD.FromString(mute ? "mute_all" : "unmute_all")
+            };
+
+            try
+            {
+                var (response, _) = await Client.HttpCapsClient.PostAsync(cap, OSDFormat.Xml, body, cancellationToken).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.Warn($"SpatialVoiceModerationRequest POST non-success status: {response.StatusCode}", Client);
+                }
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Logger.Error("Failed setting nearby voice mute for all residents", ex, Client);
+                return false;
+            }
+        }
+
+        #endregion
+
         #region IDisposable
 
         /// <summary>
