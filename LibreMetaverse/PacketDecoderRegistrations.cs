@@ -34,7 +34,9 @@ namespace LibreMetaverse
     /// </summary>
     internal static class PacketDecoderRegistrations
     {
+#pragma warning disable CA2255 // A library module initializer is intended: the registrations must be in place before any packet is decoded
         [ModuleInitializer]
+#pragma warning restore CA2255
         internal static void Register()
         {
             PacketDecoder.RegisterFieldDecoder("ScriptControlChange.Data.Controls", DecodeScriptControls);

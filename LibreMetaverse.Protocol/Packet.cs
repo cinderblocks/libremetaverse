@@ -214,6 +214,7 @@ namespace LibreMetaverse.Packets
         /// </summary>
         /// <param name="header"></param>
         /// <param name="bytes"></param>
+        /// <param name="bodyStart">Where the header ends; the appended ACKs may not reach back before it</param>
         /// <param name="packetEnd"></param>
         static void CreateAckList(ref Header header, byte[] bytes, int bodyStart, ref int packetEnd)
         {
