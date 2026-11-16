@@ -53,6 +53,7 @@ namespace LibreMetaverse.Tests
             public readonly BlockingCollection<(byte[] Data, IPEndPoint From)> Received = new BlockingCollection<(byte[], IPEndPoint)>();
             public int Dropped;
             public int Capacity = 512;
+            public int ReceiveBuffer;
             public IPAddress Bind = IPAddress.Loopback;
             public ManualResetEventSlim Gate = new ManualResetEventSlim(true);
             public Action<byte[]> OnReceive = _ => { };
@@ -61,6 +62,7 @@ namespace LibreMetaverse.Tests
 
             protected override IPAddress BindAddress => Bind;
             protected override int ReceiveQueueCapacity => Capacity;
+            protected override int SocketReceiveBufferSize => ReceiveBuffer;
 
             protected override void PacketReceived(UDPPacketBuffer buffer)
             {
@@ -152,7 +154,29 @@ namespace LibreMetaverse.Tests
             {
                 Assert.That(udp.Address, Is.EqualTo(IPAddress.Any));
                 Assert.That(udp.Capacity, Is.EqualTo(512));
+                Assert.That(udp.ReceiveBuffer, Is.EqualTo(0), "the OS default");
             });
+        }
+
+        [Test]
+        public void AReceiveBufferSize_IsAppliedToTheSocketWhenItStarts()
+        {
+            using var far = new FarEnd();
+            var byDefault = new TestUdp(far.EndPoint);
+            var sized = new TestUdp(far.EndPoint) { ReceiveBuffer = 4096 };
+            byDefault.Start();
+            sized.Start();
+            try
+            {
+                // Linux doubles the value it is given (socket(7)), Windows keeps it; both defaults are far larger
+                Assert.That(sized.ReceiveBufferSizeInEffect, Is.InRange(4096, 2 * 4096));
+                Assert.That(byDefault.ReceiveBufferSizeInEffect, Is.Not.EqualTo(sized.ReceiveBufferSizeInEffect));
+            }
+            finally
+            {
+                sized.Stop();
+                byDefault.Stop();
+            }
         }
 
         private sealed class DefaultsUdp : UDPBase
@@ -160,6 +184,7 @@ namespace LibreMetaverse.Tests
             public DefaultsUdp(IPEndPoint remote) : base(remote) { }
             public IPAddress Address => BindAddress;
             public int Capacity => ReceiveQueueCapacity;
+            public int ReceiveBuffer => SocketReceiveBufferSize;
             protected override void PacketReceived(UDPPacketBuffer buffer) { }
             protected override void PacketSent(UDPPacketBuffer buffer, int bytesSent) { }
         }
