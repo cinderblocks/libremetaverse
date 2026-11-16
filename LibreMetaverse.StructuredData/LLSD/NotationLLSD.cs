@@ -133,6 +133,7 @@ namespace LibreMetaverse.StructuredData
         /// 
         /// </summary>
         /// <param name="reader"></param>
+        /// <param name="depth">How deeply the element is nested in arrays and maps</param>
         /// <returns></returns>
         private static OSD DeserializeLLSDNotationElement(StringReader reader, int depth)
         {

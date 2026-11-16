@@ -136,6 +136,7 @@ namespace LibreMetaverse
                 ["InventoryAPIv3"]                     = CapsCategory.Inventory,
                 ["LibraryAPIv3"]                       = CapsCategory.Inventory,
                 ["RequestTaskInventory"]               = CapsCategory.Inventory,
+                ["CreateTaskInventoryItem"]            = CapsCategory.Inventory,
 
                 // AP_UPLOADS
                 ["NewFileAgentInventory"]              = CapsCategory.AssetUpload,
@@ -156,6 +157,7 @@ namespace LibreMetaverse
                 ["ProvisionVoiceAccountRequest"]       = CapsCategory.Voice,
                 ["VoiceSignalingRequest"]              = CapsCategory.Voice,
                 ["ParcelVoiceInfoRequest"]             = CapsCategory.Voice,
+                ["SpatialVoiceModerationRequest"]      = CapsCategory.Voice,
             }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
         private readonly IReadOnlyDictionary<CapsCategory, RateLimiter> _limiters;

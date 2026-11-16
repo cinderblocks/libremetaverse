@@ -57,7 +57,6 @@ namespace LibreMetaverse.Tests
             public readonly List<OutgoingDatagram> Acknowledged = new List<OutgoingDatagram>();
             public readonly List<(PacketType Type, int Length)> Prepared = new List<(PacketType, int)>();
             public readonly List<Packet> Received = new List<Packet>();
-            public int Datagrams;
 
             public TestCircuit(Action<UDPPacketBuffer> transmit, Func<uint>? next = null, int archive = 1000)
                 : base(new IPEndPoint(IPAddress.Loopback, 9000), transmit, next, archive)

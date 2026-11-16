@@ -367,7 +367,10 @@ namespace PacketSourceGenerator
             Append(sb, 2, "}");
             Append(sb, 2, "");
 
-            // BuildPacketFromOSD(string capsEventName, OSDMap body) - reflection-free factory for CapsToPacket
+            // BuildPacketFromOSD(string capsEventName, OSDMap body) - reflection-free factory for CapsToPacket.
+            // The rest of the file is emitted with nullable disabled; this method is annotated so callers
+            // see that an unknown event name gives null.
+            Append(sb, 0, "#nullable enable");
             Append(sb, 2, "public static Packet? BuildPacketFromOSD(string capsEventName, OSDMap body)");
             Append(sb, 2, "{");
             Append(sb, 3, "Packet? packet = capsEventName switch");
@@ -380,6 +383,7 @@ namespace PacketSourceGenerator
             Append(sb, 3, "if (packet != null) packet.PacketFromOSD(body);");
             Append(sb, 3, "return packet;");
             Append(sb, 2, "}");
+            Append(sb, 0, "#nullable disable");
 
             Append(sb, 1, "}");
             Append(sb, 0, "");
