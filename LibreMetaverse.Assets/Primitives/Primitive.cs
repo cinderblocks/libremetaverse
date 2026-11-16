@@ -870,6 +870,12 @@ namespace LibreMetaverse
         /// <summary>Extended mesh parameter flags (PARAMS_EXTENDED_MESH = 0x70)</summary>
         public UInt32 ExtendedMeshFlags;
         /// <summary>
+        /// GLTF (PBR) material asset applied to each face, keyed by face index, from the render material
+        /// parameter (PARAMS_RENDER_MATERIAL = 0x80); null if the object has none. Corresponds to
+        /// LLRenderMaterialParams in the SL C++ viewer.
+        /// </summary>
+        public Dictionary<int, UUID>? RenderMaterials;
+        /// <summary>
         /// Current signaled animations for this object, or null if no ObjectAnimation packet has been received.
         /// Fully replaced on each ObjectAnimation update (not a delta).
         /// Corresponds to signaled_animation_map_t in LLObjectSignaledAnimationMap in the SL C++ viewer.
@@ -1331,12 +1337,35 @@ namespace LibreMetaverse
                 {
                     ExtendedMeshFlags = Utils.BytesToUInt(data, i);
                 }
+                else if (type == ExtraParamType.RenderMaterial)
+                {
+                    RenderMaterials = ParseRenderMaterials(data, i, (int)paramLength);
+                }
 
                 i += (int)paramLength;
                 totalLength += (int)paramLength + 6;
             }
 
             return totalLength;
+        }
+
+        /// <summary>
+        /// Decodes a render material parameter: a count, then for each entry a face index and the
+        /// material asset ID (LLRenderMaterialParams::unpack)
+        /// </summary>
+        internal static Dictionary<int, UUID> ParseRenderMaterials(byte[] data, int pos, int length)
+        {
+            const int entrySize = 1 + 16;
+            var materials = new Dictionary<int, UUID>();
+            if (length < 1 || pos + length > data.Length) return materials;
+
+            int count = data[pos];
+            for (int e = 0; e < count && 1 + (e + 1) * entrySize <= length; e++)
+            {
+                int entry = pos + 1 + e * entrySize;
+                materials[data[entry]] = new UUID(data, entry + 1);
+            }
+            return materials;
         }
 
         public byte[] GetExtraParamsBytes()
