@@ -142,5 +142,24 @@ namespace LibreMetaverse.Tests
 
             Assert.That(killed, Is.Empty);
         }
+
+        [Test]
+        public void SelfLocalIDIn_ANewRegion_ComesFromOurAvatarThere()
+        {
+            var self = UUID.Random();
+            var other = UUID.Random();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(AgentManager.SelfLocalIDIn(5, new[] { (9u, self), (12u, other) }, self), Is.EqualTo(9u),
+                    "the region's entry for us");
+                Assert.That(AgentManager.SelfLocalIDIn(5, new[] { (12u, other) }, self), Is.EqualTo(5u),
+                    "no entry for us yet: keep what we have until its full update arrives");
+                Assert.That(AgentManager.SelfLocalIDIn(9, new[] { (9u, self), (3u, self) }, self), Is.EqualTo(9u),
+                    "the ID we hold is already ours there");
+                Assert.That(AgentManager.SelfLocalIDIn(5, new[] { (3u, self), (9u, self) }, self), Is.EqualTo(9u),
+                    "an older entry from an earlier visit has the lower ID");
+            });
+        }
     }
 }

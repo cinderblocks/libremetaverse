@@ -25,6 +25,8 @@
  */
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -37,6 +39,23 @@ namespace LibreMetaverse
     public partial class AgentManager
     {
         #region Region Crossing State Machine
+
+        /// <summary>
+        /// Our local ID in a region we are entering, from the avatars it has sent. Keeps <paramref name="current"/>
+        /// if one of them already has it; otherwise the highest local ID among our avatar entries there (an
+        /// entry left from an earlier visit has the lower ID); otherwise <paramref name="current"/>.
+        /// </summary>
+        internal static uint SelfLocalIDIn(uint current, IEnumerable<(uint LocalID, UUID ID)> avatars, UUID self)
+        {
+            uint best = 0;
+            foreach (var (localId, id) in avatars)
+            {
+                if (id != self) continue;
+                if (localId == current) return current;
+                if (localId > best) best = localId;
+            }
+            return best == 0 ? current : best;
+        }
 
         /// <summary>
         /// States for the region crossing state machine
@@ -295,6 +314,11 @@ namespace LibreMetaverse
                 {
                     crossing.NewSimulator = newSim;
                     relativePosition = crossing.Position;
+                    // The new region may already have sent our avatar while it was a neighbor; its full update
+                    // was not taken as ours then, so take our local ID there from it, or the region's terse
+                    // updates for us would go unrecognized until it sends another full update
+                    localID = SelfLocalIDIn(localID,
+                        newSim.ObjectsAvatars.Values.Where(a => a != null).Select(a => (a.LocalID, a.ID)), AgentID);
                     LastPositionUpdate = Client!.UtcNow;
                     Movement.Camera.LookDirection(crossing.LookAt);
 
