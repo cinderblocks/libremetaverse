@@ -45,7 +45,13 @@ namespace LibreMetaverse.Tests
                 var notBefore = DateTimeOffset.UtcNow.AddDays(validDays > 0 ? -1 : -30);
                 var notAfter = validDays > 0 ? DateTimeOffset.UtcNow.AddDays(validDays) : DateTimeOffset.UtcNow.AddDays(-5);
                 using (var signed = req.Create(issuer, notBefore, notAfter, serial))
+                {
+#if NET9_0_OR_GREATER
+                    return X509CertificateLoader.LoadCertificate(signed.RawData);
+#else
                     return new X509Certificate2(signed.RawData);
+#endif
+                }
             }
         }
 
