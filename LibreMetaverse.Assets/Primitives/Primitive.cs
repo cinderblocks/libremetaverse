@@ -1181,6 +1181,10 @@ namespace LibreMetaverse
             if (RenderMaterials != null)
                 prim["render_material"] = GetRenderMaterialsOSD(RenderMaterials);
 
+            // LLExtendedMeshParams::asLLSD: a map holding "flags" as an LLSD integer
+            if (ExtendedMeshFlags != 0)
+                prim["extended_mesh"] = new OSDMap(1) { ["flags"] = OSD.FromInteger((int)ExtendedMeshFlags) };
+
             return prim;
         }
 
@@ -1299,6 +1303,10 @@ namespace LibreMetaverse
 
             if (map.TryGetValue("render_material", out OSD renderMatOsd) && renderMatOsd is OSDArray renderMatArr)
                 prim.RenderMaterials = RenderMaterialsFromOSD(renderMatArr);
+
+            if (map.TryGetValue("extended_mesh", out OSD extMeshOsd) && extMeshOsd is OSDMap extMeshMap
+                && extMeshMap.TryGetValue("flags", out OSD extMeshFlags))
+                prim.ExtendedMeshFlags = extMeshFlags.AsUInteger();
 
             if (map.TryGetValue("textures", out OSD texOsd) && texOsd != null)
                 prim.Textures = TextureEntry.FromOSD(texOsd);
