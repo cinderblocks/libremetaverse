@@ -151,14 +151,81 @@ namespace LibreMetaverse.Tests
 
             Assert.Multiple(() =>
             {
-                Assert.That(AgentManager.SelfLocalIDIn(5, new[] { (9u, self), (12u, other) }, self), Is.EqualTo(9u),
+                Assert.That(AgentManager.SelfLocalIDIn(5, 0, new[] { (9u, self), (12u, other) }, self), Is.EqualTo(9u),
                     "the region's entry for us");
-                Assert.That(AgentManager.SelfLocalIDIn(5, new[] { (12u, other) }, self), Is.EqualTo(5u),
+                Assert.That(AgentManager.SelfLocalIDIn(5, 0, new[] { (12u, other) }, self), Is.EqualTo(5u),
                     "no entry for us yet: keep what we have until its full update arrives");
-                Assert.That(AgentManager.SelfLocalIDIn(9, new[] { (9u, self), (3u, self) }, self), Is.EqualTo(9u),
+                Assert.That(AgentManager.SelfLocalIDIn(9, 0, new[] { (9u, self), (3u, self) }, self), Is.EqualTo(9u),
                     "the ID we hold is already ours there");
-                Assert.That(AgentManager.SelfLocalIDIn(5, new[] { (3u, self), (9u, self) }, self), Is.EqualTo(9u),
-                    "an older entry from an earlier visit has the lower ID");
+                Assert.That(AgentManager.SelfLocalIDIn(5, 0, new[] { (3u, self), (9u, self) }, self), Is.EqualTo(9u),
+                    "no full update for us seen there: fall back to the highest of our entries");
+            });
+        }
+
+        [Test]
+        public void SelfLocalIDIn_PrefersTheLatestEntrySeen_EvenWhenARecycledLowerID()
+        {
+            var self = UUID.Random();
+            var other = UUID.Random();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(AgentManager.SelfLocalIDIn(5, 3, new[] { (9u, self), (3u, self) }, self), Is.EqualTo(3u),
+                    "after a restart the region reused a lower ID for us; the stale higher entry must lose");
+                Assert.That(AgentManager.SelfLocalIDIn(9, 3, new[] { (9u, self), (3u, self) }, self), Is.EqualTo(3u),
+                    "the latest entry seen wins over a stale entry that happens to match the ID we hold");
+                Assert.That(AgentManager.SelfLocalIDIn(5, 4, new[] { (9u, self) }, self), Is.EqualTo(9u),
+                    "the latest entry seen is gone (killed): fall back to the entries that remain");
+                Assert.That(AgentManager.SelfLocalIDIn(5, 3, new[] { (3u, other), (9u, self) }, self), Is.EqualTo(9u),
+                    "the region gave that ID to someone else since: it is not ours");
+            });
+        }
+
+        private void FullAvatarUpdate(Simulator sim, uint localId, UUID fullId)
+        {
+            var packet = new ObjectUpdatePacket
+            {
+                RegionData = { RegionHandle = sim.Handle, TimeDilation = ushort.MaxValue },
+                ObjectData = new[]
+                {
+                    new ObjectUpdatePacket.ObjectDataBlock
+                    {
+                        ID = localId,
+                        FullID = fullId,
+                        PCode = (byte)PCode.Avatar,
+                        Scale = Vector3.One,
+                        ObjectData = new byte[60],
+                        NameValue = Utils.EmptyBytes,
+                        TextureEntry = Utils.EmptyBytes,
+                        TextureAnim = Utils.EmptyBytes,
+                        Data = Utils.EmptyBytes,
+                        Text = Utils.EmptyBytes,
+                        MediaURL = Utils.EmptyBytes,
+                        PSBlock = Utils.EmptyBytes,
+                        ExtraParams = Utils.EmptyBytes
+                    }
+                }
+            };
+            Invoke("ObjectUpdateHandler", packet, sim);
+        }
+
+        [Test]
+        public void FullUpdates_InANeighbor_RecordOurLatestLocalIDThere_WithoutTakingIt()
+        {
+            // An earlier visit left an entry for us at 9; after a restart the region sends us again at 3
+            FullAvatarUpdate(_neighbor, 9u, _client.Self.AgentID);
+            FullAvatarUpdate(_neighbor, 3u, _client.Self.AgentID);
+            FullAvatarUpdate(_neighbor, 12u, UUID.Random());
+
+            var chosen = AgentManager.SelfLocalIDIn(_client.Self.LocalID, _neighbor.LatestSelfLocalID,
+                System.Linq.Enumerable.Select(_neighbor.ObjectsAvatars.Values, a => (a.LocalID, a.ID)), _client.Self.AgentID);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(_neighbor.ObjectsAvatars.ContainsKey(9u) && _neighbor.ObjectsAvatars.ContainsKey(3u), Is.True);
+                Assert.That(_neighbor.LatestSelfLocalID, Is.EqualTo(3u));
+                Assert.That(_client.Self.LocalID, Is.EqualTo(SelfLocalId), "a neighbor's update is not taken as ours");
+                Assert.That(chosen, Is.EqualTo(3u));
             });
         }
     }

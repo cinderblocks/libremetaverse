@@ -41,20 +41,35 @@ namespace LibreMetaverse
         #region Region Crossing State Machine
 
         /// <summary>
-        /// Our local ID in a region we are entering, from the avatars it has sent. Keeps <paramref name="current"/>
-        /// if one of them already has it; otherwise the highest local ID among our avatar entries there (an
-        /// entry left from an earlier visit has the lower ID); otherwise <paramref name="current"/>.
+        /// Our local ID in a region we are entering, from the avatars it has sent.
         /// </summary>
-        internal static uint SelfLocalIDIn(uint current, IEnumerable<(uint LocalID, UUID ID)> avatars, UUID self)
+        /// <remarks>
+        /// Local IDs carry no ordering: a simulator can hand out a lower ID after a restart, and an entry left
+        /// from an earlier visit can outlive it, so the numerically highest of our entries is not necessarily
+        /// the current one. Preference order:
+        /// <list type="number">
+        /// <item><paramref name="latestSeen"/>, the local ID of the latest full update the region sent for our
+        /// UUID (<see cref="Simulator.LatestSelfLocalID"/>), if an entry for us still has it;</item>
+        /// <item><paramref name="current"/>, if an entry for us already has it;</item>
+        /// <item>otherwise the highest local ID among our entries. This is only a guess for avatars that reached
+        /// the region's list without a full update for our UUID passing through the update handler; IDs are not
+        /// guaranteed to increase;</item>
+        /// <item>otherwise <paramref name="current"/>, until the region's full update for us arrives.</item>
+        /// </list>
+        /// </remarks>
+        internal static uint SelfLocalIDIn(uint current, uint latestSeen, IEnumerable<(uint LocalID, UUID ID)> avatars, UUID self)
         {
-            uint best = 0;
+            uint highest = 0;
+            var holdsCurrent = false;
             foreach (var (localId, id) in avatars)
             {
                 if (id != self) continue;
-                if (localId == current) return current;
-                if (localId > best) best = localId;
+                if (latestSeen != 0 && localId == latestSeen) return latestSeen;
+                if (localId == current) holdsCurrent = true;
+                if (localId > highest) highest = localId;
             }
-            return best == 0 ? current : best;
+            if (holdsCurrent) return current;
+            return highest == 0 ? current : highest;
         }
 
         /// <summary>
@@ -317,7 +332,7 @@ namespace LibreMetaverse
                     // The new region may already have sent our avatar while it was a neighbor; its full update
                     // was not taken as ours then, so take our local ID there from it, or the region's terse
                     // updates for us would go unrecognized until it sends another full update
-                    localID = SelfLocalIDIn(localID,
+                    localID = SelfLocalIDIn(localID, newSim.LatestSelfLocalID,
                         newSim.ObjectsAvatars.Values.Where(a => a != null).Select(a => (a.LocalID, a.ID)), AgentID);
                     LastPositionUpdate = Client!.UtcNow;
                     Movement.Camera.LookDirection(crossing.LookAt);

@@ -331,6 +331,13 @@ namespace LibreMetaverse
         public int Sequence;
         
         /// <summary>
+        /// Local ID of the latest full object update this region sent for our own avatar, whether or not it was
+        /// the current region at the time; 0 until one arrives. Local IDs can be recycled (e.g. after a region
+        /// restart), so this, rather than the numerically highest ID, tells which of our avatar entries is current.
+        /// </summary>
+        internal volatile uint LatestSelfLocalID;
+
+        /// <summary>
         /// A thread-safe dictionary containing avatars in a simulator        
         /// </summary>
         public ConcurrentDictionary<uint, Avatar> ObjectsAvatars = new ConcurrentDictionary<uint, Avatar>();

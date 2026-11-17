@@ -397,6 +397,10 @@ namespace LibreMetaverse
 
                         var isNewAvatar = !simulator.ObjectsAvatars.ContainsKey(block.ID);
 
+                        // Remember which entry is ours in every region, so a region we cross into can tell its
+                        // current entry for us from a stale one
+                        if (block.FullID == Client.Self.AgentID) simulator.LatestSelfLocalID = block.ID;
+
                         // Update some internals if this is our avatar
                         if (block.FullID == Client.Self.AgentID && simulator == Client.Network.CurrentSim)
                         {
