@@ -1178,6 +1178,9 @@ namespace LibreMetaverse
             if (Sculpt != null)
                 prim["sculpt"] = Sculpt.GetOSD();
 
+            if (RenderMaterials != null)
+                prim["render_material"] = GetRenderMaterialsOSD(RenderMaterials);
+
             return prim;
         }
 
@@ -1294,6 +1297,9 @@ namespace LibreMetaverse
             if (map.TryGetValue("sculpt", out OSD sculptOsd) && sculptOsd != null)
                 prim.Sculpt = SculptData.FromOSD(sculptOsd);
 
+            if (map.TryGetValue("render_material", out OSD renderMatOsd) && renderMatOsd is OSDArray renderMatArr)
+                prim.RenderMaterials = RenderMaterialsFromOSD(renderMatArr);
+
             if (map.TryGetValue("textures", out OSD texOsd) && texOsd != null)
                 prim.Textures = TextureEntry.FromOSD(texOsd);
 
@@ -1399,6 +1405,41 @@ namespace LibreMetaverse
                 entries[e].Value.ToBytes(bytes, pos + 1);
             }
             return bytes;
+        }
+
+        /// <summary>
+        /// Render materials as OSD: an array with a map per face, in face order, holding the face index
+        /// ("te_idx") and the material asset ID ("id"), the field names LLRenderMaterialParams packs
+        /// </summary>
+        internal static OSDArray GetRenderMaterialsOSD(IReadOnlyDictionary<int, UUID> materials)
+        {
+            var faces = new List<int>(materials.Keys);
+            faces.Sort();
+            var array = new OSDArray(faces.Count);
+            foreach (var face in faces)
+            {
+                array.Add(new OSDMap(2)
+                {
+                    ["te_idx"] = OSD.FromInteger(face),
+                    ["id"] = OSD.FromUUID(materials[face])
+                });
+            }
+            return array;
+        }
+
+        /// <summary>
+        /// Reads render materials written by <see cref="GetRenderMaterialsOSD"/>; entries that are not a map
+        /// holding both fields are skipped
+        /// </summary>
+        internal static Dictionary<int, UUID> RenderMaterialsFromOSD(OSDArray array)
+        {
+            var materials = new Dictionary<int, UUID>(array.Count);
+            foreach (var entry in array)
+            {
+                if (entry is OSDMap map && map.TryGetValue("te_idx", out OSD face) && map.TryGetValue("id", out OSD id))
+                    materials[face.AsInteger()] = id.AsUUID();
+            }
+            return materials;
         }
 
         public byte[] GetExtraParamsBytes()
