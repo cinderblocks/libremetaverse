@@ -867,7 +867,8 @@ namespace LibreMetaverse
         public LightImage LightMap;
         /// <summary></summary>
         public SculptData? Sculpt;
-        /// <summary>Extended mesh parameter flags (PARAMS_EXTENDED_MESH = 0x70)</summary>
+        /// <summary>Extended mesh parameter flags (PARAMS_EXTENDED_MESH = 0x70). <see cref="GetExtraParamsBytes"/>
+        /// writes the parameter only when this is non-zero; zero and an absent parameter mean the same thing.</summary>
         public UInt32 ExtendedMeshFlags;
         /// <summary>
         /// GLTF (PBR) material asset applied to each face, keyed by face index, from the render material
@@ -1406,6 +1407,7 @@ namespace LibreMetaverse
             byte[]? light = null;
             byte[]? lightmap = null;
             byte[]? sculpt = null;
+            byte[]? extendedMesh = null;
             byte[]? renderMaterials = null;
             byte[] buffer;
             int size = 1;
@@ -1434,6 +1436,13 @@ namespace LibreMetaverse
             {
                 sculpt = Sculpt.GetBytes();
                 size += sculpt.Length + 6;
+                ++count;
+            }
+            if (ExtendedMeshFlags != 0)
+            {
+                // LLExtendedMeshParams::pack: a single U32 of flags
+                extendedMesh = Utils.UIntToBytes(ExtendedMeshFlags);
+                size += extendedMesh.Length + 6;
                 ++count;
             }
             if (RenderMaterials != null)
@@ -1497,6 +1506,17 @@ namespace LibreMetaverse
 
                 Buffer.BlockCopy(sculpt, 0, buffer, pos, sculpt.Length);
                 pos += sculpt.Length;
+            }
+            if (extendedMesh != null)
+            {
+                Buffer.BlockCopy(Utils.UInt16ToBytes((ushort)ExtraParamType.ExtendedMesh), 0, buffer, pos, 2);
+                pos += 2;
+
+                Buffer.BlockCopy(Utils.UIntToBytes((uint)extendedMesh.Length), 0, buffer, pos, 4);
+                pos += 4;
+
+                Buffer.BlockCopy(extendedMesh, 0, buffer, pos, extendedMesh.Length);
+                pos += extendedMesh.Length;
             }
             if (renderMaterials != null)
             {
