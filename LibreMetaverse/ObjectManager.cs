@@ -2275,9 +2275,11 @@ namespace LibreMetaverse
 
             var array = new OSDArray();
 
+            // Material IDs go out as 16-byte binary, like the viewer's LLMaterialID::asLLSD(); the
+            // capability does not recognize them as LLSD UUIDs
             foreach (var material in materials)
             {
-                array.Add(material);
+                array.Add(OSD.FromBinary(material.GetBytes()));
             }
 
             OSDMap request = new OSDMap(new Dictionary<string, OSD>
