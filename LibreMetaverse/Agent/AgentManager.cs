@@ -672,6 +672,21 @@ namespace LibreMetaverse
         /// <summary>Your (client) avatar ID, local to the current region/sim</summary>
         public uint LocalID => localID;
 
+        /// <summary>
+        /// Whether a local ID observed in <paramref name="simulator"/> is our own avatar. Local IDs are
+        /// only unique within one simulator, so comparing one against <see cref="LocalID"/> alone is
+        /// unsafe wherever more than one simulator's objects may be in play -- e.g. with
+        /// <see cref="Settings.MultipleSims"/> neighbor regions connected, or any event whose simulator
+        /// did not just come from <see cref="NetworkManager.CurrentSim"/>. Mirrors the reference viewer,
+        /// which never looks up a local ID without the simulator it came from
+        /// (LLViewerObjectList::getUUIDFromLocal/setUUIDAndLocal key every lookup by
+        /// (simulator, local id), never by local id alone).
+        /// </summary>
+        /// <param name="simulator">The simulator <paramref name="localId"/> was observed in</param>
+        /// <param name="localId">The local ID to check</param>
+        public bool IsSelfIn(Simulator simulator, uint localId) =>
+            simulator == Client.Network.CurrentSim && localId == localID;
+
         /// <summary>Where the avatar started at login. Can be "last", "home" 
         /// or a login <see cref="T:LibreMetaverse.URI"/></summary>
         public string StartLocation { get; private set; } = string.Empty;

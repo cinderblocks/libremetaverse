@@ -110,8 +110,8 @@ namespace LibreMetaverse
     ///     private void Objects_AvatarUpdate(object sender, AvatarUpdateEventArgs e)
     ///     {
     ///         // we only want our own data
-    ///         if (e.Avatar.LocalID == Client.Self.LocalID)
-    ///         {    
+    ///         if (Client.Self.IsSelfIn(e.Simulator, e.Avatar.LocalID))
+    ///         {
     ///             // Unsubscribe from the avatar update event to prevent a loop
     ///             // where we continually request the picks every time we get an update for ourselves
     ///             Client.Objects.AvatarUpdate -= Objects_AvatarUpdate;

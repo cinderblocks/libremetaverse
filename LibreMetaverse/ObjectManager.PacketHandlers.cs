@@ -553,7 +553,7 @@ namespace LibreMetaverse
 
                     // Check if we are interested in this update
                     if (!Client.Settings.World.AlwaysDecodeObjects
-                        && localid != Client.Self.localID
+                        && !Client.Self.IsSelfIn(simulator, localid)
                         && m_TerseObjectUpdate == null)
                     {
                         continue;
@@ -630,7 +630,10 @@ namespace LibreMetaverse
                     }
 
                     #region Update Client.Self
-                    if (update.LocalID == Client.Self.localID)
+                    // Local IDs are per region: with neighbor regions connected (Settings.MultipleSims) an
+                    // object there can have the same local ID as our avatar, so only the current region
+                    // speaks for us
+                    if (Client.Self.IsSelfIn(simulator, update.LocalID))
                     {
                         Client.Self.collisionPlane = update.CollisionPlane;
                         Client.Self.relativePosition = update.Position;
@@ -975,7 +978,9 @@ namespace LibreMetaverse
             var localIdsToKill = new List<uint>(kill.ObjectData.Length);
             foreach (var objectToKill in kill.ObjectData)
             {
-                if (objectToKill.ID == Client.Self.localID)
+                // Never drop our own avatar from the current region; in any other region that local ID
+                // belongs to something else
+                if (Client.Self.IsSelfIn(simulator, objectToKill.ID))
                 {
                     continue;
                 }

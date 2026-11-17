@@ -3089,7 +3089,7 @@ namespace LibreMetaverse
         Primitive prim = e.Prim;
 
         if (Client.Self.LocalID == 0
-            || prim.ParentID != Client.Self.LocalID
+            || !Client.Self.IsSelfIn(e.Simulator, prim.ParentID)
             || prim.NameValues == null
             || !prim.IsAttachment
             || !e.IsNew)

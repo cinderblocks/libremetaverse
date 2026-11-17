@@ -2470,7 +2470,7 @@ namespace LibreMetaverse
         /// <param name="oldSeatID">Local ID of the object the avatar was previously sitting on</param>
         protected void SetAvatarSittingOn(Simulator sim, Avatar av, uint localid, uint oldSeatID)
         {
-            if (Client.Network.CurrentSim == sim && av.LocalID == Client.Self.localID)
+            if (Client.Self.IsSelfIn(sim, av.LocalID))
             {
                 Client.Self.sittingOn = localid;
             }
