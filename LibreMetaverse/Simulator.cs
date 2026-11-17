@@ -1195,6 +1195,8 @@ namespace LibreMetaverse
 
         protected override int ReceiveQueueCapacity => Settings.UdpReceiveQueueCapacity;
 
+        protected override int SocketReceiveBufferSize => Settings.UdpSocketReceiveBuffer;
+
         protected override void PacketReceived(UDPPacketBuffer buffer)
         {
             using (Logger.BeginClientScope(Client))

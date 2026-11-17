@@ -89,6 +89,11 @@ namespace LibreMetaverse
         /// <summary>Capacity of the incoming UDP receive queue; packets received when the queue is full are dropped and counted in SimStats.DroppedPackets</summary>
         public static int UdpReceiveQueueCapacity = 512;
 
+        /// <summary>Size in bytes of the kernel receive buffer (SO_RCVBUF) of each simulator's UDP socket; 0 keeps the
+        /// operating system's default. Raise it when packets are lost while the process stalls; the OS may cap it
+        /// (on Linux at net.core.rmem_max)</summary>
+        public static int UdpSocketReceiveBuffer = 0;
+
         /// <summary>Timer interval in milliseconds between checks for stalled texture downloads</summary>
         public static float TexturePipelineRefreshInterval = 500.0f;
 

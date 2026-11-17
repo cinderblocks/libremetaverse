@@ -65,6 +65,17 @@ namespace LibreMetaverse
         /// </summary>
         protected virtual int ReceiveQueueCapacity => 512;
 
+        /// <summary>
+        /// Size in bytes of the socket's kernel receive buffer (SO_RCVBUF), or 0 to keep the operating system's
+        /// default. A larger buffer holds datagrams that arrive while the process is briefly not reading, which
+        /// would otherwise be dropped by the kernel. The OS may round or cap the value (on Linux at
+        /// net.core.rmem_max). Read each time the socket is started.
+        /// </summary>
+        protected virtual int SocketReceiveBufferSize => 0;
+
+        /// <summary>The receive buffer size the socket actually has, or 0 when it is not started</summary>
+        internal int ReceiveBufferSizeInEffect => udpSocket?.ReceiveBufferSize ?? 0;
+
         // the port to listen on
         protected int udpPort;
 
@@ -140,6 +151,19 @@ namespace LibreMetaverse
             // errors as they intercept each others messages.  We need to prevent this.  This is not allowed by
             // default on Windows.
             udpSocket!.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, false);
+
+            int receiveBufferSize = SocketReceiveBufferSize;
+            if (receiveBufferSize > 0)
+            {
+                try
+                {
+                    udpSocket!.ReceiveBufferSize = receiveBufferSize;
+                }
+                catch (SocketException ex)
+                {
+                    Logger.Warn($"UDP receive buffer size {receiveBufferSize} not applied: {ex.Message}");
+                }
+            }
 
             udpSocket!.Bind(ipep);
 

@@ -75,6 +75,7 @@ namespace LibreMetaverse.Tests
             public void Deliver(UDPPacketBuffer buffer) => PacketReceived(buffer);
             public IPAddress SocketBindAddress => BindAddress;
             public int SocketReceiveQueueCapacity => ReceiveQueueCapacity;
+            public int SocketReceiveBuffer => SocketReceiveBufferSize;
         }
 
         /// <summary>A datagram taken off the wire at the far end.</summary>
@@ -944,24 +945,28 @@ namespace LibreMetaverse.Tests
         [Test]
         public void TheSimulatorsSocket_IsBoundAndSizedAsTheStaticSettingsSay_ReadAtTheTime()
         {
-            var original = (Settings.BindAddress, Settings.UdpReceiveQueueCapacity);
+            var original = (Settings.BindAddress, Settings.UdpReceiveQueueCapacity, Settings.UdpSocketReceiveBuffer);
             try
             {
                 using var c = new Circuit();
                 Settings.BindAddress = IPAddress.Loopback;
                 Settings.UdpReceiveQueueCapacity = 7;
+                Settings.UdpSocketReceiveBuffer = 0;
 
                 Assert.That(c.Sim.SocketBindAddress, Is.EqualTo(IPAddress.Loopback));
                 Assert.That(c.Sim.SocketReceiveQueueCapacity, Is.EqualTo(7));
+                Assert.That(c.Sim.SocketReceiveBuffer, Is.EqualTo(0));
 
                 Settings.BindAddress = IPAddress.Any;
                 Settings.UdpReceiveQueueCapacity = 99;
+                Settings.UdpSocketReceiveBuffer = 1 << 20;
                 Assert.That(c.Sim.SocketBindAddress, Is.EqualTo(IPAddress.Any));
                 Assert.That(c.Sim.SocketReceiveQueueCapacity, Is.EqualTo(99));
+                Assert.That(c.Sim.SocketReceiveBuffer, Is.EqualTo(1 << 20));
             }
             finally
             {
-                (Settings.BindAddress, Settings.UdpReceiveQueueCapacity) = original;
+                (Settings.BindAddress, Settings.UdpReceiveQueueCapacity, Settings.UdpSocketReceiveBuffer) = original;
             }
         }
 
