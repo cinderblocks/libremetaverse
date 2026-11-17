@@ -229,7 +229,22 @@ namespace LibreMetaverse
             /// </summary>
             /// <param name="data">ParticleSystem object</param>
             /// <param name="pos">Start position for BitPacker</param>
+            /// <remarks>Everything from <paramref name="pos"/> to the end of <paramref name="data"/> is taken to be
+            /// the particle system block. Use <see cref="ParticleSystem(byte[], int, int)"/> when the block is
+            /// followed by other data.</remarks>
             public ParticleSystem(byte[] data, int pos)
+                : this(data, pos, data.Length - pos)
+            {
+            }
+
+            /// <summary>
+            /// Decodes a particle system block of a known length inside a larger buffer
+            /// </summary>
+            /// <param name="data">Buffer holding the particle system block</param>
+            /// <param name="pos">Start of the block in <paramref name="data"/></param>
+            /// <param name="length">Length of the block in bytes: <see cref="LegacyDataBlockSize"/> for the
+            /// legacy form, up to <see cref="MaxDataBlockSize"/> for the extended form</param>
+            public ParticleSystem(byte[] data, int pos, int length)
             {
                 PartStartGlow = 0f;
                 PartEndGlow = 0f;
@@ -248,7 +263,7 @@ namespace LibreMetaverse
                 PartStartColor = PartEndColor = Color4.Black;
                 PartStartScaleX = PartStartScaleY = PartEndScaleX = PartEndScaleY = 0.0f;
 
-                int size = data.Length - pos;
+                int size = Math.Min(length, data.Length - pos);
                 BitPack pack = new BitPack(data, pos);
 
                 if (size == LegacyDataBlockSize)
