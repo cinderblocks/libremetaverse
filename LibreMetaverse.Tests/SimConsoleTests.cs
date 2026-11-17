@@ -26,9 +26,9 @@
 
 using System;
 using System.Net;
-using System.Net.Sockets;
 using System.Threading.Tasks;
 using LibreMetaverse.Messages.Linden;
+using LibreMetaverse.Tests.TestHelpers;
 using NUnit.Framework;
 
 namespace LibreMetaverse.Tests
@@ -41,93 +41,77 @@ namespace LibreMetaverse.Tests
     /// read the output directly from the POST's HTTP response body, which the real protocol never
     /// populates.
     /// </summary>
+    /// <remarks>
+    /// This previously drove a real <c>HttpListener</c> over a loopback socket, synchronizing on a
+    /// fixed <c>Task.Delay(50)</c> before raising the out-of-band event. Under the full suite's
+    /// parallel test load that occasionally wasn't enough lead time for the real POST to land,
+    /// producing a rare flake (result null instead of the expected body). <see cref="FakeGridClient"/>
+    /// replaces the real socket with an in-memory handler, which removes the timing dependency
+    /// entirely: <see cref="EstateTools.SendSimConsoleCommandAsync"/> arms its
+    /// <c>TaskCompletionSource</c> before awaiting the capability POST, so the event can be raised as
+    /// soon as the POST has been observed rather than after a guessed delay.
+    /// </remarks>
     [TestFixture]
     [Category("Estate")]
     public class SimConsoleTests
     {
-        private static (GridClient client, Simulator sim, HttpListener listener, string prefix) SetupClientWithSimConsoleCap()
+        private const string CapUrl = "http://test.invalid/sim-console";
+
+        private FakeGridClient _client = null!;
+
+        [SetUp]
+        public void SetUp()
         {
-            var port = GetFreePort();
-            var prefix = $"http://127.0.0.1:{port}/";
-            var listener = new HttpListener();
-            listener.Prefixes.Add(prefix);
-            listener.Start();
-
-            var client = new GridClient();
-            var sim = new Simulator(client, new IPEndPoint(IPAddress.Loopback, 13), 0);
-            var caps = new Caps(sim, new Uri("http://127.0.0.1:1/seed"));
-            caps._Caps["SimConsoleAsync"] = new Uri(prefix);
-            sim.Caps = caps;
-            client.Network.CurrentSim = sim;
-
-            return (client, sim, listener, prefix);
+            _client = new FakeGridClient();
+            _client.AddCapability("SimConsoleAsync", new Uri(CapUrl));
         }
 
-        private static async Task RespondOkAsync(HttpListener listener)
+        [TearDown]
+        public void TearDown()
         {
-            var ctx = await listener.GetContextAsync();
-            ctx.Response.StatusCode = 200;
-            ctx.Response.ContentLength64 = 0;
-            ctx.Response.OutputStream.Close();
+            try { _client.Dispose(); } catch { }
         }
 
-        private static int GetFreePort()
+        /// <summary>Waits for a deterministic, observable effect of the call having progressed past
+        /// its capability POST, instead of assuming any fixed amount of real time is enough.</summary>
+        private async Task WaitForThePostAsync(TimeSpan timeout)
         {
-            using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            socket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
-            return ((IPEndPoint)socket.LocalEndPoint!).Port;
+            var deadline = DateTime.UtcNow + timeout;
+            while (_client.CapturedRequests.Count == 0)
+            {
+                if (DateTime.UtcNow > deadline)
+                {
+                    throw new TimeoutException("SimConsoleAsync POST was never observed by the fake handler");
+                }
+                await Task.Delay(1);
+            }
         }
 
         [Test]
         public async Task SendSimConsoleCommandAsync_IgnoresPostBody_UsesSimConsoleResponseEvent()
         {
-            var (client, sim, listener, _) = SetupClientWithSimConsoleCap();
-            try
-            {
-                var serverTask = RespondOkAsync(listener);
-                var callTask = client.Estate.SendSimConsoleCommandAsync("show name",
-                    TimeSpan.FromSeconds(5));
+            _client.AddHttpResponse(new Uri(CapUrl), HttpStatusCode.OK, string.Empty, "application/json");
 
-                await serverTask;
+            var callTask = _client.Estate.SendSimConsoleCommandAsync("show name", TimeSpan.FromSeconds(5));
 
-                // Give the POST call a moment to move past the (ignored) response before the
-                // SimConsoleResponse event arrives, mirroring the real out-of-band delivery.
-                await Task.Delay(50);
+            await WaitForThePostAsync(TimeSpan.FromSeconds(5));
 
-                client.Network.CapsEvents.RaiseEvent("SimConsoleResponse",
-                    new SimConsoleResponseMessage { Body = "Agent Name" }, sim);
+            _client.Network.CapsEvents.RaiseEvent("SimConsoleResponse",
+                new SimConsoleResponseMessage { Body = "Agent Name" }, _client.Network.CurrentSim);
 
-                var result = await callTask;
+            var result = await callTask;
 
-                Assert.That(result, Is.EqualTo("Agent Name"));
-            }
-            finally
-            {
-                client.HttpCapsClient.Dispose();
-                listener.Stop();
-            }
+            Assert.That(result, Is.EqualTo("Agent Name"));
         }
 
         [Test]
         public async Task SendSimConsoleCommandAsync_NoResponseEvent_ReturnsNullAfterTimeout()
         {
-            var (client, _, listener, _) = SetupClientWithSimConsoleCap();
-            try
-            {
-                var serverTask = RespondOkAsync(listener);
-                var callTask = client.Estate.SendSimConsoleCommandAsync("show name",
-                    TimeSpan.FromMilliseconds(200));
+            _client.AddHttpResponse(new Uri(CapUrl), HttpStatusCode.OK, string.Empty, "application/json");
 
-                await serverTask;
-                var result = await callTask;
+            var result = await _client.Estate.SendSimConsoleCommandAsync("show name", TimeSpan.FromMilliseconds(200));
 
-                Assert.That(result, Is.Null);
-            }
-            finally
-            {
-                client.HttpCapsClient.Dispose();
-                listener.Stop();
-            }
+            Assert.That(result, Is.Null);
         }
 
         [Test]
