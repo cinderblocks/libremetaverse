@@ -220,7 +220,8 @@ namespace LibreMetaverse
                 question.Data.ItemID,
                 Utils.BytesToString(question.Data.ObjectName),
                 Utils.BytesToString(question.Data.ObjectOwner),
-                (ScriptPermission)question.Data.Questions));
+                (ScriptPermission)question.Data.Questions,
+                question.Experience?.ExperienceID ?? UUID.Zero));
         }
 
         /// <summary>
