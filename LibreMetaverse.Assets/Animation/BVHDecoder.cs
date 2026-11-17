@@ -348,20 +348,22 @@ namespace LibreMetaverse
             if (i < 0 || (long)keycount * 8 > data.Length - i)
                 throw new InvalidDataException($"Animation declares {keycount} keyframes, which its data cannot hold");
 
+            // Key times are quantized over the whole animation, 0 to Length (LLKeyframeMotion::deserialize),
+            // not over the loop section between InPoint and OutPoint
             binBVHJointKey[] m_keys = new binBVHJointKey[keycount];
             for (int j = 0; j < keycount; j++)
             {
                 binBVHJointKey pJKey = new binBVHJointKey();
                 if (!BitConverter.IsLittleEndian)
                 {
-                    pJKey.time = Utils.UInt16ToFloat(EndianSwap(data, i, 2), 0, InPoint, OutPoint); i += 2;
+                    pJKey.time = Utils.UInt16ToFloat(EndianSwap(data, i, 2), 0, 0f, Length); i += 2;
                     x = Utils.UInt16ToFloat(EndianSwap(data, i, 2), 0, min, max); i += 2;
                     y = Utils.UInt16ToFloat(EndianSwap(data, i, 2), 0, min, max); i += 2;
                     z = Utils.UInt16ToFloat(EndianSwap(data, i, 2), 0, min, max); i += 2;
                 }
                 else
                 {
-                    pJKey.time = Utils.UInt16ToFloat(data, i, InPoint, OutPoint); i += 2;
+                    pJKey.time = Utils.UInt16ToFloat(data, i, 0f, Length); i += 2;
                     x = Utils.UInt16ToFloat(data, i, min, max); i += 2;
                     y = Utils.UInt16ToFloat(data, i, min, max); i += 2;
                     z = Utils.UInt16ToFloat(data, i, min, max); i += 2;

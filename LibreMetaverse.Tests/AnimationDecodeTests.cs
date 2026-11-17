@@ -63,6 +63,50 @@ namespace LibreMetaverse.Tests
             Assert.That(anim.joints[1].positionkeys.Length, Is.EqualTo(1));
         }
 
+        [Test]
+        public void KeyTimes_SpanTheWholeAnimation_NotTheLoopSection()
+        {
+            // A 4 s animation that loops between 1 s and 2 s, with keys at the start, middle and end
+            byte[] data;
+            using (var ms = new MemoryStream())
+            using (var bw = new BinaryWriter(ms))
+            {
+                bw.Write((ushort)1);
+                bw.Write((ushort)0);
+                bw.Write(2);            // priority
+                bw.Write(4f);           // length
+                bw.Write((byte)0);      // expression name
+                bw.Write(1f);           // in point
+                bw.Write(2f);           // out point
+                bw.Write(1);            // loop
+                bw.Write(0f);           // ease in
+                bw.Write(0f);           // ease out
+                bw.Write(0u);           // hand pose
+                bw.Write(1u);           // joint count
+                bw.Write(System.Text.Encoding.ASCII.GetBytes("mPelvis"));
+                bw.Write((byte)0);
+                bw.Write(1);            // joint priority
+                bw.Write(3);            // rotation keys
+                foreach (var t in new ushort[] { 0, 32768, 65535 })
+                { bw.Write(t); bw.Write((ushort)32768); bw.Write((ushort)32768); bw.Write((ushort)32768); }
+                bw.Write(1);            // position keys
+                bw.Write((ushort)65535); bw.Write((ushort)32768); bw.Write((ushort)32768); bw.Write((ushort)32768);
+                bw.Flush();
+                data = ms.ToArray();
+            }
+
+            var anim = new BinBVHAnimationReader(data);
+            var rot = anim.joints[0].rotationkeys;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(rot[0].time, Is.EqualTo(0f).Within(0.001f));
+                Assert.That(rot[1].time, Is.EqualTo(2f).Within(0.001f));
+                Assert.That(rot[2].time, Is.EqualTo(4f).Within(0.001f));
+                Assert.That(anim.joints[0].positionkeys[0].time, Is.EqualTo(4f).Within(0.001f));
+            });
+        }
+
         [TestCase(uint.MaxValue)]
         [TestCase(2147483647u)]
         [TestCase(1000000u)]
