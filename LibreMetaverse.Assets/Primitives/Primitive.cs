@@ -1368,12 +1368,45 @@ namespace LibreMetaverse
             return materials;
         }
 
+        /// <summary>Most entries a render material parameter carries; the viewer caps it so the parameter stays
+        /// within 255 bytes (1 + 14 * 17 = 239)</summary>
+        internal const int MaxRenderMaterialEntries = 14;
+
+        /// <summary>
+        /// Encodes a render material parameter in the layout <see cref="ParseRenderMaterials"/> reads
+        /// (LLRenderMaterialParams::pack): a count, then for each entry a face index and the material asset ID.
+        /// Entries are written in face order; faces outside 0-255 cannot be encoded and are left out, and only
+        /// the first <see cref="MaxRenderMaterialEntries"/> are written, as the viewer does.
+        /// </summary>
+        internal static byte[] GetRenderMaterialsBytes(IReadOnlyDictionary<int, UUID> materials)
+        {
+            const int entrySize = 1 + 16;
+            var entries = new List<KeyValuePair<int, UUID>>(materials.Count);
+            foreach (var entry in materials)
+            {
+                if (entry.Key >= 0 && entry.Key <= byte.MaxValue) entries.Add(entry);
+            }
+            entries.Sort((x, y) => x.Key.CompareTo(y.Key));
+            var count = Math.Min(entries.Count, MaxRenderMaterialEntries);
+
+            var bytes = new byte[1 + count * entrySize];
+            bytes[0] = (byte)count;
+            for (int e = 0; e < count; e++)
+            {
+                int pos = 1 + e * entrySize;
+                bytes[pos] = (byte)entries[e].Key;
+                entries[e].Value.ToBytes(bytes, pos + 1);
+            }
+            return bytes;
+        }
+
         public byte[] GetExtraParamsBytes()
         {
             byte[]? flexible = null;
             byte[]? light = null;
             byte[]? lightmap = null;
             byte[]? sculpt = null;
+            byte[]? renderMaterials = null;
             byte[] buffer;
             int size = 1;
             int pos = 0;
@@ -1401,6 +1434,12 @@ namespace LibreMetaverse
             {
                 sculpt = Sculpt.GetBytes();
                 size += sculpt.Length + 6;
+                ++count;
+            }
+            if (RenderMaterials != null)
+            {
+                renderMaterials = GetRenderMaterialsBytes(RenderMaterials);
+                size += renderMaterials.Length + 6;
                 ++count;
             }
 
@@ -1458,6 +1497,17 @@ namespace LibreMetaverse
 
                 Buffer.BlockCopy(sculpt, 0, buffer, pos, sculpt.Length);
                 pos += sculpt.Length;
+            }
+            if (renderMaterials != null)
+            {
+                Buffer.BlockCopy(Utils.UInt16ToBytes((ushort)ExtraParamType.RenderMaterial), 0, buffer, pos, 2);
+                pos += 2;
+
+                Buffer.BlockCopy(Utils.UIntToBytes((uint)renderMaterials.Length), 0, buffer, pos, 4);
+                pos += 4;
+
+                Buffer.BlockCopy(renderMaterials, 0, buffer, pos, renderMaterials.Length);
+                pos += renderMaterials.Length;
             }
 
             return buffer;
