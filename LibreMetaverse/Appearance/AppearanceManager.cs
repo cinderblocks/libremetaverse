@@ -3046,6 +3046,14 @@ namespace LibreMetaverse
 
     private void Network_OnSimChanged(object? sender, SimChangedEventArgs e)
     {
+        // Our baked appearance and attachments cross the border with us; the Second Life viewer neither
+        // rebakes nor re-sends the outfit on a crossing
+        if (Client.Settings.Agent.FastRegionCrossing && Client.Self.IsCrossingRegion)
+        {
+            Logger.Debug("Region crossing: keeping the appearance state", Client);
+            return;
+        }
+
         // Cancel any appearance workflow that was running for the previous sim.
         // The new sim will trigger a fresh Simulator_OnCapabilitiesReceived and
         // start a new appearance pass once capabilities are ready.

@@ -113,6 +113,17 @@ namespace LibreMetaverse
         // _currentCrossing is read from monitoring methods without the semaphore — volatile ensures
         // they always see the latest reference without a torn read.
         private volatile CrossingInfo? _currentCrossing;
+
+        /// <summary>True from a crossing notification until the crossing completes or fails</summary>
+        internal bool IsCrossingRegion
+        {
+            get
+            {
+                var state = _currentCrossing?.State;
+                return state == CrossingState.PreparingCross || state == CrossingState.Connecting
+                    || state == CrossingState.Recovering || state == CrossingState.WaitingForComplete;
+            }
+        }
         // Single semaphore protects all mutations of _currentCrossing and its State field.
         // Not held across awaits — acquired briefly, released before any async work begins.
         private readonly SemaphoreSlim _stateLock = new SemaphoreSlim(1, 1);
