@@ -562,6 +562,34 @@ namespace LibreMetaverse
             Client.Network.GenericStreamingMessage += GenericStreamingMessageHandler;
         }
 
+        private ObjectDiskCache? _diskCache;
+        private readonly object _diskCacheLock = new object();
+
+        /// <summary>
+        /// The on-disk object cache, or null when <see cref="WorldSettings.ObjectCacheDirectory"/> is not set
+        /// </summary>
+        public ObjectDiskCache? DiskCache
+        {
+            get
+            {
+                var directory = Client.Settings.World.ObjectCacheDirectory;
+                lock (_diskCacheLock)
+                {
+                    if (string.IsNullOrEmpty(directory))
+                    {
+                        _diskCache?.Dispose();
+                        _diskCache = null;
+                    }
+                    else if (_diskCache == null || _diskCache.Directory != directory)
+                    {
+                        _diskCache?.Dispose();
+                        _diskCache = new ObjectDiskCache(directory!, Client.Settings.World.ObjectCacheMaxEntriesPerRegion);
+                    }
+                    return _diskCache;
+                }
+            }
+        }
+
         // IDisposable support
         private bool disposed = false;
         protected virtual void Dispose(bool disposing)
@@ -594,6 +622,12 @@ namespace LibreMetaverse
 
                     // Clean up multi-sim object tracking
                     try { _objectSimulators.Clear(); } catch { }
+
+                    lock (_diskCacheLock)
+                    {
+                        try { _diskCache?.Dispose(); } catch { }
+                        _diskCache = null;
+                    }
                 }
                 catch (Exception ex)
                 {

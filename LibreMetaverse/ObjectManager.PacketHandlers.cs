@@ -676,9 +676,16 @@ namespace LibreMetaverse
             var simulator = e.Simulator;
 
             var update = (ObjectUpdateCompressedPacket)packet;
+            var diskCache = _replayingDiskCache ? null : DiskCache;
 
             foreach (var block in update.ObjectData)
             {
+                if (diskCache != null)
+                {
+                    try { diskCache.Store(simulator.Handle, simulator.ID, block); }
+                    catch (Exception ex) { Logger.Debug("Object cache: " + ex.Message, Client); }
+                }
+
                 var i = 0;
 
                 try
@@ -941,12 +948,25 @@ namespace LibreMetaverse
 
                 var update = (ObjectUpdateCachedPacket)packet;
                 var ids = new List<uint>(update.ObjectData.Length);
+                var probes = new List<(uint LocalID, uint Crc)>(update.ObjectData.Length);
+                foreach (var odb in update.ObjectData) probes.Add((odb.ID, odb.CRC));
+
+                // Updates kept on disk with a matching CRC are replayed instead of requested
+                var diskCache = DiskCache;
+                if (diskCache != null && simulator.ID != UUID.Zero)
+                {
+                    var hits = new List<ObjectUpdateCompressedPacket.ObjectDataBlock>();
+                    var misses = new HashSet<uint>(diskCache.Lookup(simulator.Handle, simulator.ID, probes, hits));
+                    if (hits.Count > 0)
+                    {
+                        ReplayFromDiskCache(simulator, hits);
+                        probes.RemoveAll(p => !misses.Contains(p.LocalID));
+                    }
+                }
 
                 // Object caching is implemented when Client.Settings.World.CachePrimitives is true, otherwise request updates for all of these objects
-                foreach (var odb in update.ObjectData)
+                foreach (var (localID, crc) in probes)
                 {
-                    var localID = odb.ID;
-                    var crc = odb.CRC;
 
                     if (cachedPrimitives)
                     {
@@ -959,6 +979,27 @@ namespace LibreMetaverse
                     ids.Add(localID);
                 }
                 RequestObjects(simulator, ids);
+            }
+        }
+
+        [ThreadStatic] private static bool _replayingDiskCache;
+
+        /// <summary>Process kept compressed updates as if the region had sent them</summary>
+        private void ReplayFromDiskCache(Simulator simulator, List<ObjectUpdateCompressedPacket.ObjectDataBlock> blocks)
+        {
+            var packet = new ObjectUpdateCompressedPacket
+            {
+                RegionData = { RegionHandle = simulator.Handle, TimeDilation = ushort.MaxValue },
+                ObjectData = blocks.ToArray()
+            };
+            _replayingDiskCache = true;
+            try
+            {
+                ObjectUpdateCompressedHandler(this, new PacketReceivedEventArgs(packet, simulator));
+            }
+            finally
+            {
+                _replayingDiskCache = false;
             }
         }
 
