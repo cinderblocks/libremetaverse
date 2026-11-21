@@ -682,7 +682,10 @@ namespace LibreMetaverse.Voice.WebRTC
                     }
                 }
 
-                _log.Error($"ConnectPrimaryRegionAsync gave up after {maxConnectAttempts} attempts: {lastEx?.Message}", Client);
+                if (lastEx is VoiceException finalVe && finalVe.IsDefinitiveRejection)
+                    _log.Warn($"ConnectPrimaryRegionAsync: giving up, rejection is definitive: {lastEx.Message}", Client);
+                else
+                    _log.Error($"ConnectPrimaryRegionAsync gave up after {maxConnectAttempts} attempts: {lastEx?.Message}", Client);
                 throw lastEx ?? new VoiceException("Failed to connect primary voice session.");
             }
             finally
