@@ -825,6 +825,38 @@ namespace LibreMetaverse.Appearance
         }
 
         /// <summary>
+        /// Attempt to attach multiple objects in a single packet, each to its own specified attachment
+        /// point. Items that fail <see cref="CanAttachItemAsync"/> (already attached, in trash, etc.) are
+        /// skipped, same as the single-item overload.
+        /// </summary>
+        /// <param name="items">Items to attach, with the point to attach each one to and whether to
+        /// replace any existing attachment already on that point</param>
+        /// <param name="cancellationToken"></param>
+        public async Task AttachAsync(IReadOnlyList<(InventoryItem Item, AttachmentPoint Point, bool Replace)> items,
+            CancellationToken cancellationToken = default)
+        {
+            var toAttach = new List<(InventoryItem Item, AttachmentPoint Point, bool Replace)>();
+            foreach (var entry in items)
+            {
+                if (await CanAttachItemAsync(entry.Item, cancellationToken))
+                {
+                    toAttach.Add(entry);
+                }
+            }
+
+            if (toAttach.Count == 0)
+            {
+                return;
+            }
+
+            client.Appearance.AddAttachments(toAttach, removeExistingFirst: false);
+
+            var attachedItems = toAttach.Select(e => e.Item).ToList();
+            await policy.ReportItemChangeAsync(attachedItems, new List<InventoryItem>(), cancellationToken);
+            await AddLinks(attachedItems, cancellationToken);
+        }
+
+        /// <summary>
         /// Remove attachment
         /// </summary>
         /// <param name="item">Inventory item to be detached</param>

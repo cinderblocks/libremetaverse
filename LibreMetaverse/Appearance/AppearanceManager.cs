@@ -1388,6 +1388,89 @@ namespace LibreMetaverse
         }
 
         /// <summary>
+        /// Adds a list of attachments to our agent in as few packets as possible, each at an explicitly
+        /// given point rather than whatever point is stored on the item itself. Use this when the caller
+        /// (e.g. an RLV folder-based attach command) needs to override the item's own attach point.
+        /// </summary>
+        /// <remarks>
+        /// Matches the official viewer's LLAttachmentsMgr::requestAttachments: at most 4 ObjectData
+        /// blocks per RezMultipleAttachmentsFromInv packet (the message template documents this as a
+        /// hard limit, "1 to 4 of these per packet"), every packet of the same compound op shares one
+        /// CompoundMsgID and the same TotalObjects (the grand total across the whole op, not the count
+        /// in that packet), and at most 40 objects per call -- the official comment on that cap reads
+        /// "requesting many attachments at once causes frequent server-side failures".
+        /// </remarks>
+        /// <param name="attachments">Items to attach, with the point to attach each one to and whether to
+        /// replace any existing attachment already on that point</param>
+        /// <param name="removeExistingFirst">If true, tells the simulator to detach everything first</param>
+        public void AddAttachments(IReadOnlyList<(InventoryItem Item, AttachmentPoint Point, bool Replace)> attachments,
+            bool removeExistingFirst)
+        {
+            const int objectsPerPacket = 4;
+            const int maxObjectsPerCall = 40;
+
+            var objCount = attachments.Count;
+            if (objCount > maxObjectsPerCall)
+            {
+                Logger.Warn($"Requested {objCount} attachments in one call, exceeds limit of {maxObjectsPerCall}; truncating.", Client);
+                objCount = maxObjectsPerCall;
+            }
+
+            if (objCount == 0)
+            {
+                return;
+            }
+
+            if (removeExistingFirst)
+            {
+                Attachments.Clear();
+            }
+
+            var compoundMsgId = UUID.Random();
+
+            for (var offset = 0; offset < objCount; offset += objectsPerPacket)
+            {
+                var chunkSize = Math.Min(objectsPerPacket, objCount - offset);
+                var attachmentsPacket = new RezMultipleAttachmentsFromInvPacket
+                {
+                    AgentData =
+                    {
+                        AgentID = Client.Self.AgentID,
+                        SessionID = Client.Self.SessionID
+                    },
+                    HeaderData =
+                    {
+                        CompoundMsgID = compoundMsgId,
+                        FirstDetachAll = removeExistingFirst,
+                        TotalObjects = (byte)objCount
+                    },
+                    ObjectData = new RezMultipleAttachmentsFromInvPacket.ObjectDataBlock[chunkSize]
+                };
+
+                for (var i = 0; i < chunkSize; i++)
+                {
+                    var (item, point, replace) = attachments[offset + i];
+                    attachmentsPacket.ObjectData[i] = new RezMultipleAttachmentsFromInvPacket.ObjectDataBlock
+                    {
+                        AttachmentPt = replace ? (byte)point : (byte)(ATTACHMENT_ADD | (byte)point),
+                        EveryoneMask = (uint)item.Permissions.EveryoneMask,
+                        GroupMask = (uint)item.Permissions.GroupMask,
+                        ItemFlags = item.Flags,
+                        ItemID = item.ResolvedItemID,
+                        Name = Utils.StringToBytes(item.Name),
+                        Description = Utils.StringToBytes(item.Description),
+                        NextOwnerMask = (uint)item.Permissions.NextOwnerMask,
+                        OwnerID = item.OwnerID
+                    };
+
+                    Attachments.AddOrUpdate(item.ResolvedItemID, point, (id, p) => point);
+                }
+
+                Client.Network.SendPacket(attachmentsPacket);
+            }
+        }
+
+        /// <summary>
         /// Attach an item to our agent at a specific attach point
         /// </summary>
         /// <param name="item">A <see cref="LibreMetaverse.InventoryItem"/> to attach</param>
