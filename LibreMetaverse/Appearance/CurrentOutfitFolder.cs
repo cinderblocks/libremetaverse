@@ -65,6 +65,12 @@ namespace LibreMetaverse.Appearance
         /// </summary>
         public int MaxClothingLayers => AppearanceManager.WEARABLE_COUNT_MAX;
 
+        /// <summary>
+        /// How long AttachAsync waits for the simulator to actually confirm an attach request before
+        /// giving up on it, matching the real viewer's MAX_ATTACHMENT_REQUEST_LIFETIME.
+        /// </summary>
+        public static readonly TimeSpan AttachmentConfirmationTimeout = TimeSpan.FromSeconds(30);
+
         private readonly SemaphoreSlim cofInitLock = new SemaphoreSlim(1, 1);
         private Task<bool>? cofInitTask;
 
@@ -805,7 +811,10 @@ namespace LibreMetaverse.Appearance
         }
 
         /// <summary>
-        /// Attempt to attach an object to a specific attachment point
+        /// Attempt to attach an object to a specific attachment point. Waits for the simulator to confirm
+        /// the attach actually happened (up to <see cref="AttachmentConfirmationTimeout"/>) before creating
+        /// its COF link or reporting the change, so a request that silently fails server-side doesn't leave
+        /// a COF link for something that was never actually worn.
         /// </summary>
         /// <param name="item">Item to be attached</param>
         /// <param name="point">Attachment point</param>
@@ -820,6 +829,14 @@ namespace LibreMetaverse.Appearance
 
             client.Appearance.Attach(item, point, replace);
 
+            var confirmed = await client.Appearance.WaitForAttachmentConfirmationAsync(
+                new List<UUID> { item.ResolvedItemID }, AttachmentConfirmationTimeout, cancellationToken);
+            if (confirmed.Count == 0)
+            {
+                Logger.Warn($"Attach request for {item.Name} ({item.ResolvedItemID}) was never confirmed by the simulator; not linking it in COF.", client);
+                return;
+            }
+
             await policy.ReportItemChangeAsync(new List<InventoryItem>() { item }, new List<InventoryItem>(), cancellationToken);
             await AddLink(item, cancellationToken);
         }
@@ -827,7 +844,9 @@ namespace LibreMetaverse.Appearance
         /// <summary>
         /// Attempt to attach multiple objects in a single packet, each to its own specified attachment
         /// point. Items that fail <see cref="CanAttachItemAsync"/> (already attached, in trash, etc.) are
-        /// skipped, same as the single-item overload.
+        /// skipped, same as the single-item overload. Waits for the simulator to confirm each attach (up
+        /// to <see cref="AttachmentConfirmationTimeout"/>) before creating COF links or reporting the
+        /// change; items that never get confirmed are skipped rather than linked speculatively.
         /// </summary>
         /// <param name="items">Items to attach, with the point to attach each one to and whether to
         /// replace any existing attachment already on that point</param>
@@ -851,7 +870,27 @@ namespace LibreMetaverse.Appearance
 
             client.Appearance.AddAttachments(toAttach, removeExistingFirst: false);
 
-            var attachedItems = toAttach.Select(e => e.Item).ToList();
+            var requestedIds = toAttach.Select(e => e.Item.ResolvedItemID).ToList();
+            var confirmedIds = await client.Appearance.WaitForAttachmentConfirmationAsync(
+                requestedIds, AttachmentConfirmationTimeout, cancellationToken);
+
+            var attachedItems = toAttach.Where(e => confirmedIds.Contains(e.Item.ResolvedItemID))
+                .Select(e => e.Item).ToList();
+
+            if (attachedItems.Count < toAttach.Count)
+            {
+                var unconfirmed = toAttach.Where(e => !confirmedIds.Contains(e.Item.ResolvedItemID));
+                foreach (var entry in unconfirmed)
+                {
+                    Logger.Warn($"Attach request for {entry.Item.Name} ({entry.Item.ResolvedItemID}) was never confirmed by the simulator; not linking it in COF.", client);
+                }
+            }
+
+            if (attachedItems.Count == 0)
+            {
+                return;
+            }
+
             await policy.ReportItemChangeAsync(attachedItems, new List<InventoryItem>(), cancellationToken);
             await AddLinks(attachedItems, cancellationToken);
         }

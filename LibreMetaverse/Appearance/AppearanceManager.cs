@@ -538,6 +538,9 @@ namespace LibreMetaverse
         private MultiValueDictionary<WearableType, WearableData> Wearables = new MultiValueDictionary<WearableType, WearableData>();
         /// <summary>A cache of attachments currently being worn</summary>
         private readonly ConcurrentDictionary<UUID, AttachmentPoint> Attachments = new ConcurrentDictionary<UUID, AttachmentPoint>();
+        /// <summary>Completed by <see cref="Objects_AttachmentUpdate"/> when a requested attachment's item ID
+        /// is seen on a primitive parented to us, for <see cref="WaitForAttachmentConfirmationAsync"/></summary>
+        private readonly ConcurrentDictionary<UUID, TaskCompletionSource<bool>> AttachmentConfirmations = new ConcurrentDictionary<UUID, TaskCompletionSource<bool>>();
         /// <summary>A cache of textures currently being worn</summary>
         private TextureData[] Textures = new TextureData[(int)AvatarTextureIndex.NumberOfEntries];
         /// <summary>Incrementing serial number for AgentCachedTexture packets</summary>
@@ -3174,13 +3177,12 @@ namespace LibreMetaverse
         if (Client.Self.LocalID == 0
             || !Client.Self.IsSelfIn(e.Simulator, prim.ParentID)
             || prim.NameValues == null
-            || !prim.IsAttachment
-            || !e.IsNew)
+            || !prim.IsAttachment)
         {
             return;
         }
 
-        // Updates Attachment points as soon as the data arrives
+        UUID? inventoryID = null;
         for (int i = 0; i < prim.NameValues.Length; ++i)
         {
             if (prim.NameValues[i].Name != "AttachItemID")
@@ -3191,11 +3193,17 @@ namespace LibreMetaverse
                 try
                 {
                     var valueStr = prim.NameValues[i].Value?.ToString();
-                    if (!string.IsNullOrEmpty(valueStr) && UUID.TryParse(valueStr!, out var inventoryID))
+                    if (!string.IsNullOrEmpty(valueStr) && UUID.TryParse(valueStr!, out var parsedId))
                     {
-                        var attachPoint = prim.PrimData.AttachmentPoint;
-                        // Always add or update using the attachment point from the primitive
-                        Attachments.AddOrUpdate(inventoryID, attachPoint, (id, old) => attachPoint);
+                        inventoryID = parsedId;
+
+                        // Updates Attachment points as soon as the data arrives
+                        if (e.IsNew)
+                        {
+                            var attachPoint = prim.PrimData.AttachmentPoint;
+                            // Always add or update using the attachment point from the primitive
+                            Attachments.AddOrUpdate(parsedId, attachPoint, (id, old) => attachPoint);
+                        }
                     }
                     else
                     {
@@ -3209,6 +3217,74 @@ namespace LibreMetaverse
 
             break;
         }
+
+        // Signal anyone awaiting WaitForAttachmentConfirmationAsync for this item, regardless of whether
+        // this particular update was "new" -- a reattach of an already-resident object, or a duplicate
+        // update that arrives before IsNew is set, should still count as confirmation.
+        if (inventoryID.HasValue && AttachmentConfirmations.TryRemove(inventoryID.Value, out var tcs))
+        {
+            tcs.TrySetResult(true);
+        }
+    }
+
+    /// <summary>
+    /// Waits for confirmation that each of the given inventory items has actually arrived as an attachment
+    /// (an ObjectUpdate for an object parented to us, carrying that item's AttachItemID). Mirrors the real
+    /// viewer's LLAttachmentsMgr request-tracking/timeout: an attach request that never arrives is simply
+    /// forgotten rather than treated as an error, so the caller can avoid creating a COF link for something
+    /// that was never actually worn.
+    /// </summary>
+    /// <param name="itemIds">Inventory item IDs we just asked the simulator to attach</param>
+    /// <param name="timeout">How long to wait for each item before giving up on it</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns>The subset of <paramref name="itemIds"/> that were confirmed before timing out</returns>
+    public async Task<HashSet<UUID>> WaitForAttachmentConfirmationAsync(IReadOnlyCollection<UUID> itemIds,
+        TimeSpan timeout, CancellationToken cancellationToken = default)
+    {
+        var confirmed = new HashSet<UUID>();
+        if (itemIds.Count == 0)
+        {
+            return confirmed;
+        }
+
+        var tcsByItem = new Dictionary<UUID, TaskCompletionSource<bool>>(itemIds.Count);
+        foreach (var itemId in itemIds)
+        {
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            AttachmentConfirmations[itemId] = tcs;
+            tcsByItem[itemId] = tcs;
+        }
+
+        try
+        {
+            var allConfirmed = Task.WhenAll(tcsByItem.Values.Select(t => t.Task));
+            var delay = Task.Delay(timeout, cancellationToken);
+            var finished = await Task.WhenAny(allConfirmed, delay).ConfigureAwait(false);
+
+            if (finished == delay && delay.IsCanceled)
+            {
+                // The caller's own token fired, not just our timeout; propagate rather than
+                // reporting a (possibly incomplete) confirmed set as if we'd finished normally.
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            foreach (var kvp in tcsByItem)
+            {
+                if (kvp.Value.Task.Status == TaskStatus.RanToCompletion)
+                {
+                    confirmed.Add(kvp.Key);
+                }
+            }
+        }
+        finally
+        {
+            foreach (var itemId in tcsByItem.Keys)
+            {
+                AttachmentConfirmations.TryRemove(itemId, out _);
+            }
+        }
+
+        return confirmed;
     }
 
     private async void Simulator_OnCapabilitiesReceived(object? sender, CapabilitiesReceivedEventArgs e)

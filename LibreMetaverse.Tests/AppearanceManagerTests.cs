@@ -1,4 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace LibreMetaverse.Tests
@@ -435,6 +440,45 @@ namespace LibreMetaverse.Tests
             foreach (var v in versions)
                 client.Appearance.UpdateLastReceivedCOFVersion(v);
             Assert.That(client.Appearance.LastUpdateReceivedCOFVersion, Is.EqualTo(10));
+        }
+
+        [Test]
+        public async Task WaitForAttachmentConfirmationAsync_EmptyInput_ReturnsEmptySetImmediately()
+        {
+            var client = new GridClient();
+            var sw = Stopwatch.StartNew();
+
+            var confirmed = await client.Appearance.WaitForAttachmentConfirmationAsync(
+                new List<UUID>(), TimeSpan.FromSeconds(30));
+
+            Assert.That(confirmed, Is.Empty);
+            Assert.That(sw.Elapsed, Is.LessThan(TimeSpan.FromSeconds(1)), "should not wait at all for an empty request");
+        }
+
+        [Test]
+        public async Task WaitForAttachmentConfirmationAsync_NeverConfirmed_TimesOutAndReturnsEmptySet()
+        {
+            var client = new GridClient();
+            var itemIds = new List<UUID> { UUID.Random(), UUID.Random() };
+            var timeout = TimeSpan.FromMilliseconds(200);
+            var sw = Stopwatch.StartNew();
+
+            var confirmed = await client.Appearance.WaitForAttachmentConfirmationAsync(itemIds, timeout);
+
+            Assert.That(confirmed, Is.Empty, "nothing ever arrived, so nothing should be reported confirmed");
+            Assert.That(sw.Elapsed, Is.GreaterThanOrEqualTo(timeout), "should actually wait out the timeout, not return early");
+        }
+
+        [Test]
+        public void WaitForAttachmentConfirmationAsync_CallerTokenCancelled_ThrowsOperationCanceledException()
+        {
+            var client = new GridClient();
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            Assert.That(async () => await client.Appearance.WaitForAttachmentConfirmationAsync(
+                    new List<UUID> { UUID.Random() }, TimeSpan.FromSeconds(30), cts.Token),
+                Throws.InstanceOf<OperationCanceledException>());
         }
     }
 }
