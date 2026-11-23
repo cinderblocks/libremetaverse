@@ -896,7 +896,10 @@ namespace LibreMetaverse.Appearance
         }
 
         /// <summary>
-        /// Remove attachment
+        /// Remove attachment. Waits for the simulator to confirm the detach actually happened (up to
+        /// <see cref="AttachmentConfirmationTimeout"/>, via a KillObject for the attached primitive) before
+        /// removing its COF link, matching the real viewer's LLAppearanceMgr::unregisterAttachment ordering.
+        /// If the detach is never confirmed, the COF link is left in place rather than removed speculatively.
         /// </summary>
         /// <param name="item">Inventory item to be detached</param>
         /// <param name="cancellationToken"></param>
@@ -908,6 +911,14 @@ namespace LibreMetaverse.Appearance
             }
 
             client.Appearance.Detach(item);
+
+            var confirmed = await client.Appearance.WaitForDetachConfirmationAsync(
+                new List<UUID> { item.ResolvedItemID }, AttachmentConfirmationTimeout, cancellationToken);
+            if (confirmed.Count == 0)
+            {
+                Logger.Warn($"Detach request for {item.Name} ({item.ResolvedItemID}) was never confirmed by the simulator; leaving its COF link in place.", client);
+                return;
+            }
 
             await policy.ReportItemChangeAsync(new List<InventoryItem>(), new List<InventoryItem>() { item }, cancellationToken);
             await RemoveLinksTo(new List<InventoryItem>() { item }, cancellationToken);
@@ -1493,6 +1504,13 @@ namespace LibreMetaverse.Appearance
         /// The specified items may either be actual items, or links to actual items. Links will be resolved to actual
         /// items internally.
         /// </summary>
+        /// <remarks>
+        /// Clothing-layer wearables have no server confirmation signal (they aren't scene objects, so there's
+        /// no KillObject for them), so their COF links are removed immediately as before. Rigid attachments are
+        /// sent a detach request first and their COF links are only removed once the simulator confirms the
+        /// detach actually happened (or the wait times out), matching the real viewer's
+        /// LLAppearanceMgr::unregisterAttachment ordering -- see DetachAsync.
+        /// </remarks>
         /// <param name="requestedItemsToRemove">List of items (or item links) we want to remove all links to from our COF</param>
         /// <param name="cancellationToken"></param>
         public async Task RemoveFromOutfitAsync(List<InventoryItem> requestedItemsToRemove, CancellationToken cancellationToken = default)
@@ -1517,14 +1535,43 @@ namespace LibreMetaverse.Appearance
                 }
             }
 
-            try
+            var attachmentsToRemove = itemsToRemove.Where(i => i is InventoryAttachment || i is InventoryObject).ToList();
+            var wearablesToRemove = itemsToRemove.Except(attachmentsToRemove).ToList();
+
+            var confirmedAttachmentRemovals = new List<InventoryItem>();
+            if (attachmentsToRemove.Count > 0)
             {
-                await RemoveLinksTo(itemsToRemove, cancellationToken);
-                await policy.ReportItemChangeAsync(new List<InventoryItem>(), itemsToRemove, cancellationToken);
+                foreach (var attachment in attachmentsToRemove)
+                {
+                    client.Appearance.Detach(attachment.ResolvedItemID);
+                }
+
+                var requestedIds = attachmentsToRemove.Select(a => a.ResolvedItemID).ToList();
+                var confirmedIds = await client.Appearance.WaitForDetachConfirmationAsync(
+                    requestedIds, AttachmentConfirmationTimeout, cancellationToken);
+
+                confirmedAttachmentRemovals = attachmentsToRemove.Where(a => confirmedIds.Contains(a.ResolvedItemID)).ToList();
+
+                if (confirmedAttachmentRemovals.Count < attachmentsToRemove.Count)
+                {
+                    var unconfirmed = attachmentsToRemove.Where(a => !confirmedIds.Contains(a.ResolvedItemID));
+                    foreach (var item in unconfirmed)
+                    {
+                        Logger.Warn($"Detach request for {item.Name} ({item.ResolvedItemID}) was never confirmed by the simulator; leaving its COF link in place.", client);
+                    }
+                }
             }
-            finally
+
+            var itemsActuallyRemoved = wearablesToRemove.Concat(confirmedAttachmentRemovals).ToList();
+            if (itemsActuallyRemoved.Count > 0)
             {
-                client.Appearance.RemoveFromOutfit(itemsToRemove);
+                await RemoveLinksTo(itemsActuallyRemoved, cancellationToken);
+                await policy.ReportItemChangeAsync(new List<InventoryItem>(), itemsActuallyRemoved, cancellationToken);
+            }
+
+            if (wearablesToRemove.Count > 0)
+            {
+                client.Appearance.RemoveFromOutfit(wearablesToRemove);
             }
         }
 

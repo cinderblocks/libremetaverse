@@ -541,6 +541,9 @@ namespace LibreMetaverse
         /// <summary>Completed by <see cref="Objects_AttachmentUpdate"/> when a requested attachment's item ID
         /// is seen on a primitive parented to us, for <see cref="WaitForAttachmentConfirmationAsync"/></summary>
         private readonly ConcurrentDictionary<UUID, TaskCompletionSource<bool>> AttachmentConfirmations = new ConcurrentDictionary<UUID, TaskCompletionSource<bool>>();
+        /// <summary>Completed by <see cref="Objects_AttachmentKilled"/> when a requested detach's item ID
+        /// is seen on a primitive being killed, for <see cref="WaitForDetachConfirmationAsync"/></summary>
+        private readonly ConcurrentDictionary<UUID, TaskCompletionSource<bool>> DetachConfirmations = new ConcurrentDictionary<UUID, TaskCompletionSource<bool>>();
         /// <summary>A cache of textures currently being worn</summary>
         private TextureData[] Textures = new TextureData[(int)AvatarTextureIndex.NumberOfEntries];
         /// <summary>Incrementing serial number for AgentCachedTexture packets</summary>
@@ -679,6 +682,7 @@ namespace LibreMetaverse
 
             // Unsubscribe from events
             DisposalHelper.SafeAction(() => { if (Client?.Objects != null) Client.Objects.ObjectUpdate -= Objects_AttachmentUpdate; }, "Unsubscribe Objects.ObjectUpdate", (m,e) => { if (e != null) Logger.Warn(m + ": " + e.Message, e, Client); else Logger.Warn(m, Client); });
+            DisposalHelper.SafeAction(() => { if (Client?.Objects != null) Client.Objects.KillObject -= Objects_AttachmentKilled; }, "Unsubscribe Objects.KillObject", (m,e) => { if (e != null) Logger.Warn(m + ": " + e.Message, e, Client); else Logger.Warn(m, Client); });
             DisposalHelper.SafeAction(() => { if (Client?.Network != null) Client.Network.Disconnected -= Network_OnDisconnected; }, "Unsubscribe Network.Disconnected", (m,e) => { if (e != null) Logger.Warn(m + ": " + e.Message, e, Client); else Logger.Warn(m, Client); });
             DisposalHelper.SafeAction(() => { if (Client?.Network != null) Client.Network.SimChanged -= Network_OnSimChanged; }, "Unsubscribe Network.SimChanged", (m,e) => { if (e != null) Logger.Warn(m + ": " + e.Message, e, Client); else Logger.Warn(m, Client); });
             DisposalHelper.SafeAction(() => { if (Client?.Network?.CurrentSim?.Caps != null) Client.Network.CurrentSim.Caps.CapabilitiesReceived -= Simulator_OnCapabilitiesReceived; }, "Unsubscribe CapabilitiesReceived", (m,e) => { if (e != null) Logger.Warn(m + ": " + e.Message, e, Client); else Logger.Warn(m, Client); });
@@ -705,6 +709,7 @@ namespace LibreMetaverse
             Client.Network?.RegisterCallback(PacketType.RebakeAvatarTextures, RebakeAvatarTexturesHandler);
 
             if (Client.Objects != null) Client.Objects.ObjectUpdate += Objects_AttachmentUpdate;
+            if (Client.Objects != null) Client.Objects.KillObject += Objects_AttachmentKilled;
             Client.Network?.Disconnected += Network_OnDisconnected;
             Client.Network?.SimChanged += Network_OnSimChanged;
 
@@ -3281,6 +3286,99 @@ namespace LibreMetaverse
             foreach (var itemId in tcsByItem.Keys)
             {
                 AttachmentConfirmations.TryRemove(itemId, out _);
+            }
+        }
+
+        return confirmed;
+    }
+
+    private void Objects_AttachmentKilled(object? sender, KillObjectEventArgs e)
+    {
+        // Look up the primitive before it's removed from ObjectsPrimitives -- KillObjectHandler notifies
+        // subscribers first, so its AttachItemID is still readable here.
+        if (!e.Simulator.ObjectsPrimitives.TryGetValue(e.ObjectLocalID, out var prim)
+            || prim.NameValues == null
+            || !prim.IsAttachment
+            || !Client.Self.IsSelfIn(e.Simulator, prim.ParentID))
+        {
+            return;
+        }
+
+        for (int i = 0; i < prim.NameValues.Length; ++i)
+        {
+            if (prim.NameValues[i].Name != "AttachItemID")
+            {
+                continue;
+            }
+
+            try
+            {
+                var valueStr = prim.NameValues[i].Value?.ToString();
+                if (!string.IsNullOrEmpty(valueStr) && UUID.TryParse(valueStr!, out var inventoryID)
+                    && DetachConfirmations.TryRemove(inventoryID, out var tcs))
+                {
+                    tcs.TrySetResult(true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Debug($"Objects_AttachmentKilled: failed parsing AttachItemID: {ex}", Client);
+            }
+
+            break;
+        }
+    }
+
+    /// <summary>
+    /// Waits for confirmation that each of the given inventory items has actually been detached (a
+    /// KillObject for a primitive parented to us, carrying that item's AttachItemID). Mirrors
+    /// WaitForAttachmentConfirmationAsync's forget-rather-than-error timeout behavior.
+    /// </summary>
+    /// <param name="itemIds">Inventory item IDs we just asked the simulator to detach</param>
+    /// <param name="timeout">How long to wait for each item before giving up on it</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns>The subset of <paramref name="itemIds"/> that were confirmed before timing out</returns>
+    public async Task<HashSet<UUID>> WaitForDetachConfirmationAsync(IReadOnlyCollection<UUID> itemIds,
+        TimeSpan timeout, CancellationToken cancellationToken = default)
+    {
+        var confirmed = new HashSet<UUID>();
+        if (itemIds.Count == 0)
+        {
+            return confirmed;
+        }
+
+        var tcsByItem = new Dictionary<UUID, TaskCompletionSource<bool>>(itemIds.Count);
+        foreach (var itemId in itemIds)
+        {
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            DetachConfirmations[itemId] = tcs;
+            tcsByItem[itemId] = tcs;
+        }
+
+        try
+        {
+            var allConfirmed = Task.WhenAll(tcsByItem.Values.Select(t => t.Task));
+            var delay = Task.Delay(timeout, cancellationToken);
+            var finished = await Task.WhenAny(allConfirmed, delay).ConfigureAwait(false);
+
+            if (finished == delay && delay.IsCanceled)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            foreach (var kvp in tcsByItem)
+            {
+                if (kvp.Value.Task.Status == TaskStatus.RanToCompletion)
+                {
+                    confirmed.Add(kvp.Key);
+                }
+            }
+        }
+        finally
+        {
+            foreach (var itemId in tcsByItem.Keys)
+            {
+                DetachConfirmations.TryRemove(itemId, out _);
             }
         }
 
