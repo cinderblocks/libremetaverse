@@ -3048,43 +3048,49 @@ namespace LibreMetaverse
     {
         // Our baked appearance and attachments cross the border with us; the Second Life viewer neither
         // rebakes nor re-sends the outfit on a crossing
-        if (Client.Settings.Agent.FastRegionCrossing && Client.Self.IsCrossingRegion)
+        bool keepAppearanceState = Client.Settings.Agent.FastRegionCrossing && Client.Self.IsCrossingRegion;
+
+        if (keepAppearanceState)
         {
             Logger.Debug("Region crossing: keeping the appearance state", Client);
-            return;
         }
-
-        // Cancel any appearance workflow that was running for the previous sim.
-        // The new sim will trigger a fresh Simulator_OnCapabilitiesReceived and
-        // start a new appearance pass once capabilities are ready.
-        CancellationTokenSource? oldCts;
-        lock (_appearanceLock)
+        else
         {
-            oldCts = AppearanceCts;
-            AppearanceCts = null;
-            AppearanceTask = null;
+            // Cancel any appearance workflow that was running for the previous sim.
+            // The new sim will trigger a fresh Simulator_OnCapabilitiesReceived and
+            // start a new appearance pass once capabilities are ready.
+            CancellationTokenSource? oldCts;
+            lock (_appearanceLock)
+            {
+                oldCts = AppearanceCts;
+                AppearanceCts = null;
+                AppearanceTask = null;
 
-            // Force a full server bake in the new region — the previous bake result
-            // belongs to the old region's appearance service.
-            ServerBakingDone = false;
-            // Reset COF version tracking so the new region's appearance service
-            // doesn't skip a request based on a stale version from the old region.
-            _lastUpdateRequestCOFVersion = -1;
-            _lastUpdateReceivedCOFVersion = -1;
-            // Invalidate the COF UUID cache so the next lookup re-confirms the folder
-            // against the inventory store (handles unlikely server-side COF reassignment).
-            _cachedCofUUID = null;
-            // Reset sent-outfit tracking: the new sim has never received our attachments.
-            _lastSentOutfitCOFVersion = -1;
+                // Force a full server bake in the new region — the previous bake result
+                // belongs to the old region's appearance service.
+                ServerBakingDone = false;
+                // Reset COF version tracking so the new region's appearance service
+                // doesn't skip a request based on a stale version from the old region.
+                _lastUpdateRequestCOFVersion = -1;
+                _lastUpdateReceivedCOFVersion = -1;
+                // Invalidate the COF UUID cache so the next lookup re-confirms the folder
+                // against the inventory store (handles unlikely server-side COF reassignment).
+                _cachedCofUUID = null;
+                // Reset sent-outfit tracking: the new sim has never received our attachments.
+                _lastSentOutfitCOFVersion = -1;
+            }
+
+            // Cancel and dispose outside the lock so we don't hold the lock during disposal.
+            if (oldCts != null)
+            {
+                try { oldCts.Cancel(); } catch { }
+                try { oldCts.Dispose(); } catch { }
+            }
         }
 
-        // Cancel and dispose outside the lock so we don't hold the lock during disposal.
-        if (oldCts != null)
-        {
-            try { oldCts.Cancel(); } catch { }
-            try { oldCts.Dispose(); } catch { }
-        }
-
+        // Always (re-)subscribe, fast crossing or not: SetSeedCaps only keeps the existing Caps
+        // object when the seed capability is unchanged. A fast crossing whose seed did change
+        // still gets a freshly built Caps that needs this to ever kick off an appearance pass.
         var cur = Client.Network.CurrentSim;
         if (cur?.Caps != null)
         {

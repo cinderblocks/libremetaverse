@@ -25,6 +25,7 @@
  */
 
 using System;
+using System.Linq;
 using System.Net;
 using System.Reflection;
 using LibreMetaverse.Tests.TestHelpers;
@@ -157,6 +158,25 @@ namespace LibreMetaverse.Tests
                 .Invoke(appearance, new object?[] { null, new SimChangedEventArgs(_neighbor) });
 
             Assert.That(sent.GetValue(appearance), Is.EqualTo(reset ? -1 : 7));
+        }
+
+        [Test]
+        public void SimChanged_StillSubscribesCapabilitiesReceived_EvenOnFastCrossing()
+        {
+            // A fast crossing keeps the appearance state, but SetSeedCaps only keeps the existing Caps
+            // when the seed is unchanged. If the seed did change, the freshly built Caps still needs this
+            // subscription to ever kick off an appearance pass -- otherwise the region is stuck.
+            _neighbor.SetSeedCaps(Seed);
+            _client.Network.CurrentSim = _neighbor;
+            _client.Settings.Agent.FastRegionCrossing = true;
+            SetCrossingState("Connecting");
+
+            typeof(AppearanceManager).GetMethod("Network_OnSimChanged", Flags)!
+                .Invoke(_client.Appearance, new object?[] { null, new SimChangedEventArgs(_neighbor) });
+
+            var subscribers = (Delegate?)typeof(Caps).GetField("CapabilitiesReceived", Flags)!.GetValue(_neighbor.Caps);
+            Assert.That(subscribers?.GetInvocationList().Any(d => d.Method.Name == "Simulator_OnCapabilitiesReceived"),
+                Is.True, "the new sim's Caps should still be able to kick off an appearance pass once ready");
         }
     }
 }
