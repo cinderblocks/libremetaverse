@@ -115,8 +115,12 @@ namespace LibreMetaverse.Tests
             san.AddDnsName("caps.example.invalid");
             req.CertificateExtensions.Add(san.Build());
             using var made = req.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+            // X509CertificateLoader isn't available on net8.0 (one of this file's target frameworks), so this
+            // can't move off the obsolete constructor without splitting by TFM; suppressing is the simpler fix.
+#pragma warning disable SYSLIB0057
             using var cert = new System.Security.Cryptography.X509Certificates.X509Certificate2(made.Export(
                 System.Security.Cryptography.X509Certificates.X509ContentType.Pfx));
+#pragma warning restore SYSLIB0057
 
             using var listener = new TcpListener(IPAddress.Loopback, 0);
             listener.Start();
