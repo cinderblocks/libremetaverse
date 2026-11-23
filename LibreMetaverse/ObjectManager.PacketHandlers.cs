@@ -907,6 +907,23 @@ namespace LibreMetaverse
                         //int textureAnimLength = (int)Utils.BytesToUIntBig(block.Data, i);
                         i += 4;
                         prim.TextureAnim = new Primitive.TextureAnimation(block.Data, i);
+                        // The newer particle form follows the texture animation, so the cursor has
+                        // to advance past this block (its 4-byte length was already skipped).
+                        if ((flags & CompressedFlags.HasParticlesNew) != 0)
+                            i += (int)Utils.BytesToUInt(block.Data, i - 4);
+                    }
+
+                    // Particle system (newer form: S32 system size, system, S32 data size, data)
+                    if ((flags & CompressedFlags.HasParticlesNew) != 0)
+                    {
+                        int sysSize = Utils.BytesToInt(block.Data, i);
+                        int dataSize = Utils.BytesToInt(block.Data, i + 4 + sysSize);
+                        int total = 4 + sysSize + 4 + dataSize;
+                        if (sysSize >= 0 && dataSize >= 0 && i + total <= block.Data.Length)
+                        {
+                            prim.ParticleSys = new Primitive.ParticleSystem(block.Data, i, total);
+                            i += total;
+                        }
                     }
 
                     #endregion

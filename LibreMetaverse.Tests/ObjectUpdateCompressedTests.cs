@@ -35,8 +35,8 @@ namespace LibreMetaverse.Tests
 {
     /// <summary>
     /// Decoding of <see cref="ObjectUpdateCompressedPacket"/> blocks. The compressed form carries a particle
-    /// system as the 86-byte legacy block (LLViewerObject::processUpdateMessage, OUT_FULL_COMPRESSED) with the
-    /// extra parameters, name values, shape and texture entry after it.
+    /// system as either the 86-byte legacy block (flag 0x08, before the extra parameters) or the newer
+    /// size-prefixed form (flag 0x400, after the texture animation).
     /// </summary>
     [TestFixture]
     public class ObjectUpdateCompressedTests
@@ -82,8 +82,32 @@ namespace LibreMetaverse.Tests
             BlendFuncDest = (byte)Primitive.ParticleSystem.BlendFunc.OneMinusSourceAlpha,
         };
 
-        /// <summary>A minimal compressed object block: a box with a legacy particle system and a texture entry.</summary>
-        private static byte[] BuildCompressedBlock(UUID id, uint localId, byte[] particles, UUID textureId)
+        /// <summary>A newer-form particle system (glow and blend), which <see cref="Primitive.ParticleSystem.GetBytes"/>
+        /// writes as S32 system size, the 68-byte system, S32 data size, then the particle data.</summary>
+        private static Primitive.ParticleSystem SampleNewParticleSystem() => new Primitive.ParticleSystem
+        {
+            Pattern = Primitive.ParticleSystem.SourcePattern.Explode,
+            BurstRate = 0.1f,
+            BurstPartCount = 4,
+            BurstSpeedMin = 0.1f,
+            BurstSpeedMax = 0.2f,
+            PartMaxAge = 2f,
+            PartStartColor = new Color4(0.6f, 0.1f, 1f, 1f),
+            PartEndColor = new Color4(0.6f, 0.1f, 1f, 0f),
+            PartStartScaleX = 0.25f,
+            PartStartScaleY = 0.25f,
+            PartEndScaleX = 0.5f,
+            PartEndScaleY = 0.5f,
+            PartDataFlags = Primitive.ParticleSystem.ParticleDataFlags.Emissive,
+            BlendFuncSource = (byte)Primitive.ParticleSystem.BlendFunc.SourceAlpha,
+            BlendFuncDest = (byte)Primitive.ParticleSystem.BlendFunc.One,
+            PartStartGlow = 0.4f,
+            PartEndGlow = 0.2f,
+        };
+
+        /// <summary>A minimal compressed object block: a box, optional particle systems, and a texture entry.</summary>
+        private static byte[] BuildCompressedBlock(UUID id, uint localId, byte[] particles, UUID textureId,
+            CompressedFlags flags = CompressedFlags.HasParticles, byte[] textureAnim = null, byte[] particlesNew = null)
         {
             var data = new List<byte>();
             data.AddRange(id.GetBytes());
@@ -96,15 +120,21 @@ namespace LibreMetaverse.Tests
             data.AddRange(new Vector3(1f, 1f, 1f).GetBytes());  // scale
             data.AddRange(new Vector3(128f, 128f, 25f).GetBytes());
             data.AddRange(Quaternion.Identity.GetBytes());
-            data.AddRange(Utils.UIntToBytes((uint)CompressedFlags.HasParticles));
+            data.AddRange(Utils.UIntToBytes((uint)flags));
             data.AddRange(UUID.Random().GetBytes());           // owner
-            data.AddRange(particles);
+            if (particles != null) data.AddRange(particles);
             data.Add(0);                                        // extra params: none
             data.AddRange(new byte[1 + 2 + 2 + 11]);            // path
             data.AddRange(new byte[1 + 2 + 2 + 2]);             // profile
             var te = new Primitive.TextureEntry(textureId).GetBytes();
             data.AddRange(Utils.UIntToBytes((uint)te.Length));
             data.AddRange(te);
+            if (textureAnim != null)
+            {
+                data.AddRange(Utils.UIntToBytes((uint)textureAnim.Length));
+                data.AddRange(textureAnim);
+            }
+            if (particlesNew != null) data.AddRange(particlesNew);
             return data.ToArray();
         }
 
@@ -162,6 +192,37 @@ namespace LibreMetaverse.Tests
                 Assert.That(withLength.Texture, Is.EqualTo(UUID.Parse("11111111-2222-3333-4444-555555555555")));
                 Assert.That(inferred.BurstPartCount, Is.EqualTo(0),
                     "without a length the trailing bytes are taken as part of the block, which is not a valid size");
+            });
+        }
+
+        [Test]
+        public void NewParticleSystem_AfterTextureAnimation_IsDecoded()
+        {
+            var sent = SampleNewParticleSystem();
+            var bytes = sent.GetBytes();
+            Assert.That(bytes, Has.Length.EqualTo(Primitive.ParticleSystem.MaxDataBlockSize), "test precondition: glow and blend use the extended form");
+            Assert.That(Utils.BytesToInt(bytes, 0), Is.EqualTo(Primitive.ParticleSystem.SysDataSize));
+
+            var textureId = UUID.Random();
+            var textureAnim = new Primitive.TextureAnimation { Face = 1, Rate = 1f }.GetBytes();
+            Deliver(BuildCompressedBlock(UUID.Random(), 4343u, null, textureId,
+                CompressedFlags.HasParticlesNew | CompressedFlags.TextureAnimation, textureAnim, bytes));
+
+            Assert.That(_sim.ObjectsPrimitives.TryGetValue(4343u, out var prim), Is.True);
+            Assert.Multiple(() =>
+            {
+                Assert.That(prim!.ParticleSys.Pattern, Is.EqualTo(Primitive.ParticleSystem.SourcePattern.Explode));
+                Assert.That(prim.ParticleSys.BurstPartCount, Is.EqualTo(4));
+                Assert.That(prim.ParticleSys.PartMaxAge, Is.EqualTo(2f).Within(0.01f));
+                Assert.That(prim.ParticleSys.PartStartGlow, Is.EqualTo(0.4f).Within(0.01f));
+                Assert.That(prim.ParticleSys.PartEndGlow, Is.EqualTo(0.2f).Within(0.01f));
+                Assert.That(prim.ParticleSys.BlendFuncSource, Is.EqualTo((byte)Primitive.ParticleSystem.BlendFunc.SourceAlpha));
+                Assert.That(prim.ParticleSys.BlendFuncDest, Is.EqualTo((byte)Primitive.ParticleSystem.BlendFunc.One));
+                Assert.That(prim.ParticleSys.PartDataFlags.HasFlag(Primitive.ParticleSystem.ParticleDataFlags.DataGlow), Is.True);
+                Assert.That(prim.ParticleSys.PartDataFlags.HasFlag(Primitive.ParticleSystem.ParticleDataFlags.DataBlend), Is.True);
+                Assert.That(prim.Textures?.DefaultTexture?.TextureID, Is.EqualTo(textureId),
+                    "the data before the new particle block is still read from the right offset");
+                Assert.That(prim.TextureAnim.Face, Is.EqualTo(1u));
             });
         }
     }
