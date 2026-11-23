@@ -717,8 +717,15 @@ namespace LibreMetaverse
             {
                 Logger.Info($"Moving to another simulator; sending CompleteAgentMovement to {simulator.Name}", Client);
                 // Move in to this simulator
-                simulator.handshakeComplete = false;
-                simulator.UseCircuitCode(true);
+                if (ReuseCircuitForMoveIn(simulator))
+                {
+                    Logger.Debug($"Circuit to {simulator.Name} is up; moving in without a new UseCircuitCode", Client);
+                }
+                else
+                {
+                    simulator.handshakeComplete = false;
+                    simulator.UseCircuitCode(true);
+                }
                 Client.Self.CompleteAgentMovement(simulator);
 
                 // We're already connected to this server, but need to set it to the default
@@ -1201,6 +1208,16 @@ namespace LibreMetaverse
             {
                 Logger.Error("IncomingPacketHandler fatal exception: " + ex, ex, Client);
             }
+        }
+
+        /// <summary>
+        /// With <see cref="AgentSettings.FastRegionCrossing"/>, crossing in to a simulator whose circuit is already
+        /// connected and handshaken goes straight to CompleteAgentMovement, as the Second Life viewer does
+        /// </summary>
+        internal bool ReuseCircuitForMoveIn(Simulator simulator)
+        {
+            return Client.Settings.Agent.FastRegionCrossing && Client.Self.IsCrossingRegion
+                && simulator.Connected && simulator.HandshakeComplete;
         }
 
         private void SetCurrentSim(Simulator simulator, Uri? seedcaps)

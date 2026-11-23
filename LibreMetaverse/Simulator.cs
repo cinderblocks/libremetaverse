@@ -954,6 +954,14 @@ namespace LibreMetaverse
             {
                 if (Caps._SeedCapsURI == seedcaps && !changedSim) return;
 
+                // Moving in to a neighbor we already have a child agent in: its caps and event queue are
+                // already running for the same seed (the Second Life viewer ignores a duplicate seed)
+                if (Caps._SeedCapsURI == seedcaps && Client.Settings.Agent.FastRegionCrossing && Client.Self.IsCrossingRegion)
+                {
+                    Logger.Debug($"Seed capability for {Name} is unchanged; keeping its capabilities", Client);
+                    return;
+                }
+
                 Logger.Warn("Unexpected change of seed capability", Client);
                 Caps.Disconnect(true);
                 Caps = null;
