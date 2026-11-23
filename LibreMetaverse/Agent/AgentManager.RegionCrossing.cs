@@ -25,6 +25,7 @@
  */
 
 using System;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -388,12 +389,35 @@ namespace LibreMetaverse
             var duration = Client.UtcNow - crossing.StartTime;
             Logger.Info($"Region crossing completed successfully in {duration.TotalSeconds:F2} seconds", Client);
 
+            if (crossing.OldSimulator != null && crossing.OldSimulator != crossing.NewSimulator)
+                ForgetSelfIn(crossing.OldSimulator);
+
             if (m_RegionCrossed != null)
                 OnRegionCrossed(new RegionCrossedEventArgs(crossing.OldSimulator, crossing.NewSimulator));
 
             crossing.State = CrossingState.Idle;
             Logger.Debug($"Crossing cleanup: Old sim {crossing.OldSimulator?.Name ?? "null"}, New sim {crossing.NewSimulator?.Name ?? "null"}", Client);
             return true;
+        }
+
+        /// <summary>
+        /// Drop our avatar, and everything attached to it, from a region we have left. With
+        /// <see cref="AgentSettings.MultipleSims"/> that region stays connected as a neighbor, and its kill for
+        /// our avatar usually arrives while it is still the current region, where (rightly) it is not
+        /// applied to our own avatar. Without this, a copy of us stays in its object lists.
+        /// </summary>
+        internal void ForgetSelfIn(Simulator simulator)
+        {
+            if (simulator == Client.Network.CurrentSim) return;
+
+            var ids = simulator.ObjectsAvatars
+                .Where(kv => kv.Value != null && kv.Value.ID == AgentID)
+                .Select(kv => kv.Key)
+                .ToList();
+            if (ids.Count == 0) return;
+
+            Client.Objects.RemoveKilledObjects(simulator, ids);
+            Logger.Debug($"Region crossing: dropped our avatar from {simulator.Name} ({ids.Count} entr{(ids.Count == 1 ? "y" : "ies")})", Client);
         }
 
         private bool OnCrossingFailed(CrossingInfo crossing)

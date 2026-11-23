@@ -1003,10 +1003,24 @@ namespace LibreMetaverse
                 }
 
                 localIdsToKill.Add(objectToKill.ID);
-                OnKillObject(new KillObjectEventArgs(simulator, objectToKill.ID));
             }
 
-            OnKillObjects(new KillObjectsEventArgs(e.Simulator, localIdsToKill.ToArray()));
+            RemoveKilledObjects(simulator, localIdsToKill);
+        }
+
+        /// <summary>
+        /// Raise the kill events for <paramref name="localIdsToKill"/> and drop them, with everything linked or
+        /// attached to them, from <paramref name="simulator"/>'s object lists, the way a KillObject from that
+        /// simulator does.
+        /// </summary>
+        internal void RemoveKilledObjects(Simulator simulator, List<uint> localIdsToKill)
+        {
+            foreach (var localID in localIdsToKill)
+            {
+                OnKillObject(new KillObjectEventArgs(simulator, localID));
+            }
+
+            OnKillObjects(new KillObjectsEventArgs(simulator, localIdsToKill.ToArray()));
 
             var parentIndex = new Dictionary<uint, List<uint>>();
             foreach (var kv in simulator.ObjectsPrimitives)
