@@ -32,6 +32,7 @@ using System.Net.Security;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 #if NET8_0_OR_GREATER
+using System.Threading;
 using System.Threading.Tasks;
 #endif
 
@@ -183,6 +184,34 @@ namespace LibreMetaverse
                 message.RequestUri?.Host ?? string.Empty, cert, chain, sslPolicyErrors);
         }
 
+#if NET5_0_OR_GREATER
+        private Func<SocketsHttpConnectionContext, CancellationToken, ValueTask<System.IO.Stream>>? _capsConnectCallback;
+
+        /// <summary>
+        /// Replace <see cref="HttpCapsClient"/> with one whose connections are opened by <paramref name="connectCallback"/>
+        /// (see <see cref="SocketsHttpHandler.ConnectCallback"/>), for example to resolve simulator and caps host names
+        /// through DNS-over-HTTPS or another resolver and connect to the address it returns. TLS still runs on top of the
+        /// returned stream with the request's host name for SNI, and the certificate is checked with
+        /// <see cref="LibreMetaverse.Settings.Security"/> exactly as with the default handler.
+        /// Pass <c>null</c> to go back to the default handler.
+        /// </summary>
+        /// <remarks>Call this before logging in. The previous <see cref="HttpCapsClient"/> is disposed.</remarks>
+        /// <param name="connectCallback">Opens the connection for a request, or <c>null</c> for the default</param>
+        public void SetCapsConnectCallback(Func<SocketsHttpConnectionContext, CancellationToken, ValueTask<System.IO.Stream>>? connectCallback)
+        {
+            _capsConnectCallback = connectCallback;
+            var previous = HttpCapsClient;
+            HttpCapsClient = SetupHttpCapsClient();
+            previous?.Dispose();
+        }
+
+        private bool ValidateServerCertificate(object sender, X509Certificate? cert, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
+        {
+            return ServerCertificateValidator.Validate(Settings.Security,
+                (sender as SslStream)?.TargetHostName ?? string.Empty, cert as X509Certificate2, chain, sslPolicyErrors);
+        }
+#endif
+
         private HttpCapsClient SetupHttpCapsClient()
         {
             HttpMessageHandler handler;
@@ -204,6 +233,23 @@ namespace LibreMetaverse
             }
             handler = winHttpHandler;
 #else
+#if NET5_0_OR_GREATER
+            if (_capsConnectCallback != null)
+            {
+                var socketsHandler = new SocketsHttpHandler
+                {
+                    AllowAutoRedirect = true,
+                    AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip,
+                    ConnectCallback = _capsConnectCallback,
+                    SslOptions = new SslClientAuthenticationOptions
+                    {
+                        RemoteCertificateValidationCallback = ValidateServerCertificate
+                    },
+                    MaxConnectionsPerServer = Settings.MaxHttpConnections
+                };
+                return FinishHttpCapsClient(socketsHandler);
+            }
+#endif
             var httpClientHandler = new HttpClientHandler
             {
                 AllowAutoRedirect = true,
@@ -218,6 +264,11 @@ namespace LibreMetaverse
             handler = httpClientHandler;
 #endif
 
+            return FinishHttpCapsClient(handler);
+        }
+
+        private HttpCapsClient FinishHttpCapsClient(HttpMessageHandler handler)
+        {
             var rateLimitingHandler = new RateLimitingCapsHandler(CapsRateLimiter, handler);
             HttpCapsClient client = new HttpCapsClient(rateLimitingHandler);
             client.DefaultRequestHeaders.Accept.Clear();
