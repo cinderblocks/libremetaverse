@@ -2771,9 +2771,14 @@ namespace LibreMetaverse
             }
 
             blocks = PrepareOutfitBlocks(blocks);
-            if (blocks.Count == 0 && !Client.Settings.Agent.OutfitSendDetachAll)
+            if (blocks.Count == 0)
             {
-                Logger.Debug("Outfit send: everything in 'Current Outfit' is already attached", Client);
+                // Nothing to attach, whether because everything's already on (OutfitSendDetachAll off) or
+                // OutfitSendExclude filtered out everything there was to send. Either way, don't send a
+                // FirstDetachAll=true packet with zero objects just because the filtered list is empty --
+                // that would detach the whole avatar as a side effect of an exclude predicate, not because
+                // anyone asked to clear the outfit.
+                Logger.Debug("Outfit send: nothing to send after filtering", Client);
                 return;
             }
 
@@ -3333,7 +3338,11 @@ namespace LibreMetaverse
                                 shouldSend = v > _lastSentOutfitCOFVersion;
                                 if (shouldSend) _lastSentOutfitCOFVersion = v;
                             }
-                            if (shouldSend && !Client.Settings.Agent.SendOutfitAfterBake)
+                            // Client is a readonly non-null field; the ?. a few lines up on an unrelated
+                            // chain (Client?.Network?.CurrentSim?.Caps) is what makes the analyzer think
+                            // otherwise here.
+                            var agentSettings = Client!.Settings.Agent;
+                            if (shouldSend && !agentSettings.SendOutfitAfterBake)
                                 Logger.Debug("Not sending the outfit after the server bake (Settings.Agent.SendOutfitAfterBake is off)", Client);
                             else if (shouldSend)
                                 await SendOutfitToCurrentSimulatorAsync(cancellationToken).ConfigureAwait(false);
