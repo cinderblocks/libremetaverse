@@ -75,12 +75,33 @@ namespace LibreMetaverse.Materials
                 SpecularMapRepeatY = map["SpecRepeatY"].AsInteger() / MaterialsMultiplier;
                 SpecularMapRotation = map["SpecRotation"].AsInteger() / MaterialsMultiplier;
 
-                SpecularColor = map["SpecColor"].AsColor4();
+                // RenderMaterials sends SpecColor as 0-255 integers; some paths use 0-1 reals.
+                SpecularColor = ColorFromSpecColor(map["SpecColor"]);
                 SpecularExponent = (byte)map["SpecExp"].AsInteger();
                 EnvironmentIntensity = (byte)map["EnvIntensity"].AsInteger();
                 AlphaMaskCutoff = (byte)map["AlphaMaskCutoff"].AsInteger();
                 DiffuseAlphaMode = (LegacyMaterialAlphaMode)map["DiffuseAlphaMode"].AsInteger();
             }
+        }
+
+        private static Color4 ColorFromSpecColor(OSD osd)
+        {
+            if (osd is OSDArray rgb && rgb.Count == 4)
+            {
+                return new Color4(
+                    SpecColorComponent(rgb[0]),
+                    SpecColorComponent(rgb[1]),
+                    SpecColorComponent(rgb[2]),
+                    SpecColorComponent(rgb[3]));
+            }
+            return osd.AsColor4();
+        }
+
+        private static float SpecColorComponent(OSD value)
+        {
+            if (value.Type == OSDType.Integer)
+                return Utils.Clamp(value.AsInteger(), 0, 255) / 255f;
+            return Utils.Clamp((float)value.AsReal(), 0f, 1f);
         }
     }
 }
