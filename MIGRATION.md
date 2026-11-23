@@ -2,10 +2,70 @@
 
 Each guide below takes you from one release to the next. If you are several releases behind, apply the guides for every step between your version and the new one, newest first.
 
+- [3.3.1 → 3.4.0](#migration-guide-331--340): attaching and detaching now wait for the simulator to confirm; batched multi-attach; opt-in fast region crossing; a custom caps connect callback
 - [3.1.x → 3.2.0](#migration-guide-31x--320): the library is split into more packages; model import, export and upload
 - [3.1.7 → 3.1.8](#migration-guide-317--318-server-certificate-validation): server certificate validation
 - [3.0.0 → 3.1.0](#migration-guide-300--310): SkiaSharp is no longer a dependency
 - [2.6.x → 3.0](#migration-guide-26x--30)
+
+---
+
+# Migration Guide: 3.3.1 → 3.4.0
+
+Nothing in this release removes or renames a public member, so nothing fails to compile. One change affects what already-compiled code observes at runtime; the rest is new, opt-in surface.
+
+## What to do
+
+- [ ] Read [Behavior change: attach and detach wait for simulator confirmation](#1-behavior-change-attach-and-detach-wait-for-simulator-confirmation) if you call `CurrentOutfitFolder.AttachAsync`, `DetachAsync`, or `RemoveFromOutfitAsync` (directly, or through `RlvActionCallbacks` if you use the RLV package) — nothing to change, but the timing and the COF-link guarantee are both different now.
+- [ ] Nothing else requires a change. [New batched attach](#2-new-batched-attach), [`AgentSettings.FastRegionCrossing`](#3-opt-in-fast-region-crossing) and [`GridClient.SetCapsConnectCallback`](#4-a-custom-caps-connect-callback) are all additive and off by default.
+
+## 1. Behavior change: attach and detach wait for simulator confirmation
+
+`CurrentOutfitFolder.AttachAsync` and `DetachAsync` (and the batched `RemoveFromOutfitAsync`, for the rigid-attachment items in its list) used to create or remove the Current Outfit Folder link for an item immediately after sending the attach or detach request, with no confirmation the simulator actually carried it out. A request that silently failed server-side — a permission check, a deleted item, an attachment-point conflict — left a COF link for something that was never actually worn, or removed one for something still physically attached.
+
+Both now wait for the simulator to confirm the request before touching the COF link:
+
+- **Attach**: waits (up to `CurrentOutfitFolder.AttachmentConfirmationTimeout`, 30 seconds) for an `ObjectUpdate` that puts the item's `AttachItemID` on a primitive parented to you. If it never arrives, the item is **not** linked in COF, and a warning is logged — same as if you'd never called `AttachAsync` at all.
+- **Detach** (rigid attachments only — clothing-layer wearables aren't scene objects and have no confirmation to wait for, so their removal is unchanged): waits the same 30 seconds for a `KillObject` for that attachment. If it never arrives, the COF link is **left in place** rather than removed.
+
+```csharp
+// Before: the link existed as soon as this returned, whether or not the attach actually worked
+await cof.AttachAsync(item, AttachmentPoint.RightHand, replace: false);
+
+// After: same call, but it can now take up to 30 seconds, and the item may come back
+// unlinked if the simulator never confirmed it. If that matters to your UI, check:
+var wasAttached = (await cof.GetCurrentOutfitLinksAsync()).Any(l => l.ResolvedItemID == item.ResolvedItemID);
+```
+
+If you were relying on the old immediate, always-linked behavior — for example, optimistically updating a UI the instant `AttachAsync` returns — switch to reading the actual state back, or accept the (rare) extra latency as the cost of the link now being trustworthy. `RlvCOFPolicy`/`RlvManager.ReportItemChange` in the RLV package are called after confirmation too, so an `@attached`/`@detached` notification now reliably corresponds to something that is actually attached or detached, where before it could fire for an item whose attach request hadn't even reached the simulator yet.
+
+## 2. New batched attach
+
+`AppearanceManager.AddAttachments` and `CurrentOutfitFolder.AttachAsync` have a new overload taking a list of `(InventoryItem Item, AttachmentPoint Point, bool Replace)` tuples, so several objects can be attached in one `RezMultipleAttachmentsFromInv` exchange — at most 4 per packet and 40 per call, matching the Second Life viewer's own `LLAttachmentsMgr::requestAttachments` — each attached to an explicit point rather than whatever point is stored on the item itself. This is what you want for an RLV-style "attach everything in this folder" command. It goes through the same confirmation wait as the single-item overload (section 1): items that never confirm are skipped, not linked speculatively. Nothing uses it unless you call it.
+
+## 3. Opt-in fast region crossing
+
+With `Settings.MultipleSims` on, a border crossing into a neighbor you already have a child agent in now has a fast path: `AgentSettings.FastRegionCrossing` (`false` by default). Turned on, a crossing into a simulator whose circuit is already connected and handshaken skips the redundant `UseCircuitCode`, keeps the region's capabilities and event queue when its seed capability is unchanged, and keeps your appearance state instead of starting a new bake-and-resend — matching what the Second Life viewer does on a crossing. Teleports and logins are unaffected either way. Off by default; nothing changes unless you set it.
+
+```csharp
+client.Settings.Agent.FastRegionCrossing = true;
+```
+
+## 4. A custom caps connect callback
+
+`GridClient.SetCapsConnectCallback` (.NET 5+ only; a no-op on .NET Framework and netstandard2.1 builds) lets an application control how the capabilities `HttpClient`'s connections are opened — for example, resolving simulator and caps host names through DNS-over-HTTPS or a resolver of your own, instead of the system resolver:
+
+```csharp
+client.SetCapsConnectCallback(async (context, cancellationToken) =>
+{
+    var address = await MyResolver.ResolveAsync(context.DnsEndPoint.Host, cancellationToken);
+    var socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+    await socket.ConnectAsync(new IPEndPoint(address, context.DnsEndPoint.Port), cancellationToken);
+    return new NetworkStream(socket, ownsSocket: true);
+});
+```
+
+TLS still runs on top of the returned stream using the request's host name for SNI, and the certificate is checked by `ServerCertificateValidator` with `Settings.Security` exactly as with the default handler — this does not weaken certificate validation. Pass `null` to go back to the default handler. Nothing changes unless you call it.
 
 ---
 
