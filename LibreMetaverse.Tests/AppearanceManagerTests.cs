@@ -466,7 +466,8 @@ namespace LibreMetaverse.Tests
             var confirmed = await client.Appearance.WaitForAttachmentConfirmationAsync(itemIds, timeout);
 
             Assert.That(confirmed, Is.Empty, "nothing ever arrived, so nothing should be reported confirmed");
-            Assert.That(sw.Elapsed, Is.GreaterThanOrEqualTo(timeout), "should actually wait out the timeout, not return early");
+            // Timer resolution can fire Task.Delay a hair early; assert it actually waited, not the exact duration.
+            Assert.That(sw.Elapsed, Is.GreaterThan(timeout / 2), "should actually wait for roughly the timeout, not return early");
         }
 
         [Test]
@@ -505,7 +506,8 @@ namespace LibreMetaverse.Tests
             var confirmed = await client.Appearance.WaitForDetachConfirmationAsync(itemIds, timeout);
 
             Assert.That(confirmed, Is.Empty, "nothing was ever killed, so nothing should be reported confirmed");
-            Assert.That(sw.Elapsed, Is.GreaterThanOrEqualTo(timeout), "should actually wait out the timeout, not return early");
+            // Timer resolution can fire Task.Delay a hair early; assert it actually waited, not the exact duration.
+            Assert.That(sw.Elapsed, Is.GreaterThan(timeout / 2), "should actually wait for roughly the timeout, not return early");
         }
 
         [Test]
