@@ -467,7 +467,7 @@ namespace LibreMetaverse.Tests
 
             Assert.That(confirmed, Is.Empty, "nothing ever arrived, so nothing should be reported confirmed");
             // Timer resolution can fire Task.Delay a hair early; assert it actually waited, not the exact duration.
-            Assert.That(sw.Elapsed, Is.GreaterThan(timeout / 2), "should actually wait for roughly the timeout, not return early");
+            Assert.That(sw.Elapsed, Is.GreaterThan(TimeSpan.FromMilliseconds(timeout.TotalMilliseconds / 2)), "should actually wait for roughly the timeout, not return early");
         }
 
         [Test]
@@ -507,7 +507,7 @@ namespace LibreMetaverse.Tests
 
             Assert.That(confirmed, Is.Empty, "nothing was ever killed, so nothing should be reported confirmed");
             // Timer resolution can fire Task.Delay a hair early; assert it actually waited, not the exact duration.
-            Assert.That(sw.Elapsed, Is.GreaterThan(timeout / 2), "should actually wait for roughly the timeout, not return early");
+            Assert.That(sw.Elapsed, Is.GreaterThan(TimeSpan.FromMilliseconds(timeout.TotalMilliseconds / 2)), "should actually wait for roughly the timeout, not return early");
         }
 
         [Test]
