@@ -26,6 +26,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -287,6 +288,9 @@ namespace LibreMetaverse.Tests
         [Test]
         public void ChatterBoxSessionStartReplyMessage()
         {
+            var moderatorAgent = UUID.Random();
+            var mutedAgent = UUID.Random();
+
             ChatterBoxSessionStartReplyMessage s = new ChatterBoxSessionStartReplyMessage
             {
                 ModeratedVoice = true,
@@ -295,7 +299,12 @@ namespace LibreMetaverse.Tests
                 Success = true,
                 TempSessionID = UUID.Random(),
                 Type = 1,
-                VoiceEnabled = true
+                VoiceEnabled = true,
+                AgentInfo = new Dictionary<UUID, (bool IsModerator, bool MuteText)>
+                {
+                    [moderatorAgent] = (true, false),
+                    [mutedAgent] = (false, true)
+                }
             };
 
             OSDMap map = s.Serialize();
@@ -310,6 +319,58 @@ namespace LibreMetaverse.Tests
             Assert.That(t.TempSessionID, Is.EqualTo(s.TempSessionID));
             Assert.That(t.Type, Is.EqualTo(s.Type));
             Assert.That(t.VoiceEnabled, Is.EqualTo(s.VoiceEnabled));
+
+            // The base roster of members already in the session when we joined (SL C++:
+            // LLIMSpeakerMgr::setSpeakers), delivered alongside this reply
+            Assert.That(t.AgentInfo.Count, Is.EqualTo(2));
+            Assert.That(t.AgentInfo[moderatorAgent].IsModerator, Is.True);
+            Assert.That(t.AgentInfo[moderatorAgent].MuteText, Is.False);
+            Assert.That(t.AgentInfo[mutedAgent].IsModerator, Is.False);
+            Assert.That(t.AgentInfo[mutedAgent].MuteText, Is.True);
+        }
+
+        [Test]
+        public void ChatterBoxSessionStartReplyMessage_NoAgentInfoLeavesRosterEmpty()
+        {
+            ChatterBoxSessionStartReplyMessage s = new ChatterBoxSessionStartReplyMessage
+            {
+                SessionID = UUID.Random(),
+                SessionName = "Test Session",
+                Success = true,
+                TempSessionID = UUID.Random()
+            };
+
+            ChatterBoxSessionStartReplyMessage t = new ChatterBoxSessionStartReplyMessage();
+            t.Deserialize(s.Serialize());
+
+            Assert.That(t.AgentInfo, Is.Empty);
+        }
+
+        [Test]
+        public void ChatterBoxSessionAgentListUpdatesMessage_MuteOnlyUpdateDoesNotFlagModeratorInfo()
+        {
+            // A real update containing only a mute change omits can_voice_chat/is_moderator
+            // entirely; the message should flag that they were not present rather than
+            // defaulting them to false, so a consumer does not demote an existing moderator.
+            OSDMap mutesMap = new OSDMap { ["text"] = OSD.FromBoolean(true) };
+            OSDMap infoMap = new OSDMap { ["mutes"] = mutesMap };
+            UUID agentId = UUID.Random();
+            OSDMap agentUpdates = new OSDMap { [agentId.ToString()] = new OSDMap { ["info"] = infoMap } };
+            OSDMap map = new OSDMap
+            {
+                ["agent_updates"] = agentUpdates,
+                ["session_id"] = OSD.FromUUID(UUID.Random())
+            };
+
+            ChatterBoxSessionAgentListUpdatesMessage t = new ChatterBoxSessionAgentListUpdatesMessage();
+            t.Deserialize(map);
+
+            Assert.That(t.Updates.Length, Is.EqualTo(1));
+            Assert.That(t.Updates[0].AgentID, Is.EqualTo(agentId));
+            Assert.That(t.Updates[0].HasMuteInfo, Is.True);
+            Assert.That(t.Updates[0].MuteText, Is.True);
+            Assert.That(t.Updates[0].HasModeratorInfo, Is.False);
+            Assert.That(t.Updates[0].Transition, Is.Null);
         }
 
         [Test]

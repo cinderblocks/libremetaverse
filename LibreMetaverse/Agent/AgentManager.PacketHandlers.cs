@@ -1091,7 +1091,34 @@ namespace LibreMetaverse
 
             if (msg.Success)
             {
-                GroupChatSessions.TryAdd(msg.SessionID, new List<ChatSessionMember>());
+                var sessionMembers = GroupChatSessions.GetOrAdd(msg.SessionID, _ => new List<ChatSessionMember>());
+
+                // Base roster of members already in the session, same as SL C++'s
+                // LLIMSpeakerMgr::setSpeakers. It can race with (and be slightly behind) the
+                // incremental ENTER/LEAVE updates that arrive separately, so only seed agents
+                // we have not already heard about.
+                foreach (var kvp in msg.AgentInfo)
+                {
+                    bool alreadyKnown;
+                    lock (sessionMembers)
+                    {
+                        alreadyKnown = sessionMembers.Exists(m => m.AvatarKey == kvp.Key);
+                        if (!alreadyKnown)
+                        {
+                            sessionMembers.Add(new ChatSessionMember
+                            {
+                                AvatarKey = kvp.Key,
+                                IsModerator = kvp.Value.IsModerator,
+                                MuteText = kvp.Value.MuteText
+                            });
+                        }
+                    }
+
+                    if (!alreadyKnown && m_ChatSessionMemberAdded != null)
+                    {
+                        OnChatSessionMemberAdded(new ChatSessionMemberAddedEventArgs(msg.SessionID, kvp.Key));
+                    }
+                }
             }
 
             OnGroupChatJoined(new GroupChatJoinedEventArgs(msg.SessionID, msg.SessionName, msg.TempSessionID, msg.Success));
@@ -1156,11 +1183,21 @@ namespace LibreMetaverse
                     update_member = sessionMembers.Find(m => m.AvatarKey == t.AgentID);
                 }
 
-                update_member.MuteText = t.MuteText;
-                update_member.MuteVoice = t.MuteVoice;
+                // Only apply fields this particular update actually carried; a mute-only
+                // update (for example) omits can_voice_chat/is_moderator entirely and should
+                // not reset them to false for an already-known member (SL C++:
+                // LLIMSpeakerMgr::updateSpeakers guards each field with agent_info.has(...)).
+                if (t.HasMuteInfo)
+                {
+                    update_member.MuteText = t.MuteText;
+                    update_member.MuteVoice = t.MuteVoice;
+                }
 
-                update_member.CanVoiceChat = t.CanVoiceChat;
-                update_member.IsModerator = t.IsModerator;
+                if (t.HasModeratorInfo)
+                {
+                    update_member.CanVoiceChat = t.CanVoiceChat;
+                    update_member.IsModerator = t.IsModerator;
+                }
 
                 // replace existing member record
                 lock (sessionMembers)

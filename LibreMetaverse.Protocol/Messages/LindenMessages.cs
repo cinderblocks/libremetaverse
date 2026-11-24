@@ -3363,6 +3363,15 @@ namespace LibreMetaverse.Messages.Linden
         /* Is Text moderation possible? */
 
         /// <summary>
+        /// Members already in the session when we were added to it, keyed by agent ID, with the
+        /// moderator/mute-text flags the simulator reported for them at that time. The simulator
+        /// sends this as a base roster alongside (and possibly slightly stale compared to) the
+        /// incremental "ENTER"/"LEAVE" updates delivered separately via
+        /// <see cref="ChatterBoxSessionAgentListUpdatesMessage"/>.
+        /// </summary>
+        public Dictionary<UUID, (bool IsModerator, bool MuteText)> AgentInfo = new Dictionary<UUID, (bool, bool)>();
+
+        /// <summary>
         /// Serialize the object
         /// </summary>
         /// <returns>An <see cref="OSDMap"/> containing the objects data</returns>
@@ -3386,6 +3395,20 @@ namespace LibreMetaverse.Messages.Linden
                 ["session_info"] = sessionMap
             };
 
+            if (AgentInfo.Count > 0)
+            {
+                OSDMap agentInfoMap = new OSDMap(AgentInfo.Count);
+                foreach (var kvp in AgentInfo)
+                {
+                    agentInfoMap[kvp.Key.ToString()] = new OSDMap(2)
+                    {
+                        ["is_moderator"] = OSD.FromBoolean(kvp.Value.IsModerator),
+                        ["mutes"] = new OSDMap(1) { ["text"] = OSD.FromBoolean(kvp.Value.MuteText) }
+                    };
+                }
+                map["agent_info"] = agentInfoMap;
+            }
+
             return map;
         }
 
@@ -3407,6 +3430,30 @@ namespace LibreMetaverse.Messages.Linden
 
             OSDMap moderatedModeMap = (OSDMap)sessionMap["moderated_mode"];
             ModeratedVoice = moderatedModeMap["voice"].AsBoolean();
+
+            // Base roster of members already in the session. Newer simulators send "agent_info"
+            // (a map of agent ID -> {is_moderator, mutes:{text}}); older ones send "agents", a
+            // plain array of agent IDs with no extra info. SL C++: LLIMSpeakerMgr::setSpeakers.
+            AgentInfo = new Dictionary<UUID, (bool, bool)>();
+            if (map.TryGetValue("agent_info", out var agentInfoOsd) && agentInfoOsd is OSDMap agentInfoMap)
+            {
+                foreach (KeyValuePair<string, OSD> kvp in agentInfoMap)
+                {
+                    if (!(kvp.Value is OSDMap entry)) continue;
+                    bool isModerator = entry["is_moderator"].AsBoolean();
+                    bool muteText = entry.TryGetValue("mutes", out var mutesOsd) && mutesOsd is OSDMap mutesMap
+                        ? mutesMap["text"].AsBoolean()
+                        : false;
+                    AgentInfo[UUID.Parse(kvp.Key)] = (isModerator, muteText);
+                }
+            }
+            else if (map.TryGetValue("agents", out var agentsOsd) && agentsOsd is OSDArray agentsArray)
+            {
+                foreach (var agentOsd in agentsArray)
+                {
+                    AgentInfo[agentOsd.AsUUID()] = (false, false);
+                }
+            }
         }
     }
 
@@ -3580,11 +3627,22 @@ namespace LibreMetaverse.Messages.Linden
 
             public bool CanVoiceChat;
             public bool IsModerator;
-            // transition "transition" = "ENTER" or "LEAVE"
-            public string Transition;   //  TODO: switch to an enum "ENTER" or "LEAVE"
+            // transition "transition" = "ENTER" or "LEAVE"; null when this update has neither
+            public string? Transition;   //  TODO: switch to an enum "ENTER" or "LEAVE"
 
             public bool MuteText;
             public bool MuteVoice;
+
+            /// <summary>
+            /// True if this update's "info" map actually carried can_voice_chat/is_moderator.
+            /// Non-initial updates (e.g. a mute-only change) omit them, per the class summary;
+            /// SL C++ (LLIMSpeakerMgr::updateSpeakers) only assigns when the key is present,
+            /// rather than resetting to false, and consumers of this block should do the same.
+            /// </summary>
+            public bool HasModeratorInfo;
+
+            /// <summary>True if this update's "info" map actually carried a "mutes" entry.</summary>
+            public bool HasMuteInfo;
         }
 
         public AgentUpdatesBlock[] Updates;
@@ -3613,11 +3671,8 @@ namespace LibreMetaverse.Messages.Linden
                     ["mutes"] = mutesMap
                 };
 
-                OSDMap imap = new OSDMap(1)
-                {
-                    ["info"] = infoMap,
-                    ["transition"] = OSD.FromString(t.Transition)
-                };
+                OSDMap imap = new OSDMap(1) { ["info"] = infoMap };
+                if (t.Transition != null) imap["transition"] = OSD.FromString(t.Transition);
 
                 agent_updatesMap.Add(t.AgentID.ToString(), imap);
             }
@@ -3679,16 +3734,24 @@ namespace LibreMetaverse.Messages.Linden
 
                         OSDMap agentPermsMap = (OSDMap)infoMap["info"];
 
-                        block.CanVoiceChat = agentPermsMap["can_voice_chat"].AsBoolean();
-                        block.IsModerator = agentPermsMap["is_moderator"].AsBoolean();
-
-                        block.Transition = infoMap["transition"].AsString();
-
-                        if (agentPermsMap.TryGetValue("mutes", out var mutes))
+                        // Non-initial updates (e.g. a mute-only change) leave these out; only
+                        // read and flag them when actually present, so a caller can tell "false"
+                        // apart from "not stated here" (SL C++: agent_info.has("is_moderator")).
+                        if (agentPermsMap.TryGetValue("can_voice_chat", out var canVoiceChat) &&
+                            agentPermsMap.TryGetValue("is_moderator", out var isModerator))
                         {
-                            OSDMap mutesMap = (OSDMap)mutes;
+                            block.CanVoiceChat = canVoiceChat.AsBoolean();
+                            block.IsModerator = isModerator.AsBoolean();
+                            block.HasModeratorInfo = true;
+                        }
+
+                        block.Transition = infoMap.TryGetValue("transition", out var transition) ? transition.AsString() : null;
+
+                        if (agentPermsMap.TryGetValue("mutes", out var mutes) && mutes is OSDMap mutesMap)
+                        {
                             block.MuteText = mutesMap["text"].AsBoolean();
                             block.MuteVoice = mutesMap["voice"].AsBoolean();
+                            block.HasMuteInfo = true;
                         }
                         updatesList.Add(block);
                         break;
@@ -3706,7 +3769,9 @@ namespace LibreMetaverse.Messages.Linden
                     IsModerator = updatesList[i].IsModerator,
                     MuteText = updatesList[i].MuteText,
                     MuteVoice = updatesList[i].MuteVoice,
-                    Transition = updatesList[i].Transition
+                    Transition = updatesList[i].Transition,
+                    HasModeratorInfo = updatesList[i].HasModeratorInfo,
+                    HasMuteInfo = updatesList[i].HasMuteInfo
                 };
                 Updates[i] = block;
             }
