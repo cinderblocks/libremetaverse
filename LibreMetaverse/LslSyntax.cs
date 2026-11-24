@@ -177,7 +177,7 @@ namespace LibreMetaverse
         }
 
         private static string CacheFile(GridClient client, UUID syntaxId, bool lua) =>
-            Path.Combine(client.Settings.AssetCache.Dir, $"keywords_{(lua ? "lua" : "lsl")}_{syntaxId}.xml");
+            Path.Combine(Settings.ResourceDir, "lslsyntax", $"keywords_{(lua ? "lua" : "lsl")}_{syntaxId}.xml");
 
         /// <summary>
         /// Use the definitions cached for a syntax ID
@@ -340,6 +340,7 @@ namespace LibreMetaverse
         {
             try
             {
+                Directory.CreateDirectory(Path.GetDirectoryName(file)!);
                 File.WriteAllBytes(file, OSDParser.SerializeLLSDXmlBytes(map));
             }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
