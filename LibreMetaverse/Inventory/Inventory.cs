@@ -180,6 +180,9 @@ namespace LibreMetaverse
         /// <summary>Index of links by the linked asset UUID for O(1) FindAllLinks</summary>
         private readonly ConcurrentDictionary<UUID, ConcurrentDictionary<UUID, InventoryNode>> LinksByAssetId;
 
+        /// <summary>The provider used by <see cref="SaveToDisk"/>/<see cref="RestoreFromDisk"/> and their async variants</summary>
+        public Caching.IInventoryCacheProvider CacheProvider { get; set; } = new InventoryCache();
+
         public Inventory(GridClient client)
             : this(client, client.Self.AgentID) { }
 
@@ -604,7 +607,7 @@ namespace LibreMetaverse
         /// <param name="filename">Name of the cache file to save to</param>
         public void SaveToDisk(string filename)
         {
-            InventoryCache.SaveToDisk(filename, Items);
+            CacheProvider.SaveToDisk(filename, Items);
         }
 
         /// <summary>
@@ -614,9 +617,9 @@ namespace LibreMetaverse
         /// <param name="cancellationToken">Cancellation token (best-effort)</param>
         public Task SaveToDiskAsync(string filename, CancellationToken cancellationToken = default)
         {
-            return filename == null 
-                ? throw new ArgumentNullException(nameof(filename)) 
-                : InventoryCache.SaveToDiskAsync(filename, Items, cancellationToken);
+            return filename == null
+                ? throw new ArgumentNullException(nameof(filename))
+                : CacheProvider.SaveToDiskAsync(filename, Items, cancellationToken);
         }
 
         /// <summary>
@@ -625,7 +628,7 @@ namespace LibreMetaverse
         /// <param name="filename">Name of the cache file to load</param>
         public int RestoreFromDisk(string filename)
         {
-            return InventoryCache.RestoreFromDisk(filename, Items);
+            return CacheProvider.RestoreFromDisk(filename, Items);
         }
 
         /// <summary>
@@ -633,9 +636,9 @@ namespace LibreMetaverse
         /// </summary>
         public Task<int> RestoreFromDiskAsync(string filename, CancellationToken cancellationToken = default)
         {
-            return filename == null 
-                ? throw new ArgumentNullException(nameof(filename)) 
-                : InventoryCache.RestoreFromDiskAsync(filename, Items, cancellationToken);
+            return filename == null
+                ? throw new ArgumentNullException(nameof(filename))
+                : CacheProvider.RestoreFromDiskAsync(filename, Items, cancellationToken);
         }
 
         #region Operators

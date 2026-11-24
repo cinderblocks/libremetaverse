@@ -39,7 +39,8 @@ using System.Threading.Tasks;
 
 namespace LibreMetaverse
 {
-    internal class InventoryCache
+    /// <summary>The default implementation of <see cref="Caching.IInventoryCacheProvider"/></summary>
+    internal class InventoryCache : Caching.IInventoryCacheProvider
     {
         private static readonly string InventoryCacheMagic = "INVCACHE";
         private static readonly int InventoryCacheVersion = 1;
@@ -71,7 +72,7 @@ namespace LibreMetaverse
         /// </summary>
         /// <param name="filename">Name of the cache file to save to</param>
         /// <param name="Items">Inventory store to write to disk</param>
-        public static void SaveToDisk(string filename, ConcurrentDictionary<UUID, InventoryNode> Items)
+        public void SaveToDisk(string filename, ConcurrentDictionary<UUID, InventoryNode> Items)
         {
             try
             {
@@ -97,7 +98,7 @@ namespace LibreMetaverse
         /// Async variant of SaveToDisk using asynchronous streams and MessagePack async API
         /// Exceptions are propagated to the caller.
         /// </summary>
-        public static async Task SaveToDiskAsync(string filename, ConcurrentDictionary<UUID, InventoryNode> Items, CancellationToken cancellationToken = default)
+        public async Task SaveToDiskAsync(string filename, ConcurrentDictionary<UUID, InventoryNode> Items, CancellationToken cancellationToken = default)
         {
             var options = GetSerializerOptions();
             var items = Items.Values.ToList();
@@ -121,7 +122,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Try-save variant that returns a (success, error) tuple instead of throwing.
         /// </summary>
-        public static async Task<(bool Success, Exception? Error)> TrySaveToDiskAsync(string filename, ConcurrentDictionary<UUID, InventoryNode> Items, CancellationToken cancellationToken = default)
+        public async Task<(bool Success, Exception? Error)> TrySaveToDiskAsync(string filename, ConcurrentDictionary<UUID, InventoryNode> Items, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -140,7 +141,7 @@ namespace LibreMetaverse
         /// <param name="filename">Name of the cache file to load</param>
         /// <param name="Items">Inventory store being populated from restore</param>
         /// <returns>The number of inventory items successfully reconstructed into the inventory node tree, or -1 on error</returns>
-        public static int RestoreFromDisk(string filename, ConcurrentDictionary<UUID, InventoryNode> Items)
+        public int RestoreFromDisk(string filename, ConcurrentDictionary<UUID, InventoryNode> Items)
         {
             List<InventoryNode>? cacheNodes = null;
 
@@ -284,7 +285,7 @@ namespace LibreMetaverse
         /// Async variant of RestoreFromDisk using asynchronous streams and MessagePack async API
         /// Exceptions are propagated to the caller.
         /// </summary>
-        public static async Task<int> RestoreFromDiskAsync(string filename, ConcurrentDictionary<UUID, InventoryNode> Items, CancellationToken cancellationToken = default)
+        public async Task<int> RestoreFromDiskAsync(string filename, ConcurrentDictionary<UUID, InventoryNode> Items, CancellationToken cancellationToken = default)
         {
             List<InventoryNode> cacheNodes;
 
@@ -424,7 +425,7 @@ namespace LibreMetaverse
         /// <summary>
         /// Try-restore variant that returns a (success, count, error) tuple instead of throwing.
         /// </summary>
-        public static async Task<(bool Success, int Count, Exception? Error)> TryRestoreFromDiskAsync(string filename, ConcurrentDictionary<UUID, InventoryNode> Items, CancellationToken cancellationToken = default)
+        public async Task<(bool Success, int Count, Exception? Error)> TryRestoreFromDiskAsync(string filename, ConcurrentDictionary<UUID, InventoryNode> Items, CancellationToken cancellationToken = default)
         {
             try
             {
