@@ -2,11 +2,81 @@
 
 Each guide below takes you from one release to the next. If you are several releases behind, apply the guides for every step between your version and the new one, newest first.
 
+- [3.4.0 → 3.5.0](#migration-guide-340--350): `AssetManager.Cache` and `Inventory.CacheProvider` are pluggable; a new opt-in per-region object cache; prim mesh generation closes shapes and numbers faces correctly
 - [3.3.1 → 3.4.0](#migration-guide-331--340): attaching and detaching now wait for the simulator to confirm; batched multi-attach; opt-in fast region crossing; a custom caps connect callback
 - [3.1.x → 3.2.0](#migration-guide-31x--320): the library is split into more packages; model import, export and upload
 - [3.1.7 → 3.1.8](#migration-guide-317--318-server-certificate-validation): server certificate validation
 - [3.0.0 → 3.1.0](#migration-guide-300--310): SkiaSharp is no longer a dependency
 - [2.6.x → 3.0](#migration-guide-26x--30)
+
+---
+
+# Migration Guide: 3.4.0 → 3.5.0
+
+One change can fail to compile: `AssetManager.Cache` is now typed as an interface instead of a concrete class. Everything else is new, opt-in surface or a mesh-generation bug fix.
+
+## What to do
+
+- [ ] Read [`AssetManager.Cache` is now `IAssetCacheProvider`](#1-assetmanagercache-is-now-iassetcacheprovider) if any code declares a variable or field of type `AssetCache` holding `client.Assets.Cache`, or calls `.Dispose()` on it directly.
+- [ ] Read [PrimMesher now produces correct, closed meshes](#4-primesher-now-produces-correct-closed-meshes) if you generate meshes with `PrimMesher`/`MeshFoundry` directly (not just rendering what the simulator sends) and your code reasons about prim face counts or face numbers.
+- [ ] Nothing else requires a change. [The pluggable object cache](#2-a-pluggable-per-region-object-cache), [`Inventory.CacheProvider`](#3-inventorycacheprovider), and the [group/conference chat roster fix](#5-group-and-conference-chat-roster-fix) are all additive or opt-in.
+
+## 1. `AssetManager.Cache` is now `IAssetCacheProvider`
+
+`AssetManager.Cache` was `public AssetCache Cache`; it's now `public Caching.IAssetCacheProvider Cache`, so a different cache implementation can be plugged in — the same pattern `ObjectManager.CacheProvider` already used. `AssetCache` is still the default, and every member except `Dispose()` is mirrored on the interface, so most call sites (`HasAsset`, `GetCachedAssetBytes`, `SaveAssetToCache`, `AutoPruneInterval`, `ComputeAssetCacheFilename`, etc.) need no change.
+
+```csharp
+// Before: fails to compile now (implicit/explicit AssetCache typing)
+AssetCache cache = client.Assets.Cache;
+
+// After: either works
+var cache = client.Assets.Cache;                       // IAssetCacheProvider
+IAssetCacheProvider cache = client.Assets.Cache;
+```
+
+`IAssetCacheProvider` doesn't require `IDisposable` — same convention as `IObjectCacheProvider` (the caller owns disposal of whatever it assigns). If you called `client.Assets.Cache.Dispose()` directly on the default `AssetCache`, cast instead:
+
+```csharp
+(client.Assets.Cache as IDisposable)?.Dispose();
+```
+
+To use a different implementation entirely, assign your own `IAssetCacheProvider` before connecting:
+
+```csharp
+client.Assets.Cache = new MyAssetCacheProvider();
+```
+
+## 2. A pluggable per-region object cache
+
+`ObjectManager.CacheProvider` (`Caching.IObjectCacheProvider?`, `null` by default) lets a region skip resending every static object on every visit, the way the reference viewer's object cache does. Left unset, the handshake always claims the cache is empty and behavior is unchanged. The `LibreMetaverse.Caching` package ships a disk-backed implementation, `ObjectDiskCache`:
+
+```csharp
+client.Objects.CacheProvider = new ObjectDiskCache(cacheDirectory);
+```
+
+`ObjectDiskCache` implements `IDisposable` (it runs a background save timer) — dispose it yourself when you're done with the client, the same as any other object you assign to `CacheProvider`.
+
+## 3. `Inventory.CacheProvider`
+
+`Inventory.SaveToDisk`/`RestoreFromDisk` (and their async variants) now go through `Inventory.CacheProvider` (`Caching.IInventoryCacheProvider`, defaulting to the same on-disk format as before), so an application can swap in its own storage — a database, encrypted storage, cloud sync — instead of the flat cache file. Nothing changes unless you assign a different provider.
+
+## 4. PrimMesher now produces correct, closed meshes
+
+Three bugs from a prior refactor are fixed, all specific to generating mesh geometry from prim parameters yourself (via `PrimMesher`/`MeshFoundry`) rather than just rendering an already-built mesh:
+
+- Extruded prims (box, cylinder, and similar path types) were missing their bottom/path-end cap entirely — a unit box's volume computed as ~0.833 instead of 1.0, and its area-weighted normals didn't sum to zero (not a closed shape). They do now.
+- `PathTwist` was applied in the wrong units (treated as if it were already radians), so twisted prims were twisted roughly 57x too far.
+- A box or triangle (any prim with fewer than 5 sides) minted one extra, unnecessary prim face number for every shape with no profile cut. A plain box reported 7 prim faces instead of SL's 6; a prism reported 6 instead of 5; a hollow box's hollow (inner) wall was numbered face 6 instead of 5. Face numbers for cylinders, tori, spheres, and anything with a profile cut were never affected.
+
+If your code maps prim face numbers to textures, or snapshot-tests generated mesh output (vertex/triangle/face counts), expect a diff for box/triangle/hollow-box prims specifically — the new numbers are the ones that match what Second Life itself reports, which is what changed.
+
+## 5. Group and conference chat roster fix
+
+`ChatterBoxSessionStartReplyMessage` gained an `AgentInfo` field (`Dictionary<UUID, (bool IsModerator, bool MuteText)>`, parsed from the `agent_info` map the simulator sends) and the session roster is now seeded from it when a group or conference chat session starts, instead of only growing as agents join afterward — previously the roster could be empty or incomplete until someone else entered or left. Purely additive and a bug fix; nothing to change unless you were working around the incomplete roster yourself.
+
+## 6. LSL/Lua keyword cache moved
+
+The cached `keywords_lsl_*.xml`/`keywords_lua_*.xml` files used by `LslSyntax` moved from `Settings.AssetCache.Dir` to `Settings.ResourceDir/lslsyntax/` — they were never asset-cache data, just piggybacking on its directory. Old cached files are orphaned (safe to delete manually) and new ones are written and read from the new location automatically; nothing to change unless something outside LibreMetaverse was reading those files directly.
 
 ---
 
