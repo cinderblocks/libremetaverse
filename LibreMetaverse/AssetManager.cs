@@ -308,7 +308,7 @@ namespace LibreMetaverse
         #endregion Events
 
         /// <summary>Texture download cache</summary>
-        public AssetCache Cache;
+        public Caching.IAssetCacheProvider Cache;
 
         private readonly TexturePipeline Texture;
 

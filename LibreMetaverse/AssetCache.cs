@@ -31,18 +31,19 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using LibreMetaverse.Caching;
 
 namespace LibreMetaverse
 {
     /// <summary>
-    /// Class that handles the local asset cache
+    /// Class that handles the local asset cache. The default implementation of <see cref="IAssetCacheProvider"/>.
     /// </summary>
-    public class AssetCache : IDisposable
+    public class AssetCache : IAssetCacheProvider, IDisposable
     {
         // User can plug in a routine to compute the asset cache location
         public delegate string ComputeAssetCacheFilenameDelegate(string cacheDir, UUID assetID);
 
-        public ComputeAssetCacheFilenameDelegate? ComputeAssetCacheFilename = null;
+        public ComputeAssetCacheFilenameDelegate? ComputeAssetCacheFilename { get; set; } = null;
 
         private readonly GridClient Client;
         private readonly ManualResetEventSlim cleanerEvent = new ManualResetEventSlim();
