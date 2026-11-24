@@ -78,6 +78,28 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
             return prim;
         }
 
+        private static Primitive MakeHollowBoxPrim()
+        {
+            var prim = new Primitive();
+            var cd = new Primitive.ConstructionData
+            {
+                PCode = PCode.Prim,
+                PathCurve = PathCurve.Line,
+                ProfileCurve = ProfileCurve.Square,
+                PathScaleX = 1f,
+                PathScaleY = 1f,
+                PathBegin = 0f,
+                PathEnd = 1f,
+                ProfileBegin = 0f,
+                ProfileEnd = 1f,
+                ProfileHollow = 0.3f,
+                ProfileHole = HoleType.Same,
+                PathRevolutions = 1f
+            };
+            prim.PrimData = cd;
+            return prim;
+        }
+
         private static Primitive MakeTorusPrim()
         {
             var prim = new Primitive();
@@ -216,6 +238,56 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
                 "SL box must have exactly 6 prim faces (top, bottom, 4 sides)");
         }
 
+        /// <summary>
+        /// A box must be a closed volume: every triangle's normal, weighted by its own area,
+        /// must sum to zero, and the signed volume (divergence theorem) must equal 1.0 for a
+        /// unit box. Regression check for a prior bug where the missing bottom cap left the
+        /// volume computing as 0.833 instead of 1.0.
+        /// </summary>
+        [Test]
+        public void GenerateFacetedMesh_Box_IsClosedUnitVolume()
+        {
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
+            var mesh = renderer.GenerateFacetedMesh(MakeBoxPrim(), DetailLevel.High);
+            Assert.That(mesh, Is.Not.Null);
+
+            double volume = 0;
+            var normalSum = Vector3.Zero;
+            foreach (var face in mesh.Faces)
+            {
+                for (var i = 0; i + 2 < face.Indices.Count; i += 3)
+                {
+                    var v1 = face.Vertices[face.Indices[i]].Position;
+                    var v2 = face.Vertices[face.Indices[i + 1]].Position;
+                    var v3 = face.Vertices[face.Indices[i + 2]].Position;
+
+                    volume += (v1.X * (v2.Y * v3.Z - v3.Y * v2.Z)
+                             - v1.Y * (v2.X * v3.Z - v3.X * v2.Z)
+                             + v1.Z * (v2.X * v3.Y - v3.X * v2.Y)) / 6.0;
+
+                    normalSum += (v2 - v1) % (v3 - v1) * 0.5f;
+                }
+            }
+
+            Assert.That(volume, Is.EqualTo(1.0).Within(Tolerance), "Box volume must be 1.0 (unit box)");
+            Assert.That(normalSum.Length(), Is.EqualTo(0f).Within(Tolerance), "Area-weighted normals of a closed shape must sum to zero");
+        }
+
+        /// <summary>
+        /// SL conformance: a hollow box's inner (hollow) wall must be numbered face 5, not 6.
+        /// Regression check for a numbering bug where a low-side-count ring (box/triangle)
+        /// minted a spurious extra face number for the vertex that closes the outer ring.
+        /// </summary>
+        [Test]
+        public void GenerateFacetedMesh_HollowBox_Has7Faces()
+        {
+            var renderer = new LibreMetaverse.Rendering.MeshFoundry();
+            var mesh = renderer.GenerateFacetedMesh(MakeHollowBoxPrim(), DetailLevel.High);
+            Assert.That(mesh, Is.Not.Null);
+            Assert.That(mesh.Faces.Count, Is.EqualTo(7),
+                "SL hollow box must have exactly 7 prim faces (top, bottom, 4 outer sides, 1 hollow)");
+        }
+
         [Test]
         public void GenerateFacetedMesh_Prism_Has5Faces()
         {
@@ -226,15 +298,17 @@ namespace LibreMetaverse.Rendering.Tests.MeshFoundry
                 "SL prism must have exactly 5 prim faces (top, bottom, 3 sides)");
         }
 
+        /// <summary>
+        /// SL conformance: a plain cylinder must produce exactly 3 prim faces (top, bottom, side).
+        /// </summary>
         [Test]
-        public void GenerateFacetedMesh_Cylinder_HasAtLeast2Faces()
+        public void GenerateFacetedMesh_Cylinder_Has3Faces()
         {
             var renderer = new LibreMetaverse.Rendering.MeshFoundry();
             var mesh = renderer.GenerateFacetedMesh(MakeCylinderPrim(), DetailLevel.High);
             Assert.That(mesh, Is.Not.Null);
-            // SL expects 3 (top, bottom, side); current implementation produces 2 (missing bottom cap ViewerFace)
-            Assert.That(mesh.Faces.Count, Is.GreaterThanOrEqualTo(2),
-                "Cylinder must have at least 2 prim faces; SL spec requires 3 (missing bottom cap is a known gap)");
+            Assert.That(mesh.Faces.Count, Is.EqualTo(3),
+                "SL cylinder must have exactly 3 prim faces (top, bottom, side)");
         }
 
         /// <summary>

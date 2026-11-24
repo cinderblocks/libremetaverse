@@ -1083,7 +1083,16 @@ namespace LibreMetaverse.PrimMesher
                 for (var i = 0; i < numOuterVerts - 1; i++)
                     faceNumbers.Add(sides < 5 && i <= sides ? faceNum++ : faceNum);
 
-                faceNumbers.Add(hasProfileCut ? -1 : faceNum++);
+                // For a closed ring (no profile cut) on a low-side-count prim (box/triangle),
+                // the loop above minted one distinct face number per side. The final outer
+                // vertex is the duplicate that closes the ring back to vertex 0, so its wall
+                // is the same side as the first one - reuse its number instead of minting a
+                // new one, which previously inflated every face number after it by one
+                // (e.g. a hollow box's hollow face came out numbered 6 instead of 5).
+                if (sides < 5 && !hasProfileCut && faceNumbers.Count > 0)
+                    faceNumbers.Add(faceNumbers[0]);
+                else
+                    faceNumbers.Add(hasProfileCut ? -1 : faceNum++);
 
                 if (sides > 4 && (hasHollow || hasProfileCut))
                     faceNum++;
