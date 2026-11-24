@@ -1107,6 +1107,8 @@ namespace LibreMetaverse.PrimMesher
                 for (var i = 0; i < faceNumbers.Count; i++)
                     if (faceNumbers[i] == -1)
                         faceNumbers[i] = faceNum++;
+
+                numPrimFaces = faceNum;
             }
         }
 
@@ -1709,6 +1711,20 @@ namespace LibreMetaverse.PrimMesher
             var steps = 1;
 
             var length = pathCutEnd - pathCutBegin;
+            normalsProcessed = false;
+
+            if (viewerMode && sides == 3)
+                if (Math.Abs(taperX) > 0.01 || Math.Abs(taperY) > 0.01)
+                    steps = (int)(steps * 4.5 * length);
+
+            if (sphereMode)
+                HasProfileCut = profileEnd - profileStart < 0.4999f;
+            else
+                HasProfileCut = profileEnd - profileStart < 0.9999f;
+            HasHollow = this.hollow > 0.001f;
+
+            var twistBegin = this.twistBegin / 360.0f * twoPi;
+            var twistEnd = this.twistEnd / 360.0f * twoPi;
             var twistTotal = twistEnd - twistBegin;
             var twistTotalAbs = Math.Abs(twistTotal);
             if (twistTotalAbs > 0.01f)
@@ -1905,25 +1921,49 @@ namespace LibreMetaverse.PrimMesher
                     // add profile faces with index offsets
                     if (node.percentOfPath < pathCutBegin + 0.01f || node.percentOfPath > pathCutEnd - 0.01f)
                     {
+                        // The bottom cap (node 0) needs reversed winding so it faces outward/
+                        // downward instead of duplicating the top cap's winding - see the
+                        // matching viewerFaces bottom-cap block above.
+                        var isBottomCap = needEndFaces && nodeIndex == 0;
                         var normalsOffset = (normals != null) ? (normals.Count - profile.vertexNormals.Count) : 0;
                         for (var fi = 0; fi < profile.faces.Count; fi++)
                         {
                             var f = profile.faces[fi];
-                            var nf = new Face
-                            {
-                                primFace = f.primFace,
-                                v1 = f.v1 + coordsLen,
-                                v2 = f.v2 + coordsLen,
-                                v3 = f.v3 + coordsLen,
-                                uv1 = f.uv1,
-                                uv2 = f.uv2,
-                                uv3 = f.uv3
-                            };
+                            var nf = isBottomCap
+                                ? new Face
+                                {
+                                    primFace = f.primFace,
+                                    v1 = f.v3 + coordsLen,
+                                    v2 = f.v2 + coordsLen,
+                                    v3 = f.v1 + coordsLen,
+                                    uv1 = f.uv3,
+                                    uv2 = f.uv2,
+                                    uv3 = f.uv1
+                                }
+                                : new Face
+                                {
+                                    primFace = f.primFace,
+                                    v1 = f.v1 + coordsLen,
+                                    v2 = f.v2 + coordsLen,
+                                    v3 = f.v3 + coordsLen,
+                                    uv1 = f.uv1,
+                                    uv2 = f.uv2,
+                                    uv3 = f.uv3
+                                };
                             if (calcVertexNormals)
                             {
-                                nf.n1 = f.n1 + normalsOffset;
-                                nf.n2 = f.n2 + normalsOffset;
-                                nf.n3 = f.n3 + normalsOffset;
+                                if (isBottomCap)
+                                {
+                                    nf.n1 = f.n3 + normalsOffset;
+                                    nf.n2 = f.n2 + normalsOffset;
+                                    nf.n3 = f.n1 + normalsOffset;
+                                }
+                                else
+                                {
+                                    nf.n1 = f.n1 + normalsOffset;
+                                    nf.n2 = f.n2 + normalsOffset;
+                                    nf.n3 = f.n3 + normalsOffset;
+                                }
                             }
                             faces.Add(nf);
                         }
@@ -2053,6 +2093,52 @@ namespace LibreMetaverse.PrimMesher
                     }
 
                     lastCutNormal1 = profile.cutNormal1; lastCutNormal2 = profile.cutNormal2; lastV = thisV;
+
+                    if (needEndFaces && nodeIndex == 0 && viewerMode)
+                    {
+                        // The bottom (path-end) cap. Equivalent to the old per-node
+                        // Profile.Copy()+FlipNormals() used to produce before this method
+                        // started transforming profile.coords into a shared buffer instead
+                        // of a per-node copy: reversed winding (v1/v3 swapped) and a negated
+                        // face normal so the cap faces outward/downward instead of
+                        // duplicating the top cap's +Z-facing winding.
+                        var bottomFaceNormal = new Coord(
+                            -profile.faceNormal.X, -profile.faceNormal.Y, -profile.faceNormal.Z);
+
+                        for (var fi = 0; fi < profile.faces.Count; fi++)
+                        {
+                            var f = profile.faces[fi];
+
+                            var nv = new ViewerFace(profile.bottomFaceNumber);
+                            nv.v1 = tmp[f.v3];
+                            nv.v2 = tmp[f.v2];
+                            nv.v3 = tmp[f.v1];
+
+                            nv.coordIndex1 = f.v3 + coordsLen;
+                            nv.coordIndex2 = f.v2 + coordsLen;
+                            nv.coordIndex3 = f.v1 + coordsLen;
+
+                            nv.n1 = bottomFaceNormal;
+                            nv.n2 = bottomFaceNormal;
+                            nv.n3 = bottomFaceNormal;
+
+                            nv.uv1 = profile.faceUVs[f.v3];
+                            nv.uv2 = profile.faceUVs[f.v2];
+                            nv.uv3 = profile.faceUVs[f.v1];
+                            nv.uv1.V = 1.0f - nv.uv1.V;
+                            nv.uv2.V = 1.0f - nv.uv2.V;
+                            nv.uv3.V = 1.0f - nv.uv3.V;
+
+                            if (pathType == PathType.Linear)
+                            {
+                                nv.uv1.Flip();
+                                nv.uv2.Flip();
+                                nv.uv3.Flip();
+                            }
+
+                            viewerFaces.Add(nv);
+                        }
+                    }
 
                     if (needEndFaces && nodeIndex == path.pathNodes.Count - 1 && viewerMode)
                     {
