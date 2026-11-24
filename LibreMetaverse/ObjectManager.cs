@@ -562,6 +562,15 @@ namespace LibreMetaverse
             Client.Network.GenericStreamingMessage += GenericStreamingMessageHandler;
         }
 
+        /// <summary>
+        /// Per-region object-update cache, consulted on the region handshake and on <c>ObjectUpdateCached</c>
+        /// probes. Null (the default) reproduces today's behavior exactly: no caching, the handshake always
+        /// claims the cache is empty. The caller owns the provider's lifetime -- set this to an implementation
+        /// (for example <c>ObjectDiskCache</c> from the LibreMetaverse.Caching package) before connecting, and
+        /// dispose it yourself if it needs disposing.
+        /// </summary>
+        public Caching.IObjectCacheProvider? CacheProvider { get; set; }
+
         // IDisposable support
         private bool disposed = false;
         protected virtual void Dispose(bool disposing)

@@ -1493,7 +1493,7 @@ namespace LibreMetaverse
                     AgentID = Client.Self.AgentID,
                     SessionID = Client.Self.SessionID
                 },
-                RegionInfo = { Flags = 0x1 | 0x2 | 0x4 } // 0x3 == 
+                RegionInfo = { Flags = RegionHandshakeReplyFlags(simulator) }
             };
             SendPacket(reply, simulator);
 
@@ -1501,6 +1501,18 @@ namespace LibreMetaverse
             simulator.connected = true;
             simulator.handshakeComplete = true;
             simulator.ConnectedEvent.Set();
+        }
+
+        /// <summary>
+        /// RegionHandshakeReply flags: 0x1 send all cacheable objects, 0x2 our object cache is empty (send full
+        /// updates rather than cache probes), 0x4 we support self appearance. 0x2 is left out when
+        /// <see cref="ObjectManager.CacheProvider"/> already has entries for this region.
+        /// </summary>
+        internal uint RegionHandshakeReplyFlags(Simulator simulator)
+        {
+            const uint flags = 0x1 | 0x2 | 0x4;
+            var cache = Client.Objects?.CacheProvider;
+            return cache != null && cache.HasEntries(simulator.Handle, simulator.ID) ? flags & ~0x2u : flags;
         }
 
         protected void EnableSimulatorHandler(string capsKey, IMessage message, Simulator simulator)
