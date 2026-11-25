@@ -83,7 +83,7 @@ The cached `keywords_lsl_*.xml`/`keywords_lua_*.xml` files used by `LslSyntax` m
 
 `AssetManager` is now `IDisposable`, so disposing a `GridClient` also unregisters its asset/texture-transfer packet callbacks and cancels any in-flight HTTP asset or texture downloads (`AssetManager.HttpDownloadManager`) instead of leaving them running.
 
-`GridClient.Dispose()` also now calls `Dispose()` on `Avatars`, `Directory`, `Environment`, `Estate`, `Friends`, `Grid`, `Groups` and `InterestList` — all eight already implemented `IDisposable` and unregistered their own packet/CAPS callbacks, `GridClient.Dispose()` just never called them. A couple have a finalizer as a backstop, so this was eventually cleaned up non-deterministically rather than never; now it happens synchronously, in `Dispose()`, like every other subsystem.
+`GridClient.Dispose()` also now calls `Dispose()` on `Avatars`, `Directory`, `Environment`, `Estate`, `Friends`, `Grid`, `Groups`, `InterestList` and `Self` — all nine already had a complete `Dispose(bool)` unregistering their own packet/CAPS/login-response callbacks, `GridClient.Dispose()` just never called them (`Self`/`AgentManager` additionally never declared `IDisposable` on the class at all, despite having the method). Most of these also have a finalizer, but it didn't help: their cleanup only runs when `disposing` is true, which a finalizer never passes — so none of this ever ran, not even eventually. It does now, synchronously, in `Dispose()`, like every other subsystem.
 
 Nothing to change unless you were relying on an in-flight asset/texture download, or one of these subsystems' callbacks, outliving `Dispose()`.
 
