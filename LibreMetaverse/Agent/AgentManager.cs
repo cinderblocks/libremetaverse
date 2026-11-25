@@ -41,7 +41,7 @@ namespace LibreMetaverse
     /// <summary>
     /// Manager class for our own avatar
     /// </summary>
-    public partial class AgentManager
+    public partial class AgentManager : IDisposable
     {
         #region Delegates
         #endregion Delegates
