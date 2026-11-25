@@ -168,7 +168,7 @@ namespace LibreMetaverse
     /// <summary>
     /// 
     /// </summary>
-    public class AssetManager
+    public class AssetManager : IDisposable
     {
         /// <summary>Number of milliseconds to wait for a transfer header packet if out of order data was received</summary>
         private const int TRANSFER_HEADER_TIMEOUT = 1000 * 15;
@@ -352,6 +352,55 @@ namespace LibreMetaverse
 
             // Simulator is responding to a request to download a file
             Client.Network.RegisterCallback(PacketType.InitiateDownload, InitiateDownloadPacketHandler);
+        }
+
+        private bool _disposed;
+
+        /// <summary>
+        /// Unregisters packet callbacks and disposes <see cref="HttpDownloads"/> and <see cref="Cache"/>
+        /// (if the assigned cache implements <see cref="IDisposable"/>).
+        /// </summary>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+            _disposed = true;
+
+            if (!disposing) return;
+
+            try
+            {
+                Client.Network.UnregisterCallback(PacketType.TransferInfo, TransferInfoHandler);
+                Client.Network.UnregisterCallback(PacketType.TransferPacket, TransferPacketHandler);
+                Client.Network.UnregisterCallback(PacketType.RequestXfer, RequestXferHandler);
+                Client.Network.UnregisterCallback(PacketType.ConfirmXferPacket, ConfirmXferPacketHandler);
+                Client.Network.UnregisterCallback(PacketType.AssetUploadComplete, AssetUploadCompleteHandler);
+                Client.Network.UnregisterCallback(PacketType.SendXferPacket, SendXferPacketHandler);
+                Client.Network.UnregisterCallback(PacketType.AbortXfer, AbortXferHandler);
+                Client.Network.UnregisterCallback(PacketType.InitiateDownload, InitiateDownloadPacketHandler);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Exception while disposing AssetManager: " + ex.Message, ex, Client);
+            }
+
+            // Texture (TexturePipeline) already unregisters its own callbacks and cancels its
+            // download loop on Network.Disconnected, which GridClient.Dispose() triggers before
+            // this runs - nothing to do for it here.
+
+            DisposalHelper.SafeDispose(HttpDownloads, nameof(HttpDownloads));
+
+            if (Cache is IDisposable cacheDisposable)
+                DisposalHelper.SafeDispose(cacheDisposable, nameof(Cache));
+        }
+
+        /// <summary>
+        /// Unregisters network callbacks and disposes <see cref="HttpDownloads"/> and <see cref="Cache"/>
+        /// (if disposable). Called automatically by <see cref="GridClient.Dispose()"/>.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         // TODO: Probably somewhere else is a more useful place to keep this.
