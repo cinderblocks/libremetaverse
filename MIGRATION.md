@@ -2,7 +2,7 @@
 
 Each guide below takes you from one release to the next. If you are several releases behind, apply the guides for every step between your version and the new one, newest first.
 
-- [3.4.0 → 3.5.0](#migration-guide-340--350): `AssetManager.Cache` and `Inventory.CacheProvider` are pluggable; a new opt-in per-region object cache; prim mesh generation closes shapes and numbers faces correctly; `GridClient.Dispose()` cleans up `AssetManager`
+- [3.4.0 → 3.5.0](#migration-guide-340--350): `AssetManager.Cache` and `Inventory.CacheProvider` are pluggable; a new opt-in per-region object cache; prim mesh generation closes shapes and numbers faces correctly; `GridClient.Dispose()` now cleans up every subsystem deterministically
 - [3.3.1 → 3.4.0](#migration-guide-331--340): attaching and detaching now wait for the simulator to confirm; batched multi-attach; opt-in fast region crossing; a custom caps connect callback
 - [3.1.x → 3.2.0](#migration-guide-31x--320): the library is split into more packages; model import, export and upload
 - [3.1.7 → 3.1.8](#migration-guide-317--318-server-certificate-validation): server certificate validation
@@ -19,7 +19,7 @@ One change can fail to compile: `AssetManager.Cache` is now typed as an interfac
 
 - [ ] Read [`AssetManager.Cache` is now `IAssetCacheProvider`](#1-assetmanagercache-is-now-iassetcacheprovider) if any code declares a variable or field of type `AssetCache` holding `client.Assets.Cache`, or calls `.Dispose()` on it directly.
 - [ ] Read [PrimMesher now produces correct, closed meshes](#4-primesher-now-produces-correct-closed-meshes) if you generate meshes with `PrimMesher`/`MeshFoundry` directly (not just rendering what the simulator sends) and your code reasons about prim face counts or face numbers.
-- [ ] Read [`GridClient.Dispose()` now cleans up `AssetManager`](#7-gridclientdispose-now-cleans-up-assetmanager) if you rely on an asset or texture download outliving `Dispose()`.
+- [ ] Read [`GridClient.Dispose()` now runs every subsystem's cleanup deterministically](#7-gridclientdispose-now-runs-every-subsystems-cleanup-deterministically) if you rely on an asset/texture download, or a subsystem's callbacks, outliving `Dispose()`.
 - [ ] Nothing else requires a change. [The pluggable object cache](#2-a-pluggable-per-region-object-cache), [`Inventory.CacheProvider`](#3-inventorycacheprovider), and the [group/conference chat roster fix](#5-group-and-conference-chat-roster-fix) are all additive or opt-in.
 
 ## 1. `AssetManager.Cache` is now `IAssetCacheProvider`
@@ -79,9 +79,13 @@ If your code maps prim face numbers to textures, or snapshot-tests generated mes
 
 The cached `keywords_lsl_*.xml`/`keywords_lua_*.xml` files used by `LslSyntax` moved from `Settings.AssetCache.Dir` to `Settings.ResourceDir/lslsyntax/` — they were never asset-cache data, just piggybacking on its directory. Old cached files are orphaned (safe to delete manually) and new ones are written and read from the new location automatically; nothing to change unless something outside LibreMetaverse was reading those files directly.
 
-## 7. `GridClient.Dispose()` now cleans up `AssetManager`
+## 7. `GridClient.Dispose()` now runs every subsystem's cleanup deterministically
 
-`AssetManager` is now `IDisposable`, so disposing a `GridClient` also unregisters its asset/texture-transfer packet callbacks and cancels any in-flight HTTP asset or texture downloads (`AssetManager.HttpDownloadManager`) instead of leaving them running. Nothing to change unless you were relying on an in-flight download outliving `Dispose()`.
+`AssetManager` is now `IDisposable`, so disposing a `GridClient` also unregisters its asset/texture-transfer packet callbacks and cancels any in-flight HTTP asset or texture downloads (`AssetManager.HttpDownloadManager`) instead of leaving them running.
+
+`GridClient.Dispose()` also now calls `Dispose()` on `Avatars`, `Directory`, `Environment`, `Estate`, `Friends`, `Grid`, `Groups` and `InterestList` — all eight already implemented `IDisposable` and unregistered their own packet/CAPS callbacks, `GridClient.Dispose()` just never called them. A couple have a finalizer as a backstop, so this was eventually cleaned up non-deterministically rather than never; now it happens synchronously, in `Dispose()`, like every other subsystem.
+
+Nothing to change unless you were relying on an in-flight asset/texture download, or one of these subsystems' callbacks, outliving `Dispose()`.
 
 ---
 
