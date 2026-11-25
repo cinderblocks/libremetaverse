@@ -331,6 +331,14 @@ namespace LibreMetaverse
                 if (Marketplace is IDisposable marketplaceDisposable) DisposalHelper.SafeDispose(marketplaceDisposable);
                 if (Parcels is IDisposable parcelsDisposable) DisposalHelper.SafeDispose(parcelsDisposable);
                 if (Objects is IDisposable objectsDisposable) DisposalHelper.SafeDispose(objectsDisposable);
+                if (Avatars is IDisposable avatarsDisposable) DisposalHelper.SafeDispose(avatarsDisposable);
+                if (Directory is IDisposable directoryDisposable) DisposalHelper.SafeDispose(directoryDisposable);
+                if (Environment is IDisposable environmentDisposable) DisposalHelper.SafeDispose(environmentDisposable);
+                if (Estate is IDisposable estateDisposable) DisposalHelper.SafeDispose(estateDisposable);
+                if (Friends is IDisposable friendsDisposable) DisposalHelper.SafeDispose(friendsDisposable);
+                if (Grid is IDisposable gridDisposable) DisposalHelper.SafeDispose(gridDisposable);
+                if (Groups is IDisposable groupsDisposable) DisposalHelper.SafeDispose(groupsDisposable);
+                if (InterestList is IDisposable interestListDisposable) DisposalHelper.SafeDispose(interestListDisposable);
 
                 // Now safe to dispose HttpCapsClient — network is shut down and all subsystems
                 // that used it have been disposed, so no more requests are in flight.
