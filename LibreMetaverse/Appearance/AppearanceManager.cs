@@ -2703,6 +2703,59 @@ namespace LibreMetaverse
         }
 
         /// <summary>
+        /// The attachments to send for the Current Outfit folder: one block per item (the folder read lists a link
+        /// and its target, which resolve to the same item), without those
+        /// <see cref="AgentSettings.OutfitSendExclude"/> keeps off, without those already attached when
+        /// <see cref="AgentSettings.OutfitSendDetachAll"/> is off, in <see cref="AgentSettings.OutfitSendRank"/> order
+        /// </summary>
+        internal List<RezMultipleAttachmentsFromInvPacket.ObjectDataBlock> PrepareOutfitBlocks(
+            List<RezMultipleAttachmentsFromInvPacket.ObjectDataBlock> blocks)
+        {
+            var settings = Client.Settings.Agent;
+            IEnumerable<RezMultipleAttachmentsFromInvPacket.ObjectDataBlock> result =
+                blocks.GroupBy(b => b.ItemID).Select(g => g.First());
+
+            var exclude = settings.OutfitSendExclude;
+            if (exclude != null)
+                result = result.Where(b => !exclude(b.ItemID, Utils.BytesToString(b.Name)));
+
+            if (!settings.OutfitSendDetachAll)
+            {
+                var attached = AttachedItemIdsInCurrentSim();
+                result = result.Where(b => !attached.Contains(b.ItemID));
+            }
+
+            var rank = settings.OutfitSendRank;
+            if (rank != null)
+                result = result.OrderBy(b => rank(Utils.BytesToString(b.Name)));   // stable: equal ranks keep folder order
+
+            var list = result.ToList();
+            if (list.Count != blocks.Count)
+                Logger.Debug($"Outfit send: {list.Count} of {blocks.Count} attachment blocks to send", Client);
+            return list;
+        }
+
+        /// <summary>Inventory item IDs of the objects attached to our avatar in the current simulator</summary>
+        private HashSet<UUID> AttachedItemIdsInCurrentSim()
+        {
+            var ids = new HashSet<UUID>();
+            var sim = Client.Network.CurrentSim;
+            var self = Client.Self.LocalID;
+            if (sim == null || self == 0) return ids;
+
+            foreach (var prim in sim.ObjectsPrimitives.Values)
+            {
+                if (prim?.NameValues == null || prim.ParentID != self) continue;
+                foreach (var nv in prim.NameValues)
+                {
+                    if (nv.Name == "AttachItemID" && UUID.TryParse(nv.Value?.ToString() ?? string.Empty, out var id))
+                        ids.Add(id);
+                }
+            }
+            return ids;
+        }
+
+        /// <summary>
         /// Async-first implementation to send the Current Outfit folder to the current simulator.
         /// </summary>
         /// <param name="cancellationToken">Cancellation token to cancel the operation</param>
@@ -2808,6 +2861,18 @@ namespace LibreMetaverse
                 }
             }
 
+            blocks = PrepareOutfitBlocks(blocks);
+            if (blocks.Count == 0)
+            {
+                // Nothing to attach, whether because everything's already on (OutfitSendDetachAll off) or
+                // OutfitSendExclude filtered out everything there was to send. Either way, don't send a
+                // FirstDetachAll=true packet with zero objects just because the filtered list is empty --
+                // that would detach the whole avatar as a side effect of an exclude predicate, not because
+                // anyone asked to clear the outfit.
+                Logger.Debug("Outfit send: nothing to send after filtering", Client);
+                return;
+            }
+
             var attachmentsPacket = new RezMultipleAttachmentsFromInvPacket
             {
                 AgentData =
@@ -2818,7 +2883,7 @@ namespace LibreMetaverse
                 HeaderData =
                 {
                     CompoundMsgID = UUID.Random(),
-                    FirstDetachAll = true,
+                    FirstDetachAll = Client.Settings.Agent.OutfitSendDetachAll,
                     TotalObjects = (byte)blocks.Count
                 },
                 ObjectData = blocks.ToArray()
@@ -3544,7 +3609,13 @@ namespace LibreMetaverse
                                 shouldSend = v > _lastSentOutfitCOFVersion;
                                 if (shouldSend) _lastSentOutfitCOFVersion = v;
                             }
-                            if (shouldSend)
+                            // Client is a readonly non-null field; the ?. a few lines up on an unrelated
+                            // chain (Client?.Network?.CurrentSim?.Caps) is what makes the analyzer think
+                            // otherwise here.
+                            var agentSettings = Client!.Settings.Agent;
+                            if (shouldSend && !agentSettings.SendOutfitAfterBake)
+                                Logger.Debug("Not sending the outfit after the server bake (Settings.Agent.SendOutfitAfterBake is off)", Client);
+                            else if (shouldSend)
                                 await SendOutfitToCurrentSimulatorAsync(cancellationToken).ConfigureAwait(false);
                             else
                                 Logger.Debug($"Skipping duplicate outfit send (already sent for COF v{_lastSentOutfitCOFVersion})", Client);
